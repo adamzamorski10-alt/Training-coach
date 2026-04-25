@@ -1,0 +1,15 @@
+# Środowisko wirtualne
+venv/
+__pycache__/
+*.pyc
+
+# Dane wrażliwe i konfiguracja
+.env
+
+# Baza danych i pliki tymczasowe
+fitai_users.json
+*.lock
+*.tmp
+
+# Testy
+.pytest_cache/
