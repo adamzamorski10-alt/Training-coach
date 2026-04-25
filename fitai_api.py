@@ -21,6 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import date, datetime
+import json
 import anthropic
 import os
 from dotenv import load_dotenv
@@ -81,7 +82,7 @@ class AIRequest(BaseModel):
 def ask_claude(system: str, user_msg: str, max_tokens: int = 800) -> str:
     try:
         message = ai_client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model="claude-3-5-sonnet-20240620",
             max_tokens=max_tokens,
             system=system,
             messages=[{"role": "user", "content": user_msg}],
