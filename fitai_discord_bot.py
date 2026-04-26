@@ -20,7 +20,6 @@ import anthropic
 import json
 import os
 import asyncio
-from datetime import datetime, date, timedelta
 from datetime import datetime, date, timedelta, timezone
 from dotenv import load_dotenv
 from fitai_utils import load_db, save_db, get_user, save_user, calc_calories, calc_protein
@@ -42,7 +41,6 @@ ai_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 def ask_claude(system: str, user_msg: str, max_tokens: int = 800) -> str:
     try:
         message = ai_client.messages.create(
-            model="claude-sonnet-4-20250514",
             model="claude-3-5-sonnet-20240620",
             max_tokens=max_tokens,
             system=system,
@@ -61,7 +59,6 @@ def profile_embed(profile: dict, username: str) -> discord.Embed:
     embed = discord.Embed(
         title=f"🏋️ Profil FitAI — {profile.get('name', username)}",
         color=0x185FA5,
-        timestamp=datetime.utcnow(),
         timestamp=datetime.now(timezone.utc),
     )
     embed.add_field(
@@ -221,7 +218,6 @@ async def fit(interaction: discord.Interaction, akcja: str = "pomoc"):
             title="📊 Analiza dnia + Plan na jutro",
             description=ai_response,
             color=0x1D9E75,
-            timestamp=datetime.utcnow(),
             timestamp=datetime.now(timezone.utc),
         )
         embed.set_footer(text=f"FitAI | {date.today().strftime('%d.%m.%Y')}")
@@ -317,7 +313,6 @@ async def fit(interaction: discord.Interaction, akcja: str = "pomoc"):
         embed = discord.Embed(
             title="📈 Tygodniowe podsumowanie",
             color=0x7F77DD,
-            timestamp=datetime.utcnow(),
             timestamp=datetime.now(timezone.utc),
         )
         embed.add_field(

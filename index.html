@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pl" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitAI — Twój Inteligentny Trener AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #101012;
+            color: #ffffff;
+        }
+
+        .neon-glow {
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
+        }
+
+        .neon-border {
+            border: 1px solid rgba(0, 229, 255, 0.5);
+        }
+
+        .glass {
+            background: rgba(16, 16, 18, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .hero-gradient {
+            background: radial-gradient(circle at 50% 50%, rgba(0, 229, 255, 0.15) 0%, rgba(16, 16, 18, 0) 70%);
+        }
+    </style>
+</head>
+
+<body class="antialiased">
+
+    <!-- Sticky Navbar -->
+    <nav class="fixed top-0 w-full z-50 glass border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="text-2xl font-bold tracking-tighter italic">
+                Fit<span class="text-[#00E5FF]">AI</span>
+            </div>
+
+            <!-- Desktop Menu -->
+            <div class="hidden md:flex space-x-8 text-sm font-medium text-gray-400">
+                <a href="#funkcje" class="hover:text-[#00E5FF] transition">Funkcje</a>
+                <a href="#jak-to-dziala" class="hover:text-[#00E5FF] transition">Jak to działa</a>
+                <a href="#cennik" class="hover:text-[#00E5FF] transition">Cennik</a>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                <a href="#"
+                    class="hidden sm:block bg-[#00E5FF] text-[#101012] px-6 py-2.5 rounded-full font-bold text-sm neon-glow hover:scale-105 transition-transform">
+                    Pobierz
+                </a>
+                <!-- Mobile Menu Button -->
+                <button id="menu-btn" class="md:hidden text-white focus:outline-none">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6h16M4 12h16m-7 6h7"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <!-- Mobile Menu Overlay -->
+        <div id="mobile-menu"
+            class="hidden md:hidden absolute top-20 left-0 w-full bg-[#101012] border-b border-white/10 p-6 flex flex-col space-y-4 text-center">
+            <a href="#funkcje" class="text-gray-400 hover:text-[#00E5FF] py-2">Funkcje</a>
+            <a href="#jak-to-dziala" class="text-gray-400 hover:text-[#00E5FF] py-2">Jak to działa</a>
+            <a href="#cennik" class="text-gray-400 hover:text-[#00E5FF] py-2">Cennik</a>
+            <a href="#" class="bg-[#00E5FF] text-[#101012] py-3 rounded-xl font-bold">Pobierz aplikację</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative pt-40 pb-20 px-6 hero-gradient overflow-hidden">
+        <div class="max-w-7xl mx-auto text-center relative z-10">
+            <h1 class="text-5xl md:text-7xl font-bold leading-tight mb-6">
+                Zrewolucjonizuj swoją formę <br>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#00E5FF] to-blue-500">z potęgą Claude
+                    AI</span>
+            </h1>
+            <p class="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
+                Twój osobisty asystent fitness w kieszeni. Inteligentne plany diety, treningi i analiza postępów
+                dostępna przez Web i Discord.
+            </p>
+            <div class="flex flex-col md:flex-row justify-center items-center space-y-4 md:space-y-0 md:space-x-4">
+                <button
+                    class="w-full md:w-auto bg-[#00E5FF] text-[#101012] px-10 py-4 rounded-xl font-bold text-lg neon-glow hover:brightness-110 transition">
+                    Zacznij darmowy test
+                </button>
+                <button
+                    class="w-full md:w-auto bg-white/5 border border-white/10 px-10 py-4 rounded-xl font-bold text-lg hover:bg-white/10 transition">
+                    Zobacz demo
+                </button>
+            </div>
+            <!-- Placeholder for Screenshot -->
+            <div class="mt-20 relative mx-auto max-w-5xl">
+                <div
+                    class="absolute -top-10 left-1/2 -translate-x-1/2 w-3/4 h-64 bg-[#00E5FF]/20 blur-[120px] rounded-full">
+                </div>
+                <div class="relative bg-gray-900 rounded-2xl border border-white/10 p-2 shadow-2xl">
+                    <div
+                        class="bg-[#101012] rounded-xl aspect-video flex items-center justify-center border border-white/5 overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=2070&auto=format&fit=crop"
+                            alt="Dashboard Preview" class="opacity-50 object-cover w-full h-full">
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div
+                                class="bg-[#101012]/80 px-6 py-3 rounded-lg border border-[#00E5FF]/30 backdrop-blur-md">
+                                <p class="text-[#00E5FF] font-mono tracking-widest text-sm">PREVIEW INTERFEJSU FITAI</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Grid -->
+    <section id="funkcje" class="py-24 px-6 bg-[#08080a]">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">Inteligentne funkcje</h2>
+                <p class="text-gray-500">Wszystko, czego potrzebujesz, by osiągnąć wymarzoną sylwetkę.</p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Card 1 -->
+                <div
+                    class="bg-white/5 p-8 rounded-3xl border border-white/10 hover:border-[#00E5FF]/50 transition duration-500 group">
+                    <div
+                        class="w-12 h-12 bg-[#00E5FF]/10 rounded-xl flex items-center justify-center mb-6 group-hover:neon-glow transition duration-500">
+                        <svg class="w-6 h-6 text-[#00E5FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4">
+                            </path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Dieta szyta na miarę</h3>
+                    <p class="text-gray-400 leading-relaxed">AI generuje precyzyjne jadłospisy z gramaturą i kaloriami,
+                        uwzględniając Twoje alergie i preferencje smakowe.</p>
+                </div>
+                <!-- Card 2 -->
+                <div
+                    class="bg-white/5 p-8 rounded-3xl border border-white/10 hover:border-[#00E5FF]/50 transition duration-500 group">
+                    <div
+                        class="w-12 h-12 bg-[#00E5FF]/10 rounded-xl flex items-center justify-center mb-6 group-hover:neon-glow transition duration-500">
+                        <svg class="w-6 h-6 text-[#00E5FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Dynamiczny Trening</h3>
+                    <p class="text-gray-400 leading-relaxed">Plan treningowy dostosowuje się do Twojego zmęczenia i
+                        postępów. Nigdy więcej stagnacji.</p>
+                </div>
+                <!-- Card 3 -->
+                <div
+                    class="bg-white/5 p-8 rounded-3xl border border-white/10 hover:border-[#00E5FF]/50 transition duration-500 group">
+                    <div
+                        class="w-12 h-12 bg-[#00E5FF]/10 rounded-xl flex items-center justify-center mb-6 group-hover:neon-glow transition duration-500">
+                        <svg class="w-6 h-6 text-[#00E5FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z">
+                            </path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Analiza Postępów</h3>
+                    <p class="text-gray-400 leading-relaxed">Tygodniowe raporty generowane przez Claude 3.5 Sonnet,
+                        które wskażą Ci dokładnie, co ulepszyć.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Steps Section -->
+    <section id="jak-to-dziala" class="py-24 px-6">
+        <div class="max-w-4xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">3 proste kroki do formy</h2>
+            </div>
+            <div class="space-y-12">
+                <div class="flex items-start space-x-6">
+                    <div class="text-4xl font-bold text-[#00E5FF]/20">01</div>
+                    <div>
+                        <h4 class="text-xl font-bold mb-2 text-white">Załóż profil</h4>
+                        <p class="text-gray-400">Podaj swoje parametry i cele przez intuicyjny dashboard lub bota
+                            Discord.</p>
+                    </div>
+                </div>
+                <div class="flex items-start space-x-6 border-l border-white/10 ml-5 pl-11 py-4">
+                    <div class="text-4xl font-bold text-[#00E5FF]/20">02</div>
+                    <div>
+                        <h4 class="text-xl font-bold mb-2 text-white">Raportuj dzień</h4>
+                        <p class="text-gray-400">Wpisz co jadłeś i jak trenowałeś. AI przeanalizuje dane w czasie
+                            rzeczywistym.</p>
+                    </div>
+                </div>
+                <div class="flex items-start space-x-6">
+                    <div class="text-4xl font-bold text-[#00E5FF]/20">03</div>
+                    <div>
+                        <h4 class="text-xl font-bold mb-2 text-white">Osiągaj wyniki</h4>
+                        <p class="text-gray-400">Otrzymuj zaktualizowane wskazówki na każdy kolejny dzień.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Cards -->
+    <section id="cennik" class="py-24 px-6 bg-[#08080a]">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">Wybierz swój plan</h2>
+            </div>
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Free -->
+                <div class="bg-white/5 p-10 rounded-3xl border border-white/5 flex flex-col items-center">
+                    <span class="text-gray-400 font-medium mb-4 uppercase tracking-widest text-xs">Free</span>
+                    <div class="text-4xl font-bold mb-6">0 PLN<span
+                            class="text-lg text-gray-500 font-normal">/msc</span></div>
+                    <ul class="text-gray-400 space-y-4 mb-10 text-center">
+                        <li>Dostęp do bota Discord</li>
+                        <li>Podstawowe plany diety</li>
+                        <li>1 raport dziennie</li>
+                    </ul>
+                    <button
+                        class="mt-auto w-full py-3 rounded-xl border border-white/10 hover:bg-white/5 transition font-semibold">Wybierz
+                        Free</button>
+                </div>
+                <!-- Pro -->
+                <div
+                    class="bg-[#101012] p-10 rounded-3xl border-[#00E5FF] border neon-glow flex flex-col items-center relative scale-105">
+                    <div
+                        class="absolute -top-4 bg-[#00E5FF] text-[#101012] text-xs font-bold px-4 py-1 rounded-full uppercase">
+                        Najbardziej popularny</div>
+                    <span class="text-[#00E5FF] font-medium mb-4 uppercase tracking-widest text-xs">Pro</span>
+                    <div class="text-4xl font-bold mb-6">49 PLN<span
+                            class="text-lg text-gray-500 font-normal">/msc</span></div>
+                    <ul class="text-gray-300 space-y-4 mb-10 text-center font-medium">
+                        <li>Wszystko w planie Free</li>
+                        <li>Pełna moc Claude 3.5 Sonnet</li>
+                        <li>Nielimitowane analizy AI</li>
+                        <li>Historia postępów i wykresy</li>
+                    </ul>
+                    <button
+                        class="mt-auto w-full py-3 rounded-xl bg-[#00E5FF] text-[#101012] font-bold hover:brightness-110 transition">Zacznij
+                        Pro</button>
+                </div>
+                <!-- Enterprise -->
+                <div class="bg-white/5 p-10 rounded-3xl border border-white/5 flex flex-col items-center">
+                    <span class="text-gray-400 font-medium mb-4 uppercase tracking-widest text-xs">Enterprise</span>
+                    <div class="text-4xl font-bold mb-6 italic text-xl">Kontakt</div>
+                    <ul class="text-gray-400 space-y-4 mb-10 text-center">
+                        <li>Dla trenerów i klubów</li>
+                        <li>Zarządzanie podopiecznymi</li>
+                        <li>Własne API i integracje</li>
+                        <li>Dedykowany support</li>
+                    </ul>
+                    <button
+                        class="mt-auto w-full py-3 rounded-xl border border-white/10 hover:bg-white/5 transition font-semibold">Skontaktuj
+                        się</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 px-6 border-t border-white/5">
+        <div class="max-w-7xl mx-auto flex flex-col md:row justify-between items-center">
+            <div class="text-xl font-bold tracking-tighter mb-6 md:mb-0 italic">
+                Fit<span class="text-[#00E5FF]">AI</span>
+            </div>
+            <div class="text-gray-500 text-sm mb-6 md:mb-0">
+                &copy; 2026 FitAI System. Wszystkie prawa zastrzeżone.
+            </div>
+            <div class="flex space-x-6">
+                <a href="#" class="text-gray-400 hover:text-[#00E5FF] transition">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                        <path
+                            d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z" />
+                    </svg>
+                </a>
+                <a href="#" class="text-gray-400 hover:text-[#00E5FF] transition">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                        <path
+                            d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile Menu Logic
+        const menuBtn = document.getElementById('menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        menuBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // Close menu when clicking a link
+        document.querySelectorAll('#mobile-menu a').forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.add('hidden');
+            });
+        });
+    </script>
+</body>
+
+</html>
