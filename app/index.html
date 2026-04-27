@@ -512,7 +512,7 @@
           konfiguracja API?</summary>
         <p class="muted" style="margin: 10px 0 0 0; line-height: 1.5;">
           <strong>API (Application Programming Interface)</strong> to backend serwer, który przetwarza Twoje dane.<br />
-          <strong>URL backendu:</strong> https://training-coach-api.onrender.com — to nasz serwer na platformie
+          <strong>URL backendu:</strong> https://fitai-api-v83w.onrender.com — to nasz serwer na platformie
           Render.com.<br />
           <strong>Lokalne testowanie:</strong> http://127.0.0.1:8000 — gdy uruchamiasz API lokalnie na swoim
           komputerze.<br />
@@ -522,7 +522,7 @@
         </p>
       </details>
       <p class="muted" style="margin-bottom: 12px;">Aby panel działał, musisz wskazać URL backendu API. Domyślnie:
-        <strong>https://training-coach-api.onrender.com</strong> (produkcja) lub <strong>http://127.0.0.1:8000</strong>
+        <strong>https://fitai-api-v83w.onrender.com</strong> (produkcja) lub <strong>http://127.0.0.1:8000</strong>
         (lokalne testowanie).
       </p>
       <form id="apiBaseForm" class="cols-2">
@@ -793,7 +793,7 @@
   <script>
     const DEFAULT_API_BASE = window.location.hostname === 'localhost'
       ? 'http://127.0.0.1:8000'
-      : 'https://training-coach-api.onrender.com';
+      : 'https://fitai-api-v83w.onrender.com';
 
     let API_BASE = localStorage.getItem('fitai_api_base') || DEFAULT_API_BASE;
     const state = { user: null, chart: null, profile: null, plan: null };
