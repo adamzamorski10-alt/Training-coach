@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FitAI App</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;700&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f16;
+      --surface: #121926;
+      --surface2: #1a2436;
+      --text: #eef3ff;
+      --muted: #8ea2c4;
+      --line: rgba(255, 255, 255, 0.08);
+      --accent: #29d3ff;
+      --accent2: #39ff9d;
+      --danger: #ff5c7a;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: radial-gradient(circle at 10% -10%, #14374d 0%, transparent 45%), var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    .layout {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.4rem;
+    }
+
+    .brand span {
+      color: var(--accent);
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 14px;
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .btn.primary {
+      background: var(--accent);
+      color: #00131a;
+      border-color: transparent;
+    }
+
+    .btn.good {
+      background: var(--accent2);
+      color: #052218;
+      border-color: transparent;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 18px;
+    }
+
+    .card {
+      background: linear-gradient(160deg, rgba(255, 255, 255, 0.02), transparent 30%), var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .card h2 {
+      margin: 0 0 10px;
+      font-family: 'Syne', sans-serif;
+      font-size: 1.15rem;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .kpi {
+      background: var(--surface2);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .kpi .value {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.35rem;
+      color: var(--accent);
+    }
+
+    form {
+      display: grid;
+      gap: 10px;
+    }
+
+    .cols-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    label {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    input,
+    select,
+    textarea {
+      margin-top: 5px;
+      width: 100%;
+      background: #0e1624;
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      font: inherit;
+    }
+
+    textarea {
+      min-height: 84px;
+      resize: vertical;
+    }
+
+    .status {
+      margin: 10px 0;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #0e1624;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .status.warn {
+      border-color: rgba(255, 92, 122, 0.45);
+      color: #ffd9e1;
+      background: rgba(255, 92, 122, 0.08);
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .section {
+      margin-top: 16px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      border: 1px solid var(--line);
+    }
+
+    .pill.pro {
+      background: rgba(41, 211, 255, 0.1);
+      border-color: rgba(41, 211, 255, 0.5);
+      color: var(--accent);
+    }
+
+    .chart-wrap {
+      height: 280px;
+    }
+
+    @media (max-width: 980px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .kpis {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .cols-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="layout">
+    <div class="topbar">
+      <div>
+        <div class="brand">Fit<span>AI</span> App</div>
+        <div class="muted" id="identityState">Sprawdzam logowanie...</div>
+      </div>
+      <div class="actions">
+        <button class="btn" id="loginBtn">Zaloguj</button>
+        <button class="btn" id="signupBtn">Rejestracja</button>
+        <button class="btn hidden" id="logoutBtn">Wyloguj</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Konfiguracja API</h2>
+      <p class="muted">Ustaw adres backendu FastAPI, z ktorego panel ma pobierac dane. Ta wartosc jest zapisywana
+        lokalnie w przegladarce.</p>
+      <form id="apiBaseForm" class="cols-2">
+        <label>API Base URL
+          <input id="apiBaseInput" name="api_base" placeholder="https://twoj-backend-api" />
+        </label>
+        <div style="display:flex;align-items:flex-end;gap:10px;">
+          <button class="btn" type="submit">Zapisz API URL</button>
+          <button class="btn" type="button" id="resetApiBaseBtn">Przywroc domyslny</button>
+        </div>
+      </form>
+      <div class="status" id="apiBaseStatus">Biezacy API URL: -</div>
+    </div>
+
+    <div id="appLocked" class="card">
+      <h2>Panel jest chroniony</h2>
+      <p class="muted">Zaloguj się przez Netlify Identity, aby przejść onboarding i korzystać z planów AI, check-inów i
+        dashboardu postępów.</p>
+    </div>
+
+    <div id="appUnlocked" class="hidden">
+      <div class="kpis">
+        <div class="kpi">
+          <div class="muted">Plan</div>
+          <div class="value" id="kpiPlan">Free</div>
+        </div>
+        <div class="kpi">
+          <div class="muted">Rola</div>
+          <div class="value" id="kpiRole">free_user</div>
+        </div>
+        <div class="kpi">
+          <div class="muted">Streak</div>
+          <div class="value" id="kpiStreak">0</div>
+        </div>
+        <div class="kpi">
+          <div class="muted">Treningi / 7 dni</div>
+          <div class="value" id="kpiConsistency">0%</div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h2>Onboarding i profil</h2>
+          <form id="onboardingForm">
+            <div class="cols-2">
+              <label>Imie<input required name="name" /></label>
+              <label>Wiek<input required type="number" name="age" min="12" max="99" /></label>
+            </div>
+            <div class="cols-2">
+              <label>Wzrost (cm)<input required type="number" name="height" min="100" max="240" /></label>
+              <label>Waga (kg)<input required type="number" step="0.1" name="weight" min="30" max="250" /></label>
+            </div>
+            <div class="cols-2">
+              <label>Waga docelowa (kg)<input required type="number" step="0.1" name="target_weight" min="30"
+                  max="250" /></label>
+              <label>Plec
+                <select name="gender">
+                  <option>mężczyzna</option>
+                  <option>kobieta</option>
+                  <option>inna</option>
+                </select>
+              </label>
+            </div>
+            <div class="cols-2">
+              <label>Cel
+                <select name="goal">
+                  <option>Redukcja tkanki tłuszczowej</option>
+                  <option>Budowa masy mięśniowej</option>
+                  <option>Poprawa kondycji</option>
+                  <option>Utrzymanie wagi</option>
+                </select>
+              </label>
+              <label>Aktywnosc
+                <select name="frequency">
+                  <option>sedentaryczny</option>
+                  <option>1-2 razy w tygodniu</option>
+                  <option>3-4 razy w tygodniu</option>
+                  <option>5-6 razy w tygodniu</option>
+                  <option>Codziennie</option>
+                </select>
+              </label>
+            </div>
+            <div class="cols-2">
+              <label>Sporty (po przecinku)<input name="sports" placeholder="siłownia, bieganie" /></label>
+              <label>Dieta
+                <select name="diet">
+                  <option>Brak preferencji</option>
+                  <option>Wegetariańska</option>
+                  <option>Wegańska</option>
+                  <option>Ketogeniczna</option>
+                  <option>High-protein</option>
+                </select>
+              </label>
+            </div>
+            <div class="cols-2">
+              <label>Alergie<input name="allergies" /></label>
+              <label>Posilkow dziennie<input type="number" min="2" max="8" name="meals_per_day" value="4" /></label>
+            </div>
+            <label>Notatki<textarea name="notes" placeholder="np. bol barku, preferencje smakowe"></textarea></label>
+            <button class="btn primary" type="submit">Zapisz onboarding</button>
+          </form>
+          <div class="status" id="onboardingStatus">Uzupełnij profil, aby aktywować dashboard i check-in.</div>
+        </div>
+
+        <div>
+          <div class="card">
+            <h2>Daily Check-in</h2>
+            <form id="checkinForm">
+              <label>Co jadles?<textarea name="food" placeholder="np. owsianka, kurczak z ryzem"></textarea></label>
+              <label>Trening<textarea name="workout" placeholder="np. push day 45 min"></textarea></label>
+              <label>Samopoczucie<textarea name="mood"
+                  placeholder="np. energia dobra, lekkie zmeczenie"></textarea></label>
+              <label>Waga (opcjonalnie)<input name="weight" type="number" step="0.1" /></label>
+              <button class="btn good" type="submit">Wyślij check-in i wygeneruj plan na jutro</button>
+            </form>
+            <div class="status" id="checkinStatus">Jeszcze bez check-inu.</div>
+          </div>
+
+          <div class="card section">
+            <h2>Subskrypcja i platnosci</h2>
+            <div class="muted">Plan: <span id="planPill" class="pill">free</span></div>
+            <div class="actions section">
+              <button class="btn primary" id="buyProBtn">Kup Pro (Stripe)</button>
+              <button class="btn" id="setFreeBtn">Ustaw Free</button>
+            </div>
+            <div class="status" id="billingStatus">Brak zmian płatności.</div>
+          </div>
+
+          <div class="card section">
+            <h2>SSO i integracje</h2>
+            <form id="linkDiscordForm">
+              <label>Discord User ID<input name="discord_user_id" placeholder="np. 123456789012345678" /></label>
+              <button class="btn" type="submit">Połącz konto z Discord</button>
+            </form>
+            <form id="reminderForm" class="section">
+              <label>Discord channel ID (do przypomnien)<input name="discord_channel_id"
+                  placeholder="np. 123456789012345678" /></label>
+              <div class="cols-2">
+                <label><input type="checkbox" name="email_enabled" checked /> Przypomnienia email</label>
+                <label><input type="checkbox" name="discord_enabled" checked /> Przypomnienia Discord</label>
+              </div>
+              <button class="btn" type="submit">Zapisz przypomnienia</button>
+            </form>
+            <div class="status" id="integrationStatus">Połącz konto Discord, aby używać jednego profilu w web + bot.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card section">
+        <h2>Dashboard postepow</h2>
+        <div class="muted">Wykres wagi, regularność treningów oraz realizacja kalorii i białka.</div>
+        <div class="chart-wrap"><canvas id="weightChart"></canvas></div>
+        <div class="kpis section">
+          <div class="kpi">
+            <div class="muted">Kalorie target</div>
+            <div class="value" id="targetCalories">-</div>
+          </div>
+          <div class="kpi">
+            <div class="muted">Bialko target</div>
+            <div class="value" id="targetProtein">-</div>
+          </div>
+          <div class="kpi">
+            <div class="muted">Realizacja kalorii</div>
+            <div class="value" id="adherenceCalories">0%</div>
+          </div>
+          <div class="kpi">
+            <div class="muted">Realizacja bialka</div>
+            <div class="value" id="adherenceProtein">0%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card section">
+        <h2>Plan na jutro</h2>
+        <div class="status" id="tomorrowPlan">Wykonaj Daily Check-in, aby otrzymać plan na jutro.</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script>
+    const DEFAULT_API_BASE = window.location.hostname === 'localhost'
+      ? 'http://127.0.0.1:8000'
+      : 'https://training-coach-api.onrender.com';
+
+    let API_BASE = localStorage.getItem('fitai_api_base') || DEFAULT_API_BASE;
+
+    const state = {
+      user: null,
+      chart: null,
+    };
+
+    const identityState = document.getElementById('identityState');
+    const appLocked = document.getElementById('appLocked');
+    const appUnlocked = document.getElementById('appUnlocked');
+    const loginBtn = document.getElementById('loginBtn');
+    const signupBtn = document.getElementById('signupBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const apiBaseForm = document.getElementById('apiBaseForm');
+    const apiBaseInput = document.getElementById('apiBaseInput');
+    const apiBaseStatus = document.getElementById('apiBaseStatus');
+    const resetApiBaseBtn = document.getElementById('resetApiBaseBtn');
+
+    function normalizeApiBase(url) {
+      return String(url || '').trim().replace(/\/$/, '');
+    }
+
+    function setApiBase(nextBase) {
+      API_BASE = normalizeApiBase(nextBase) || DEFAULT_API_BASE;
+      localStorage.setItem('fitai_api_base', API_BASE);
+      apiBaseInput.value = API_BASE;
+      apiBaseStatus.textContent = `Biezacy API URL: ${API_BASE}`;
+    }
+
+    apiBaseForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nextBase = normalizeApiBase(apiBaseInput.value);
+      if (!nextBase.startsWith('http://') && !nextBase.startsWith('https://')) {
+        apiBaseStatus.textContent = 'Podaj pelny URL rozpoczynajacy sie od http:// lub https://';
+        apiBaseStatus.classList.add('warn');
+        return;
+      }
+      apiBaseStatus.classList.remove('warn');
+      setApiBase(nextBase);
+      apiBaseStatus.textContent = `Zapisano API URL: ${API_BASE}`;
+      if (state.user) {
+        try {
+          await loadProfileAndDashboard();
+        } catch (err) {
+          apiBaseStatus.textContent = `Zapisano URL, ale nie mozna pobrac danych: ${err.message}`;
+          apiBaseStatus.classList.add('warn');
+        }
+      }
+    });
+
+    resetApiBaseBtn.addEventListener('click', async () => {
+      apiBaseStatus.classList.remove('warn');
+      setApiBase(DEFAULT_API_BASE);
+      apiBaseStatus.textContent = `Przywrocono domyslny API URL: ${API_BASE}`;
+      if (state.user) {
+        try {
+          await loadProfileAndDashboard();
+        } catch (err) {
+          apiBaseStatus.textContent = `Przywrocono URL, ale API nie odpowiada: ${err.message}`;
+          apiBaseStatus.classList.add('warn');
+        }
+      }
+    });
+
+    setApiBase(API_BASE);
+
+    function idOrThrow() {
+      if (!state.user) throw new Error('Brak sesji użytkownika');
+      return state.user.id;
+    }
+
+    async function api(path, options = {}) {
+      const resp = await fetch(`${API_BASE}${path}`, {
+        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+        ...options,
+      });
+      if (!resp.ok) {
+        let detail = 'Błąd API';
+        try {
+          const body = await resp.json();
+          detail = body.detail || JSON.stringify(body);
+        } catch (_) { }
+        throw new Error(detail);
+      }
+      return resp.json();
+    }
+
+    function showUnlocked(unlocked) {
+      appLocked.classList.toggle('hidden', unlocked);
+      appUnlocked.classList.toggle('hidden', !unlocked);
+      loginBtn.classList.toggle('hidden', unlocked);
+      signupBtn.classList.toggle('hidden', unlocked);
+      logoutBtn.classList.toggle('hidden', !unlocked);
+    }
+
+    function updateIdentityText() {
+      if (!state.user) {
+        identityState.textContent = 'Niezalogowany';
+        return;
+      }
+      identityState.textContent = `Zalogowano jako ${state.user.email || 'konto bez email'}`;
+    }
+
+    function updatePlanUI(profile) {
+      const plan = (profile.plan || 'free').toLowerCase();
+      document.getElementById('kpiPlan').textContent = plan;
+      document.getElementById('kpiRole').textContent = profile.role || 'free_user';
+      const pill = document.getElementById('planPill');
+      pill.textContent = plan;
+      pill.className = `pill ${plan === 'pro' ? 'pro' : ''}`;
+    }
+
+    async function loadProfileAndDashboard() {
+      const identityId = idOrThrow();
+      let profile = null;
+      try {
+        profile = await api(`/app/profile/${identityId}`);
+        updatePlanUI(profile);
+      } catch (_) {
+        return;
+      }
+
+      const dashboard = await api(`/app/dashboard/${identityId}`);
+      document.getElementById('kpiStreak').textContent = dashboard.streak_days || 0;
+      document.getElementById('kpiConsistency').textContent = `${dashboard.workout_consistency_pct || 0}%`;
+      document.getElementById('targetCalories').textContent = dashboard.targets.calories;
+      document.getElementById('targetProtein').textContent = `${dashboard.targets.protein}g`;
+      document.getElementById('adherenceCalories').textContent = `${dashboard.calorie_adherence_pct || 0}%`;
+      document.getElementById('adherenceProtein').textContent = `${dashboard.protein_adherence_pct || 0}%`;
+
+      const labels = dashboard.weight_series.map(p => p.date);
+      const values = dashboard.weight_series.map(p => p.weight);
+
+      if (state.chart) state.chart.destroy();
+      state.chart = new Chart(document.getElementById('weightChart'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Waga (kg)',
+            data: values,
+            borderColor: '#29d3ff',
+            backgroundColor: 'rgba(41, 211, 255, 0.2)',
+            fill: true,
+            tension: 0.25,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: '#eef3ff' } } },
+          scales: {
+            x: { ticks: { color: '#8ea2c4' }, grid: { color: 'rgba(255,255,255,0.06)' } },
+            y: { ticks: { color: '#8ea2c4' }, grid: { color: 'rgba(255,255,255,0.06)' } },
+          },
+        },
+      });
+
+      try {
+        const reminders = await api(`/app/reminders/${identityId}`);
+        const reminderForm = document.getElementById('reminderForm');
+        reminderForm.elements.discord_channel_id.value = reminders.discord_channel_id || '';
+        reminderForm.elements.email_enabled.checked = Boolean(reminders.email_enabled);
+        reminderForm.elements.discord_enabled.checked = Boolean(reminders.discord_enabled);
+      } catch (_) {
+        // Reminders are optional for initial profile state.
+      }
+    }
+
+    document.getElementById('onboardingForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const status = document.getElementById('onboardingStatus');
+      try {
+        const fd = new FormData(e.target);
+        const payload = {
+          identity_id: idOrThrow(),
+          email: state.user.email || '',
+          name: fd.get('name'),
+          age: Number(fd.get('age')),
+          height: Number(fd.get('height')),
+          weight: Number(fd.get('weight')),
+          target_weight: Number(fd.get('target_weight')),
+          gender: fd.get('gender'),
+          goal: fd.get('goal'),
+          frequency: fd.get('frequency'),
+          sports: String(fd.get('sports') || '').split(',').map(s => s.trim()).filter(Boolean),
+          diet: fd.get('diet'),
+          allergies: fd.get('allergies') || '',
+          meals_per_day: Number(fd.get('meals_per_day') || 4),
+          notes: fd.get('notes') || '',
+        };
+        await api('/app/onboarding', { method: 'POST', body: JSON.stringify(payload) });
+        status.textContent = 'Profil zapisany. Dashboard został odświeżony.';
+        await loadProfileAndDashboard();
+      } catch (err) {
+        status.textContent = `Błąd onboardingu: ${err.message}`;
+      }
+    });
+
+    document.getElementById('checkinForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const status = document.getElementById('checkinStatus');
+      const tomorrowPlan = document.getElementById('tomorrowPlan');
+      try {
+        const fd = new FormData(e.target);
+        const payload = {
+          food: fd.get('food') || '',
+          workout: fd.get('workout') || '',
+          mood: fd.get('mood') || '',
+          weight: fd.get('weight') ? Number(fd.get('weight')) : null,
+        };
+
+        const identityId = idOrThrow();
+        const checkin = await api(`/app/checkin/${identityId}`, { method: 'POST', body: JSON.stringify(payload) });
+        const aiReq = { user_id: `web:${identityId}`, extra_context: 'Generuj plan na jutro po check-inie.' };
+        const analysis = await api('/ai/analyze-log', { method: 'POST', body: JSON.stringify(aiReq) });
+
+        status.textContent = `Check-in zapisany. Streak: ${checkin.streak_days} dni.`;
+        tomorrowPlan.textContent = analysis.analysis || 'Brak wygenerowanego planu.';
+        await loadProfileAndDashboard();
+      } catch (err) {
+        status.textContent = `Błąd check-in: ${err.message}`;
+      }
+    });
+
+    document.getElementById('linkDiscordForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const status = document.getElementById('integrationStatus');
+      try {
+        const fd = new FormData(e.target);
+        await api('/app/link-discord', {
+          method: 'POST',
+          body: JSON.stringify({ identity_id: idOrThrow(), discord_user_id: String(fd.get('discord_user_id') || '').trim() }),
+        });
+        status.textContent = 'Konto Discord połączone. Bot i panel będą używać wspólnego profilu.';
+      } catch (err) {
+        status.textContent = `Błąd linkowania Discord: ${err.message}`;
+      }
+    });
+
+    document.getElementById('reminderForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const status = document.getElementById('integrationStatus');
+      try {
+        const fd = new FormData(e.target);
+        const payload = {
+          email_enabled: fd.get('email_enabled') === 'on',
+          discord_enabled: fd.get('discord_enabled') === 'on',
+          discord_channel_id: String(fd.get('discord_channel_id') || '').trim() || null,
+        };
+        await api(`/app/reminders/${idOrThrow()}`, { method: 'POST', body: JSON.stringify(payload) });
+        status.textContent = 'Preferencje przypomnień zapisane.';
+      } catch (err) {
+        status.textContent = `Błąd zapisu przypomnień: ${err.message}`;
+      }
+    });
+
+    document.getElementById('setFreeBtn').addEventListener('click', async () => {
+      const status = document.getElementById('billingStatus');
+      try {
+        await api(`/billing/plan/${idOrThrow()}`, { method: 'POST', body: JSON.stringify({ plan: 'free' }) });
+        status.textContent = 'Plan ustawiony na Free.';
+        await loadProfileAndDashboard();
+      } catch (err) {
+        status.textContent = `Błąd: ${err.message}`;
+      }
+    });
+
+    document.getElementById('buyProBtn').addEventListener('click', async () => {
+      const status = document.getElementById('billingStatus');
+      try {
+        const resp = await fetch('/.netlify/functions/create-checkout-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identity_id: idOrThrow(), email: state.user.email || '' }),
+        });
+        if (!resp.ok) throw new Error('Nie udało się utworzyć sesji Stripe');
+        const body = await resp.json();
+        if (!body.url) throw new Error('Brak URL checkout');
+        status.textContent = 'Przekierowanie do Stripe Checkout...';
+        window.location.href = body.url;
+      } catch (err) {
+        status.textContent = `Błąd płatności: ${err.message}`;
+      }
+    });
+
+    loginBtn.addEventListener('click', () => window.netlifyIdentity && window.netlifyIdentity.open('login'));
+    signupBtn.addEventListener('click', () => window.netlifyIdentity && window.netlifyIdentity.open('signup'));
+    logoutBtn.addEventListener('click', () => window.netlifyIdentity && window.netlifyIdentity.logout());
+
+    const checkoutParam = new URLSearchParams(window.location.search).get('checkout');
+    if (checkoutParam === 'success') {
+      document.getElementById('billingStatus').textContent = 'Stripe: platnosc zakonczona powodzeniem. Plan zostanie zaktualizowany po webhooku.';
+    }
+    if (checkoutParam === 'cancel') {
+      document.getElementById('billingStatus').textContent = 'Stripe: platnosc anulowana przez uzytkownika.';
+      document.getElementById('billingStatus').classList.add('warn');
+    }
+
+    if (window.netlifyIdentity) {
+      window.netlifyIdentity.on('init', async (user) => {
+        state.user = user;
+        updateIdentityText();
+        showUnlocked(Boolean(user));
+        if (user) await loadProfileAndDashboard();
+      });
+      window.netlifyIdentity.on('login', async (user) => {
+        state.user = user;
+        updateIdentityText();
+        showUnlocked(true);
+        window.netlifyIdentity.close();
+        await loadProfileAndDashboard();
+      });
+      window.netlifyIdentity.on('logout', () => {
+        state.user = null;
+        updateIdentityText();
+        showUnlocked(false);
+      });
+      window.netlifyIdentity.init();
+    } else {
+      identityState.textContent = 'Netlify Identity nie jest aktywne.';
+      showUnlocked(false);
+    }
+  </script>
+</body>
+
+</html>

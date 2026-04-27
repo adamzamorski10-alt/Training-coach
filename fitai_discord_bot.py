@@ -22,7 +22,7 @@ import os
 import asyncio
 from datetime import datetime, date, timedelta, timezone
 from dotenv import load_dotenv
-from fitai_utils import load_db, save_db, get_user, save_user, calc_calories, calc_protein
+from fitai_utils import DATA_FILE, DB_LOCK, _load_db_unlocked, _save_db_unlocked, load_db, save_db, get_user, save_user, calc_calories, calc_protein
 
 load_dotenv()
 
@@ -103,6 +103,15 @@ async def fit(interaction: discord.Interaction, akcja: str = "pomoc"):
     user_id = str(interaction.user.id)
     username = interaction.user.display_name
     profile = get_user(user_id)
+    if not profile:
+        db = load_db()
+        profile = next(
+            (
+                p for p in db.values()
+                if p.get("linked_discord_id") == user_id
+            ),
+            None,
+        )
 
     # ── POMOC ──────────────────────────────────────────────────────────────────
     if akcja == "pomoc":
@@ -320,7 +329,7 @@ async def fit(interaction: discord.Interaction, akcja: str = "pomoc"):
             value=(
                 f"Treningi wykonane: **{workouts_done}/7**\n"
                 f"Zalogowane dni: **{len(week_logs)}**\n"
-                f"Waga: **{weights[-1]:.1f} kg**" if weights else "Waga: **brak danych**"
+                f"Waga: **{weights[-1]:.1f} kg**" if weights else f"Treningi wykonane: **{workouts_done}/7**\nZalogowane dni: **{len(week_logs)}**\nWaga: **brak danych**"
             ),
             inline=True,
         )
@@ -439,13 +448,24 @@ async def fit(interaction: discord.Interaction, akcja: str = "pomoc"):
 
     # ── RESET ──────────────────────────────────────────────────────────────────
     if akcja == "reset":
-        db = load_db()
-        if user_id in db:
-            del db[user_id]
-            save_db(db)
-            await interaction.response.send_message("🗑️ Profil został usunięty. Użyj `/fit setup` aby zacząć od nowa.", ephemeral=True)
-        else:
-            await interaction.response.send_message("Nie masz profilu do usunięcia.", ephemeral=True)
+        with DB_LOCK:
+            db = _load_db_unlocked()
+            if user_id in db:
+                del db[user_id]
+                _save_db_unlocked(db)
+                await interaction.response.send_message("🗑️ Profil został usunięty. Użyj `/fit setup` aby zacząć od nowa.", ephemeral=True)
+            else:
+                # Pozwól zresetować profil połączony przez konto web.
+                linked_key = next(
+                    (uid for uid, p in db.items() if p.get("linked_discord_id") == user_id),
+                    None,
+                )
+                if linked_key:
+                    del db[linked_key]
+                    _save_db_unlocked(db)
+                    await interaction.response.send_message("🗑️ Połączony profil został usunięty.", ephemeral=True)
+                else:
+                    await interaction.response.send_message("Nie masz profilu do usunięcia.", ephemeral=True)
         return
 
     await interaction.response.send_message(
@@ -460,16 +480,18 @@ async def daily_reminder():
     """Wysyła codzienne przypomnienie o raporcie (opcjonalne)."""
     db = load_db()
     today = date.today().isoformat()
-    for user_id, profile in db.items():
+    for raw_user_id, profile in db.items():
         logs = profile.get("logs", [])
         has_today_log = any(l.get("date") == today for l in logs)
-        reminder_channel = profile.get("reminder_channel_id")
-        if not has_today_log and reminder_channel:
+        reminders = profile.get("reminders", {})
+        reminder_channel = reminders.get("discord_channel_id") or profile.get("reminder_channel_id")
+        discord_target_user = profile.get("linked_discord_id") or raw_user_id
+        if not has_today_log and reminder_channel and reminders.get("discord_enabled", True):
             try:
                 channel = await bot.fetch_channel(int(reminder_channel))
-                user = await bot.fetch_user(int(user_id))
+                user = await bot.fetch_user(int(discord_target_user))
                 await channel.send(
-                    f"⏰ {user.mention} Pamiętaj o dziennym raporcie! Użyj `/fit raport`"
+                    f"⏰ {user.mention} Pamiętaj o dziennym raporcie! Użyj `/fit raport`\n🔥 Aktualny streak: **{profile.get('streak_days', 0)} dni**"
                 )
             except Exception:
                 pass

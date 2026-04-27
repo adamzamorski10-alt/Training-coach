@@ -1,0 +1,10 @@
+{
+  "name": "fitai-netlify-functions",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Netlify functions for FitAI billing",
+  "dependencies": {
+    "@netlify/functions": "^3.0.0",
+    "stripe": "^16.12.0"
+  }
+}

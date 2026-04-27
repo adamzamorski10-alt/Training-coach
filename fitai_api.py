@@ -16,7 +16,7 @@ Endpointy:
   POST /ai/weekly        - AI podsumowanie tygodnia
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List
@@ -75,6 +75,133 @@ class DailyLog(BaseModel):
 class AIRequest(BaseModel):
     user_id: str
     extra_context: str = ""
+
+
+class AppOnboardingRequest(BaseModel):
+    identity_id: str
+    email: str
+    name: str
+    age: int
+    height: float
+    weight: float
+    target_weight: float
+    gender: str
+    goal: str
+    frequency: str
+    sports: List[str] = []
+    diet: str
+    allergies: str = ""
+    meals_per_day: int = 4
+    notes: str = ""
+
+
+class AppDailyCheckinRequest(BaseModel):
+    food: str = ""
+    workout: str = ""
+    mood: str = ""
+    weight: Optional[float] = None
+
+
+class DiscordLinkRequest(BaseModel):
+    identity_id: str
+    discord_user_id: str
+
+
+class PlanUpdateRequest(BaseModel):
+    plan: str
+
+
+class ReminderPrefsRequest(BaseModel):
+    email_enabled: bool = True
+    discord_enabled: bool = True
+    discord_channel_id: Optional[str] = None
+
+
+def _web_user_id(identity_id: str) -> str:
+    return f"web:{identity_id}"
+
+
+def _normalize_plan(plan_raw: str) -> str:
+    plan = (plan_raw or "").strip().lower()
+    if plan in {"pro", "premium", "paid"}:
+        return "pro"
+    return "free"
+
+
+def _role_for_plan(plan: str) -> str:
+    return "pro_user" if plan == "pro" else "free_user"
+
+
+def _compute_streak_days(logs: List[dict]) -> int:
+    if not logs:
+        return 0
+
+    unique_days = sorted(
+        {
+            l.get("date")
+            for l in logs
+            if l.get("date")
+        },
+        reverse=True,
+    )
+    if not unique_days:
+        return 0
+
+    streak = 0
+    expected_day = date.today()
+    for day_str in unique_days:
+        try:
+            day_obj = date.fromisoformat(day_str)
+        except ValueError:
+            continue
+
+        if day_obj == expected_day:
+            streak += 1
+            expected_day = expected_day.fromordinal(expected_day.toordinal() - 1)
+        elif day_obj < expected_day:
+            break
+    return streak
+
+
+def _build_dashboard(profile: dict) -> dict:
+    logs = sorted(profile.get("logs", []), key=lambda x: x.get("date", ""))
+    calories_target = profile.get("calories_target", calc_calories(profile))
+    protein_target = profile.get("protein_target", calc_protein(profile))
+
+    weight_points = [
+        {"date": l.get("date"), "weight": l.get("weight")}
+        for l in logs
+        if l.get("weight") is not None
+    ][-30:]
+
+    last_7 = logs[-7:]
+    workout_days = sum(1 for l in last_7 if l.get("workout"))
+    consistency = round((workout_days / 7) * 100) if last_7 else 0
+
+    # Prosty estimate realizacji na podstawie opisu jedzenia.
+    calorie_hit = 0
+    protein_hit = 0
+    for l in last_7:
+        food_text = (l.get("food") or "").lower()
+        if any(k in food_text for k in ["kurczak", "jaj", "twar", "protein", "ryba", "indyk"]):
+            protein_hit += 1
+        if food_text:
+            calorie_hit += 1
+
+    calorie_adherence = round((calorie_hit / len(last_7)) * 100) if last_7 else 0
+    protein_adherence = round((protein_hit / len(last_7)) * 100) if last_7 else 0
+
+    return {
+        "weight_series": weight_points,
+        "workout_consistency_pct": consistency,
+        "calorie_adherence_pct": calorie_adherence,
+        "protein_adherence_pct": protein_adherence,
+        "streak_days": _compute_streak_days(logs),
+        "targets": {
+            "calories": calories_target,
+            "protein": protein_target,
+        },
+    }
 
 
 # ─── AI helper ────────────────────────────────────────────────────────────────
@@ -164,6 +291,240 @@ def get_logs(user_id: str, limit: int = 30):
         raise HTTPException(status_code=404, detail="Użytkownik nie istnieje")
     logs = db[user_id].get("logs", [])
     return {"logs": sorted(logs, key=lambda x: x["date"], reverse=True)[:limit]}
+
+
+@app.post("/app/onboarding")
+def app_onboarding(payload: AppOnboardingRequest):
+    user_id = _web_user_id(payload.identity_id)
+    with DB_LOCK:
+        db = _load_db_unlocked()
+        existing = db.get(user_id, {})
+        logs = existing.get("logs", [])
+        plan = _normalize_plan(existing.get("plan", "free"))
+
+        updated = {
+            **existing,
+            **payload.model_dump(),
+            "email": payload.email,
+            "identity_id": payload.identity_id,
+            "name": payload.name,
+            "start_weight": existing.get("start_weight", payload.weight),
+            "created_at": existing.get("created_at", datetime.now().isoformat()),
+            "updated_at": datetime.now().isoformat(),
+            "plan": plan,
+            "role": _role_for_plan(plan),
+            "logs": logs,
+            "linked_discord_id": existing.get("linked_discord_id"),
+            "reminders": existing.get(
+                "reminders",
+                {
+                    "email_enabled": True,
+                    "discord_enabled": False,
+                    "discord_channel_id": None,
+                },
+            ),
+        }
+        updated["calories_target"] = calc_calories(updated)
+        updated["protein_target"] = calc_protein(updated)
+        updated["streak_days"] = _compute_streak_days(updated["logs"])
+        db[user_id] = updated
+        _save_db_unlocked(db)
+    return {
+        "status": "ok",
+        "user_id": user_id,
+        "plan": updated["plan"],
+        "role": updated["role"],
+    }
+
+
+@app.get("/app/profile/{identity_id}")
+def app_get_profile(identity_id: str):
+    user_id = _web_user_id(identity_id)
+    db = load_db()
+    profile = db.get(user_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profil onboarding nie istnieje")
+    return profile
+
+
+@app.get("/app/dashboard/{identity_id}")
+def app_dashboard(identity_id: str):
+    user_id = _web_user_id(identity_id)
+    db = load_db()
+    profile = db.get(user_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profil onboarding nie istnieje")
+    return _build_dashboard(profile)
+
+
+@app.post("/app/checkin/{identity_id}")
+def app_daily_checkin(identity_id: str, log: AppDailyCheckinRequest):
+    user_id = _web_user_id(identity_id)
+    with DB_LOCK:
+        db = _load_db_unlocked()
+        profile = db.get(user_id)
+        if not profile:
+            raise HTTPException(status_code=404, detail="Profil onboarding nie istnieje")
+
+        today = date.today().isoformat()
+        log_entry = {
+            "date": today,
+            "food": log.food,
+            "workout": log.workout,
+            "mood": log.mood,
+            "weight": log.weight,
+            "logged_at": datetime.now().isoformat(),
+        }
+
+        profile_logs = profile.get("logs", [])
+        profile_logs = [l for l in profile_logs if l.get("date") != today]
+        profile_logs.append(log_entry)
+        profile["logs"] = profile_logs
+
+        if log.weight is not None:
+            profile["weight"] = log.weight
+            profile["calories_target"] = calc_calories(profile)
+            profile["protein_target"] = calc_protein(profile)
+
+        profile["updated_at"] = datetime.now().isoformat()
+        profile["streak_days"] = _compute_streak_days(profile_logs)
+        db[user_id] = profile
+        _save_db_unlocked(db)
+
+    return {
+        "status": "ok",
+        "log": log_entry,
+        "streak_days": profile["streak_days"],
+    }
+
+
+@app.post("/app/link-discord")
+def app_link_discord(payload: DiscordLinkRequest):
+    user_id = _web_user_id(payload.identity_id)
+    with DB_LOCK:
+        db = _load_db_unlocked()
+        profile = db.get(user_id)
+        if not profile:
+            raise HTTPException(status_code=404, detail="Profil onboarding nie istnieje")
+
+        profile["linked_discord_id"] = payload.discord_user_id
+        profile["updated_at"] = datetime.now().isoformat()
+        db[user_id] = profile
+        _save_db_unlocked(db)
+
+    return {
+        "status": "ok",
+        "linked_discord_id": payload.discord_user_id,
+    }
+
+
+@app.get("/app/reminders/{identity_id}")
+def app_get_reminders(identity_id: str):
+    user_id = _web_user_id(identity_id)
+    db = load_db()
+    profile = db.get(user_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profil onboarding nie istnieje")
+    return profile.get(
+        "reminders",
+        {
+            "email_enabled": True,
+            "discord_enabled": False,
+            "discord_channel_id": None,
+        },
+    )
+
+
+@app.post("/app/reminders/{identity_id}")
+def app_set_reminders(identity_id: str, prefs: ReminderPrefsRequest):
+    user_id = _web_user_id(identity_id)
+    with DB_LOCK:
+        db = _load_db_unlocked()
+        profile = db.get(user_id)
+        if not profile:
+            raise HTTPException(status_code=404, detail="Profil onboarding nie istnieje")
+
+        profile["reminders"] = prefs.model_dump()
+        profile["updated_at"] = datetime.now().isoformat()
+        db[user_id] = profile
+        _save_db_unlocked(db)
+
+    return {"status": "ok", "reminders": prefs.model_dump()}
+
+
+@app.post("/billing/plan/{identity_id}")
+def billing_set_plan(identity_id: str, payload: PlanUpdateRequest):
+    user_id = _web_user_id(identity_id)
+    with DB_LOCK:
+        db = _load_db_unlocked()
+        profile = db.get(user_id)
+        if not profile:
+            raise HTTPException(status_code=404, detail="Profil onboarding nie istnieje")
+
+        plan = _normalize_plan(payload.plan)
+        profile["plan"] = plan
+        profile["role"] = _role_for_plan(plan)
+        profile["updated_at"] = datetime.now().isoformat()
+        db[user_id] = profile
+        _save_db_unlocked(db)
+
+    return {"status": "ok", "plan": plan, "role": profile["role"]}
+
+
+@app.post("/billing/stripe/webhook")
+async def stripe_webhook(request: Request):
+    # Uproszczony webhook: expects JSON payload with identity_id and plan.
+    # Verification should be handled at edge function level before forwarding.
+    payload = await request.json()
+    identity_id = payload.get("identity_id")
+    if not identity_id:
+        raise HTTPException(status_code=400, detail="Brak identity_id")
+
+    plan = _normalize_plan(payload.get("plan", "free"))
+    user_id = _web_user_id(identity_id)
+
+    with DB_LOCK:
+        db = _load_db_unlocked()
+        profile = db.get(user_id)
+        if not profile:
+            raise HTTPException(status_code=404, detail="Profil onboarding nie istnieje")
+        profile["plan"] = plan
+        profile["role"] = _role_for_plan(plan)
+        profile["updated_at"] = datetime.now().isoformat()
+        db[user_id] = profile
+        _save_db_unlocked(db)
+
+    return {"status": "ok", "plan": plan, "role": profile["role"]}
+
+
+@app.get("/app/reminders-due")
+def app_reminders_due():
+    db = load_db()
+    today = date.today().isoformat()
+    due = []
+    for user_id, profile in db.items():
+        if not user_id.startswith("web:"):
+            continue
+        reminders = profile.get("reminders", {})
+        if not reminders.get("email_enabled") and not reminders.get("discord_enabled"):
+            continue
+
+        logs = profile.get("logs", [])
+        has_today_log = any(l.get("date") == today for l in logs)
+        if has_today_log:
+            continue
+
+        due.append(
+            {
+                "user_id": user_id,
+                "email": profile.get("email"),
+                "linked_discord_id": profile.get("linked_discord_id"),
+                "reminders": reminders,
+                "streak_days": profile.get("streak_days", 0),
+            }
+        )
+
+    return {"due": due, "count": len(due)}
 
 
 # ─── AI endpointy ─────────────────────────────────────────────────────────────

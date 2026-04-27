@@ -206,6 +206,61 @@ Każde zapytanie AI uwzględnia:
 
 ---
 
+## Panel aplikacji `/app` (web)
+
+Nowy panel web znajduje się pod adresem:
+
+```
+/app
+```
+
+Panel zawiera:
+- onboarding użytkownika (profil, cele, alergie, aktywność)
+- daily check-in + automatyczne generowanie planu na jutro
+- dashboard postępów (wykres wagi, regularność treningów, realizacja kalorii/białka)
+- integrację konta z Discord (wspólny profil)
+- ustawienia przypomnień email/Discord
+
+Wymagane endpointy API (już dodane):
+- `POST /app/onboarding`
+- `GET /app/profile/{identity_id}`
+- `GET /app/dashboard/{identity_id}`
+- `POST /app/checkin/{identity_id}`
+- `POST /app/link-discord`
+- `POST /app/reminders/{identity_id}`
+
+---
+
+## Płatności Stripe + mapowanie planu Free/Pro
+
+Dodano Netlify Functions:
+
+```
+netlify/functions/create-checkout-session.js
+netlify/functions/stripe-webhook.js
+```
+
+oraz konfigurację:
+
+```
+netlify.toml
+package.json (stripe dependency)
+```
+
+Wymagane zmienne środowiskowe na Netlify:
+
+```env
+STRIPE_SECRET_KEY=...
+STRIPE_WEBHOOK_SECRET=...
+STRIPE_PRO_PRICE_ID=price_...
+FITAI_API_BASE=https://twoj-backend-api
+```
+
+Po poprawnym webhooku Stripe plan użytkownika jest aktualizowany do `pro`,
+a rola mapowana automatycznie do `pro_user`.
+
+---
+
 ## Hosting produkcyjny
 
 ### Backend (API)
