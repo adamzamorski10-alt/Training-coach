@@ -29,14 +29,22 @@ from fitai_utils import load_db, save_db, calc_calories, calc_protein, _load_db_
 
 load_dotenv()
 
-app = FastAPI(title="FitAI API", version="1.0.0")
+app = FastAPI(title="FitAI API", version="1.01")
 ai_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
+# Permisywny CORS dla development i Netlify production
 CORS_ORIGINS = [
-    origin.strip()
-    for origin in os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8000").split(",")
-    if origin.strip()
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "https://training-coach-app.netlify.app",
+    "https://training-coach-api.onrender.com",
 ]
+# Dodaj custom origins z .env jeśli są dostępne
+custom_origins = os.getenv("CORS_ORIGINS", "").strip()
+if custom_origins:
+    CORS_ORIGINS.extend([o.strip() for o in custom_origins.split(",") if o.strip()])
 
 app.add_middleware(
     CORSMiddleware,
