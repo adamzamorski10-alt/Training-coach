@@ -6,7 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FitAI Panel</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;700&display=swap"
+    rel="stylesheet">
   <style>
     :root {
       --bg: #090f17;
@@ -20,7 +22,9 @@
       --warn: #ff6f8f;
     }
 
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
     body {
       margin: 0;
@@ -54,11 +58,20 @@
       letter-spacing: -0.03em;
     }
 
-    .brand span { color: var(--accent); }
+    .brand span {
+      color: var(--accent);
+    }
 
-    .muted { color: var(--muted); font-size: 0.9rem; }
+    .muted {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
 
-    .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
 
     .btn {
       border: 1px solid var(--line);
@@ -70,7 +83,9 @@
       cursor: pointer;
     }
 
-    .btn:hover { border-color: rgba(45, 213, 255, 0.5); }
+    .btn:hover {
+      border-color: rgba(45, 213, 255, 0.5);
+    }
 
     .btn.primary {
       background: var(--accent);
@@ -90,7 +105,9 @@
       color: #ffd6e0;
     }
 
-    .hidden { display: none !important; }
+    .hidden {
+      display: none !important;
+    }
 
     .card {
       background: linear-gradient(150deg, rgba(255, 255, 255, 0.03), transparent 30%), var(--surface);
@@ -145,72 +162,222 @@
       border-color: transparent;
     }
 
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; }
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
 
     .subtabs {
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid rgba(45, 213, 255, 0.15);
+      padding-bottom: 10px;
     }
 
     .subtab-btn {
-      border: 1px solid var(--line);
+      border: none;
+      background: transparent;
       color: var(--muted);
-      background: #0f1828;
-      border-radius: 10px;
-      padding: 8px 12px;
-      font-weight: 700;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-weight: 600;
       cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .subtab-btn:hover {
+      color: var(--accent);
+      background: rgba(45, 213, 255, 0.08);
     }
 
     .subtab-btn.active {
       color: var(--accent);
-      border-color: rgba(45, 213, 255, 0.4);
-      background: rgba(45, 213, 255, 0.08);
+      background: rgba(45, 213, 255, 0.12);
     }
 
-    .subtab-panel { display: none; }
-    .subtab-panel.active { display: block; }
+    .subtab-panel {
+      display: none;
+    }
 
-    form { display: grid; gap: 10px; }
+    .subtab-panel.active {
+      display: block;
+      animation: fadeIn 0.25s ease;
+    }
 
-    .cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .cols-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
 
-    label { color: var(--muted); font-size: 0.85rem; }
+      to {
+        opacity: 1;
+      }
+    }
 
-    input, select, textarea {
-      margin-top: 4px;
-      width: 100%;
-      border: 1px solid var(--line);
-      background: #0d1726;
+    form {
+      display: grid;
+      gap: 12px;
+    }
+
+    .cols-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 14px;
+    }
+
+    .cols-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+    }
+
+    label {
       color: var(--text);
-      border-radius: 10px;
-      padding: 10px;
-      font: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
     }
 
-    textarea { min-height: 88px; resize: vertical; }
+    input,
+    select,
+    textarea {
+      border: 1.5px solid rgba(255, 255, 255, 0.12);
+      background: rgba(13, 23, 38, 0.6);
+      color: var(--text);
+      border-radius: 11px;
+      padding: 11px 12px;
+      font: inherit;
+      font-size: 0.9rem;
+      transition: all 0.2s ease;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: var(--muted);
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: rgba(45, 213, 255, 0.06);
+      box-shadow: 0 0 0 3px rgba(45, 213, 255, 0.1);
+    }
+
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+      font-family: inherit;
+    }
+
+    .form-section {
+      background: linear-gradient(135deg, rgba(45, 213, 255, 0.05), transparent 100%), transparent;
+      border: 1px solid rgba(45, 213, 255, 0.12);
+      border-radius: 13px;
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    .form-section-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      color: var(--accent);
+      font-size: 0.92rem;
+      margin: 0 0 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    .form-desc {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin: 0 0 12px;
+      line-height: 1.5;
+    }
+
+    .search-wrap {
+      position: relative;
+      margin-bottom: 12px;
+    }
+
+    .search-input {
+      width: 100%;
+      border: 1.5px solid rgba(255, 255, 255, 0.12);
+      background: rgba(13, 23, 38, 0.6);
+      color: var(--text);
+      border-radius: 11px;
+      padding: 11px 12px;
+      font-size: 0.9rem;
+      transition: all 0.2s ease;
+    }
+
+    .search-input::placeholder {
+      color: var(--muted);
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: rgba(45, 213, 255, 0.06);
+      box-shadow: 0 0 0 3px rgba(45, 213, 255, 0.1);
+    }
 
     .check-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin-top: 6px;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 9px;
+      margin: 10px 0 12px;
     }
 
     .check-pill {
       display: flex;
       align-items: center;
-      gap: 8px;
-      border: 1px solid var(--line);
-      background: #0f1828;
-      border-radius: 10px;
-      padding: 8px 10px;
-      color: var(--text);
-      font-size: 0.88rem;
+      gap: 9px;
+      border: 1.5px solid rgba(255, 255, 255, 0.15);
+      background: rgba(15, 24, 40, 0.8);
+      border-radius: 11px;
+      padding: 10px 12px;
+      color: var(--muted);
+      font-size: 0.87rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .check-pill:hover {
+      border-color: rgba(45, 213, 255, 0.4);
+      background: rgba(45, 213, 255, 0.08);
+      color: var(--accent);
+    }
+
+    .check-pill input[type="checkbox"] {
+      cursor: pointer;
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
+    }
+
+    .check-pill input[type="checkbox"]:checked+span {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .check-pill.hidden {
+      display: none;
+    }
+
+    .section-spacer {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px dashed rgba(45, 213, 255, 0.1);
     }
 
     .kpis {
@@ -232,7 +399,9 @@
       color: var(--accent);
     }
 
-    .chart-wrap { height: 280px; }
+    .chart-wrap {
+      height: 280px;
+    }
 
     .plan-days {
       display: grid;
@@ -270,7 +439,9 @@
       flex-wrap: wrap;
     }
 
-    .item-title { font-weight: 700; }
+    .item-title {
+      font-weight: 700;
+    }
 
     .tiny {
       font-size: 0.78rem;
@@ -292,14 +463,29 @@
     }
 
     @media (max-width: 1100px) {
-      .kpis { grid-template-columns: repeat(3, 1fr); }
-      .plan-days { grid-template-columns: 1fr; }
+      .kpis {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .plan-days {
+        grid-template-columns: 1fr;
+      }
     }
 
     @media (max-width: 760px) {
-      .cols-2, .cols-3 { grid-template-columns: 1fr; }
-      .check-grid { grid-template-columns: 1fr; }
-      .kpis { grid-template-columns: repeat(2, 1fr); }
+
+      .cols-2,
+      .cols-3 {
+        grid-template-columns: 1fr;
+      }
+
+      .check-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .kpis {
+        grid-template-columns: repeat(2, 1fr);
+      }
     }
   </style>
 </head>
@@ -320,21 +506,24 @@
 
     <div class="card">
       <h2>Konfiguracja API</h2>
+      <p class="muted" style="margin-bottom: 12px;">Aby panel działał, musisz wskazać URL backendu API. Domyślnie:
+        <strong>http://127.0.0.1:8000</strong> dla lokalnego testowania lub Render.com w produkcji.</p>
       <form id="apiBaseForm" class="cols-2">
         <label>API Base URL
-          <input id="apiBaseInput" placeholder="https://twoj-backend-api" />
+          <input id="apiBaseInput" placeholder="https://twoj-backend-api.onrender.com" />
         </label>
         <div style="display:flex;gap:8px;align-items:flex-end;">
           <button class="btn" type="submit">Zapisz API URL</button>
-          <button class="btn" type="button" id="resetApiBaseBtn">Przywroc domyslny</button>
+          <button class="btn" type="button" id="resetApiBaseBtn">Przywróć domyślny</button>
         </div>
       </form>
-      <div class="status" id="apiBaseStatus">Biezacy API URL: -</div>
+      <div class="status" id="apiBaseStatus">Bieżący API URL: -</div>
     </div>
 
     <div id="appLocked" class="card">
       <h2>Panel jest chroniony</h2>
-      <p class="muted">Zaloguj się przez Netlify Identity. Po zalogowaniu pojawią się zakładki: Dashboard, Panel, Check-in, Integracje i Płatności.</p>
+      <p class="muted">Zaloguj się przez Netlify Identity. Po zalogowaniu pojawią się zakładki: Dashboard, Panel,
+        Check-in, Integracje i Płatności.</p>
     </div>
 
     <div id="appUnlocked" class="hidden">
@@ -350,11 +539,26 @@
         <div class="card">
           <h2>Postępy i metryki</h2>
           <div class="kpis">
-            <div class="kpi"><div class="tiny">Plan</div><div class="val" id="kpiPlan">free</div></div>
-            <div class="kpi"><div class="tiny">Rola</div><div class="val" id="kpiRole">free_user</div></div>
-            <div class="kpi"><div class="tiny">Streak</div><div class="val" id="kpiStreak">0</div></div>
-            <div class="kpi"><div class="tiny">Treningi / 7 dni</div><div class="val" id="kpiConsistency">0%</div></div>
-            <div class="kpi"><div class="tiny">Target kcal / białko</div><div class="val" id="kpiTargets">-</div></div>
+            <div class="kpi">
+              <div class="tiny">Plan</div>
+              <div class="val" id="kpiPlan">free</div>
+            </div>
+            <div class="kpi">
+              <div class="tiny">Rola</div>
+              <div class="val" id="kpiRole">free_user</div>
+            </div>
+            <div class="kpi">
+              <div class="tiny">Streak</div>
+              <div class="val" id="kpiStreak">0</div>
+            </div>
+            <div class="kpi">
+              <div class="tiny">Treningi / 7 dni</div>
+              <div class="val" id="kpiConsistency">0%</div>
+            </div>
+            <div class="kpi">
+              <div class="tiny">Target kcal / białko</div>
+              <div class="val" id="kpiTargets">-</div>
+            </div>
           </div>
           <div class="chart-wrap" style="margin-top:12px;"><canvas id="weightChart"></canvas></div>
         </div>
@@ -363,7 +567,8 @@
       <section class="tab-panel" data-tab-panel="panel">
         <div class="card">
           <h2>Panel użytkownika</h2>
-          <p class="muted">W tej zakładce skonfigurujesz profil i wygenerujesz czytelny plan tygodniowy. Podzakładka "Mój plan" pozwala podmieniać każde danie i ćwiczenie na alternatywę.</p>
+          <p class="muted">W tej zakładce skonfigurujesz profil i wygenerujesz czytelny plan tygodniowy. Podzakładka
+            "Mój plan" pozwala podmieniać każde danie i ćwiczenie na alternatywę.</p>
           <div class="subtabs">
             <button class="subtab-btn active" data-panel-tab="profile">Profil</button>
             <button class="subtab-btn" data-panel-tab="focus">Cele i aktywność</button>
@@ -379,7 +584,8 @@
               <div class="cols-3">
                 <label>Wzrost (cm)<input required type="number" name="height" min="100" max="240" /></label>
                 <label>Waga (kg)<input required type="number" step="0.1" name="weight" min="30" max="250" /></label>
-                <label>Waga docelowa (kg)<input required type="number" step="0.1" name="target_weight" min="30" max="250" /></label>
+                <label>Waga docelowa (kg)<input required type="number" step="0.1" name="target_weight" min="30"
+                    max="250" /></label>
               </div>
               <div class="cols-3">
                 <label>Płeć
@@ -422,7 +628,8 @@
                 </label>
               </div>
               <label>Alergie<input name="allergies" placeholder="np. laktoza, orzechy" /></label>
-              <label>Notatki<textarea name="notes" placeholder="np. nie trenuję w środy, wolę krótsze treningi"></textarea></label>
+              <label>Notatki<textarea name="notes"
+                  placeholder="np. nie trenuję w środy, wolę krótsze treningi"></textarea></label>
               <button class="btn primary" type="submit">Zapisz profil</button>
             </form>
             <div class="status" id="onboardingStatus">Wypełnij dane profilu.</div>
@@ -430,16 +637,38 @@
 
           <div class="subtab-panel" data-panel-panel="focus">
             <form id="focusForm">
-              <label>Wybierz treningi/sporty (możesz zaznaczyć wiele):</label>
-              <div class="check-grid" id="sportsChoices"></div>
+              <div class="form-section">
+                <div class="form-section-title">🏋️ Preferowane treningi</div>
+                <p class="form-desc">Wybierz wszystkie rodzaje treningów, które Ci się podobają. Wpłynie to na twój
+                  spersonalizowany plan.</p>
+                <div class="search-wrap">
+                  <input type="text" class="search-input" placeholder="Szukaj treningu..." data-search-group="sports">
+                </div>
+                <div class="check-grid" id="sportsChoices"></div>
+              </div>
 
-              <label>Co chcesz ulepszyć? (możesz zaznaczyć wiele):</label>
-              <div class="check-grid" id="improvementChoices"></div>
+              <div class="form-section">
+                <div class="form-section-title">🎯 Czego chcesz ulepszyć?</div>
+                <p class="form-desc">Zaznacz wszystkie obszary, na których chcesz się skupić. Będą one priorytetowe w
+                  planowaniu.</p>
+                <div class="search-wrap">
+                  <input type="text" class="search-input" placeholder="Szukaj obszaru..."
+                    data-search-group="improvement_areas">
+                </div>
+                <div class="check-grid" id="improvementChoices"></div>
+              </div>
 
-              <label>Priorytetowe partie treningowe (możesz zaznaczyć wiele):</label>
-              <div class="check-grid" id="focusChoices"></div>
+              <div class="form-section">
+                <div class="form-section-title">📍 Priorytetowe partie treningowe</div>
+                <p class="form-desc">Wybierz główne części ciała, które będą miały największy udział w planie.</p>
+                <div class="search-wrap">
+                  <input type="text" class="search-input" placeholder="Szukaj grupy mięśni..."
+                    data-search-group="training_focus">
+                </div>
+                <div class="check-grid" id="focusChoices"></div>
+              </div>
 
-              <button class="btn primary" type="submit">Zapisz cele i aktywność</button>
+              <button class="btn primary" type="submit" style="margin-top: 12px;">Zapisz cele i aktywność</button>
             </form>
             <div class="status" id="focusStatus">Zaznacz obszary i zapisz.</div>
           </div>
@@ -487,7 +716,8 @@
             </div>
             <button class="btn" type="submit">Zapisz przypomnienia</button>
           </form>
-          <div class="status" id="integrationStatus">Połącz konto Discord, aby bot i panel używały wspólnego profilu.</div>
+          <div class="status" id="integrationStatus">Połącz konto Discord, aby bot i panel używały wspólnego profilu.
+          </div>
         </div>
       </section>
 
@@ -541,19 +771,26 @@
     }
 
     async function api(path, options = {}) {
-      const resp = await fetch(`${API_BASE}${path}`, {
-        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-        ...options,
-      });
-      if (!resp.ok) {
-        let detail = 'Błąd API';
-        try {
-          const body = await resp.json();
-          detail = body.detail || JSON.stringify(body);
-        } catch (_) {}
-        throw new Error(detail);
+      try {
+        const resp = await fetch(`${API_BASE}${path}`, {
+          headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+          ...options,
+        });
+        if (!resp.ok) {
+          let detail = `HTTP ${resp.status}`;
+          try {
+            const body = await resp.json();
+            detail = body.detail || JSON.stringify(body);
+          } catch (_) { }
+          throw new Error(detail);
+        }
+        return resp.json();
+      } catch (err) {
+        const msg = err.message || 'Nieznany błąd sieci';
+        const fullError = `[${API_BASE}] ${msg}`;
+        console.error('API Error:', fullError);
+        throw new Error(fullError);
       }
-      return resp.json();
     }
 
     function idOrThrow() {
@@ -564,16 +801,34 @@
     function makeChoices(containerId, name, options) {
       const root = document.getElementById(containerId);
       root.innerHTML = options.map((v) => `
-        <label class="check-pill">
+        <label class="check-pill" data-value="${v.toLowerCase()}">
           <input type="checkbox" name="${name}" value="${v}">
           <span>${v}</span>
         </label>
       `).join('');
     }
 
+    function setupSearchFilters() {
+      document.querySelectorAll('.search-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const searchGroup = input.dataset.searchGroup;
+          const query = e.target.value.toLowerCase();
+          const containerId = searchGroup === 'sports' ? 'sportsChoices' :
+            searchGroup === 'improvement_areas' ? 'improvementChoices' : 'focusChoices';
+          const container = document.getElementById(containerId);
+          container.querySelectorAll('.check-pill').forEach(pill => {
+            const value = pill.dataset.value || pill.textContent.toLowerCase();
+            const matches = value.includes(query);
+            pill.classList.toggle('hidden', !matches);
+          });
+        });
+      });
+    }
+
     makeChoices('sportsChoices', 'sports', SPORTS_OPTIONS);
     makeChoices('improvementChoices', 'improvement_areas', IMPROVEMENT_OPTIONS);
     makeChoices('focusChoices', 'training_focus', FOCUS_OPTIONS);
+    setupSearchFilters();
 
     function getMultiValues(form, fieldName) {
       return Array.from(form.querySelectorAll(`input[name="${fieldName}"]:checked`)).map(el => el.value);
@@ -878,7 +1133,7 @@
           state.plan = resp.plan;
           renderPlan(resp.plan);
           setStatus('planStatus', 'Plan wygenerowany na podstawie pełnych danych onboardingowych.');
-        } catch (_) {}
+        } catch (_) { }
       } catch (err) {
         setStatus('onboardingStatus', `Błąd zapisu profilu: ${err.message}`, true);
       }
@@ -1001,7 +1256,7 @@
     async function refreshAll() {
       try {
         await loadProfile();
-      } catch (_) {}
+      } catch (_) { }
       await loadDashboard();
       await loadPlan();
     }
