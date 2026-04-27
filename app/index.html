@@ -363,6 +363,16 @@
       width: 16px;
       height: 16px;
       accent-color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .check-pill span {
+      color: var(--text);
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
     }
 
     .check-pill input[type="checkbox"]:checked+span {
@@ -505,37 +515,7 @@
       </div>
     </div>
 
-    <div class="card">
-      <h2>📡 Konfiguracja API</h2>
-      <details style="margin-bottom: 12px;">
-        <summary style="cursor: pointer; color: var(--accent); font-weight: 600; margin-bottom: 8px;">Co to jest
-          konfiguracja API?</summary>
-        <p class="muted" style="margin: 10px 0 0 0; line-height: 1.5;">
-          <strong>API (Application Programming Interface)</strong> to backend serwer, który przetwarza Twoje dane.<br />
-          <strong>URL backendu:</strong> https://fitai-api-v83w.onrender.com — to nasz serwer na platformie
-          Render.com.<br />
-          <strong>Lokalne testowanie:</strong> http://127.0.0.1:8000 — gdy uruchamiasz API lokalnie na swoim
-          komputerze.<br />
-          <strong>CORS (Cross-Origin):</strong> Pozwala panelowi (na Netlify) komunikować się z API (na Render).<br />
-          Jeśli widzisz błąd "Failed to fetch" → backend może być niedostępny, offline, lub restart się wykonuje (~30
-          sekund).
-        </p>
-      </details>
-      <p class="muted" style="margin-bottom: 12px;">Aby panel działał, musisz wskazać URL backendu API. Domyślnie:
-        <strong>https://fitai-api-v83w.onrender.com</strong> (produkcja) lub <strong>http://127.0.0.1:8000</strong>
-        (lokalne testowanie).
-      </p>
-      <form id="apiBaseForm" class="cols-2">
-        <label>API Base URL
-          <input id="apiBaseInput" placeholder="https://twoj-backend-api.onrender.com" />
-        </label>
-        <div style="display:flex;gap:8px;align-items:flex-end;">
-          <button class="btn" type="submit">Zapisz API URL</button>
-          <button class="btn" type="button" id="resetApiBaseBtn">Przywróć domyślny</button>
-        </div>
-      </form>
-      <div class="status" id="apiBaseStatus">Bieżący API URL: -</div>
-    </div>
+
 
     <div id="appLocked" class="card">
       <h2>Panel jest chroniony</h2>
@@ -808,8 +788,6 @@
     const loginBtn = document.getElementById('loginBtn');
     const signupBtn = document.getElementById('signupBtn');
     const logoutBtn = document.getElementById('logoutBtn');
-    const apiBaseInput = document.getElementById('apiBaseInput');
-    const apiBaseStatus = document.getElementById('apiBaseStatus');
 
     function normalizeApiBase(url) {
       return String(url || '').trim().replace(/\/$/, '');
@@ -818,9 +796,6 @@
     function setApiBase(nextBase) {
       API_BASE = normalizeApiBase(nextBase) || DEFAULT_API_BASE;
       localStorage.setItem('fitai_api_base', API_BASE);
-      apiBaseInput.value = API_BASE;
-      apiBaseStatus.classList.remove('warn');
-      apiBaseStatus.textContent = `Biezacy API URL: ${API_BASE}`;
     }
 
     async function api(path, options = {}) {
@@ -1167,24 +1142,6 @@
     });
 
     document.getElementById('reloadPlanBtn').addEventListener('click', loadPlan);
-
-    document.getElementById('apiBaseForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const next = normalizeApiBase(apiBaseInput.value);
-      if (!next.startsWith('http://') && !next.startsWith('https://')) {
-        setStatus('apiBaseStatus', 'Podaj pełny URL rozpoczynający się od http:// lub https://', true);
-        return;
-      }
-      setApiBase(next);
-      setStatus('apiBaseStatus', `Zapisano API URL: ${API_BASE}`);
-      if (state.user) await refreshAll();
-    });
-
-    document.getElementById('resetApiBaseBtn').addEventListener('click', async () => {
-      setApiBase(DEFAULT_API_BASE);
-      setStatus('apiBaseStatus', `Przywrócono domyślny API URL: ${API_BASE}`);
-      if (state.user) await refreshAll();
-    });
 
     document.getElementById('onboardingForm').addEventListener('submit', async (e) => {
       e.preventDefault();
