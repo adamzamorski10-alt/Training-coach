@@ -4,221 +4,302 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FitAI App</title>
+  <title>FitAI Panel</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link
-    href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;700&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0b0f16;
-      --surface: #121926;
-      --surface2: #1a2436;
-      --text: #eef3ff;
-      --muted: #8ea2c4;
-      --line: rgba(255, 255, 255, 0.08);
-      --accent: #29d3ff;
-      --accent2: #39ff9d;
-      --danger: #ff5c7a;
+      --bg: #090f17;
+      --surface: #111b2a;
+      --surface2: #162235;
+      --line: rgba(255, 255, 255, 0.11);
+      --text: #edf4ff;
+      --muted: #93a8c7;
+      --accent: #2dd5ff;
+      --accent2: #45ffad;
+      --warn: #ff6f8f;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      background: radial-gradient(circle at 10% -10%, #14374d 0%, transparent 45%), var(--bg);
-      color: var(--text);
       font-family: 'DM Sans', sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 85% -5%, rgba(45, 213, 255, 0.15), transparent 35%),
+        radial-gradient(circle at 10% 120%, rgba(69, 255, 173, 0.1), transparent 35%),
+        var(--bg);
     }
 
     .layout {
-      max-width: 1200px;
+      max-width: 1280px;
       margin: 0 auto;
-      padding: 24px;
+      padding: 22px;
     }
 
     .topbar {
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      gap: 1rem;
-      margin-bottom: 20px;
+      align-items: center;
+      gap: 12px;
       flex-wrap: wrap;
+      margin-bottom: 16px;
     }
 
     .brand {
       font-family: 'Syne', sans-serif;
+      font-size: 1.6rem;
       font-weight: 800;
-      font-size: 1.4rem;
+      letter-spacing: -0.03em;
     }
 
-    .brand span {
-      color: var(--accent);
-    }
+    .brand span { color: var(--accent); }
 
-    .actions {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
+    .muted { color: var(--muted); font-size: 0.9rem; }
+
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
     .btn {
       border: 1px solid var(--line);
-      border-radius: 10px;
-      padding: 10px 14px;
       background: transparent;
       color: var(--text);
-      cursor: pointer;
+      border-radius: 11px;
+      padding: 10px 14px;
       font-weight: 600;
+      cursor: pointer;
     }
+
+    .btn:hover { border-color: rgba(45, 213, 255, 0.5); }
 
     .btn.primary {
       background: var(--accent);
-      color: #00131a;
       border-color: transparent;
+      color: #01202a;
     }
 
     .btn.good {
       background: var(--accent2);
-      color: #052218;
       border-color: transparent;
+      color: #063224;
     }
 
-    .grid {
-      display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
-      gap: 18px;
+    .btn.warn {
+      background: rgba(255, 111, 143, 0.15);
+      border-color: rgba(255, 111, 143, 0.4);
+      color: #ffd6e0;
     }
+
+    .hidden { display: none !important; }
 
     .card {
-      background: linear-gradient(160deg, rgba(255, 255, 255, 0.02), transparent 30%), var(--surface);
+      background: linear-gradient(150deg, rgba(255, 255, 255, 0.03), transparent 30%), var(--surface);
       border: 1px solid var(--line);
       border-radius: 16px;
       padding: 16px;
-    }
-
-    .card h2 {
-      margin: 0 0 10px;
-      font-family: 'Syne', sans-serif;
-      font-size: 1.15rem;
-    }
-
-    .muted {
-      color: var(--muted);
-      font-size: 0.9rem;
-    }
-
-    .kpis {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
       margin-bottom: 14px;
     }
 
-    .kpi {
-      background: var(--surface2);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 10px;
-    }
-
-    .kpi .value {
+    .card h2 {
+      margin: 0 0 8px;
       font-family: 'Syne', sans-serif;
-      font-size: 1.35rem;
-      color: var(--accent);
+      font-size: 1.18rem;
     }
 
-    form {
-      display: grid;
-      gap: 10px;
-    }
-
-    .cols-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    label {
-      font-size: 0.85rem;
-      color: var(--muted);
-    }
-
-    input,
-    select,
-    textarea {
-      margin-top: 5px;
-      width: 100%;
-      background: #0e1624;
-      color: var(--text);
+    .status {
+      margin-top: 10px;
+      border-radius: 10px;
       border: 1px solid var(--line);
+      padding: 10px;
+      color: var(--muted);
+      background: #0d1624;
+      font-size: 0.9rem;
+    }
+
+    .status.warn {
+      border-color: rgba(255, 111, 143, 0.45);
+      color: #ffd8e1;
+      background: rgba(255, 111, 143, 0.08);
+    }
+
+    .main-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .tab-btn {
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--muted);
+      padding: 8px 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      color: #03212b;
+      background: var(--accent);
+      border-color: transparent;
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .subtabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .subtab-btn {
+      border: 1px solid var(--line);
+      color: var(--muted);
+      background: #0f1828;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .subtab-btn.active {
+      color: var(--accent);
+      border-color: rgba(45, 213, 255, 0.4);
+      background: rgba(45, 213, 255, 0.08);
+    }
+
+    .subtab-panel { display: none; }
+    .subtab-panel.active { display: block; }
+
+    form { display: grid; gap: 10px; }
+
+    .cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .cols-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+
+    label { color: var(--muted); font-size: 0.85rem; }
+
+    input, select, textarea {
+      margin-top: 4px;
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #0d1726;
+      color: var(--text);
       border-radius: 10px;
       padding: 10px;
       font: inherit;
     }
 
-    textarea {
-      min-height: 84px;
-      resize: vertical;
+    textarea { min-height: 88px; resize: vertical; }
+
+    .check-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 6px;
     }
 
-    .status {
-      margin: 10px 0;
-      padding: 10px;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      background: #0e1624;
-      font-size: 0.9rem;
-      color: var(--muted);
-    }
-
-    .status.warn {
-      border-color: rgba(255, 92, 122, 0.45);
-      color: #ffd9e1;
-      background: rgba(255, 92, 122, 0.08);
-    }
-
-    .hidden {
-      display: none;
-    }
-
-    .section {
-      margin-top: 16px;
-    }
-
-    .pill {
-      display: inline-flex;
+    .check-pill {
+      display: flex;
       align-items: center;
-      padding: 3px 10px;
-      border-radius: 999px;
-      font-size: 0.8rem;
+      gap: 8px;
       border: 1px solid var(--line);
+      background: #0f1828;
+      border-radius: 10px;
+      padding: 8px 10px;
+      color: var(--text);
+      font-size: 0.88rem;
     }
 
-    .pill.pro {
-      background: rgba(41, 211, 255, 0.1);
-      border-color: rgba(41, 211, 255, 0.5);
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+    }
+
+    .kpi {
+      border: 1px solid var(--line);
+      background: var(--surface2);
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .kpi .val {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.2rem;
       color: var(--accent);
     }
 
-    .chart-wrap {
-      height: 280px;
+    .chart-wrap { height: 280px; }
+
+    .plan-days {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
     }
 
-    @media (max-width: 980px) {
-      .grid {
-        grid-template-columns: 1fr;
-      }
+    .day-card {
+      border: 1px solid var(--line);
+      background: var(--surface2);
+      border-radius: 12px;
+      padding: 12px;
+    }
 
-      .kpis {
-        grid-template-columns: 1fr 1fr;
-      }
+    .day-title {
+      font-family: 'Syne', sans-serif;
+      margin: 0 0 6px;
+      font-size: 1.04rem;
+      color: var(--accent);
+    }
 
-      .cols-2 {
-        grid-template-columns: 1fr;
-      }
+    .list-item {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px;
+      margin-bottom: 8px;
+      background: #0e1726;
+    }
+
+    .item-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .item-title { font-weight: 700; }
+
+    .tiny {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .alt-wrap {
+      margin-top: 7px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    details {
+      margin-top: 6px;
+      border-top: 1px dashed rgba(255, 255, 255, 0.12);
+      padding-top: 6px;
+    }
+
+    @media (max-width: 1100px) {
+      .kpis { grid-template-columns: repeat(3, 1fr); }
+      .plan-days { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 760px) {
+      .cols-2, .cols-3 { grid-template-columns: 1fr; }
+      .check-grid { grid-template-columns: 1fr; }
+      .kpis { grid-template-columns: repeat(2, 1fr); }
     }
   </style>
 </head>
@@ -227,7 +308,7 @@
   <div class="layout">
     <div class="topbar">
       <div>
-        <div class="brand">Fit<span>AI</span> App</div>
+        <div class="brand">Fit<span>AI</span> Panel</div>
         <div class="muted" id="identityState">Sprawdzam logowanie...</div>
       </div>
       <div class="actions">
@@ -239,13 +320,11 @@
 
     <div class="card">
       <h2>Konfiguracja API</h2>
-      <p class="muted">Ustaw adres backendu FastAPI, z ktorego panel ma pobierac dane. Ta wartosc jest zapisywana
-        lokalnie w przegladarce.</p>
       <form id="apiBaseForm" class="cols-2">
         <label>API Base URL
-          <input id="apiBaseInput" name="api_base" placeholder="https://twoj-backend-api" />
+          <input id="apiBaseInput" placeholder="https://twoj-backend-api" />
         </label>
-        <div style="display:flex;align-items:flex-end;gap:10px;">
+        <div style="display:flex;gap:8px;align-items:flex-end;">
           <button class="btn" type="submit">Zapisz API URL</button>
           <button class="btn" type="button" id="resetApiBaseBtn">Przywroc domyslny</button>
         </div>
@@ -255,167 +334,174 @@
 
     <div id="appLocked" class="card">
       <h2>Panel jest chroniony</h2>
-      <p class="muted">Zaloguj się przez Netlify Identity, aby przejść onboarding i korzystać z planów AI, check-inów i
-        dashboardu postępów.</p>
+      <p class="muted">Zaloguj się przez Netlify Identity. Po zalogowaniu pojawią się zakładki: Dashboard, Panel, Check-in, Integracje i Płatności.</p>
     </div>
 
     <div id="appUnlocked" class="hidden">
-      <div class="kpis">
-        <div class="kpi">
-          <div class="muted">Plan</div>
-          <div class="value" id="kpiPlan">Free</div>
-        </div>
-        <div class="kpi">
-          <div class="muted">Rola</div>
-          <div class="value" id="kpiRole">free_user</div>
-        </div>
-        <div class="kpi">
-          <div class="muted">Streak</div>
-          <div class="value" id="kpiStreak">0</div>
-        </div>
-        <div class="kpi">
-          <div class="muted">Treningi / 7 dni</div>
-          <div class="value" id="kpiConsistency">0%</div>
-        </div>
+      <div class="main-tabs">
+        <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+        <button class="tab-btn" data-tab="panel">Panel</button>
+        <button class="tab-btn" data-tab="checkin">Daily Check-in</button>
+        <button class="tab-btn" data-tab="integrations">Integracje</button>
+        <button class="tab-btn" data-tab="billing">Płatności</button>
       </div>
 
-      <div class="grid">
+      <section class="tab-panel active" data-tab-panel="dashboard">
         <div class="card">
-          <h2>Onboarding i profil</h2>
-          <form id="onboardingForm">
-            <div class="cols-2">
-              <label>Imie<input required name="name" /></label>
-              <label>Wiek<input required type="number" name="age" min="12" max="99" /></label>
-            </div>
-            <div class="cols-2">
-              <label>Wzrost (cm)<input required type="number" name="height" min="100" max="240" /></label>
-              <label>Waga (kg)<input required type="number" step="0.1" name="weight" min="30" max="250" /></label>
-            </div>
-            <div class="cols-2">
-              <label>Waga docelowa (kg)<input required type="number" step="0.1" name="target_weight" min="30"
-                  max="250" /></label>
-              <label>Plec
-                <select name="gender">
-                  <option>mężczyzna</option>
-                  <option>kobieta</option>
-                  <option>inna</option>
-                </select>
-              </label>
-            </div>
-            <div class="cols-2">
-              <label>Cel
-                <select name="goal">
-                  <option>Redukcja tkanki tłuszczowej</option>
-                  <option>Budowa masy mięśniowej</option>
-                  <option>Poprawa kondycji</option>
-                  <option>Utrzymanie wagi</option>
-                </select>
-              </label>
-              <label>Aktywnosc
-                <select name="frequency">
-                  <option>sedentaryczny</option>
-                  <option>1-2 razy w tygodniu</option>
-                  <option>3-4 razy w tygodniu</option>
-                  <option>5-6 razy w tygodniu</option>
-                  <option>Codziennie</option>
-                </select>
-              </label>
-            </div>
-            <div class="cols-2">
-              <label>Sporty (po przecinku)<input name="sports" placeholder="siłownia, bieganie" /></label>
-              <label>Dieta
-                <select name="diet">
-                  <option>Brak preferencji</option>
-                  <option>Wegetariańska</option>
-                  <option>Wegańska</option>
-                  <option>Ketogeniczna</option>
-                  <option>High-protein</option>
-                </select>
-              </label>
-            </div>
-            <div class="cols-2">
-              <label>Alergie<input name="allergies" /></label>
-              <label>Posilkow dziennie<input type="number" min="2" max="8" name="meals_per_day" value="4" /></label>
-            </div>
-            <label>Notatki<textarea name="notes" placeholder="np. bol barku, preferencje smakowe"></textarea></label>
-            <button class="btn primary" type="submit">Zapisz onboarding</button>
-          </form>
-          <div class="status" id="onboardingStatus">Uzupełnij profil, aby aktywować dashboard i check-in.</div>
+          <h2>Postępy i metryki</h2>
+          <div class="kpis">
+            <div class="kpi"><div class="tiny">Plan</div><div class="val" id="kpiPlan">free</div></div>
+            <div class="kpi"><div class="tiny">Rola</div><div class="val" id="kpiRole">free_user</div></div>
+            <div class="kpi"><div class="tiny">Streak</div><div class="val" id="kpiStreak">0</div></div>
+            <div class="kpi"><div class="tiny">Treningi / 7 dni</div><div class="val" id="kpiConsistency">0%</div></div>
+            <div class="kpi"><div class="tiny">Target kcal / białko</div><div class="val" id="kpiTargets">-</div></div>
+          </div>
+          <div class="chart-wrap" style="margin-top:12px;"><canvas id="weightChart"></canvas></div>
         </div>
+      </section>
 
-        <div>
-          <div class="card">
-            <h2>Daily Check-in</h2>
-            <form id="checkinForm">
-              <label>Co jadles?<textarea name="food" placeholder="np. owsianka, kurczak z ryzem"></textarea></label>
-              <label>Trening<textarea name="workout" placeholder="np. push day 45 min"></textarea></label>
-              <label>Samopoczucie<textarea name="mood"
-                  placeholder="np. energia dobra, lekkie zmeczenie"></textarea></label>
-              <label>Waga (opcjonalnie)<input name="weight" type="number" step="0.1" /></label>
-              <button class="btn good" type="submit">Wyślij check-in i wygeneruj plan na jutro</button>
-            </form>
-            <div class="status" id="checkinStatus">Jeszcze bez check-inu.</div>
+      <section class="tab-panel" data-tab-panel="panel">
+        <div class="card">
+          <h2>Panel użytkownika</h2>
+          <p class="muted">W tej zakładce skonfigurujesz profil i wygenerujesz czytelny plan tygodniowy. Podzakładka "Mój plan" pozwala podmieniać każde danie i ćwiczenie na alternatywę.</p>
+          <div class="subtabs">
+            <button class="subtab-btn active" data-panel-tab="profile">Profil</button>
+            <button class="subtab-btn" data-panel-tab="focus">Cele i aktywność</button>
+            <button class="subtab-btn" data-panel-tab="plan">Mój plan</button>
           </div>
 
-          <div class="card section">
-            <h2>Subskrypcja i platnosci</h2>
-            <div class="muted">Plan: <span id="planPill" class="pill">free</span></div>
-            <div class="actions section">
-              <button class="btn primary" id="buyProBtn">Kup Pro (Stripe)</button>
-              <button class="btn" id="setFreeBtn">Ustaw Free</button>
-            </div>
-            <div class="status" id="billingStatus">Brak zmian płatności.</div>
-          </div>
-
-          <div class="card section">
-            <h2>SSO i integracje</h2>
-            <form id="linkDiscordForm">
-              <label>Discord User ID<input name="discord_user_id" placeholder="np. 123456789012345678" /></label>
-              <button class="btn" type="submit">Połącz konto z Discord</button>
-            </form>
-            <form id="reminderForm" class="section">
-              <label>Discord channel ID (do przypomnien)<input name="discord_channel_id"
-                  placeholder="np. 123456789012345678" /></label>
+          <div class="subtab-panel active" data-panel-panel="profile">
+            <form id="onboardingForm">
               <div class="cols-2">
-                <label><input type="checkbox" name="email_enabled" checked /> Przypomnienia email</label>
-                <label><input type="checkbox" name="discord_enabled" checked /> Przypomnienia Discord</label>
+                <label>Imię<input required name="name" /></label>
+                <label>Wiek<input required type="number" name="age" min="12" max="99" /></label>
               </div>
-              <button class="btn" type="submit">Zapisz przypomnienia</button>
+              <div class="cols-3">
+                <label>Wzrost (cm)<input required type="number" name="height" min="100" max="240" /></label>
+                <label>Waga (kg)<input required type="number" step="0.1" name="weight" min="30" max="250" /></label>
+                <label>Waga docelowa (kg)<input required type="number" step="0.1" name="target_weight" min="30" max="250" /></label>
+              </div>
+              <div class="cols-3">
+                <label>Płeć
+                  <select name="gender">
+                    <option>mężczyzna</option>
+                    <option>kobieta</option>
+                    <option>inna</option>
+                  </select>
+                </label>
+                <label>Cel
+                  <select name="goal">
+                    <option>Redukcja tkanki tłuszczowej</option>
+                    <option>Budowa masy mięśniowej</option>
+                    <option>Poprawa kondycji</option>
+                    <option>Utrzymanie wagi</option>
+                  </select>
+                </label>
+                <label>Aktywność
+                  <select name="frequency">
+                    <option>sedentaryczny</option>
+                    <option>1-2 razy w tygodniu</option>
+                    <option>3-4 razy w tygodniu</option>
+                    <option>5-6 razy w tygodniu</option>
+                    <option>Codziennie</option>
+                  </select>
+                </label>
+              </div>
+              <div class="cols-2">
+                <label>Dieta
+                  <select name="diet">
+                    <option>Brak preferencji</option>
+                    <option>Wegetariańska</option>
+                    <option>Wegańska</option>
+                    <option>Ketogeniczna</option>
+                    <option>High-protein</option>
+                  </select>
+                </label>
+                <label>Posiłków dziennie
+                  <input type="number" min="3" max="7" name="meals_per_day" value="5" />
+                </label>
+              </div>
+              <label>Alergie<input name="allergies" placeholder="np. laktoza, orzechy" /></label>
+              <label>Notatki<textarea name="notes" placeholder="np. nie trenuję w środy, wolę krótsze treningi"></textarea></label>
+              <button class="btn primary" type="submit">Zapisz profil</button>
             </form>
-            <div class="status" id="integrationStatus">Połącz konto Discord, aby używać jednego profilu w web + bot.
+            <div class="status" id="onboardingStatus">Wypełnij dane profilu.</div>
+          </div>
+
+          <div class="subtab-panel" data-panel-panel="focus">
+            <form id="focusForm">
+              <label>Wybierz treningi/sporty (możesz zaznaczyć wiele):</label>
+              <div class="check-grid" id="sportsChoices"></div>
+
+              <label>Co chcesz ulepszyć? (możesz zaznaczyć wiele):</label>
+              <div class="check-grid" id="improvementChoices"></div>
+
+              <label>Priorytetowe partie treningowe (możesz zaznaczyć wiele):</label>
+              <div class="check-grid" id="focusChoices"></div>
+
+              <button class="btn primary" type="submit">Zapisz cele i aktywność</button>
+            </form>
+            <div class="status" id="focusStatus">Zaznacz obszary i zapisz.</div>
+          </div>
+
+          <div class="subtab-panel" data-panel-panel="plan">
+            <div style="display:flex;gap:8px;flex-wrap:wrap; margin-bottom:10px;">
+              <button class="btn good" id="generatePlanBtn" type="button">Generuj plan tygodniowy</button>
+              <button class="btn" id="reloadPlanBtn" type="button">Odśwież plan</button>
             </div>
+            <div class="status" id="planStatus">Po uzupełnieniu danych kliknij "Generuj plan tygodniowy".</div>
+            <div id="planContainer" class="plan-days" style="margin-top:10px;"></div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="card section">
-        <h2>Dashboard postepow</h2>
-        <div class="muted">Wykres wagi, regularność treningów oraz realizacja kalorii i białka.</div>
-        <div class="chart-wrap"><canvas id="weightChart"></canvas></div>
-        <div class="kpis section">
-          <div class="kpi">
-            <div class="muted">Kalorie target</div>
-            <div class="value" id="targetCalories">-</div>
-          </div>
-          <div class="kpi">
-            <div class="muted">Bialko target</div>
-            <div class="value" id="targetProtein">-</div>
-          </div>
-          <div class="kpi">
-            <div class="muted">Realizacja kalorii</div>
-            <div class="value" id="adherenceCalories">0%</div>
-          </div>
-          <div class="kpi">
-            <div class="muted">Realizacja bialka</div>
-            <div class="value" id="adherenceProtein">0%</div>
-          </div>
+      <section class="tab-panel" data-tab-panel="checkin">
+        <div class="card">
+          <h2>Daily Check-in</h2>
+          <form id="checkinForm">
+            <label>Jedzenie<textarea name="food" placeholder="np. owsianka, kurczak z ryżem"></textarea></label>
+            <label>Trening<textarea name="workout" placeholder="np. push day, 45 min"></textarea></label>
+            <label>Samopoczucie<textarea name="mood" placeholder="np. wysoka energia, lekki ból nóg"></textarea></label>
+            <label>Waga (opcjonalnie)<input name="weight" type="number" step="0.1" /></label>
+            <button class="btn good" type="submit">Wyślij check-in</button>
+          </form>
+          <div class="status" id="checkinStatus">Jeszcze bez check-inu.</div>
+          <div class="status" id="tomorrowPlan">Plan na jutro pojawi się po check-inie.</div>
         </div>
-      </div>
+      </section>
 
-      <div class="card section">
-        <h2>Plan na jutro</h2>
-        <div class="status" id="tomorrowPlan">Wykonaj Daily Check-in, aby otrzymać plan na jutro.</div>
-      </div>
+      <section class="tab-panel" data-tab-panel="integrations">
+        <div class="card">
+          <h2>Integracje i wspólne konto</h2>
+          <form id="linkDiscordForm">
+            <label>Discord User ID<input name="discord_user_id" placeholder="np. 123456789012345678" /></label>
+            <button class="btn" type="submit">Połącz konto z Discord</button>
+          </form>
+          <form id="reminderForm" style="margin-top:12px;">
+            <label>Discord Channel ID do przypomnień
+              <input name="discord_channel_id" placeholder="opcjonalnie" />
+            </label>
+            <div class="cols-2">
+              <label><input type="checkbox" name="email_enabled" checked /> Przypomnienia email</label>
+              <label><input type="checkbox" name="discord_enabled" checked /> Przypomnienia Discord</label>
+            </div>
+            <button class="btn" type="submit">Zapisz przypomnienia</button>
+          </form>
+          <div class="status" id="integrationStatus">Połącz konto Discord, aby bot i panel używały wspólnego profilu.</div>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="billing">
+        <div class="card">
+          <h2>Płatności i plan</h2>
+          <p class="muted">Plan: <strong id="planBadge">free</strong></p>
+          <div class="actions">
+            <button class="btn primary" id="buyProBtn" type="button">Kup Pro (Stripe)</button>
+            <button class="btn warn" id="setFreeBtn" type="button">Ustaw Free</button>
+          </div>
+          <div class="status" id="billingStatus">Brak zmian płatności.</div>
+        </div>
+      </section>
     </div>
   </div>
 
@@ -427,11 +513,11 @@
       : 'https://training-coach-api.onrender.com';
 
     let API_BASE = localStorage.getItem('fitai_api_base') || DEFAULT_API_BASE;
+    const state = { user: null, chart: null, profile: null, plan: null };
 
-    const state = {
-      user: null,
-      chart: null,
-    };
+    const SPORTS_OPTIONS = ['siłownia', 'bieganie', 'rower', 'pływanie', 'crossfit', 'fitness', 'sztuki walki'];
+    const IMPROVEMENT_OPTIONS = ['brzuch', 'klatka', 'nogi', 'plecy', 'barki', 'ręce', 'kondycja', 'mobilność'];
+    const FOCUS_OPTIONS = ['brzuch', 'klatka', 'nogi', 'plecy', 'barki'];
 
     const identityState = document.getElementById('identityState');
     const appLocked = document.getElementById('appLocked');
@@ -439,10 +525,8 @@
     const loginBtn = document.getElementById('loginBtn');
     const signupBtn = document.getElementById('signupBtn');
     const logoutBtn = document.getElementById('logoutBtn');
-    const apiBaseForm = document.getElementById('apiBaseForm');
     const apiBaseInput = document.getElementById('apiBaseInput');
     const apiBaseStatus = document.getElementById('apiBaseStatus');
-    const resetApiBaseBtn = document.getElementById('resetApiBaseBtn');
 
     function normalizeApiBase(url) {
       return String(url || '').trim().replace(/\/$/, '');
@@ -452,49 +536,8 @@
       API_BASE = normalizeApiBase(nextBase) || DEFAULT_API_BASE;
       localStorage.setItem('fitai_api_base', API_BASE);
       apiBaseInput.value = API_BASE;
+      apiBaseStatus.classList.remove('warn');
       apiBaseStatus.textContent = `Biezacy API URL: ${API_BASE}`;
-    }
-
-    apiBaseForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const nextBase = normalizeApiBase(apiBaseInput.value);
-      if (!nextBase.startsWith('http://') && !nextBase.startsWith('https://')) {
-        apiBaseStatus.textContent = 'Podaj pelny URL rozpoczynajacy sie od http:// lub https://';
-        apiBaseStatus.classList.add('warn');
-        return;
-      }
-      apiBaseStatus.classList.remove('warn');
-      setApiBase(nextBase);
-      apiBaseStatus.textContent = `Zapisano API URL: ${API_BASE}`;
-      if (state.user) {
-        try {
-          await loadProfileAndDashboard();
-        } catch (err) {
-          apiBaseStatus.textContent = `Zapisano URL, ale nie mozna pobrac danych: ${err.message}`;
-          apiBaseStatus.classList.add('warn');
-        }
-      }
-    });
-
-    resetApiBaseBtn.addEventListener('click', async () => {
-      apiBaseStatus.classList.remove('warn');
-      setApiBase(DEFAULT_API_BASE);
-      apiBaseStatus.textContent = `Przywrocono domyslny API URL: ${API_BASE}`;
-      if (state.user) {
-        try {
-          await loadProfileAndDashboard();
-        } catch (err) {
-          apiBaseStatus.textContent = `Przywrocono URL, ale API nie odpowiada: ${err.message}`;
-          apiBaseStatus.classList.add('warn');
-        }
-      }
-    });
-
-    setApiBase(API_BASE);
-
-    function idOrThrow() {
-      if (!state.user) throw new Error('Brak sesji użytkownika');
-      return state.user.id;
     }
 
     async function api(path, options = {}) {
@@ -507,10 +550,40 @@
         try {
           const body = await resp.json();
           detail = body.detail || JSON.stringify(body);
-        } catch (_) { }
+        } catch (_) {}
         throw new Error(detail);
       }
       return resp.json();
+    }
+
+    function idOrThrow() {
+      if (!state.user) throw new Error('Brak sesji użytkownika');
+      return state.user.id;
+    }
+
+    function makeChoices(containerId, name, options) {
+      const root = document.getElementById(containerId);
+      root.innerHTML = options.map((v) => `
+        <label class="check-pill">
+          <input type="checkbox" name="${name}" value="${v}">
+          <span>${v}</span>
+        </label>
+      `).join('');
+    }
+
+    makeChoices('sportsChoices', 'sports', SPORTS_OPTIONS);
+    makeChoices('improvementChoices', 'improvement_areas', IMPROVEMENT_OPTIONS);
+    makeChoices('focusChoices', 'training_focus', FOCUS_OPTIONS);
+
+    function getMultiValues(form, fieldName) {
+      return Array.from(form.querySelectorAll(`input[name="${fieldName}"]:checked`)).map(el => el.value);
+    }
+
+    function setMultiValues(form, fieldName, values) {
+      const selected = new Set(values || []);
+      form.querySelectorAll(`input[name="${fieldName}"]`).forEach(el => {
+        el.checked = selected.has(el.value);
+      });
     }
 
     function showUnlocked(unlocked) {
@@ -522,43 +595,71 @@
     }
 
     function updateIdentityText() {
-      if (!state.user) {
-        identityState.textContent = 'Niezalogowany';
-        return;
-      }
-      identityState.textContent = `Zalogowano jako ${state.user.email || 'konto bez email'}`;
+      identityState.textContent = state.user ? `Zalogowano jako ${state.user.email || 'konto bez email'}` : 'Niezalogowany';
     }
 
-    function updatePlanUI(profile) {
-      const plan = (profile.plan || 'free').toLowerCase();
-      document.getElementById('kpiPlan').textContent = plan;
+    function setupTabs() {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tab = btn.dataset.tab;
+          document.querySelectorAll('.tab-btn').forEach(x => x.classList.toggle('active', x === btn));
+          document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.toggle('active', panel.dataset.tabPanel === tab));
+        });
+      });
+
+      document.querySelectorAll('.subtab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tab = btn.dataset.panelTab;
+          document.querySelectorAll('.subtab-btn').forEach(x => x.classList.toggle('active', x === btn));
+          document.querySelectorAll('.subtab-panel').forEach(panel => panel.classList.toggle('active', panel.dataset.panelPanel === tab));
+        });
+      });
+    }
+
+    setupTabs();
+
+    async function loadProfile() {
+      const profile = await api(`/app/profile/${idOrThrow()}`);
+      state.profile = profile;
+      document.getElementById('kpiPlan').textContent = profile.plan || 'free';
       document.getElementById('kpiRole').textContent = profile.role || 'free_user';
-      const pill = document.getElementById('planPill');
-      pill.textContent = plan;
-      pill.className = `pill ${plan === 'pro' ? 'pro' : ''}`;
+      document.getElementById('planBadge').textContent = profile.plan || 'free';
+
+      const form = document.getElementById('onboardingForm');
+      form.elements.name.value = profile.name || '';
+      form.elements.age.value = profile.age || '';
+      form.elements.height.value = profile.height || '';
+      form.elements.weight.value = profile.weight || '';
+      form.elements.target_weight.value = profile.target_weight || '';
+      form.elements.gender.value = profile.gender || 'mężczyzna';
+      form.elements.goal.value = profile.goal || 'Redukcja tkanki tłuszczowej';
+      form.elements.frequency.value = profile.frequency || '3-4 razy w tygodniu';
+      form.elements.diet.value = profile.diet || 'Brak preferencji';
+      form.elements.meals_per_day.value = profile.meals_per_day || 5;
+      form.elements.allergies.value = profile.allergies || '';
+      form.elements.notes.value = profile.notes || '';
+
+      const focusForm = document.getElementById('focusForm');
+      setMultiValues(focusForm, 'sports', profile.sports || []);
+      setMultiValues(focusForm, 'improvement_areas', profile.improvement_areas || []);
+      setMultiValues(focusForm, 'training_focus', profile.training_focus || []);
+
+      if (profile.reminders) {
+        const rem = document.getElementById('reminderForm').elements;
+        rem.discord_channel_id.value = profile.reminders.discord_channel_id || '';
+        rem.email_enabled.checked = Boolean(profile.reminders.email_enabled);
+        rem.discord_enabled.checked = Boolean(profile.reminders.discord_enabled);
+      }
     }
 
-    async function loadProfileAndDashboard() {
-      const identityId = idOrThrow();
-      let profile = null;
-      try {
-        profile = await api(`/app/profile/${identityId}`);
-        updatePlanUI(profile);
-      } catch (_) {
-        return;
-      }
-
-      const dashboard = await api(`/app/dashboard/${identityId}`);
+    async function loadDashboard() {
+      const dashboard = await api(`/app/dashboard/${idOrThrow()}`);
       document.getElementById('kpiStreak').textContent = dashboard.streak_days || 0;
       document.getElementById('kpiConsistency').textContent = `${dashboard.workout_consistency_pct || 0}%`;
-      document.getElementById('targetCalories').textContent = dashboard.targets.calories;
-      document.getElementById('targetProtein').textContent = `${dashboard.targets.protein}g`;
-      document.getElementById('adherenceCalories').textContent = `${dashboard.calorie_adherence_pct || 0}%`;
-      document.getElementById('adherenceProtein').textContent = `${dashboard.protein_adherence_pct || 0}%`;
+      document.getElementById('kpiTargets').textContent = `${dashboard.targets.calories} / ${dashboard.targets.protein}g`;
 
       const labels = dashboard.weight_series.map(p => p.date);
       const values = dashboard.weight_series.map(p => p.weight);
-
       if (state.chart) state.chart.destroy();
       state.chart = new Chart(document.getElementById('weightChart'), {
         type: 'line',
@@ -567,43 +668,193 @@
           datasets: [{
             label: 'Waga (kg)',
             data: values,
-            borderColor: '#29d3ff',
-            backgroundColor: 'rgba(41, 211, 255, 0.2)',
+            borderColor: '#2dd5ff',
+            backgroundColor: 'rgba(45, 213, 255, 0.2)',
             fill: true,
-            tension: 0.25,
+            tension: 0.24,
           }],
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { labels: { color: '#eef3ff' } } },
+          plugins: { legend: { labels: { color: '#edf4ff' } } },
           scales: {
-            x: { ticks: { color: '#8ea2c4' }, grid: { color: 'rgba(255,255,255,0.06)' } },
-            y: { ticks: { color: '#8ea2c4' }, grid: { color: 'rgba(255,255,255,0.06)' } },
+            x: { ticks: { color: '#93a8c7' }, grid: { color: 'rgba(255,255,255,0.06)' } },
+            y: { ticks: { color: '#93a8c7' }, grid: { color: 'rgba(255,255,255,0.06)' } },
           },
         },
       });
+    }
 
+    function setStatus(id, msg, isWarn = false) {
+      const el = document.getElementById(id);
+      el.textContent = msg;
+      el.classList.toggle('warn', Boolean(isWarn));
+    }
+
+    function mealAltOptions(item) {
+      const alternatives = item.alternatives || [];
+      if (!alternatives.length) return '<span class="tiny">Brak alternatyw</span>';
+      return `
+        <select class="alt-select" data-kind="meal">
+          ${alternatives.map((a, idx) => `<option value="${idx}">${a.name} (${a.kcal} kcal)</option>`).join('')}
+        </select>
+      `;
+    }
+
+    function exerciseAltOptions(item) {
+      const alternatives = item.alternatives || [];
+      if (!alternatives.length) return '<span class="tiny">Brak alternatyw</span>';
+      return `
+        <select class="alt-select" data-kind="exercise">
+          ${alternatives.map((a, idx) => `<option value="${idx}">${a.name}</option>`).join('')}
+        </select>
+      `;
+    }
+
+    function renderPlan(plan) {
+      const root = document.getElementById('planContainer');
+      const days = plan && plan.days ? plan.days : [];
+      if (!days.length) {
+        root.innerHTML = '';
+        return;
+      }
+
+      root.innerHTML = days.map((day, dIdx) => `
+        <article class="day-card" data-day-index="${dIdx}">
+          <h3 class="day-title">${day.day}</h3>
+          <div class="tiny" style="margin-bottom:8px;">Trening: ${day.workout.title}</div>
+
+          <div class="tiny" style="font-weight:700;margin-bottom:4px;">Plan diety</div>
+          ${(day.meals || []).map((meal, mIdx) => `
+            <div class="list-item" data-section="meal" data-item-index="${mIdx}">
+              <div class="item-head">
+                <div>
+                  <div class="item-title">${meal.slot}: ${meal.name}</div>
+                  <div class="tiny">${meal.kcal} kcal</div>
+                </div>
+                <button class="btn" type="button" data-action="toggle-edit">Edytuj</button>
+              </div>
+              <div class="alt-wrap hidden">
+                ${mealAltOptions(meal)}
+                <button class="btn" type="button" data-action="apply-swap">Zmień</button>
+              </div>
+            </div>
+          `).join('')}
+
+          <div class="tiny" style="font-weight:700;margin:8px 0 4px;">Plan treningowy</div>
+          ${(day.workout.exercises || []).map((ex, eIdx) => `
+            <div class="list-item" data-section="exercise" data-item-index="${eIdx}">
+              <div class="item-head">
+                <div>
+                  <div class="item-title">${ex.name}</div>
+                  <div class="tiny">Serie: ${ex.sets} | Powtórzenia: ${ex.reps}</div>
+                </div>
+                <button class="btn" type="button" data-action="toggle-edit">Edytuj</button>
+              </div>
+              <details>
+                <summary>Szczegóły wykonania i uwagi</summary>
+                <p class="tiny" style="margin:6px 0 0;">${ex.how_to || '-'}</p>
+                <p class="tiny" style="margin:4px 0 0;">Uwagi: ${ex.notes || '-'}</p>
+              </details>
+              <div class="alt-wrap hidden">
+                ${exerciseAltOptions(ex)}
+                <button class="btn" type="button" data-action="apply-swap">Zmień</button>
+              </div>
+            </div>
+          `).join('')}
+        </article>
+      `).join('');
+    }
+
+    async function loadPlan() {
       try {
-        const reminders = await api(`/app/reminders/${identityId}`);
-        const reminderForm = document.getElementById('reminderForm');
-        reminderForm.elements.discord_channel_id.value = reminders.discord_channel_id || '';
-        reminderForm.elements.email_enabled.checked = Boolean(reminders.email_enabled);
-        reminderForm.elements.discord_enabled.checked = Boolean(reminders.discord_enabled);
-      } catch (_) {
-        // Reminders are optional for initial profile state.
+        const plan = await api(`/app/plan/${idOrThrow()}`);
+        state.plan = plan;
+        renderPlan(plan);
+        setStatus('planStatus', 'Plan załadowany. Możesz edytować dania i ćwiczenia.');
+      } catch (err) {
+        setStatus('planStatus', `Brak planu: ${err.message}`, true);
+        document.getElementById('planContainer').innerHTML = '';
       }
     }
 
+    document.getElementById('planContainer').addEventListener('click', async (e) => {
+      const target = e.target;
+      if (!(target instanceof HTMLElement)) return;
+      const action = target.dataset.action;
+      if (!action) return;
+
+      const item = target.closest('.list-item');
+      const dayCard = target.closest('.day-card');
+      if (!item || !dayCard) return;
+      const altWrap = item.querySelector('.alt-wrap');
+
+      if (action === 'toggle-edit') {
+        altWrap.classList.toggle('hidden');
+        return;
+      }
+
+      if (action === 'apply-swap') {
+        const select = item.querySelector('.alt-select');
+        if (!select) return;
+        try {
+          const payload = {
+            day_index: Number(dayCard.dataset.dayIndex),
+            section: item.dataset.section,
+            item_index: Number(item.dataset.itemIndex),
+            alternative_index: Number(select.value),
+          };
+          const resp = await api(`/app/plan/${idOrThrow()}/swap`, { method: 'POST', body: JSON.stringify(payload) });
+          state.plan = resp.plan;
+          renderPlan(resp.plan);
+          setStatus('planStatus', 'Element planu został podmieniony na alternatywę.');
+        } catch (err) {
+          setStatus('planStatus', `Błąd edycji planu: ${err.message}`, true);
+        }
+      }
+    });
+
+    document.getElementById('generatePlanBtn').addEventListener('click', async () => {
+      try {
+        const resp = await api(`/app/plan/${idOrThrow()}/generate`, { method: 'POST', body: JSON.stringify({ force: true }) });
+        state.plan = resp.plan;
+        renderPlan(resp.plan);
+        setStatus('planStatus', 'Nowy plan tygodniowy został wygenerowany.');
+      } catch (err) {
+        setStatus('planStatus', `Nie można wygenerować planu: ${err.message}`, true);
+      }
+    });
+
+    document.getElementById('reloadPlanBtn').addEventListener('click', loadPlan);
+
+    document.getElementById('apiBaseForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const next = normalizeApiBase(apiBaseInput.value);
+      if (!next.startsWith('http://') && !next.startsWith('https://')) {
+        setStatus('apiBaseStatus', 'Podaj pełny URL rozpoczynający się od http:// lub https://', true);
+        return;
+      }
+      setApiBase(next);
+      setStatus('apiBaseStatus', `Zapisano API URL: ${API_BASE}`);
+      if (state.user) await refreshAll();
+    });
+
+    document.getElementById('resetApiBaseBtn').addEventListener('click', async () => {
+      setApiBase(DEFAULT_API_BASE);
+      setStatus('apiBaseStatus', `Przywrócono domyślny API URL: ${API_BASE}`);
+      if (state.user) await refreshAll();
+    });
+
     document.getElementById('onboardingForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const status = document.getElementById('onboardingStatus');
+      const fd = new FormData(e.target);
+      const focusForm = document.getElementById('focusForm');
       try {
-        const fd = new FormData(e.target);
         const payload = {
           identity_id: idOrThrow(),
           email: state.user.email || '',
-          name: fd.get('name'),
+          name: String(fd.get('name') || '').trim(),
           age: Number(fd.get('age')),
           height: Number(fd.get('height')),
           weight: Number(fd.get('weight')),
@@ -611,24 +862,63 @@
           gender: fd.get('gender'),
           goal: fd.get('goal'),
           frequency: fd.get('frequency'),
-          sports: String(fd.get('sports') || '').split(',').map(s => s.trim()).filter(Boolean),
+          sports: getMultiValues(focusForm, 'sports'),
+          training_focus: getMultiValues(focusForm, 'training_focus'),
+          improvement_areas: getMultiValues(focusForm, 'improvement_areas'),
           diet: fd.get('diet'),
-          allergies: fd.get('allergies') || '',
-          meals_per_day: Number(fd.get('meals_per_day') || 4),
-          notes: fd.get('notes') || '',
+          allergies: String(fd.get('allergies') || '').trim(),
+          meals_per_day: Number(fd.get('meals_per_day') || 5),
+          notes: String(fd.get('notes') || '').trim(),
         };
         await api('/app/onboarding', { method: 'POST', body: JSON.stringify(payload) });
-        status.textContent = 'Profil zapisany. Dashboard został odświeżony.';
-        await loadProfileAndDashboard();
+        setStatus('onboardingStatus', 'Profil zapisany. Przechodzę do odświeżenia dashboardu i planu.');
+        await refreshAll();
+        try {
+          const resp = await api(`/app/plan/${idOrThrow()}/generate`, { method: 'POST', body: JSON.stringify({ force: false }) });
+          state.plan = resp.plan;
+          renderPlan(resp.plan);
+          setStatus('planStatus', 'Plan wygenerowany na podstawie pełnych danych onboardingowych.');
+        } catch (_) {}
       } catch (err) {
-        status.textContent = `Błąd onboardingu: ${err.message}`;
+        setStatus('onboardingStatus', `Błąd zapisu profilu: ${err.message}`, true);
+      }
+    });
+
+    document.getElementById('focusForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const statusId = 'focusStatus';
+      try {
+        const base = state.profile || {};
+        const form = document.getElementById('onboardingForm');
+        const payload = {
+          identity_id: idOrThrow(),
+          email: state.user.email || '',
+          name: form.elements.name.value || base.name || '',
+          age: Number(form.elements.age.value || base.age || 25),
+          height: Number(form.elements.height.value || base.height || 175),
+          weight: Number(form.elements.weight.value || base.weight || 75),
+          target_weight: Number(form.elements.target_weight.value || base.target_weight || 70),
+          gender: form.elements.gender.value || base.gender || 'mężczyzna',
+          goal: form.elements.goal.value || base.goal || 'Poprawa kondycji',
+          frequency: form.elements.frequency.value || base.frequency || '3-4 razy w tygodniu',
+          sports: getMultiValues(e.target, 'sports'),
+          training_focus: getMultiValues(e.target, 'training_focus'),
+          improvement_areas: getMultiValues(e.target, 'improvement_areas'),
+          diet: form.elements.diet.value || base.diet || 'Brak preferencji',
+          allergies: form.elements.allergies.value || base.allergies || '',
+          meals_per_day: Number(form.elements.meals_per_day.value || base.meals_per_day || 5),
+          notes: form.elements.notes.value || base.notes || '',
+        };
+        await api('/app/onboarding', { method: 'POST', body: JSON.stringify(payload) });
+        setStatus(statusId, 'Cele i aktywność zapisane.');
+        await refreshAll();
+      } catch (err) {
+        setStatus(statusId, `Błąd zapisu celów: ${err.message}`, true);
       }
     });
 
     document.getElementById('checkinForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const status = document.getElementById('checkinStatus');
-      const tomorrowPlan = document.getElementById('tomorrowPlan');
       try {
         const fd = new FormData(e.target);
         const payload = {
@@ -637,38 +927,36 @@
           mood: fd.get('mood') || '',
           weight: fd.get('weight') ? Number(fd.get('weight')) : null,
         };
+        const checkin = await api(`/app/checkin/${idOrThrow()}`, { method: 'POST', body: JSON.stringify(payload) });
+        setStatus('checkinStatus', `Check-in zapisany. Streak: ${checkin.streak_days} dni.`);
 
-        const identityId = idOrThrow();
-        const checkin = await api(`/app/checkin/${identityId}`, { method: 'POST', body: JSON.stringify(payload) });
-        const aiReq = { user_id: `web:${identityId}`, extra_context: 'Generuj plan na jutro po check-inie.' };
-        const analysis = await api('/ai/analyze-log', { method: 'POST', body: JSON.stringify(aiReq) });
-
-        status.textContent = `Check-in zapisany. Streak: ${checkin.streak_days} dni.`;
-        tomorrowPlan.textContent = analysis.analysis || 'Brak wygenerowanego planu.';
-        await loadProfileAndDashboard();
+        const analysis = await api('/ai/analyze-log', {
+          method: 'POST',
+          body: JSON.stringify({ user_id: `web:${idOrThrow()}`, extra_context: 'Krótki plan na jutro po check-inie.' }),
+        });
+        setStatus('tomorrowPlan', analysis.analysis || 'Brak planu na jutro.');
+        await refreshAll();
       } catch (err) {
-        status.textContent = `Błąd check-in: ${err.message}`;
+        setStatus('checkinStatus', `Błąd check-in: ${err.message}`, true);
       }
     });
 
     document.getElementById('linkDiscordForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const status = document.getElementById('integrationStatus');
       try {
         const fd = new FormData(e.target);
         await api('/app/link-discord', {
           method: 'POST',
           body: JSON.stringify({ identity_id: idOrThrow(), discord_user_id: String(fd.get('discord_user_id') || '').trim() }),
         });
-        status.textContent = 'Konto Discord połączone. Bot i panel będą używać wspólnego profilu.';
+        setStatus('integrationStatus', 'Konto Discord połączone. Web i bot używają wspólnego profilu.');
       } catch (err) {
-        status.textContent = `Błąd linkowania Discord: ${err.message}`;
+        setStatus('integrationStatus', `Błąd linkowania Discord: ${err.message}`, true);
       }
     });
 
     document.getElementById('reminderForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const status = document.getElementById('integrationStatus');
       try {
         const fd = new FormData(e.target);
         const payload = {
@@ -677,25 +965,23 @@
           discord_channel_id: String(fd.get('discord_channel_id') || '').trim() || null,
         };
         await api(`/app/reminders/${idOrThrow()}`, { method: 'POST', body: JSON.stringify(payload) });
-        status.textContent = 'Preferencje przypomnień zapisane.';
+        setStatus('integrationStatus', 'Ustawienia przypomnień zapisane.');
       } catch (err) {
-        status.textContent = `Błąd zapisu przypomnień: ${err.message}`;
+        setStatus('integrationStatus', `Błąd przypomnień: ${err.message}`, true);
       }
     });
 
     document.getElementById('setFreeBtn').addEventListener('click', async () => {
-      const status = document.getElementById('billingStatus');
       try {
         await api(`/billing/plan/${idOrThrow()}`, { method: 'POST', body: JSON.stringify({ plan: 'free' }) });
-        status.textContent = 'Plan ustawiony na Free.';
-        await loadProfileAndDashboard();
+        setStatus('billingStatus', 'Plan ustawiony na Free.');
+        await refreshAll();
       } catch (err) {
-        status.textContent = `Błąd: ${err.message}`;
+        setStatus('billingStatus', `Błąd planu: ${err.message}`, true);
       }
     });
 
     document.getElementById('buyProBtn').addEventListener('click', async () => {
-      const status = document.getElementById('billingStatus');
       try {
         const resp = await fetch('/.netlify/functions/create-checkout-session', {
           method: 'POST',
@@ -705,39 +991,44 @@
         if (!resp.ok) throw new Error('Nie udało się utworzyć sesji Stripe');
         const body = await resp.json();
         if (!body.url) throw new Error('Brak URL checkout');
-        status.textContent = 'Przekierowanie do Stripe Checkout...';
+        setStatus('billingStatus', 'Przekierowanie do Stripe Checkout...');
         window.location.href = body.url;
       } catch (err) {
-        status.textContent = `Błąd płatności: ${err.message}`;
+        setStatus('billingStatus', `Błąd płatności: ${err.message}`, true);
       }
     });
+
+    async function refreshAll() {
+      try {
+        await loadProfile();
+      } catch (_) {}
+      await loadDashboard();
+      await loadPlan();
+    }
+
+    setApiBase(API_BASE);
+
+    const checkoutParam = new URLSearchParams(window.location.search).get('checkout');
+    if (checkoutParam === 'success') setStatus('billingStatus', 'Stripe: płatność zakończona powodzeniem. Plan zmieni się po webhooku.');
+    if (checkoutParam === 'cancel') setStatus('billingStatus', 'Stripe: płatność anulowana.', true);
 
     loginBtn.addEventListener('click', () => window.netlifyIdentity && window.netlifyIdentity.open('login'));
     signupBtn.addEventListener('click', () => window.netlifyIdentity && window.netlifyIdentity.open('signup'));
     logoutBtn.addEventListener('click', () => window.netlifyIdentity && window.netlifyIdentity.logout());
-
-    const checkoutParam = new URLSearchParams(window.location.search).get('checkout');
-    if (checkoutParam === 'success') {
-      document.getElementById('billingStatus').textContent = 'Stripe: platnosc zakonczona powodzeniem. Plan zostanie zaktualizowany po webhooku.';
-    }
-    if (checkoutParam === 'cancel') {
-      document.getElementById('billingStatus').textContent = 'Stripe: platnosc anulowana przez uzytkownika.';
-      document.getElementById('billingStatus').classList.add('warn');
-    }
 
     if (window.netlifyIdentity) {
       window.netlifyIdentity.on('init', async (user) => {
         state.user = user;
         updateIdentityText();
         showUnlocked(Boolean(user));
-        if (user) await loadProfileAndDashboard();
+        if (user) await refreshAll();
       });
       window.netlifyIdentity.on('login', async (user) => {
         state.user = user;
         updateIdentityText();
         showUnlocked(true);
         window.netlifyIdentity.close();
-        await loadProfileAndDashboard();
+        await refreshAll();
       });
       window.netlifyIdentity.on('logout', () => {
         state.user = null;

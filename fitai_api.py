@@ -117,6 +117,17 @@ class ReminderPrefsRequest(BaseModel):
     discord_channel_id: Optional[str] = None
 
 
+class PlanGenerateRequest(BaseModel):
+    force: bool = False
+
+
+class PlanSwapRequest(BaseModel):
+    day_index: int
+    section: str
+    item_index: int
+    alternative_index: int
+
+
 def _web_user_id(identity_id: str) -> str:
     return f"web:{identity_id}"
 
@@ -202,6 +213,102 @@ def _build_dashboard(profile: dict) -> dict:
             "protein": protein_target,
         },
     }
+
+
+def _is_profile_ready_for_plan(profile: dict) -> bool:
+    required = [profile.get("name"), profile.get("goal"), profile.get("frequency"), profile.get("diet"), profile.get("weight"), profile.get("target_weight")]
+    return all(v not in (None, "") for v in required)
+
+
+def _default_meal_catalog(diet: str) -> dict:
+    key = (diet or "").lower()
+    if "wega" in key:
+        return {
+            "Śniadanie": [("Owsianka proteinowa z owocami", 520), ("Tofu scramble + pieczywo", 500), ("Pudding chia + masło orzechowe", 480)],
+            "Przekąska 1": [("Shake roślinny + banan", 280), ("Hummus + warzywa", 260), ("Jogurt kokosowy + orzechy", 300)],
+            "Obiad": [("Tempeh, ryż, brokuł", 720), ("Makaron z sosem soczewicowym", 690), ("Bowl: tofu, komosa, warzywa", 700)],
+            "Przekąska 2": [("Kanapka z pastą z ciecierzycy", 310), ("Mix owoców + migdały", 290), ("Baton roślinny", 260)],
+            "Kolacja": [("Sałatka z fasolą i awokado", 520), ("Wrap pełnoziarnisty z tofu", 560), ("Krem z soczewicy", 500)],
+        }
+    return {
+        "Śniadanie": [("Owsianka + odżywka białkowa", 520), ("Jajecznica + pieczywo", 510), ("Skyr + granola + owoce", 480)],
+        "Przekąska 1": [("Shake białkowy + banan", 280), ("Serek wiejski + orzechy", 300), ("Jogurt naturalny + owoce", 250)],
+        "Obiad": [("Kurczak, ryż, brokuł", 730), ("Indyk, ziemniaki, surówka", 700), ("Łosoś, kasza, warzywa", 750)],
+        "Przekąska 2": [("Kanapka z indykiem", 320), ("Twaróg + owoce", 290), ("Baton proteinowy", 260)],
+        "Kolacja": [("Sałatka z tuńczykiem", 520), ("Wrap pełnoziarnisty z kurczakiem", 560), ("Omlet warzywny", 500)],
+    }
+
+
+def _exercise_pool() -> dict:
+    return {
+        "klatka": [
+            {"name": "Wyciskanie sztangi leżąc", "sets": "4", "reps": "6-8", "notes": "Łopatki ściągnięte, stopy stabilnie.", "how_to": "Opuszczaj sztangę do dolnej części klatki, prowadząc łokcie około 45 stopni."},
+            {"name": "Wyciskanie hantli na skosie", "sets": "3", "reps": "8-10", "notes": "Kontroluj fazę opuszczania.", "how_to": "Ustaw ławkę 30-45 stopni i prowadź hantle po łuku nad klatkę."},
+            {"name": "Rozpiętki na bramie", "sets": "3", "reps": "12-15", "notes": "Skup się na napięciu klatki.", "how_to": "Prowadź dłonie półkolem i zatrzymaj ruch na końcu spięcia."},
+        ],
+        "nogi": [
+            {"name": "Przysiad ze sztangą", "sets": "4", "reps": "6-8", "notes": "Neutralny kręgosłup i kontrola kolan.", "how_to": "Cofnij biodra, zejdź do stabilnej głębokości i wróć dynamicznie."},
+            {"name": "Rumuński martwy ciąg", "sets": "3", "reps": "8-10", "notes": "Ruch inicjuj biodrem.", "how_to": "Prowadź sztangę blisko nóg, utrzymuj napięty brzuch i prosty grzbiet."},
+            {"name": "Wykroki chodzone", "sets": "3", "reps": "10/strona", "notes": "Pilnuj stabilności miednicy.", "how_to": "Długi krok, zejście w dół, odepchnięcie z pięty przedniej nogi."},
+        ],
+        "plecy": [
+            {"name": "Podciąganie nachwytem", "sets": "4", "reps": "6-10", "notes": "Aktywuj łopatki przed ruchem.", "how_to": "Zwis aktywny, podciągnięcie klatki do drążka bez bujania."},
+            {"name": "Wiosłowanie hantlem", "sets": "3", "reps": "8-12", "notes": "Łokieć blisko tułowia.", "how_to": "W stabilnym podparciu przyciągaj hantel do biodra i wolno opuszczaj."},
+            {"name": "Ściąganie drążka do klatki", "sets": "3", "reps": "10-12", "notes": "Unikaj przeprostu odcinka lędźwiowego.", "how_to": "Prowadź drążek do górnej klatki i kontroluj tor ruchu."},
+        ],
+        "brzuch": [
+            {"name": "Plank", "sets": "3", "reps": "40-60 s", "notes": "Linia bark-biodro-kostka.", "how_to": "Napnij brzuch i pośladki, oddychaj spokojnie, nie unoś bioder."},
+            {"name": "Dead bug", "sets": "3", "reps": "10/strona", "notes": "Lędźwia dociśnięte do podłoża.", "how_to": "Opuszczaj naprzemiennie rękę i nogę po przeciwnej stronie."},
+            {"name": "Unoszenie nóg w zwisie", "sets": "3", "reps": "8-12", "notes": "Bez bujania.", "how_to": "Unieś nogi przez napięcie brzucha, opuszczaj z kontrolą."},
+        ],
+        "barki": [
+            {"name": "Wyciskanie hantli nad głowę", "sets": "4", "reps": "6-10", "notes": "Brak przeprostu lędźwi.", "how_to": "Prowadź hantle pionowo i kontroluj opuszczanie."},
+            {"name": "Unoszenie bokiem", "sets": "3", "reps": "12-15", "notes": "Ruch bez szarpania.", "how_to": "Unieś hantle do poziomu barków z lekkim ugięciem łokci."},
+            {"name": "Face pull", "sets": "3", "reps": "12-15", "notes": "Aktywuj tylny akton barków.", "how_to": "Przyciągaj linę do twarzy z rotacją zewnętrzną ramion."},
+        ],
+    }
+
+
+def _build_weekly_plan(profile: dict) -> dict:
+    meal_catalog = _default_meal_catalog(profile.get("diet", "Brak preferencji"))
+    pool = _exercise_pool()
+    focus = [x.lower() for x in profile.get("training_focus", []) if isinstance(x, str)]
+    improve = [x.lower() for x in profile.get("improvement_areas", []) if isinstance(x, str)]
+    preferred = focus + [x for x in improve if x not in focus]
+    if not preferred:
+        preferred = ["klatka", "plecy", "nogi", "brzuch", "barki"]
+
+    week_days = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"]
+    meal_slots = ["Śniadanie", "Przekąska 1", "Obiad", "Przekąska 2", "Kolacja"]
+    days = []
+
+    for i, day_name in enumerate(week_days):
+        focus_key = preferred[i % len(preferred)]
+        if focus_key not in pool:
+            focus_key = "klatka"
+
+        workout_items = []
+        for idx, ex in enumerate(pool[focus_key]):
+            alternatives = [alt for alt in pool[focus_key] if alt["name"] != ex["name"]]
+            other_key = preferred[(i + idx + 1) % len(preferred)]
+            if other_key in pool:
+                alternatives.extend(pool[other_key][:1])
+            workout_items.append({**ex, "alternatives": alternatives[:3]})
+
+        meals = []
+        for slot in meal_slots:
+            candidates = meal_catalog.get(slot, [])
+            main = candidates[i % len(candidates)] if candidates else ("Posiłek", 500)
+            alt = [{"name": c[0], "kcal": c[1]} for c in candidates if c[0] != main[0]][:3]
+            meals.append({"slot": slot, "name": main[0], "kcal": main[1], "alternatives": alt})
+
+        days.append({
+            "day": day_name,
+            "workout": {"title": f"Sesja {focus_key.title()}", "focus": focus_key, "exercises": workout_items},
+            "meals": meals,
+        })
+
+    return {"generated_at": datetime.now().isoformat(), "weekly_goal": profile.get("goal", "Poprawa formy"), "days": days}
 
 
 # ─── AI helper ────────────────────────────────────────────────────────────────
@@ -525,6 +632,97 @@ def app_reminders_due():
         )
 
     return {"due": due, "count": len(due)}
+
+
+@app.get("/app/plan/{identity_id}")
+def app_get_plan(identity_id: str):
+    user_id = _web_user_id(identity_id)
+    db = load_db()
+    profile = db.get(user_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profil onboarding nie istnieje")
+    plan = profile.get("weekly_plan")
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan nie został jeszcze wygenerowany")
+    return plan
+
+
+@app.post("/app/plan/{identity_id}/generate")
+def app_generate_plan(identity_id: str, payload: PlanGenerateRequest):
+    user_id = _web_user_id(identity_id)
+    with DB_LOCK:
+        db = _load_db_unlocked()
+        profile = db.get(user_id)
+        if not profile:
+            raise HTTPException(status_code=404, detail="Profil onboarding nie istnieje")
+        if not _is_profile_ready_for_plan(profile):
+            raise HTTPException(status_code=400, detail="Najpierw uzupełnij pełny onboarding")
+        if payload.force or not profile.get("weekly_plan"):
+            profile["weekly_plan"] = _build_weekly_plan(profile)
+            profile["updated_at"] = datetime.now().isoformat()
+            db[user_id] = profile
+            _save_db_unlocked(db)
+    return {"status": "ok", "plan": profile.get("weekly_plan")}
+
+
+@app.post("/app/plan/{identity_id}/swap")
+def app_swap_plan_item(identity_id: str, payload: PlanSwapRequest):
+    user_id = _web_user_id(identity_id)
+    with DB_LOCK:
+        db = _load_db_unlocked()
+        profile = db.get(user_id)
+        if not profile:
+            raise HTTPException(status_code=404, detail="Profil onboarding nie istnieje")
+        plan = profile.get("weekly_plan")
+        if not plan:
+            raise HTTPException(status_code=404, detail="Plan nie został jeszcze wygenerowany")
+
+        days = plan.get("days", [])
+        if payload.day_index < 0 or payload.day_index >= len(days):
+            raise HTTPException(status_code=400, detail="Niepoprawny day_index")
+        day = days[payload.day_index]
+        section = (payload.section or "").strip().lower()
+
+        if section == "meal":
+            meals = day.get("meals", [])
+            if payload.item_index < 0 or payload.item_index >= len(meals):
+                raise HTTPException(status_code=400, detail="Niepoprawny item_index dla meal")
+            item = meals[payload.item_index]
+            alternatives = item.get("alternatives", [])
+            if payload.alternative_index < 0 or payload.alternative_index >= len(alternatives):
+                raise HTTPException(status_code=400, detail="Niepoprawny alternative_index")
+            current = {"name": item.get("name"), "kcal": item.get("kcal")}
+            selected = alternatives[payload.alternative_index]
+            item["name"] = selected.get("name")
+            item["kcal"] = selected.get("kcal")
+            new_alt = [a for i, a in enumerate(alternatives) if i != payload.alternative_index]
+            new_alt.append(current)
+            item["alternatives"] = new_alt
+        elif section == "exercise":
+            exercises = day.get("workout", {}).get("exercises", [])
+            if payload.item_index < 0 or payload.item_index >= len(exercises):
+                raise HTTPException(status_code=400, detail="Niepoprawny item_index dla exercise")
+            item = exercises[payload.item_index]
+            alternatives = item.get("alternatives", [])
+            if payload.alternative_index < 0 or payload.alternative_index >= len(alternatives):
+                raise HTTPException(status_code=400, detail="Niepoprawny alternative_index")
+            selected = alternatives[payload.alternative_index]
+            current = {"name": item.get("name"), "sets": item.get("sets"), "reps": item.get("reps"), "notes": item.get("notes"), "how_to": item.get("how_to")}
+            item["name"] = selected.get("name")
+            item["sets"] = selected.get("sets")
+            item["reps"] = selected.get("reps")
+            item["notes"] = selected.get("notes")
+            item["how_to"] = selected.get("how_to")
+            new_alt = [a for i, a in enumerate(alternatives) if i != payload.alternative_index]
+            new_alt.append(current)
+            item["alternatives"] = new_alt
+        else:
+            raise HTTPException(status_code=400, detail="section musi być meal albo exercise")
+        profile["weekly_plan"] = plan
+        profile["updated_at"] = datetime.now().isoformat()
+        db[user_id] = profile
+        _save_db_unlocked(db)
+    return {"status": "ok", "plan": profile.get("weekly_plan")}
 
 
 # ─── AI endpointy ─────────────────────────────────────────────────────────────
