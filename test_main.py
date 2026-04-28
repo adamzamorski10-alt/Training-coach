@@ -157,3 +157,13 @@ def test_app_swap_exercise():
     assert "sets" in exercise
     assert "reps" in exercise
     assert "alternatives" in exercise
+
+
+def test_app_version():
+    """Testuje GET /app/version endpoint"""
+    response = client.get("/app/version")
+    assert response.status_code == 200
+    data = response.json()
+    assert "version" in data
+    assert "build_date" in data
+    assert "api_version" in data

@@ -906,6 +906,26 @@ def root():
     }
 
 
+@app.get("/app/version")
+def get_version():
+    """Zwraca wersję i datę ostatniego updateu"""
+    import json
+    from datetime import datetime
+    
+    try:
+        with open("package.json", "r") as f:
+            pkg = json.load(f)
+        version = pkg.get("version", "1.0.0")
+    except:
+        version = "1.0.0"
+    
+    return {
+        "version": version,
+        "build_date": datetime.now().strftime("%Y-%m-%d"),
+        "api_version": "1.02",
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

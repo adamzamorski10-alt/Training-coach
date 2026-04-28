@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FitAI Panel v1.01</title>
+  <title>FitAI Panel</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link
     href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;700&display=swap"
@@ -37,9 +37,24 @@
     }
 
     .layout {
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 22px;
+      width: 100%;
+      padding: 20px;
+      max-width: none;
+    }
+
+    .topbar {
+      grid-column: 1 / -1;
+    }
+
+    #appLocked,
+    #appUnlocked {
+      grid-column: 1 / -1;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        padding: 14px;
+      }
     }
 
     .topbar {
@@ -81,10 +96,12 @@
       padding: 10px 14px;
       font-weight: 600;
       cursor: pointer;
+      transition: all 0.2s ease;
     }
 
     .btn:hover {
       border-color: rgba(45, 213, 255, 0.5);
+      background: rgba(45, 213, 255, 0.05);
     }
 
     .btn.primary {
@@ -115,6 +132,7 @@
       border-radius: 16px;
       padding: 16px;
       margin-bottom: 14px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
     }
 
     .card h2 {
@@ -436,24 +454,108 @@
       height: 280px;
     }
 
+    .plan-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .plan-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .day-selector {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .day-selector button {
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .day-selector button.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #03212b;
+      font-weight: 700;
+    }
+
+    .day-selector button:hover:not(.active) {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
     .plan-days {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
     }
 
     .day-card {
       border: 1px solid var(--line);
-      background: var(--surface2);
-      border-radius: 12px;
-      padding: 12px;
+      background: linear-gradient(135deg, rgba(45, 213, 255, 0.05), transparent 70%), var(--surface2);
+      border-radius: 14px;
+      padding: 18px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .day-card {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+    }
+
+    .day-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .day-section-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent);
+      display: flex;
+      gap: 8px;
+      align-items: center;
     }
 
     .day-title {
       font-family: 'Syne', sans-serif;
-      margin: 0 0 6px;
-      font-size: 1.04rem;
+      margin: 0 0 12px;
+      font-size: 1.3rem;
       color: var(--accent);
+      font-weight: 800;
+      letter-spacing: -0.5px;
     }
 
     .list-item {
@@ -462,6 +564,12 @@
       padding: 8px;
       margin-bottom: 8px;
       background: #0e1726;
+      transition: all 0.2s ease;
+    }
+
+    .list-item:hover {
+      border-color: rgba(45, 213, 255, 0.3);
+      background: rgba(45, 213, 255, 0.03);
     }
 
     .item-head {
@@ -529,7 +637,7 @@
       <div>
         <div class="brand">Fit<span>AI</span> Panel</div>
         <div class="muted" id="identityState">Sprawdzam logowanie...</div>
-        <div class="muted" style="font-size: 0.8rem; margin-top: 2px;">v1.01 (2026-04-27)</div>
+        <div class="muted" id="versionDisplay" style="font-size: 0.8rem; margin-top: 2px; min-width: 120px;">v... (Ładowanie...)</div>
       </div>
       <div class="actions">
         <button class="btn" id="loginBtn">Zaloguj</button>
@@ -764,7 +872,7 @@
               <button class="btn" id="reloadPlanBtn" type="button">Odśwież plan</button>
             </div>
             <div class="status" id="planStatus">Po uzupełnieniu danych kliknij "Generuj plan tygodniowy".</div>
-            <div id="planContainer" class="plan-days" style="margin-top:10px;"></div>
+            <div id="planContainer" style="margin-top:14px;"></div>
           </div>
         </div>
       </section>
@@ -1093,51 +1201,103 @@
         return;
       }
 
-      root.innerHTML = days.map((day, dIdx) => `
-        <article class="day-card" data-day-index="${dIdx}">
-          <h3 class="day-title">${day.day}</h3>
-          <div class="tiny" style="margin-bottom:8px;">Trening: ${day.workout.title}</div>
+      // Pokazuj pierwszy dzień domyślnie
+      if (!window.currentDayIndex) window.currentDayIndex = 0;
+      window.currentDayIndex = Math.min(window.currentDayIndex, days.length - 1);
 
-          <div class="tiny" style="font-weight:700;margin-bottom:4px;">Plan diety</div>
-          ${(day.meals || []).map((meal, mIdx) => `
-            <div class="list-item" data-section="meal" data-item-index="${mIdx}">
-              <div class="item-head">
-                <div>
-                  <div class="item-title">${meal.slot}: ${meal.name}</div>
-                  <div class="tiny">${meal.kcal} kcal</div>
-                </div>
-                <button class="btn" type="button" data-action="toggle-edit">Edytuj</button>
-              </div>
-              <div class="alt-wrap hidden">
-                ${mealAltOptions(meal)}
-                <button class="btn" type="button" data-action="apply-swap">Zmień</button>
-              </div>
-            </div>
-          `).join('')}
+      const day = days[window.currentDayIndex];
 
-          <div class="tiny" style="font-weight:700;margin:8px 0 4px;">Plan treningowy</div>
-          ${(day.workout.exercises || []).map((ex, eIdx) => `
-            <div class="list-item" data-section="exercise" data-item-index="${eIdx}">
-              <div class="item-head">
-                <div>
-                  <div class="item-title">${ex.name}</div>
-                  <div class="tiny">Serie: ${ex.sets} | Powtórzenia: ${ex.reps}</div>
+      root.innerHTML = `
+        <div class="plan-container">
+          <div class="plan-nav">
+            <button class="btn" id="prevDayBtn" type="button">← Poprzedni dzień</button>
+            <span style="font-weight: 600; color: var(--accent); font-size: 0.95rem;">Dzień ${window.currentDayIndex + 1} / ${days.length}</span>
+            <button class="btn" id="nextDayBtn" type="button">Następny dzień →</button>
+          </div>
+          
+          <div class="day-selector">
+            ${days.map((d, idx) => `
+              <button class="day-selector button ${idx === window.currentDayIndex ? 'active' : ''}" 
+                      data-day-index="${idx}" type="button">
+                ${d.day.split(' ')[0]}
+              </button>
+            `).join('')}
+          </div>
+
+          <article class="day-card" data-day-index="${window.currentDayIndex}">
+            <div class="day-section">
+              <div class="day-section-title">
+                <span>🍎 Plan diety</span>
+              </div>
+              <h3 class="day-title">${day.day}</h3>
+              ${(day.meals || []).map((meal, mIdx) => `
+                <div class="list-item" data-section="meal" data-item-index="${mIdx}">
+                  <div class="item-head">
+                    <div>
+                      <div class="item-title">${meal.slot}: ${meal.name}</div>
+                      <div class="tiny">${meal.kcal} kcal</div>
+                    </div>
+                    <button class="btn" type="button" data-action="toggle-edit">Edytuj</button>
+                  </div>
+                  <div class="alt-wrap hidden">
+                    ${mealAltOptions(meal)}
+                    <button class="btn" type="button" data-action="apply-swap">Zmień</button>
+                  </div>
                 </div>
-                <button class="btn" type="button" data-action="toggle-edit">Edytuj</button>
-              </div>
-              <details>
-                <summary>Szczegóły wykonania i uwagi</summary>
-                <p class="tiny" style="margin:6px 0 0;">${ex.how_to || '-'}</p>
-                <p class="tiny" style="margin:4px 0 0;">Uwagi: ${ex.notes || '-'}</p>
-              </details>
-              <div class="alt-wrap hidden">
-                ${exerciseAltOptions(ex)}
-                <button class="btn" type="button" data-action="apply-swap">Zmień</button>
-              </div>
+              `).join('')}
             </div>
-          `).join('')}
-        </article>
-      `).join('');
+
+            <div class="day-section">
+              <div class="day-section-title">
+                <span>💪 Plan treningowy</span>
+              </div>
+              <h3 class="day-title" style="margin-top: 0;">${day.workout.title}</h3>
+              ${(day.workout.exercises || []).map((ex, eIdx) => `
+                <div class="list-item" data-section="exercise" data-item-index="${eIdx}">
+                  <div class="item-head">
+                    <div>
+                      <div class="item-title">${ex.name}</div>
+                      <div class="tiny">Serie: ${ex.sets} | Powtórzenia: ${ex.reps}</div>
+                    </div>
+                    <button class="btn" type="button" data-action="toggle-edit">Edytuj</button>
+                  </div>
+                  <details>
+                    <summary>Szczegóły wykonania i uwagi</summary>
+                    <p class="tiny" style="margin:6px 0 0;">${ex.how_to || '-'}</p>
+                    <p class="tiny" style="margin:4px 0 0;">Uwagi: ${ex.notes || '-'}</p>
+                  </details>
+                  <div class="alt-wrap hidden">
+                    ${exerciseAltOptions(ex)}
+                    <button class="btn" type="button" data-action="apply-swap">Zmień</button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </article>
+        </div>
+      `;
+
+      // Setupuj event listenery dla nawigacji
+      document.getElementById('prevDayBtn')?.addEventListener('click', () => {
+        if (window.currentDayIndex > 0) {
+          window.currentDayIndex--;
+          renderPlan(plan);
+        }
+      });
+
+      document.getElementById('nextDayBtn')?.addEventListener('click', () => {
+        if (window.currentDayIndex < days.length - 1) {
+          window.currentDayIndex++;
+          renderPlan(plan);
+        }
+      });
+
+      document.querySelectorAll('.day-selector button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          window.currentDayIndex = Number(btn.dataset.dayIndex);
+          renderPlan(plan);
+        });
+      });
     }
 
     async function loadPlan() {
@@ -1366,6 +1526,25 @@
     }
 
     setApiBase(API_BASE);
+
+    // Pobierz i wyświetl wersję
+    async function loadVersionInfo() {
+      try {
+        const info = await api('/app/version');
+        const versionDisplay = document.getElementById('versionDisplay');
+        if (versionDisplay) {
+          versionDisplay.textContent = `v${info.api_version} (${info.build_date})`;
+        }
+      } catch (err) {
+        console.warn('Nie można załadować wersji:', err);
+        const versionDisplay = document.getElementById('versionDisplay');
+        if (versionDisplay) {
+          versionDisplay.textContent = 'v-- (error)';
+        }
+      }
+    }
+
+    loadVersionInfo();
 
     const checkoutParam = new URLSearchParams(window.location.search).get('checkout');
     if (checkoutParam === 'success') setStatus('billingStatus', 'Stripe: płatność zakończona powodzeniem. Plan zmieni się po webhooku.');
