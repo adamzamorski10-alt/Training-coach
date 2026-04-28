@@ -1011,6 +1011,12 @@
       setMultiValues(focusForm, 'improvement_areas', profile.improvement_areas || []);
       setMultiValues(focusForm, 'training_focus', profile.training_focus || []);
 
+      // Pre-fill personalizacji diety i treningu
+      form.elements.preferred_foods.value = (profile.preferred_foods || []).join(', ');
+      form.elements.avoid_foods.value = (profile.avoid_foods || []).join(', ');
+      form.elements.available_equipment.value = (profile.available_equipment || []).join(', ');
+      form.elements.avoid_exercises.value = (profile.avoid_exercises || []).join(', ');
+
       if (profile.reminders) {
         const rem = document.getElementById('reminderForm').elements;
         rem.discord_channel_id.value = profile.reminders.discord_channel_id || '';
