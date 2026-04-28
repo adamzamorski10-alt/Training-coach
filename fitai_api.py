@@ -66,13 +66,16 @@ class UserProfile(BaseModel):
     gender: str  # mężczyzna / kobieta / inna
     goal: str
     frequency: str  # jak często trenuje
+    training_focus: List[str] = []
+    improvement_areas: List[str] = []
     sports: List[str] = []
     diet: str  # rodzaj diety
     allergies: str = ""
-    preferred_foods: List[str] = []  # ulubione produkty
-    avoid_foods: List[str] = []  # rzeczy do unikania w diecie
+    preferred_foods: List[str] = []
+    avoid_foods: List[str] = []
     available_equipment: List[str] = []  # dostępny sprzęt
     avoid_exercises: List[str] = []  # rzeczy do unikania w treningu
+    substitutes_history: dict = {} # Trwałe zamienniki użytkownika
     meals_per_day: int = 4
     notes: str = ""
 

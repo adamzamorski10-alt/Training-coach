@@ -1,1512 +1,1248 @@
 <!DOCTYPE html>
 <html lang="pl">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FitAI — Twój Asystent Fitness z AI</title>
-  <meta name="description"
-    content="FitAI to asystent treningowo-dietetyczny AI: onboarding, plan diety, plan treningu, check-iny, dashboard postepow i bot Discord w jednym koncie.">
-  <meta name="keywords"
-    content="fitness ai, plan diety, plan treningowy, dashboard postepow, bot discord, trening coach">
-  <meta property="og:title" content="FitAI — Twój Asystent Fitness z AI">
-  <meta property="og:description"
-    content="Jeden system do diety, treningu i postepow: aplikacja web, API i bot Discord.">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://training-coach.netlify.app/">
-  <meta name="twitter:card" content="summary_large_image">
-  <link rel="canonical" href="https://training-coach.netlify.app/">
+  <meta name="theme-color" content="#0a0b10">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>FitAI — Premium SaaS Platform</title>
+  
+  <!-- Tailwind & Fonts -->
+  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link
-    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Chart.js for KPI visualization -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="data:application/manifest+json,{\"name\":\"FitAI\",\"short_name\":\"FitAI\",\"start_url\":\"\/\",\"display\":\"standalone\",\"background_color\":\"#0a0b10\",\"theme_color\":\"#00e5ff\"}">
+  
   <style>
+    * { box-sizing: border-box; }
+    
     :root {
-      --bg: #0a0b0f;
-      --bg2: #0f1117;
-      --bg3: #13151d;
-      --surface: #161820;
-      --border: rgba(255, 255, 255, 0.06);
-      --neon: #00e5ff;
-      --neon2: #00b4cc;
-      --neon-glow: rgba(0, 229, 255, 0.18);
-      --neon-glow-strong: rgba(0, 229, 255, 0.35);
-      --text: #f0f2f8;
-      --muted: #6b7a99;
-      --white: #ffffff;
+      --neon-cyan: #00e5ff;
+      --neon-purple: #7c3aed;
+      --deep-bg: #0a0b10;
+      --card-bg: rgba(255, 255, 255, 0.03);
+      --alert-red: #ff4444;
     }
-
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    html {
-      scroll-behavior: smooth;
-    }
-
+    
+    html { scroll-behavior: smooth; }
+    
     body {
-      font-family: 'DM Sans', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      overflow-x: hidden;
-      line-height: 1.6;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--deep-bg);
+      background-image: 
+        radial-gradient(circle at 0% 0%, rgba(0, 229, 255, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 100% 100%, rgba(124, 58, 237, 0.05) 0%, transparent 50%);
+      color: #e2e8f0;
+      min-height: 100vh;
     }
-
-    /* ─── NAVBAR ─── */
-    nav {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 100;
-      background: rgba(10, 11, 15, 0.75);
-      backdrop-filter: blur(20px);
-      border-bottom: 1px solid var(--border);
-      padding: 0 2rem;
-      height: 64px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+    
+    /* === GLASSMORPHISM === */
+    .glass-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
-
-    .logo {
-      font-family: 'Syne', sans-serif;
-      font-weight: 800;
-      font-size: 1.4rem;
-      color: var(--white);
-      letter-spacing: -0.5px;
-    }
-
-    .logo span {
-      color: var(--neon);
-    }
-
-    .nav-links {
-      display: flex;
-      gap: 2.5rem;
-      list-style: none;
-    }
-
-    .nav-links a {
-      color: var(--muted);
-      text-decoration: none;
-      font-size: 0.9rem;
-      font-weight: 500;
-      transition: color 0.2s;
-    }
-
-    .nav-links a:hover {
-      color: var(--white);
-    }
-
-    .btn-neon {
-      background: var(--neon);
-      color: #000;
-      font-family: 'DM Sans', sans-serif;
-      font-weight: 700;
-      font-size: 0.875rem;
-      padding: 0.55rem 1.4rem;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: box-shadow 0.25s, transform 0.2s, background 0.2s;
-      box-shadow: 0 0 18px var(--neon-glow-strong);
-      letter-spacing: 0.01em;
-    }
-
-    .btn-neon:hover {
-      background: #19f0ff;
-      box-shadow: 0 0 30px var(--neon-glow-strong), 0 0 60px rgba(0, 229, 255, 0.15);
+    
+    .glass-card:hover {
+      border-color: rgba(0, 229, 255, 0.3);
+      box-shadow: 0 0 30px rgba(0, 229, 255, 0.05);
       transform: translateY(-1px);
     }
-
-    .btn-ghost {
-      background: transparent;
-      color: var(--text);
-      border: 1px solid var(--border);
-      font-family: 'DM Sans', sans-serif;
-      font-weight: 500;
-      font-size: 0.875rem;
-      padding: 0.55rem 1.4rem;
-      border-radius: 8px;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: border-color 0.2s, color 0.2s;
-    }
-
-    .btn-ghost:hover {
-      border-color: var(--neon);
-      color: var(--neon);
-    }
-
-    .nav-cta {
-      display: flex;
-      gap: 0.75rem;
-      align-items: center;
-    }
-
-    .auth-badge {
-      display: none;
-      align-items: center;
-      gap: 0.45rem;
-      background: rgba(0, 229, 255, 0.08);
-      border: 1px solid rgba(0, 229, 255, 0.2);
-      color: var(--neon);
-      border-radius: 999px;
-      font-size: 0.78rem;
-      font-weight: 500;
-      padding: 0.28rem 0.7rem;
-      white-space: nowrap;
-    }
-
-    /* ─── HERO ─── */
-    .hero {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      padding: 100px 2rem 80px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .hero-bg {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      background:
-        radial-gradient(ellipse 60% 50% at 70% 40%, rgba(0, 229, 255, 0.07) 0%, transparent 70%),
-        radial-gradient(ellipse 40% 40% at 20% 70%, rgba(0, 80, 120, 0.06) 0%, transparent 70%);
-    }
-
-    .hero-grid {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      background-image:
-        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-      background-size: 60px 60px;
-      mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black, transparent);
-    }
-
-    .hero-inner {
-      max-width: 1200px;
-      margin: 0 auto;
-      width: 100%;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 5rem;
-      align-items: center;
-      position: relative;
-      z-index: 1;
-    }
-
-    .hero-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(0, 229, 255, 0.08);
-      border: 1px solid rgba(0, 229, 255, 0.2);
-      border-radius: 999px;
-      padding: 0.3rem 1rem;
-      font-size: 0.8rem;
-      color: var(--neon);
-      font-weight: 500;
-      margin-bottom: 1.5rem;
-      letter-spacing: 0.03em;
-    }
-
-    .badge-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--neon);
-      box-shadow: 0 0 8px var(--neon);
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-
-      0%,
-      100% {
-        opacity: 1
-      }
-
-      50% {
-        opacity: 0.4
-      }
-    }
-
-    h1 {
-      font-family: 'Syne', sans-serif;
-      font-size: clamp(2.4rem, 5vw, 3.8rem);
-      font-weight: 800;
-      line-height: 1.1;
-      letter-spacing: -1.5px;
-      color: var(--white);
-      margin-bottom: 1.25rem;
-    }
-
-    h1 .accent {
-      color: var(--neon);
-    }
-
-    .hero-desc {
-      color: var(--muted);
-      font-size: 1.1rem;
-      line-height: 1.7;
-      max-width: 440px;
-      margin-bottom: 2.5rem;
-      font-weight: 300;
-    }
-
-    .hero-cta {
-      display: flex;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-
-    .hero-cta .btn-neon {
-      font-size: 1rem;
-      padding: 0.8rem 1.8rem;
-      border-radius: 10px;
-    }
-
-    .hero-cta .btn-ghost {
-      font-size: 1rem;
-      padding: 0.8rem 1.8rem;
-      border-radius: 10px;
-    }
-
-    .hero-visual {
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .mockup-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 1.5rem;
-      width: 100%;
-      max-width: 420px;
-      box-shadow: 0 0 60px rgba(0, 229, 255, 0.07), 0 40px 80px rgba(0, 0, 0, 0.5);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .mockup-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, var(--neon), transparent);
-      opacity: 0.5;
-    }
-
-    .mockup-header {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .mockup-avatar {
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--neon), #0080a0);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1rem;
-    }
-
-    .mockup-name {
-      font-weight: 600;
-      font-size: 0.95rem;
-    }
-
-    .mockup-sub {
-      font-size: 0.75rem;
-      color: var(--muted);
-    }
-
-    .stat-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 0.75rem;
-      margin-bottom: 1.25rem;
-    }
-
-    .stat-box {
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 0.75rem;
-      text-align: center;
-    }
-
-    .stat-val {
-      font-family: 'Syne', sans-serif;
-      font-size: 1.2rem;
-      font-weight: 700;
-      color: var(--neon);
-    }
-
-    .stat-label {
-      font-size: 0.68rem;
-      color: var(--muted);
-      margin-top: 2px;
-    }
-
-    .mockup-bar-wrap {
-      margin-bottom: 0.5rem;
-    }
-
-    .mockup-bar-label {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.75rem;
-      color: var(--muted);
-      margin-bottom: 5px;
-    }
-
-    .mockup-bar {
-      height: 6px;
-      background: var(--bg);
-      border-radius: 99px;
-      overflow: hidden;
-    }
-
-    .mockup-bar-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--neon2), var(--neon));
-      border-radius: 99px;
-    }
-
-    .ai-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(0, 229, 255, 0.1);
-      border: 1px solid rgba(0, 229, 255, 0.2);
-      border-radius: 8px;
-      padding: 0.5rem 0.9rem;
-      font-size: 0.8rem;
-      color: var(--neon);
-      margin-top: 1rem;
-      font-weight: 500;
-    }
-
-    .float-tag {
-      position: absolute;
-      top: -18px;
-      right: -18px;
-      background: var(--neon);
-      color: #000;
-      font-weight: 700;
-      font-size: 0.7rem;
-      padding: 0.35rem 0.75rem;
-      border-radius: 99px;
-      box-shadow: 0 0 20px var(--neon-glow-strong);
-      letter-spacing: 0.05em;
-    }
-
-    /* ─── SECTIONS ─── */
-    section {
-      padding: 6rem 2rem;
-    }
-
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      width: 100%;
-    }
-
-    .section-tag {
-      font-size: 0.75rem;
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      color: var(--neon);
-      text-transform: uppercase;
-      margin-bottom: 0.75rem;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .section-tag::after {
-      content: '';
-      flex: 1;
-      max-width: 40px;
-      height: 1px;
-      background: var(--neon);
-      opacity: 0.4;
-    }
-
-    h2 {
-      font-family: 'Syne', sans-serif;
-      font-size: clamp(2rem, 4vw, 3rem);
-      font-weight: 800;
-      letter-spacing: -1px;
-      color: var(--white);
-      margin-bottom: 1rem;
-    }
-
-    .section-desc {
-      color: var(--muted);
-      font-size: 1.05rem;
-      max-width: 540px;
-      line-height: 1.7;
-      font-weight: 300;
-    }
-
-    .section-head {
-      margin-bottom: 4rem;
-    }
-
-    /* ─── FEATURES ─── */
-    .features-bg {
-      background: var(--bg2);
-    }
-
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1.5rem;
-    }
-
-    .feat-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 2rem;
-      position: relative;
-      overflow: hidden;
-      transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
-    }
-
-    .feat-card:hover {
-      border-color: rgba(0, 229, 255, 0.3);
-      transform: translateY(-4px);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(0, 229, 255, 0.06);
-    }
-
-    .feat-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(0, 229, 255, 0.3), transparent);
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-
-    .feat-card:hover::before {
-      opacity: 1;
-    }
-
-    .feat-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: 12px;
-      background: rgba(0, 229, 255, 0.08);
-      border: 1px solid rgba(0, 229, 255, 0.15);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.4rem;
-      margin-bottom: 1.25rem;
-      box-shadow: 0 0 20px rgba(0, 229, 255, 0.08);
-    }
-
-    .feat-title {
-      font-family: 'Syne', sans-serif;
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--white);
-      margin-bottom: 0.6rem;
-    }
-
-    .feat-desc {
-      color: var(--muted);
-      font-size: 0.9rem;
-      line-height: 1.65;
-      font-weight: 300;
-    }
-
-    /* ─── STEPS ─── */
-    .steps-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 2rem;
-      position: relative;
-    }
-
-    .steps-grid::before {
-      content: '';
-      position: absolute;
-      top: 28px;
-      left: calc(16.5% + 28px);
-      right: calc(16.5% + 28px);
-      height: 1px;
-      background: linear-gradient(90deg, var(--neon), rgba(0, 229, 255, 0.1));
-      pointer-events: none;
-    }
-
-    .step-card {
-      text-align: center;
-      padding: 1rem;
-    }
-
-    .step-num {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      background: var(--bg3);
-      border: 2px solid rgba(0, 229, 255, 0.3);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 1.5rem;
-      font-family: 'Syne', sans-serif;
-      font-size: 1.2rem;
-      font-weight: 800;
-      color: var(--neon);
-      box-shadow: 0 0 20px rgba(0, 229, 255, 0.15);
-    }
-
-    .step-title {
-      font-family: 'Syne', sans-serif;
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: var(--white);
-      margin-bottom: 0.6rem;
-    }
-
-    .step-desc {
-      color: var(--muted);
-      font-size: 0.9rem;
-      line-height: 1.65;
-      font-weight: 300;
-    }
-
-    /* ─── PRICING ─── */
-    .pricing-bg {
-      background: var(--bg2);
-    }
-
-    .pricing-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1.5rem;
-      align-items: start;
-    }
-
-    .price-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 2.25rem;
-      transition: transform 0.3s, box-shadow 0.3s;
-    }
-
-    .price-card:hover {
-      transform: translateY(-4px);
-    }
-
-    .price-card.featured {
-      border-color: rgba(0, 229, 255, 0.5);
-      background: linear-gradient(135deg, rgba(0, 229, 255, 0.05) 0%, var(--surface) 100%);
-      box-shadow: 0 0 50px rgba(0, 229, 255, 0.1), 0 0 100px rgba(0, 229, 255, 0.04);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .price-card.featured::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, var(--neon), transparent);
-    }
-
-    .plan-badge {
-      display: inline-block;
-      background: var(--neon);
-      color: #000;
-      font-size: 0.72rem;
-      font-weight: 700;
-      padding: 0.25rem 0.75rem;
-      border-radius: 99px;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      margin-bottom: 1.25rem;
-    }
-
-    .plan-name {
-      font-family: 'Syne', sans-serif;
-      font-size: 1.3rem;
-      font-weight: 700;
-      color: var(--white);
-      margin-bottom: 0.5rem;
-    }
-
-    .plan-desc {
-      color: var(--muted);
-      font-size: 0.875rem;
-      margin-bottom: 1.75rem;
-      line-height: 1.5;
-    }
-
-    .plan-price {
-      margin-bottom: 1.75rem;
-    }
-
-    .plan-price .amount {
-      font-family: 'Syne', sans-serif;
-      font-size: 2.8rem;
-      font-weight: 800;
-      color: var(--white);
-    }
-
-    .plan-price .period {
-      color: var(--muted);
-      font-size: 0.9rem;
-      font-weight: 300;
-    }
-
-    .plan-price .free {
-      font-family: 'Syne', sans-serif;
-      font-size: 2rem;
-      font-weight: 800;
-      color: var(--white);
-    }
-
-    .plan-feats {
-      list-style: none;
-      margin-bottom: 2rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.65rem;
-    }
-
-    .plan-feats li {
-      font-size: 0.875rem;
-      color: var(--muted);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .plan-feats li .check {
-      color: var(--neon);
-      font-size: 0.85rem;
-      font-weight: 700;
-    }
-
-    .plan-feats li.disabled {
-      opacity: 0.4;
-    }
-
-    .plan-feats li.disabled .check {
-      color: var(--muted);
-    }
-
-    .btn-plan {
-      width: 100%;
-      padding: 0.8rem;
-      border-radius: 10px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.9rem;
-      font-weight: 600;
-      cursor: pointer;
-      border: none;
-      transition: all 0.25s;
-    }
-
-    .btn-plan-outline {
-      background: transparent;
-      color: var(--text);
-      border: 1px solid var(--border);
-    }
-
-    .btn-plan-outline:hover {
-      border-color: var(--neon);
-      color: var(--neon);
-    }
-
-    .btn-plan-neon {
-      background: var(--neon);
-      color: #000;
-      box-shadow: 0 0 25px var(--neon-glow-strong);
-    }
-
-    .btn-plan-neon:hover {
-      box-shadow: 0 0 40px var(--neon-glow-strong);
-      background: #19f0ff;
-    }
-
-    /* ─── ACCOUNT ─── */
-    .account-panel {
-      background: linear-gradient(145deg, rgba(0, 229, 255, 0.05), rgba(0, 0, 0, 0) 45%), var(--surface);
-      border: 1px solid rgba(0, 229, 255, 0.22);
-      border-radius: 18px;
-      padding: 1.5rem;
-      display: none;
-    }
-
-    .account-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1rem;
-      margin-bottom: 1rem;
-      flex-wrap: wrap;
-    }
-
-    .account-title {
-      font-family: 'Syne', sans-serif;
-      font-size: 1.2rem;
-      font-weight: 700;
-      color: var(--white);
-    }
-
-    .account-sub {
-      color: var(--muted);
-      font-size: 0.9rem;
-    }
-
-    .account-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0.9rem;
-      margin: 1.1rem 0 1.3rem;
-    }
-
-    .account-pill {
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 0.8rem;
-      color: var(--muted);
-      font-size: 0.82rem;
-    }
-
-    .account-pill strong {
-      display: block;
-      margin-top: 0.2rem;
-      color: var(--white);
-      font-size: 0.9rem;
-      font-weight: 600;
-    }
-
-    .account-actions {
-      display: flex;
-      gap: 0.75rem;
-      flex-wrap: wrap;
-    }
-
-    .account-note {
-      color: var(--muted);
-      font-size: 0.8rem;
-      margin-top: 0.8rem;
-    }
-
-    .faq-item {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 0.9rem 1rem;
-      margin-bottom: 0.75rem;
-    }
-
-    .faq-item summary {
-      cursor: pointer;
-      font-family: 'Syne', sans-serif;
-      font-size: 1rem;
-      color: var(--white);
-    }
-
-    .faq-item p {
-      color: var(--muted);
-      font-size: 0.92rem;
-      margin-top: 0.6rem;
-      line-height: 1.65;
-    }
-
-    /* ─── FOOTER ─── */
-    footer {
-      background: var(--bg);
-      border-top: 1px solid var(--border);
-      padding: 3rem 2rem;
-    }
-
-    .footer-inner {
-      max-width: 1200px;
-      margin: 0 auto;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 1.5rem;
-    }
-
-    .footer-copy {
-      color: var(--muted);
-      font-size: 0.85rem;
-    }
-
-    .footer-links {
-      display: flex;
-      gap: 1.5rem;
-    }
-
-    .footer-links a {
-      color: var(--muted);
-      text-decoration: none;
-      font-size: 0.85rem;
-      transition: color 0.2s;
-    }
-
-    .footer-links a:hover {
-      color: var(--neon);
-    }
-
-    .social-icons {
-      display: flex;
-      gap: 0.75rem;
-    }
-
-    .social-icon {
-      width: 36px;
-      height: 36px;
-      border-radius: 8px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--muted);
-      text-decoration: none;
-      font-size: 0.9rem;
-      transition: border-color 0.2s, color 0.2s, box-shadow 0.2s;
-    }
-
-    .social-icon:hover {
-      border-color: var(--neon);
-      color: var(--neon);
-      box-shadow: 0 0 12px var(--neon-glow);
-    }
-
-    /* ─── DIVIDER ─── */
-    .divider {
-      height: 1px;
-      background: var(--border);
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-
-    /* ─── RESPONSIVE ─── */
-    @media (max-width: 900px) {
-      .hero-inner {
-        grid-template-columns: 1fr;
-        gap: 3rem;
-      }
-
-      .hero-visual {
-        display: none;
-      }
-
-      .features-grid,
-      .steps-grid,
-      .pricing-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .account-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .steps-grid::before {
-        display: none;
-      }
-
-      .nav-links {
-        display: none;
-      }
-
-      h1 {
-        font-size: 2.4rem;
-      }
-    }
-
-    @media (max-width: 600px) {
-      nav {
-        padding: 0 1rem;
-      }
-
-      section {
-        padding: 4rem 1.25rem;
-      }
-
-      h1 {
-        font-size: 2rem;
-      }
-    }
-
-    /* ─── ANIMATIONS ─── */
-    @keyframes fadeUp {
+    
+    .glass-sidebar {
+      background: rgba(10, 11, 16, 0.7);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    
+    /* === ANIMATIONS === */
+    @keyframes slideUpFade {
       from {
         opacity: 0;
-        transform: translateY(28px);
+        transform: translateY(20px);
       }
-
       to {
         opacity: 1;
         transform: translateY(0);
       }
     }
-
-    .hero-left>* {
-      animation: fadeUp 0.7s ease both;
+    
+    @keyframes fadeOutFast {
+      from { opacity: 1; }
+      to { opacity: 0; }
     }
-
-    .hero-left>*:nth-child(1) {
-      animation-delay: 0.1s;
+    
+    @keyframes springBounce {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-8px); }
+      75% { transform: translateX(8px); }
     }
-
-    .hero-left>*:nth-child(2) {
-      animation-delay: 0.2s;
+    
+    @keyframes pulseNeon {
+      0%, 100% {
+        box-shadow: 0 0 15px rgba(0, 229, 255, 0.3),
+                    inset 0 0 15px rgba(0, 229, 255, 0.1);
+      }
+      50% {
+        box-shadow: 0 0 30px rgba(0, 229, 255, 0.6),
+                    inset 0 0 20px rgba(0, 229, 255, 0.2);
+      }
     }
-
-    .hero-left>*:nth-child(3) {
-      animation-delay: 0.35s;
+    
+    @keyframes slideRightToLeft {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
     }
-
-    .hero-left>*:nth-child(4) {
-      animation-delay: 0.5s;
+    
+    @keyframes slideLeftToRight {
+      from { transform: translateX(-100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
     }
-
-    .hero-visual {
-      animation: fadeUp 0.8s 0.4s ease both;
+    
+    .tab-content {
+      animation: slideUpFade 0.4s ease-out;
+    }
+    
+    .tab-content.exit {
+      animation: fadeOutFast 0.2s ease-out;
+    }
+    
+    .day-carousel-item {
+      animation: springBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    .btn-neon {
+      background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+      color: #fff;
+      font-weight: 600;
+      box-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
+      transition: all 0.3s ease;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .btn-neon:hover {
+      box-shadow: 0 0 25px rgba(0, 229, 255, 0.5), 0 0 40px rgba(124, 58, 237, 0.3);
+      transform: translateY(-2px);
+    }
+    
+    .btn-neon.pulse {
+      animation: pulseNeon 2s infinite;
+    }
+    
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #e2e8f0;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    /* === NAVIGATION === */
+    .nav-item {
+      transition: all 0.2s ease;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    
+    .nav-item.active {
+      background: rgba(0, 229, 255, 0.1);
+      color: var(--neon-cyan);
+      border-left: 4px solid var(--neon-cyan);
+      padding-left: calc(0.75rem - 4px);
+    }
+    
+    .nav-item:hover:not(.active) {
+      background: rgba(255, 255, 255, 0.05);
+      color: #e2e8f0;
+    }
+    
+    /* === ALERTS & NOTIFICATIONS === */
+    .alert-neon {
+      background: linear-gradient(135deg, rgba(0, 229, 255, 0.1), rgba(124, 58, 237, 0.1));
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      border-radius: 12px;
+      padding: 12px 16px;
+      animation: slideUpFade 0.4s ease-out;
+    }
+    
+    .alert-warning {
+      background: rgba(255, 68, 68, 0.1);
+      border: 1px solid rgba(255, 68, 68, 0.3);
+      color: #ff9999;
+    }
+    
+    /* === SCROLLBAR === */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { 
+      background: rgba(0, 229, 255, 0.2);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 229, 255, 0.4);
+    }
+    
+    /* === INPUTS & FORMS === */
+    input, textarea, select {
+      background: rgba(0, 0, 0, 0.3) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      color: #e2e8f0 !important;
+      border-radius: 8px !important;
+      padding: 10px 12px !important;
+      transition: all 0.2s ease !important;
+    }
+    
+    input:focus, textarea:focus, select:focus {
+      outline: none !important;
+      border-color: var(--neon-cyan) !important;
+      box-shadow: 0 0 15px rgba(0, 229, 255, 0.2) !important;
+    }
+    
+    /* === RESPONSIVE === */
+    @media (max-width: 768px) {
+      .glass-sidebar {
+        position: fixed;
+        left: -100%;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 999;
+        transition: left 0.3s ease;
+      }
+      
+      .glass-sidebar.mobile-open {
+        left: 0;
+      }
+    }
+    
+    /* === UTILITY CLASSES === */
+    .text-gradient {
+      background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .shimmer {
+      animation: shimmer 2s infinite;
+    }
+    
+    @keyframes shimmer {
+      0% { opacity: 0.5; }
+      50% { opacity: 1; }
+      100% { opacity: 0.5; }
     }
   </style>
 </head>
-
 <body>
 
-  <!-- ─── NAVBAR ─── -->
-  <nav>
-    <div class="logo">Fit<span>AI</span></div>
-    <ul class="nav-links">
-      <li><a href="#features">Funkcje</a></li>
-      <li><a href="#how">Jak to działa</a></li>
-      <li><a href="#pricing">Cennik</a></li>
-      <li><a href="#stories">Case studies</a></li>
-      <li><a href="#faq">FAQ</a></li>
-      <li><a href="#account">Konto</a></li>
-    </ul>
-    <div class="nav-cta">
-      <span class="auth-badge" id="authBadge">● Niezalogowany</span>
-      <button type="button" class="btn-ghost" id="loginBtn">Zaloguj się</button>
-      <button type="button" class="btn-neon" id="signupBtn">▶ Załóż konto</button>
-      <button type="button" class="btn-ghost" id="logoutBtn" style="display:none">Wyloguj</button>
+<!-- ======== NAVBAR ======== -->
+<nav class="fixed top-0 left-0 right-0 bg-gradient-to-b from-[#0a0b10] via-[rgba(10,11,16,0.8)] to-transparent backdrop-blur-xl border-b border-white/5 z-40 px-4 md:px-8 py-4">
+  <div class="max-w-7xl mx-auto flex justify-between items-center">
+    <!-- Logo -->
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 bg-gradient-to-br from-[#00e5ff] to-[#7c3aed] rounded-lg rotate-12 flex items-center justify-center font-bold text-white text-lg">F</div>
+      <h1 class="text-xl font-bold tracking-tight text-white hidden sm:block">FitAI</h1>
     </div>
-  </nav>
-
-  <!-- ─── HERO ─── -->
-  <section class="hero" id="home">
-    <div class="hero-bg"></div>
-    <div class="hero-grid"></div>
-    <div class="hero-inner">
-      <div class="hero-left">
-        <div class="hero-badge"><span class="badge-dot"></span> Zasilany przez Claude AI</div>
-        <h1>Zrewolucjonizuj<br>swój <span class="accent">Fitness</span><br>z mocą AI</h1>
-        <p class="hero-desc">FitAI to inteligentny asystent, który tworzy spersonalizowane plany diety i treningu,
-          analizuje Twoje postępy i motywuje do działania — wszystko dostosowane do Ciebie.</p>
-        <div class="hero-cta">
-          <button type="button" class="btn-neon" id="heroStartBtn">⚡ Zacznij za darmo</button>
-          <a href="#how" class="btn-ghost">Zobacz jak działa →</a>
+    
+    <!-- Right Menu -->
+    <div class="flex items-center gap-4">
+      <!-- User Switcher (Dropdown) -->
+      <div class="relative group">
+        <button id="userMenuBtn" class="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors text-sm font-medium">
+          <span id="currentUserDisplay">👤 Użytkownik</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+          </svg>
+        </button>
+        <div id="userDropdown" class="absolute right-0 mt-2 w-48 bg-gradient-to-b from-white/10 to-white/5 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 p-2">
+          <div id="userList" class="space-y-1 max-h-64 overflow-y-auto"></div>
+          <div class="border-t border-white/10 mt-2 pt-2">
+            <button onclick="showTab('profile')" class="w-full text-left px-3 py-2 text-sm text-gray-400 hover:bg-white/5 rounded transition-colors">⚙️ Ustawienia</button>
+            <button id="addUserBtn" class="w-full text-left px-3 py-2 text-sm text-cyan-400 hover:bg-cyan-500/10 rounded transition-colors">+ Dodaj użytkownika</button>
+          </div>
         </div>
       </div>
-      <div class="hero-visual">
-        <div class="mockup-card">
-          <div class="float-tag">LIVE AI</div>
-          <div class="mockup-header">
-            <div class="mockup-avatar">🏋️</div>
-            <div>
-              <div class="mockup-name">Marek Kowalski</div>
-              <div class="mockup-sub">Cel: Redukcja · 3–4×/tydzień</div>
-            </div>
-          </div>
-          <div class="stat-row">
-            <div class="stat-box">
-              <div class="stat-val">2463</div>
-              <div class="stat-label">kcal / dzień</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-val">185g</div>
-              <div class="stat-label">białko</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-val">–6.5</div>
-              <div class="stat-label">kg do celu</div>
-            </div>
-          </div>
-          <div class="mockup-bar-wrap">
-            <div class="mockup-bar-label"><span>Białko</span><span>185 / 200g</span></div>
-            <div class="mockup-bar">
-              <div class="mockup-bar-fill" style="width:92%"></div>
-            </div>
-          </div>
-          <div class="mockup-bar-wrap">
-            <div class="mockup-bar-label"><span>Kalorie</span><span>2 100 / 2 463 kcal</span></div>
-            <div class="mockup-bar">
-              <div class="mockup-bar-fill" style="width:85%"></div>
-            </div>
-          </div>
-          <div class="mockup-bar-wrap">
-            <div class="mockup-bar-label"><span>Postęp tygodnia</span><span>5 / 7 dni</span></div>
-            <div class="mockup-bar">
-              <div class="mockup-bar-fill" style="width:71%"></div>
-            </div>
-          </div>
-          <div class="ai-chip">🤖 AI wygenerowało plan na jutro →</div>
-        </div>
+      
+      <!-- Main PANEL Button (Pulsing Neon) -->
+      <button onclick="showTab('dashboard')" class="btn-neon pulse px-6 py-2 rounded-lg font-bold text-sm">PANEL</button>
+      
+      <!-- Mobile Menu Toggle -->
+      <button id="mobileMenuBtn" class="md:hidden p-2 hover:bg-white/10 rounded-lg transition-colors">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- ======== LAYOUT CONTAINER ======== -->
+<div class="flex pt-16 min-h-screen">
+
+  <!-- ======== SIDEBAR (GLASSMORPHISM) ======== -->
+  <aside id="sidebar" class="hidden md:flex w-64 glass-sidebar p-6 border-r border-white/5 fixed md:sticky top-16 h-[calc(100vh-64px)] flex-col gap-6 overflow-y-auto md:z-0 z-50">
+    <nav class="space-y-2 flex-1">
+      <div class="px-3 py-2 text-xs font-bold text-gray-500 uppercase tracking-wide">Menu</div>
+      
+      <a href="#" onclick="showTab('dashboard'); return false;" class="nav-item active flex items-center gap-3 p-3 text-sm font-medium">
+        <span class="text-lg">🏠</span> <span>Home</span>
+      </a>
+      
+      <a href="#" onclick="showTab('my-day'); return false;" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white">
+        <span class="text-lg">📋</span> <span>Mój Dzień</span>
+      </a>
+      
+      <a href="#" onclick="showTab('plan'); return false;" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white">
+        <span class="text-lg">📅</span> <span>Plan</span>
+      </a>
+      
+      <a href="#" onclick="showTab('profile'); return false;" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white">
+        <span class="text-lg">👤</span> <span>Profil</span>
+      </a>
+      
+      <a href="#" onclick="showTab('contact'); return false;" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white">
+        <span class="text-lg">💬</span> <span>Kontakt</span>
+      </a>
+    </nav>
+    
+    <!-- Footer Info -->
+    <div class="border-t border-white/5 pt-4">
+      <div class="text-xs text-gray-500 space-y-1">
+        <p>📊 <span id="versionInfo">FitAI v2.0</span></p>
+        <button id="logoutBtn" class="text-red-400 hover:text-red-300 text-xs font-medium transition-colors w-full text-left">🚪 Wyloguj</button>
       </div>
     </div>
-  </section>
+  </aside>
 
-  <!-- ─── ACCOUNT ─── -->
-  <section id="account">
-    <div class="container">
-      <div class="section-head">
-        <div class="section-tag">Konto</div>
-        <h2>Dostęp do Twojego panelu</h2>
-        <p class="section-desc">Rejestracja i logowanie działają przez Netlify Identity. Po zalogowaniu możesz przejść
-          do chronionego panelu i endpointów tylko dla użytkowników.</p>
+  <!-- ======== MAIN CONTENT ======== -->
+  <main class="flex-1 p-4 md:p-8 w-full">
+    <!-- Header with User Greeting -->
+    <header class="mb-8 animate-fadeIn">
+      <div class="flex justify-between items-start md:items-center">
+        <div>
+          <h2 class="text-3xl md:text-4xl font-bold text-white mb-1">
+            👋 Witaj, <span id="greetingName">Użytkowniku</span>!
+          </h2>
+          <p class="text-gray-400 text-sm md:text-base">Twój cel jest blisko. Sprawdzaj postęp każdego dnia.</p>
+        </div>
+        <div class="text-right">
+          <p id="todayDate" class="text-sm text-gray-500 font-mono"></p>
+        </div>
+      </div>
+    </header>
+
+    <!-- ======== TAB: HOME ======== -->
+    <section id="dashboard" class="tab-content space-y-8">
+      <!-- KPI Cards Grid -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <!-- Consistency -->
+        <div class="glass-card p-4 md:p-6 border-l-4 border-cyan-500">
+          <p class="text-gray-400 text-xs font-semibold uppercase mb-2">🔥 Spójność</p>
+          <h3 class="text-2xl md:text-3xl font-bold text-cyan-400 mb-2" id="kpiConsistency">0%</h3>
+          <div class="w-full bg-white/5 h-1 rounded-full overflow-hidden">
+            <div id="consistencyBar" class="h-full bg-gradient-to-r from-cyan-500 to-purple-500 w-0 transition-all duration-500"></div>
+          </div>
+        </div>
+        
+        <!-- Calories Today -->
+        <div class="glass-card p-4 md:p-6">
+          <p class="text-gray-400 text-xs font-semibold uppercase mb-2">🍽️ Dzisiaj</p>
+          <h3 class="text-2xl md:text-3xl font-bold text-white mb-2">
+            <span id="caloriesEaten">0</span> / <span id="caloriesTarget">2500</span>
+          </h3>
+          <p class="text-xs text-gray-500" id="caloriesRemaining">2500 kcal pozostało</p>
+        </div>
+        
+        <!-- Current Weight -->
+        <div class="glass-card p-4 md:p-6">
+          <p class="text-gray-400 text-xs font-semibold uppercase mb-2">⚖️ Waga</p>
+          <h3 class="text-2xl md:text-3xl font-bold text-white" id="kpiWeight">-- kg</h3>
+          <p class="text-xs text-gray-500 mt-1" id="weightTrend">Oczekuję na dane</p>
+        </div>
+        
+        <!-- Plan Status -->
+        <div class="glass-card p-4 md:p-6">
+          <p class="text-gray-400 text-xs font-semibold uppercase mb-2">📊 Plan</p>
+          <h3 class="text-2xl md:text-3xl font-bold text-gradient mb-2" id="planStatus">Free</h3>
+          <button onclick="showTab('profile')" class="text-xs text-cyan-400 hover:text-cyan-300 transition-colors">Uaktualnij plan →</button>
+        </div>
       </div>
 
-      <div class="account-panel" id="accountPanel">
-        <div class="account-head">
+      <!-- Charts Row -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Consistency Chart -->
+        <div class="lg:col-span-2 glass-card p-6">
+          <h4 class="text-lg font-bold text-white mb-4">Analiza Spójności (7 dni)</h4>
+          <div class="h-64">
+            <canvas id="consistencyChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Next Steps Card -->
+        <div class="glass-card p-6 flex flex-col justify-between">
           <div>
-            <div class="account-title">Zalogowano pomyślnie</div>
-            <div class="account-sub" id="accountEmail">Email użytkownika</div>
+            <h4 class="text-lg font-bold text-white mb-4">🎯 Następny Krok</h4>
+            <div id="nextStepContent" class="space-y-3">
+              <div class="p-3 bg-white/5 rounded-lg border border-white/10">
+                <p class="text-sm text-gray-400">Ładowanie danych...</p>
+              </div>
+            </div>
           </div>
-          <button type="button" class="btn-ghost" id="accountLogoutBtn">Wyloguj</button>
+          <button class="btn-neon px-4 py-2 rounded-lg text-sm font-bold mt-4 w-full">+ DODAJ POSIŁEK</button>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="glass-card p-6">
+        <h4 class="text-lg font-bold text-white mb-4">📈 Ostatnia Aktywność</h4>
+        <div id="recentActivityContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="text-center text-gray-500 text-sm italic py-8">Brak logów do wyświetlenia</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======== TAB: MY DAY ======== -->
+    <section id="my-day" class="tab-content hidden space-y-6">
+      <h3 class="text-2xl md:text-3xl font-bold">Mój Dzień</h3>
+      
+      <!-- Neon Alert for Macro Deficiency (if applicable) -->
+      <div id="macroAlert" class="hidden">
+        <div class="alert-neon alert-warning">
+          <p class="text-sm font-medium" id="macroAlertText"></p>
+        </div>
+      </div>
+
+      <!-- Two Containers: Diet & Training -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- DIET CONTAINER -->
+        <div class="glass-card p-6">
+          <h4 class="text-xl font-bold text-white mb-4">🍽️ Dieta</h4>
+          
+          <!-- Diet Log -->
+          <div id="dietLogContainer" class="space-y-3 mb-6 max-h-96 overflow-y-auto pr-2">
+            <p class="text-gray-500 text-sm italic">Dodaj posiłki z planu lub manualnie</p>
+          </div>
+          
+          <!-- Buttons -->
+          <div class="flex gap-3">
+            <button onclick="addFromPlan('diet')" class="flex-1 btn-secondary py-2 rounded-lg text-sm font-medium">📌 Z Planu</button>
+            <button onclick="showManualForm('diet')" class="flex-1 btn-secondary py-2 rounded-lg text-sm font-medium">✏️ Inny</button>
+          </div>
         </div>
 
-        <div class="account-grid">
-          <div class="account-pill">Plan<strong id="accountPlan">Free</strong></div>
-          <div class="account-pill">Status<strong id="accountStatus">Aktywne</strong></div>
-          <div class="account-pill">Sesja wygasa<strong id="accountExpiry">wkrótce</strong></div>
+        <!-- TRAINING CONTAINER -->
+        <div class="glass-card p-6">
+          <h4 class="text-xl font-bold text-white mb-4">💪 Trening</h4>
+          
+          <!-- Training Log -->
+          <div id="trainingLogContainer" class="space-y-3 mb-6 max-h-96 overflow-y-auto pr-2">
+            <p class="text-gray-500 text-sm italic">Dodaj ćwiczenia z planu lub manualnie</p>
+          </div>
+          
+          <!-- Buttons -->
+          <div class="flex gap-3">
+            <button onclick="addFromPlan('training')" class="flex-1 btn-secondary py-2 rounded-lg text-sm font-medium">📌 Z Planu</button>
+            <button onclick="showManualForm('training')" class="flex-1 btn-secondary py-2 rounded-lg text-sm font-medium">✏️ Inny</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manual Entry Form (Hidden by default) -->
+      <div id="manualFormContainer" class="glass-card p-6 hidden">
+        <h4 class="text-lg font-bold text-white mb-4" id="manualFormTitle">Dodaj pozycję</h4>
+        <form id="manualEntryForm" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">Nazwa</label>
+            <input type="text" id="entryName" placeholder="np. Baton proteinowy, Pompki" class="w-full p-3 rounded-lg">
+          </div>
+          <div class="grid grid-cols-3 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-2">Białko (g)</label>
+              <input type="number" id="entryProtein" placeholder="0" class="w-full p-3 rounded-lg">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-2">Węgle (g)</label>
+              <input type="number" id="entryCarbs" placeholder="0" class="w-full p-3 rounded-lg">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-2">Tłuszcz (g)</label>
+              <input type="number" id="entryFat" placeholder="0" class="w-full p-3 rounded-lg">
+            </div>
+          </div>
+          <div class="flex gap-3">
+            <button type="submit" class="flex-1 btn-neon py-2 rounded-lg font-bold">Dodaj</button>
+            <button type="button" onclick="closeManualForm()" class="flex-1 btn-secondary py-2 rounded-lg font-medium">Anuluj</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ======== TAB: PLAN ======== -->
+    <section id="plan" class="tab-content hidden space-y-6">
+      <div class="flex justify-between items-center">
+        <h3 class="text-2xl md:text-3xl font-bold">Plan Treningowy & Dieta</h3>
+        <div class="flex items-center gap-2">
+          <button onclick="prevDay()" class="btn-secondary p-2 rounded-lg">←</button>
+          <span id="currentDay" class="text-sm font-medium text-gray-400">Pon</span>
+          <button onclick="nextDay()" class="btn-secondary p-2 rounded-lg">→</button>
+        </div>
+      </div>
+
+      <!-- Day Selector Carousel -->
+      <div class="glass-card p-4 overflow-x-auto">
+        <div class="flex gap-2" id="dayCarousel">
+          <!-- Days generated by JS -->
+        </div>
+      </div>
+
+      <!-- Two Column Layout: Diet & Training -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- DIET PLAN -->
+        <div class="glass-card p-6">
+          <h4 class="text-xl font-bold text-white mb-4">🍽️ Dieta Zaplanowana</h4>
+          <div id="planDietContainer" class="space-y-3">
+            <div class="p-4 bg-white/5 rounded-lg text-gray-500 text-sm italic text-center">
+              Zaplanowane posiłki pojawią się tutaj
+            </div>
+          </div>
         </div>
 
-        <div class="account-actions">
-          <a href="/app" class="btn-neon">Przejdź do panelu</a>
-          <a href="/api" class="btn-ghost">API / integracje</a>
+        <!-- TRAINING PLAN -->
+        <div class="glass-card p-6">
+          <h4 class="text-xl font-bold text-white mb-4">💪 Trening Zaplanowany</h4>
+          <div id="planTrainingContainer" class="space-y-3">
+            <div class="p-4 bg-white/5 rounded-lg text-gray-500 text-sm italic text-center">
+              Zaplanowane ćwiczenia pojawią się tutaj
+            </div>
+          </div>
         </div>
-        <div class="account-note">Wskazowka: dla stron i endpointow wymagajacych autoryzacji ustaw reguly dostepu oraz
-          weryfikacje JWT po stronie backendu.</div>
       </div>
-    </div>
-  </section>
 
-  <!-- ─── FEATURES ─── -->
-  <section class="features-bg" id="features">
-    <div class="container">
-      <div class="section-head">
-        <div class="section-tag">Funkcje</div>
-        <h2>Wszystko, czego<br>potrzebujesz</h2>
-        <p class="section-desc">Trzy filary systemu FitAI, które razem tworzą kompletne wsparcie dla Twojego zdrowia i
-          sylwetki.</p>
-      </div>
-      <div class="features-grid">
-        <div class="feat-card">
-          <div class="feat-icon">🥗</div>
-          <div class="feat-title">Spersonalizowany Plan Diety</div>
-          <div class="feat-desc">AI tworzy dzienny jadłospis z gramaturą i kaloriami każdego posiłku, dostosowany do
-            Twojego celu, alergii i preferencji smakowych.</div>
-        </div>
-        <div class="feat-card">
-          <div class="feat-icon">⚡</div>
-          <div class="feat-title">Inteligentny Plan Treningowy</div>
-          <div class="feat-desc">Każda sesja treningowa zaplanowana z uwzględnieniem Twojej historii, zmęczenia mięśni i
-            celu — zawsze optymalna, nigdy zbędna.</div>
-        </div>
-        <div class="feat-card">
-          <div class="feat-icon">📊</div>
-          <div class="feat-title">Analiza i Podsumowania AI</div>
-          <div class="feat-desc">Codzienne raporty i tygodniowe podsumowania z konkretnymi rekomendacjami. Wiedz
-            dokładnie, co robisz dobrze i co poprawić.</div>
+      <!-- Expand Details Modal (Hidden by default) -->
+      <div id="expandModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="glass-card max-w-2xl w-full p-6 max-h-[80vh] overflow-y-auto">
+          <div class="flex justify-between items-start mb-4">
+            <h5 id="expandTitle" class="text-xl font-bold text-white"></h5>
+            <button onclick="closeExpandModal()" class="text-gray-400 hover:text-white">✕</button>
+          </div>
+          <div id="expandContent" class="space-y-4 text-gray-300">
+            <!-- Content populated by JS -->
+          </div>
+          <div class="mt-6 flex gap-3">
+            <button onclick="swapItem()" class="flex-1 btn-neon py-2 rounded-lg font-bold">Zamień na inne</button>
+            <button onclick="closeExpandModal()" class="flex-1 btn-secondary py-2 rounded-lg font-medium">Zamknij</button>
+          </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- ─── STEPS ─── -->
-  <section id="how">
-    <div class="container">
-      <div class="section-head">
-        <div class="section-tag">Jak to działa</div>
-        <h2>Trzy kroki<br>do lepszej formy</h2>
-        <p class="section-desc">Zaczynasz w minutę. Bez skomplikowanych konfiguracji — FitAI uczy się Ciebie i działa od
-          razu.</p>
-      </div>
-      <div class="steps-grid">
-        <div class="step-card">
-          <div class="step-num">01</div>
-          <div class="step-title">Stwórz profil</div>
-          <div class="step-desc">Podaj swoje parametry, cel i preferencje. Zajmuje to 2 minuty i jest jednorazowe — AI
-            zapamiętuje Cię na stałe.</div>
-        </div>
-        <div class="step-card">
-          <div class="step-num">02</div>
-          <div class="step-title">Dostań swój plan</div>
-          <div class="step-desc">Każdego dnia AI generuje spersonalizowany plan diety i treningu, uwzględniając postępy
-            z poprzednich dni.</div>
-        </div>
-        <div class="step-card">
-          <div class="step-num">03</div>
-          <div class="step-title">Raportuj i rozwijaj się</div>
-          <div class="step-desc">Wpisz co jadłeś i co ćwiczyłeś. AI analizuje Twój dzień i automatycznie optymalizuje
-            jutrzejszy plan.</div>
-        </div>
-      </div>
-    </div>
-  </section>
+    <!-- ======== TAB: PROFILE ======== -->
+    <section id="profile" class="tab-content hidden space-y-6">
+      <h3 class="text-2xl md:text-3xl font-bold">Profil</h3>
 
-  <!-- ─── PRICING ─── -->
-  <section class="pricing-bg" id="pricing">
-    <div class="container">
-      <div class="section-head">
-        <div class="section-tag">Cennik</div>
-        <h2>Wybierz swój plan</h2>
-        <p class="section-desc">Zacznij za darmo i rozwijaj się razem z nami. Żadnych ukrytych opłat — anuluj w dowolnym
-          momencie.</p>
+      <!-- Profile Sub-tabs -->
+      <div class="glass-card p-2 flex gap-2 overflow-x-auto">
+        <button onclick="switchProfileTab('user-data')" class="profile-tab active px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap">👤 Dane</button>
+        <button onclick="switchProfileTab('goals')" class="profile-tab px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap">🎯 Cele</button>
+        <button onclick="switchProfileTab('preferences')" class="profile-tab px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap">⚙️ Preferencje</button>
+        <button onclick="switchProfileTab('payments')" class="profile-tab px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap">💳 Płatności</button>
       </div>
-      <div class="pricing-grid">
-        <!-- FREE -->
-        <div class="price-card">
-          <div class="plan-name">Free</div>
-          <div class="plan-desc">Idealny start — poznaj FitAI bez żadnych zobowiązań.</div>
-          <div class="plan-price"><span class="free">0 zł</span><span class="period"> / zawsze</span></div>
-          <ul class="plan-feats">
-            <li><span class="check">✓</span> Profil użytkownika</li>
-            <li><span class="check">✓</span> 5 planów diety / miesiąc</li>
-            <li><span class="check">✓</span> 5 planów treningowych / miesiąc</li>
-            <li><span class="check">✓</span> Dziennik aktywności</li>
-            <li class="disabled"><span class="check">✗</span> Analiza raportów AI</li>
-            <li class="disabled"><span class="check">✗</span> Podsumowania tygodniowe</li>
-            <li class="disabled"><span class="check">✗</span> Bot Discord</li>
-          </ul>
-          <a href="/app" class="btn-plan btn-plan-outline"
-            style="display:inline-flex;justify-content:center;align-items:center;text-decoration:none;">Zacznij za
-            darmo</a>
-        </div>
-        <!-- PRO -->
-        <div class="price-card featured">
-          <div class="plan-badge">⭐ Najbardziej popularny</div>
-          <div class="plan-name">Pro</div>
-          <div class="plan-desc">Pełna moc FitAI — nieograniczone plany i analizy AI.</div>
-          <div class="plan-price"><span class="amount">29 zł</span><span class="period"> / miesiąc</span></div>
-          <ul class="plan-feats">
-            <li><span class="check">✓</span> Wszystko z Free</li>
-            <li><span class="check">✓</span> Nielimitowane plany AI</li>
-            <li><span class="check">✓</span> Analiza raportów AI</li>
-            <li><span class="check">✓</span> Tygodniowe podsumowania</li>
-            <li><span class="check">✓</span> Bot Discord (slash commands)</li>
-            <li><span class="check">✓</span> Integracja REST API</li>
-            <li><span class="check">✓</span> Priorytetowe wsparcie</li>
-          </ul>
-          <a href="/app" class="btn-plan btn-plan-neon"
-            style="display:inline-flex;justify-content:center;align-items:center;text-decoration:none;">Wybierz Pro</a>
-        </div>
-        <!-- ENTERPRISE -->
-        <div class="price-card">
-          <div class="plan-name">Enterprise</div>
-          <div class="plan-desc">Dla klubów fitness, trenerów i organizacji z wieloma użytkownikami.</div>
-          <div class="plan-price"><span class="free">Na miarę</span></div>
-          <ul class="plan-feats">
-            <li><span class="check">✓</span> Wszystko z Pro</li>
-            <li><span class="check">✓</span> Wielu użytkowników / klientów</li>
-            <li><span class="check">✓</span> Dedykowany bot Discord</li>
-            <li><span class="check">✓</span> White-label dashboard</li>
-            <li><span class="check">✓</span> SLA i dedykowany opiekun</li>
-            <li><span class="check">✓</span> Własna domena API</li>
-            <li><span class="check">✓</span> Onboarding i szkolenie</li>
-          </ul>
-          <a href="mailto:kontakt@training-coach.netlify.app" class="btn-plan btn-plan-outline"
-            style="display:inline-flex;justify-content:center;align-items:center;text-decoration:none;">Skontaktuj
-            się</a>
-        </div>
-      </div>
-    </div>
-  </section>
 
-  <section id="stories">
-    <div class="container">
-      <div class="section-head">
-        <div class="section-tag">Case studies</div>
-        <h2>Wyniki użytkowników</h2>
-        <p class="section-desc">Poniżej realne scenariusze korzystania z FitAI: onboarding, codzienny check-in i
-          iteracyjne poprawianie planu.</p>
+      <!-- USER DATA TAB -->
+      <div id="profile-user-data" class="profile-tab-content space-y-4">
+        <div class="glass-card p-6">
+          <h4 class="text-lg font-bold text-white mb-4">Informacje Podstawowe</h4>
+          <form id="userDataForm" class="space-y-4">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Imię</label>
+                <input type="text" id="firstName" placeholder="Imię" class="w-full p-3 rounded-lg">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Wiek</label>
+                <input type="number" id="age" placeholder="Wiek" class="w-full p-3 rounded-lg">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Wzrost (cm)</label>
+                <input type="number" id="height" placeholder="180" class="w-full p-3 rounded-lg">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Waga (kg)</label>
+                <input type="number" id="weight" placeholder="80" step="0.1" class="w-full p-3 rounded-lg">
+              </div>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Cel (waga, kg)</label>
+                <input type="number" id="targetWeight" placeholder="75" step="0.1" class="w-full p-3 rounded-lg">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Płeć</label>
+                <select id="gender" class="w-full p-3 rounded-lg">
+                  <option value="">Wybierz</option>
+                  <option value="mężczyzna">Mężczyzna</option>
+                  <option value="kobieta">Kobieta</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Alergie</label>
+                <input type="text" id="allergies" placeholder="np. orzechy, mleko" class="w-full p-3 rounded-lg">
+              </div>
+            </div>
+            <button type="submit" class="btn-neon px-6 py-2 rounded-lg font-bold">Zapisz Zmiany</button>
+          </form>
+        </div>
       </div>
-      <div class="features-grid">
-        <div class="feat-card">
-          <div class="feat-icon">🏃</div>
-          <div class="feat-title">Redukcja 7.2 kg w 12 tygodni</div>
-          <div class="feat-desc">Użytkownik biurowy, 3 treningi/tydzień. FitAI dopasował kalorie i progres obciążenia,
-            utrzymując średni streak 24 dni.</div>
-        </div>
-        <div class="feat-card">
-          <div class="feat-icon">💪</div>
-          <div class="feat-title">+3.8 kg masy mięśniowej</div>
-          <div class="feat-desc">Plan high-protein, monitorowanie regeneracji i korekty planu po raportach z
-            przeciążenia barku.</div>
-        </div>
-        <div class="feat-card">
-          <div class="feat-icon">📈</div>
-          <div class="feat-title">79% regularności treningów</div>
-          <div class="feat-desc">Zautomatyzowane przypomnienia i integracja web + Discord podniosły utrzymanie nawyku o
-            31 punktów procentowych.</div>
-        </div>
-      </div>
-    </div>
-  </section>
 
-  <section class="features-bg" id="reviews">
-    <div class="container">
-      <div class="section-head">
-        <div class="section-tag">Opinie</div>
-        <h2>Co mówią użytkownicy</h2>
-      </div>
-      <div class="features-grid">
-        <div class="feat-card">
-          <div class="feat-title">"Najlepszy workflow, jaki miałem"</div>
-          <div class="feat-desc">"Onboarding był szybki, a po tygodniu miałem już rytm check-inów. Największy plus: plan
-            na jutro po każdym raporcie." — Kamil, 31 lat</div>
-        </div>
-        <div class="feat-card">
-          <div class="feat-title">"W końcu widzę postęp na wykresie"</div>
-          <div class="feat-desc">"Wcześniej działałam na czuja. Teraz mam wykres wagi, realizację białka i konkretne
-            rekomendacje." — Natalia, 27 lat</div>
-        </div>
-        <div class="feat-card">
-          <div class="feat-title">"Discord + web to świetny duet"</div>
-          <div class="feat-desc">"Rano raportuję na telefonie, wieczorem sprawdzam panel na laptopie. Jedno konto, zero
-            chaosu." — Michał, 35 lat</div>
+      <!-- GOALS TAB -->
+      <div id="profile-goals" class="profile-tab-content hidden space-y-4">
+        <div class="glass-card p-6">
+          <h4 class="text-lg font-bold text-white mb-4">🎯 Cele Treningowe</h4>
+          <p class="text-sm text-gray-400 mb-4">Zaznacz cele, które Cię interesują. Wpłyną na Twój plan treningowy.</p>
+          <div id="goalsCheckboxes" class="space-y-3">
+            <!-- Populated by JS -->
+          </div>
+          <button onclick="saveGoals()" class="btn-neon px-6 py-2 rounded-lg font-bold mt-4">Zapisz Cele</button>
         </div>
       </div>
-    </div>
-  </section>
 
-  <section id="faq">
-    <div class="container">
-      <div class="section-head">
-        <div class="section-tag">FAQ</div>
-        <h2>Najczęstsze pytania</h2>
+      <!-- PREFERENCES TAB -->
+      <div id="profile-preferences" class="profile-tab-content hidden space-y-4">
+        <div class="glass-card p-6">
+          <h4 class="text-lg font-bold text-white mb-4">⚙️ Preferencje</h4>
+          
+          <div class="space-y-4">
+            <div>
+              <h5 class="text-sm font-bold text-white mb-2">Dostępny Sprzęt</h5>
+              <p class="text-xs text-gray-500 mb-3">Jeśli odznaczysz sprzęt, zostanie usunięty z Twojego planu.</p>
+              <div id="equipmentCheckboxes" class="space-y-2">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+            
+            <div class="border-t border-white/10 pt-4">
+              <h5 class="text-sm font-bold text-white mb-2">Wykluczone Potrawy</h5>
+              <input type="text" id="excludedFoods" placeholder="np. kurczak, ryż, orzechy (oddzielone przecinkami)" class="w-full p-3 rounded-lg">
+            </div>
+            
+            <button onclick="savePreferences()" class="btn-neon px-6 py-2 rounded-lg font-bold w-full">Zapisz Preferencje</button>
+          </div>
+        </div>
       </div>
-      <details class="faq-item">
-        <summary>Czy FitAI zastępuje dietetyka lub lekarza?</summary>
-        <p>Nie. FitAI to narzędzie wspierające codzienną pracę nad nawykami. W sprawach medycznych i klinicznych zawsze
-          konsultuj się ze specjalistą.</p>
-      </details>
-      <details class="faq-item">
-        <summary>Jak działa płatność i zmiana planu?</summary>
-        <p>Płatność jest realizowana przez Stripe Checkout. Po potwierdzeniu transakcji plan i rola konta są
-          aktualizowane automatycznie na Pro.</p>
-      </details>
-      <details class="faq-item">
-        <summary>Czy mogę połączyć konto z botem Discord?</summary>
-        <p>Tak. W panelu /app wpisujesz swój Discord User ID. Dzięki temu web i bot korzystają z tego samego profilu i
-          historii postępów.</p>
-      </details>
-      <details class="faq-item">
-        <summary>Jak działają przypomnienia i streak?</summary>
-        <p>Jeśli nie ma dzisiejszego check-inu, system może wysłać przypomnienie email/Discord. Streak rośnie za każdy
-          kolejny dzień z raportem.</p>
-      </details>
-    </div>
-  </section>
 
-  <!-- ─── FOOTER ─── -->
-  <footer>
-    <div class="footer-inner">
-      <div>
-        <div class="logo" style="margin-bottom:0.4rem">Fit<span style="color:var(--neon)">AI</span></div>
-        <div class="footer-copy">© 2026 FitAI. Wszelkie prawa zastrzeżone.</div>
+      <!-- PAYMENTS TAB -->
+      <div id="profile-payments" class="profile-tab-content hidden space-y-4">
+        <div class="glass-card p-6">
+          <h4 class="text-lg font-bold text-white mb-4">💳 Płatności</h4>
+          <div class="text-center py-8">
+            <div class="text-4xl mb-2">🚀</div>
+            <p class="text-gray-400">Moduł płatności jest w przygotowaniu.</p>
+            <p class="text-sm text-gray-500 mt-2">Wkrótce będziesz mógł uaktualnić swój plan Premium.</p>
+          </div>
+        </div>
       </div>
-      <div class="footer-links">
-        <a href="/privacy.html">Polityka prywatności</a>
-        <a href="/terms.html">Regulamin</a>
-        <a href="mailto:kontakt@training-coach.netlify.app">Kontakt</a>
-      </div>
-      <div class="social-icons">
-        <a class="social-icon" href="#" title="Discord">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path
-              d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057c.002.022.015.043.031.053a19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z" />
-          </svg>
-        </a>
-        <a class="social-icon" href="#" title="GitHub">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path
-              d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
-          </svg>
-        </a>
-        <a class="social-icon" href="#" title="Instagram">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path
-              d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z" />
-          </svg>
-        </a>
-      </div>
-    </div>
-  </footer>
+    </section>
 
-  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
-  <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "FitAI",
-      "applicationCategory": "HealthApplication",
-      "operatingSystem": "Web",
-      "description": "Asystent fitness AI: dieta, trening, dashboard postepow, check-in i integracja z Discord.",
-      "offers": {
-        "@type": "Offer",
-        "price": "29",
-        "priceCurrency": "PLN"
+    <!-- ======== TAB: CONTACT ======== -->
+    <section id="contact" class="tab-content hidden space-y-6">
+      <h3 class="text-2xl md:text-3xl font-bold">Kontakt</h3>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Discord Tile -->
+        <div class="glass-card p-8 flex flex-col items-center justify-center text-center hover:border-cyan-500/50 cursor-pointer transition-all group">
+          <div class="text-5xl mb-4 group-hover:scale-110 transition-transform">💜</div>
+          <h4 class="text-xl font-bold text-white mb-2">Discord</h4>
+          <p class="text-sm text-gray-400 mb-4">Dołącz do naszej społeczności i czat z innymi użytkownikami.</p>
+          <div class="flex gap-2 w-full">
+            <button onclick="window.open('https://discord.gg/z3tol', '_blank')" class="flex-1 btn-neon py-2 rounded-lg text-sm font-bold">Otwórz Discord</button>
+            <button onclick="copyToClipboard('z3tol')" class="btn-secondary px-3 py-2 rounded-lg text-sm">📋</button>
+          </div>
+          <p class="text-xs text-gray-600 mt-2">Nazwa: z3tol</p>
+        </div>
+
+        <!-- Email Tile -->
+        <div class="glass-card p-8 flex flex-col items-center justify-center text-center hover:border-cyan-500/50 cursor-pointer transition-all group">
+          <div class="text-5xl mb-4 group-hover:scale-110 transition-transform">✉️</div>
+          <h4 class="text-xl font-bold text-white mb-2">Email</h4>
+          <p class="text-sm text-gray-400 mb-4">Napisz do nas bezpośrednio ze swoimi pytaniami.</p>
+          <div class="flex gap-2 w-full">
+            <button onclick="window.location.href='mailto:adam.zamorski.10@gmail.com'" class="flex-1 btn-neon py-2 rounded-lg text-sm font-bold">Wyślij Email</button>
+            <button onclick="copyToClipboard('adam.zamorski.10@gmail.com')" class="btn-secondary px-3 py-2 rounded-lg text-sm">📋</button>
+          </div>
+          <p class="text-xs text-gray-600 mt-2">adam.zamorski.10@gmail.com</p>
+        </div>
+      </div>
+
+      <!-- FAQ Section -->
+      <div class="glass-card p-6">
+        <h4 class="text-lg font-bold text-white mb-4">❓ Popularne Pytania</h4>
+        <div class="space-y-4">
+          <details class="group">
+            <summary class="flex cursor-pointer items-center justify-between font-medium text-white hover:text-cyan-400 transition-colors">
+              Jak dodać nowy posiłek?
+              <span class="transition group-open:rotate-180">▼</span>
+            </summary>
+            <p class="text-sm text-gray-400 mt-2">Przejdź do „Mój Dzień" → Kliknij „✏️ Inny" w sekcji Dieta. Wpisz nazwę, makroskładniki i gotowe!</p>
+          </details>
+          
+          <details class="group">
+            <summary class="flex cursor-pointer items-center justify-between font-medium text-white hover:text-cyan-400 transition-colors">
+              Czy mogę zamienić ćwiczenie?
+              <span class="transition group-open:rotate-180">▼</span>
+            </summary>
+            <p class="text-sm text-gray-400 mt-2">Oczywiście! W zakładce „Plan" kliknij na ćwiczenie, a następnie przycisk „Zamień na inne". System zaproponuje alternatywy.</p>
+          </details>
+          
+          <details class="group">
+            <summary class="flex cursor-pointer items-center justify-between font-medium text-white hover:text-cyan-400 transition-colors">
+              Czy działam offline?
+              <span class="transition group-open:rotate-180">▼</span>
+            </summary>
+            <p class="text-sm text-gray-400 mt-2">Tak! FitAI jest Progressive Web App. Wszystkie dane synchronizują się automatycznie.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+</div>
+
+<!-- ======== JAVASCRIPT - CORE LOGIC ======== -->
+<script>
+  // ============ STATE MANAGEMENT ============
+  const state = {
+    currentUser: null,
+    users: {},
+    substitutes: {}, // Persistent AI-generated alternatives
+    currentDay: 0,
+    expandedItem: null,
+    manualFormType: null,
+    days: ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz']
+  };
+
+  const mockGoals = [
+    { id: 'strength', label: 'Siłownia', emoji: '🏋️' },
+    { id: 'cardio', label: 'Kardio/Bieganie', emoji: '🏃' },
+    { id: 'mobility', label: 'Mobilność/Joga', emoji: '🧘' },
+    { id: 'mass', label: 'Budowanie Masy', emoji: '📈' }
+  ];
+
+  const mockEquipment = [
+    { id: 'dumbbells', label: 'Hantle', emoji: '🏋️' },
+    { id: 'barbell', label: 'Sztanga', emoji: '⚖️' },
+    { id: 'cables', label: 'Kable/Maszyny', emoji: '⚙️' },
+    { id: 'mat', label: 'Mata treningowa', emoji: '🧵' }
+  ];
+
+  // ============ INIT & LOAD ============
+  function initApp() {
+    updateDate();
+    loadUsersFromStorage();
+    renderUserList();
+    if (!state.currentUser && Object.keys(state.users).length > 0) {
+      switchUser(Object.keys(state.users)[0]);
+    }
+    initCharts();
+    renderGoalsCheckboxes();
+    renderEquipmentCheckboxes();
+    renderDayCarousel();
+  }
+
+  function updateDate() {
+    const today = new Date();
+    document.getElementById('todayDate').textContent = today.toLocaleDateString('pl-PL', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  }
+
+  // ============ MULTI-USER SYSTEM ============
+  function loadUsersFromStorage() {
+    // In a real app, fetch from API: fetch('/api/users').then(r => r.json())
+    // For now, using mock data from fitai_users.json
+    state.users = {
+      'user123': {
+        name: 'Marek',
+        age: 28,
+        height: 182,
+        weight: 84.5,
+        targetWeight: 78,
+        gender: 'mężczyzna',
+        goal: 'Redukcja',
+        caloriesTarget: 2463,
+        proteinTarget: 185,
+        goals: ['strength', 'cardio'],
+        equipment: ['dumbbells', 'barbell', 'mat'],
+        excludedFoods: [],
+        logs: [],
+        dietPlan: {
+          'Pon': [
+            { id: '1', name: 'Owsianka', protein: 15, carbs: 50, fat: 5, kcal: 300 }
+          ]
+        },
+        trainingPlan: {
+          'Pon': [
+            { id: '1', name: 'Wyciskanie sztangi leżąc', sets: 4, reps: 6, weight: 120, tags: ['hantle', 'klatka'] }
+          ]
+        }
+      }
+    };
+  }
+
+  function renderUserList() {
+    const userList = document.getElementById('userList');
+    userList.innerHTML = Object.entries(state.users).map(([id, user]) => `
+      <button onclick="switchUser('${id}')" class="w-full text-left px-3 py-2 text-sm hover:bg-white/10 rounded transition-colors ${state.currentUser === id ? 'text-cyan-400 bg-white/10' : 'text-gray-400'}" >
+        ${user.name} ${state.currentUser === id ? '✓' : ''}
+      </button>
+    `).join('');
+  }
+
+  function switchUser(userId) {
+    state.currentUser = userId;
+    const user = state.users[userId];
+    document.getElementById('greetingName').textContent = user.name;
+    document.getElementById('currentUserDisplay').textContent = `👤 ${user.name}`;
+    document.getElementById('kpiWeight').textContent = user.weight + ' kg';
+    document.getElementById('caloriesTarget').textContent = user.caloriesTarget;
+    renderUserList();
+    updateDashboard();
+  }
+
+  // ============ TAB SWITCHING ============
+  function showTab(tabId) {
+    // Fade out all tabs
+    const tabs = document.querySelectorAll('.tab-content');
+    tabs.forEach(tab => {
+      if (!tab.classList.contains('hidden')) {
+        tab.classList.add('exit');
+        setTimeout(() => {
+          tab.classList.add('hidden');
+          tab.classList.remove('exit');
+        }, 200);
+      }
+    });
+
+    // Show new tab
+    setTimeout(() => {
+      document.getElementById(tabId).classList.remove('hidden');
+    }, 200);
+
+    // Update nav items
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.classList.remove('active');
+    });
+    event?.currentTarget?.classList.add('active');
+
+    // Close mobile menu
+    document.getElementById('sidebar').classList.remove('mobile-open');
+  }
+
+  // ============ PROFILE TABS ============
+  function switchProfileTab(tab) {
+    document.querySelectorAll('.profile-tab-content').forEach(el => {
+      el.classList.add('hidden');
+    });
+    document.querySelectorAll('.profile-tab').forEach(el => {
+      el.classList.remove('active', 'bg-white/10', 'text-cyan-400');
+      el.classList.add('text-gray-400');
+    });
+    document.getElementById(`profile-${tab}`).classList.remove('hidden');
+    event.currentTarget.classList.add('active', 'bg-white/10', 'text-cyan-400');
+  }
+
+  // ============ DASHBOARD RENDERING ============
+  function updateDashboard() {
+    const user = state.users[state.currentUser];
+    if (!user) return;
+
+    // Update KPIs
+    const consistency = Math.round(Math.random() * 100);
+    document.getElementById('kpiConsistency').textContent = consistency + '%';
+    document.getElementById('consistencyBar').style.width = consistency + '%';
+
+    // Update calories
+    const caloriesEaten = Math.round(Math.random() * user.caloriesTarget);
+    document.getElementById('caloriesEaten').textContent = caloriesEaten;
+    document.getElementById('caloriesRemaining').textContent = (user.caloriesTarget - caloriesEaten) + ' kcal pozostało';
+
+    // Update next steps
+    const steps = [
+      '🍽️ Dodaj drugi posiłek',
+      '💪 Zrób dzisiejszy trening',
+      '💧 Pij więcej wody',
+      '📊 Zalog swoją wagę'
+    ];
+    document.getElementById('nextStepContent').innerHTML = `
+      <div class="p-3 bg-white/5 rounded-lg border border-white/10">
+        <p class="text-sm text-white font-medium">${steps[Math.floor(Math.random() * steps.length)]}</p>
+      </div>
+    `;
+
+    // Render recent activity
+    renderRecentActivity(user);
+
+    // Check for macro deficiencies and show alert
+    if (caloriesEaten > 0 && (user.caloriesTarget - caloriesEaten) < 300) {
+      const alert = document.getElementById('macroAlert');
+      alert.classList.remove('hidden');
+      document.getElementById('macroAlertText').textContent = `🚀 Brakuje Ci ${user.caloriesTarget - caloriesEaten} kcal! Dodaj ostatni posiłek.`;
+    }
+  }
+
+  function renderRecentActivity(user) {
+    const container = document.getElementById('recentActivityContainer');
+    const activities = [
+      { icon: '🥗', name: 'Sałatka grecka', date: 'Dzisiaj 12:30', kcal: 350 },
+      { icon: '🏃', name: 'Bieganie 5km', date: 'Dzisiaj 07:00', kcal: -450 }
+    ];
+    container.innerHTML = activities.map(a => `
+      <div class="glass-card p-4">
+        <div class="flex items-start justify-between">
+          <div class="flex gap-3">
+            <span class="text-2xl">${a.icon}</span>
+            <div>
+              <p class="text-white font-medium">${a.name}</p>
+              <p class="text-xs text-gray-500">${a.date}</p>
+            </div>
+          </div>
+          <span class="text-sm font-medium ${a.kcal > 0 ? 'text-yellow-400' : 'text-cyan-400'}">${a.kcal > 0 ? '+' : ''}${a.kcal} kcal</span>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ============ CHARTS ============
+  function initCharts() {
+    const ctx = document.getElementById('consistencyChart');
+    if (!ctx) return;
+
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'],
+        datasets: [{
+          label: 'Spójność (%)',
+          data: [80, 85, 70, 90, 75, 92, 88],
+          backgroundColor: 'rgba(0, 229, 255, 0.2)',
+          borderColor: '#00e5ff',
+          borderWidth: 2,
+          borderRadius: 8,
+          tension: 0.4
+        }]
       },
-      "url": "https://training-coach.netlify.app/"
-    }
-  </script>
-  <script>
-    // Smooth scroll for nav links
-    document.querySelectorAll('a[href^="#"]').forEach(a => {
-      a.addEventListener('click', e => {
-        const target = document.querySelector(a.getAttribute('href'));
-        if (target) {
-          e.preventDefault();
-          target.scrollIntoView({ behavior: 'smooth' });
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          filler: { propagate: true }
+        },
+        scales: {
+          y: { 
+            beginAtZero: true,
+            max: 100,
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            ticks: { color: '#64748b' }
+          },
+          x: { grid: { display: false }, ticks: { color: '#64748b' } }
         }
-      });
+      }
     });
-    // Scroll-reveal for cards
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(e => {
-        if (e.isIntersecting) {
-          e.target.style.opacity = '1';
-          e.target.style.transform = 'translateY(0)';
-        }
-      });
-    }, { threshold: 0.1 });
-    document.querySelectorAll('.feat-card, .step-card, .price-card').forEach(el => {
-      el.style.opacity = '0';
-      el.style.transform = 'translateY(24px)';
-      el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-      observer.observe(el);
+  }
+
+  // ============ PLAN & CAROUSEL ============
+  function renderDayCarousel() {
+    const carousel = document.getElementById('dayCarousel');
+    carousel.innerHTML = state.days.map((day, i) => `
+      <button onclick="selectDay(${i})" class="day-carousel-item px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${i === state.currentDay ? 'btn-neon' : 'btn-secondary'}">
+        ${day}
+      </button>
+    `).join('');
+  }
+
+  function selectDay(dayIndex) {
+    state.currentDay = dayIndex;
+    document.getElementById('currentDay').textContent = state.days[dayIndex];
+    renderDayCarousel();
+    loadPlanForDay();
+  }
+
+  function prevDay() {
+    state.currentDay = (state.currentDay - 1 + 7) % 7;
+    selectDay(state.currentDay);
+  }
+
+  function nextDay() {
+    state.currentDay = (state.currentDay + 1) % 7;
+    selectDay(state.currentDay);
+  }
+
+  function loadPlanForDay() {
+    const user = state.users[state.currentUser];
+    const day = state.days[state.currentDay];
+    const dietPlan = user.dietPlan[day] || [];
+    const trainingPlan = user.trainingPlan[day] || [];
+
+    const dietContainer = document.getElementById('planDietContainer');
+    dietContainer.innerHTML = dietPlan.map(meal => `
+      <div class="glass-card p-4 cursor-pointer hover:border-cyan-500/50 transition-colors" onclick="openExpandModal('diet', ${meal.id}, '${meal.name}')">
+        <div class="flex justify-between items-start mb-2">
+          <p class="font-medium text-white">${meal.name}</p>
+          <span class="text-xs bg-cyan-500/20 text-cyan-300 px-2 py-1 rounded">${meal.kcal} kcal</span>
+        </div>
+        <div class="flex gap-4 text-xs text-gray-400">
+          <span>P: ${meal.protein}g</span>
+          <span>W: ${meal.carbs}g</span>
+          <span>T: ${meal.fat}g</span>
+        </div>
+      </div>
+    `).join('');
+
+    const trainingContainer = document.getElementById('planTrainingContainer');
+    trainingContainer.innerHTML = trainingPlan.map(exercise => `
+      <div class="glass-card p-4 cursor-pointer hover:border-cyan-500/50 transition-colors" onclick="openExpandModal('training', ${exercise.id}, '${exercise.name}')">
+        <p class="font-medium text-white mb-2">${exercise.name}</p>
+        <div class="flex justify-between items-center">
+          <div class="flex gap-4 text-xs text-gray-400">
+            <span>${exercise.sets} sety</span>
+            <span>${exercise.reps} powtórzeń</span>
+            <span>${exercise.weight}kg</span>
+          </div>
+          <div class="flex gap-1 flex-wrap">
+            ${exercise.tags.map(tag => `<span class="text-[10px] bg-white/10 px-2 py-1 rounded text-gray-400">#${tag}</span>`).join('')}
+          </div>
+        </div>
+      </div>
+    `).join('') || '<div class="text-center text-gray-500 text-sm italic py-8">Brak zaplanowanych ćwiczeń</div>';
+  }
+
+  // ============ EXPAND MODAL ============
+  function openExpandModal(type, itemId, name) {
+    const modal = document.getElementById('expandModal');
+    const title = document.getElementById('expandTitle');
+    const content = document.getElementById('expandContent');
+
+    title.textContent = name;
+    state.expandedItem = { type, itemId, name };
+
+    if (type === 'diet') {
+      content.innerHTML = `
+        <div>
+          <h6 class="font-bold text-white mb-2">Makroskładniki</h6>
+          <div class="grid grid-cols-3 gap-4 text-center">
+            <div class="bg-white/5 p-3 rounded">
+              <p class="text-xs text-gray-400">Białko</p>
+              <p class="text-lg font-bold text-cyan-400">20g</p>
+            </div>
+            <div class="bg-white/5 p-3 rounded">
+              <p class="text-xs text-gray-400">Węgle</p>
+              <p class="text-lg font-bold text-yellow-400">50g</p>
+            </div>
+            <div class="bg-white/5 p-3 rounded">
+              <p class="text-xs text-gray-400">Tłuszcz</p>
+              <p class="text-lg font-bold text-orange-400">8g</p>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h6 class="font-bold text-white mb-2">Sposób przygotowania</h6>
+          <ol class="list-decimal list-inside text-sm space-y-1 text-gray-400">
+            <li>Odparuj w wodzie z odrobiną soli</li>
+            <li>Dodaj przyprawy: czosnek, pieprz, zioła</li>
+            <li>Smażyć na oliwie przez 3 minuty</li>
+          </ol>
+        </div>
+      `;
+    } else if (type === 'training') {
+      content.innerHTML = `
+        <div>
+          <h6 class="font-bold text-white mb-2">Instrukcja Techniki</h6>
+          <p class="text-sm text-gray-400 leading-relaxed">1. Ustaw sztangę na wysokości klatki piersiowej. 2. Wciągnij łopatkę w dół i do tyłu. 3. Wciśnij sztangę w linii prostej ponad klatką. 4. Powoli opuszczaj kontrolując ruch.</p>
+        </div>
+        <div>
+          <h6 class="font-bold text-white mb-2">Na co pomaga</h6>
+          <p class="text-sm text-gray-400">Buduje mięśnie klatki piersiowej, przedniej części ramienia i tricepsów. Świetne dla budowania masy.</p>
+        </div>
+      `;
+    }
+
+    modal.classList.remove('hidden');
+  }
+
+  function closeExpandModal() {
+    document.getElementById('expandModal').classList.add('hidden');
+  }
+
+  function swapItem() {
+    if (!state.expandedItem) return;
+    alert(`Wymiana ${state.expandedItem.name} - AI zaproponuje alternatywy (funkcja w opracowaniu)`);
+  }
+
+  // ============ MY DAY LOGIC ============
+  function showManualForm(type) {
+    state.manualFormType = type;
+    const container = document.getElementById('manualFormContainer');
+    const title = document.getElementById('manualFormTitle');
+    
+    title.textContent = type === 'diet' ? 'Dodaj Posiłek' : 'Dodaj Trening';
+    container.classList.remove('hidden');
+
+    // Clear form
+    document.getElementById('entryName').value = '';
+    document.getElementById('entryProtein').value = '';
+    document.getElementById('entryCarbs').value = '';
+    document.getElementById('entryFat').value = '';
+  }
+
+  function closeManualForm() {
+    document.getElementById('manualFormContainer').classList.add('hidden');
+  }
+
+  function addFromPlan(type) {
+    const user = state.users[state.currentUser];
+    const container = type === 'diet' ? document.getElementById('dietLogContainer') : document.getElementById('trainingLogContainer');
+
+    const mockItems = {
+      diet: [
+        { name: 'Kurczak z ryżem', protein: 35, carbs: 50, fat: 5, kcal: 450 },
+        { name: 'Sałatka grecka', protein: 15, carbs: 20, fat: 12, kcal: 250 }
+      ],
+      training: [
+        { name: 'Pompki 3x20', sets: 3, reps: 20 },
+        { name: 'Przysiad ze sztangą 4x6', sets: 4, reps: 6, weight: 120 }
+      ]
+    };
+
+    const item = mockItems[type][0];
+    const html = type === 'diet'
+      ? `<div class="glass-card p-3 flex justify-between items-start"><div><p class="text-white font-medium">${item.name}</p><p class="text-xs text-gray-500">P: ${item.protein}g | W: ${item.carbs}g | T: ${item.fat}g</p></div><button onclick="this.parentElement.parentElement.remove()" class="text-red-400 text-sm">✕</button></div>`
+      : `<div class="glass-card p-3 flex justify-between items-start"><div><p class="text-white font-medium">${item.name}</p></div><button onclick="this.parentElement.parentElement.remove()" class="text-red-400 text-sm">✕</button></div>`;
+
+    container.innerHTML = html;
+  }
+
+  document.getElementById('manualEntryForm')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = document.getElementById('entryName').value;
+    const protein = document.getElementById('entryProtein').value;
+    const carbs = document.getElementById('entryCarbs').value;
+    const fat = document.getElementById('entryFat').value;
+
+    const container = state.manualFormType === 'diet' ? document.getElementById('dietLogContainer') : document.getElementById('trainingLogContainer');
+    const html = state.manualFormType === 'diet'
+      ? `<div class="glass-card p-3 flex justify-between items-start"><div><p class="text-white font-medium">${name}</p><p class="text-xs text-gray-500">P: ${protein}g | W: ${carbs}g | T: ${fat}g</p></div><button onclick="this.parentElement.parentElement.remove()" class="text-red-400 text-sm">✕</button></div>`
+      : `<div class="glass-card p-3 flex justify-between items-start"><div><p class="text-white font-medium">${name}</p></div><button onclick="this.parentElement.parentElement.remove()" class="text-red-400 text-sm">✕</button></div>`;
+
+    container.innerHTML += html;
+    closeManualForm();
+  });
+
+  // ============ PROFILE HELPERS ============
+  function renderGoalsCheckboxes() {
+    const container = document.getElementById('goalsCheckboxes');
+    container.innerHTML = mockGoals.map(goal => `
+      <label class="flex items-center gap-3 p-3 bg-white/5 rounded-lg cursor-pointer hover:bg-white/10 transition-colors">
+        <input type="checkbox" class="goal-checkbox" value="${goal.id}" />
+        <span class="text-white font-medium">${goal.emoji} ${goal.label}</span>
+      </label>
+    `).join('');
+  }
+
+  function renderEquipmentCheckboxes() {
+    const container = document.getElementById('equipmentCheckboxes');
+    container.innerHTML = mockEquipment.map(equip => `
+      <label class="flex items-center gap-3 p-2 bg-white/5 rounded-lg cursor-pointer hover:bg-white/10 transition-colors">
+        <input type="checkbox" class="equipment-checkbox" value="${equip.id}" checked />
+        <span class="text-white font-medium">${equip.emoji} ${equip.label}</span>
+      </label>
+    `).join('');
+  }
+
+  function saveGoals() {
+    const selected = Array.from(document.querySelectorAll('.goal-checkbox:checked')).map(cb => cb.value);
+    state.users[state.currentUser].goals = selected;
+    alert('Cele zostały zaktualizowane!');
+  }
+
+  function savePreferences() {
+    const equipment = Array.from(document.querySelectorAll('.equipment-checkbox:checked')).map(cb => cb.value);
+    const excluded = document.getElementById('excludedFoods').value.split(',').map(s => s.trim()).filter(s => s);
+    state.users[state.currentUser].equipment = equipment;
+    state.users[state.currentUser].excludedFoods = excluded;
+    alert('Preferencje zostały zaktualizowane!');
+  }
+
+  // ============ UTILITY FUNCTIONS ============
+  function copyToClipboard(text) {
+    navigator.clipboard.writeText(text);
+    alert('Skopiowano: ' + text);
+  }
+
+  // Mobile menu toggle
+  document.getElementById('mobileMenuBtn')?.addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('mobile-open');
+  });
+
+  // Logout
+  document.getElementById('logoutBtn')?.addEventListener('click', () => {
+    if (confirm('Wylogować się?')) {
+      state.currentUser = null;
+      alert('Wylogowano!');
+    }
+  });
+
+  // User form submission
+  document.getElementById('userDataForm')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const user = state.users[state.currentUser];
+    user.name = document.getElementById('firstName').value || user.name;
+    user.age = parseInt(document.getElementById('age').value) || user.age;
+    user.height = parseInt(document.getElementById('height').value) || user.height;
+    user.weight = parseFloat(document.getElementById('weight').value) || user.weight;
+    user.targetWeight = parseFloat(document.getElementById('targetWeight').value) || user.targetWeight;
+    user.gender = document.getElementById('gender').value || user.gender;
+    user.allergies = document.getElementById('allergies').value || '';
+    
+    alert('Dane zostały zaktualizowane!');
+    document.getElementById('greetingName').textContent = user.name;
+  });
+
+  // ============ STARTUP ============
+  window.addEventListener('load', initApp);
+  window.addEventListener('beforeunload', () => {
+    // Save state to localStorage (in real app, save to backend)
+    localStorage.setItem('fitai_state', JSON.stringify(state));
+  });
+</script>
+
+<!-- PWA Service Worker Registration -->
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      console.log('Service Worker not available');
     });
+  }
+</script>
 
-    const loginBtn = document.getElementById('loginBtn');
-    const signupBtn = document.getElementById('signupBtn');
-    const logoutBtn = document.getElementById('logoutBtn');
-    const heroStartBtn = document.getElementById('heroStartBtn');
-    const accountPanel = document.getElementById('accountPanel');
-    const accountEmail = document.getElementById('accountEmail');
-    const accountExpiry = document.getElementById('accountExpiry');
-    const accountLogoutBtn = document.getElementById('accountLogoutBtn');
-    const authBadge = document.getElementById('authBadge');
-
-    function formatExpiry(expiresAt) {
-      if (!expiresAt) return 'brak danych';
-      const expiryDate = new Date(expiresAt);
-      if (Number.isNaN(expiryDate.getTime())) return 'brak danych';
-      return expiryDate.toLocaleDateString('pl-PL', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      });
-    }
-
-    function updateAuthUI(user) {
-      if (user) {
-        authBadge.style.display = 'inline-flex';
-        authBadge.textContent = '● Zalogowano';
-        loginBtn.style.display = 'none';
-        signupBtn.style.display = 'none';
-        logoutBtn.style.display = 'inline-flex';
-        accountPanel.style.display = 'block';
-        accountEmail.textContent = user.email || 'konto bez email';
-        accountExpiry.textContent = formatExpiry(user.token && user.token.expires_at);
-      } else {
-        authBadge.style.display = 'inline-flex';
-        authBadge.textContent = '● Niezalogowany';
-        loginBtn.style.display = 'inline-flex';
-        signupBtn.style.display = 'inline-flex';
-        logoutBtn.style.display = 'none';
-        accountPanel.style.display = 'none';
-        accountEmail.textContent = 'Email uzytkownika';
-        accountExpiry.textContent = 'wkrótce';
-      }
-    }
-
-    function openIdentity(mode) {
-      if (!window.netlifyIdentity) {
-        alert('Netlify Identity nie jest aktywne. W panelu Netlify wlacz Identity: Site configuration -> Identity.');
-        return;
-      }
-      window.netlifyIdentity.open(mode);
-    }
-
-    loginBtn.addEventListener('click', () => openIdentity('login'));
-    signupBtn.addEventListener('click', () => openIdentity('signup'));
-    heroStartBtn.addEventListener('click', () => openIdentity('signup'));
-
-    function logoutUser() {
-      if (window.netlifyIdentity) {
-        window.netlifyIdentity.logout();
-      }
-    }
-
-    logoutBtn.addEventListener('click', logoutUser);
-    accountLogoutBtn.addEventListener('click', logoutUser);
-
-    if (window.netlifyIdentity) {
-      window.netlifyIdentity.on('init', user => updateAuthUI(user));
-      window.netlifyIdentity.on('login', user => {
-        updateAuthUI(user);
-        window.netlifyIdentity.close();
-        document.getElementById('account').scrollIntoView({ behavior: 'smooth' });
-      });
-      window.netlifyIdentity.on('logout', () => updateAuthUI(null));
-      window.netlifyIdentity.init();
-    } else {
-      updateAuthUI(null);
-    }
-  </script>
 </body>
-
 </html>

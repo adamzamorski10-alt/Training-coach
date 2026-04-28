@@ -1,0 +1,152 @@
+{
+    "substitutes": {
+        "meals": {
+            "kurczak": [
+                {
+                    "name": "Indyk",
+                    "protein": 30,
+                    "carbs": 0,
+                    "fat": 3,
+                    "kcal": 135
+                },
+                {
+                    "name": "Ryba (łosoś)",
+                    "protein": 25,
+                    "carbs": 0,
+                    "fat": 14,
+                    "kcal": 235
+                },
+                {
+                    "name": "Tofu",
+                    "protein": 15,
+                    "carbs": 2,
+                    "fat": 8,
+                    "kcal": 150
+                },
+                {
+                    "name": "Jajka",
+                    "protein": 13,
+                    "carbs": 1,
+                    "fat": 11,
+                    "kcal": 155
+                }
+            ],
+            "ryż": [
+                {
+                    "name": "Quinoa",
+                    "protein": 8,
+                    "carbs": 39,
+                    "fat": 4,
+                    "kcal": 222
+                },
+                {
+                    "name": "Chleb żytni",
+                    "protein": 5,
+                    "carbs": 44,
+                    "fat": 2,
+                    "kcal": 259
+                },
+                {
+                    "name": "Bataty",
+                    "protein": 2,
+                    "carbs": 21,
+                    "fat": 0.1,
+                    "kcal": 86
+                },
+                {
+                    "name": "Kasze (gryka)",
+                    "protein": 5,
+                    "carbs": 33,
+                    "fat": 1,
+                    "kcal": 170
+                }
+            ]
+        },
+        "exercises": {
+            "wyciskanie_sztangi": [
+                {
+                    "name": "Pompki",
+                    "difficulty": "easy",
+                    "equipment": "brak",
+                    "muscle_group": "klatka"
+                },
+                {
+                    "name": "Wyciskanie hantli leżąc",
+                    "difficulty": "medium",
+                    "equipment": "hantle",
+                    "muscle_group": "klatka"
+                },
+                {
+                    "name": "Praca na maszynie na klatką",
+                    "difficulty": "easy",
+                    "equipment": "maszyna",
+                    "muscle_group": "klatka"
+                },
+                {
+                    "name": "Wyciskanie sztangi siedząc",
+                    "difficulty": "hard",
+                    "equipment": "sztanga",
+                    "muscle_group": "klatka"
+                }
+            ],
+            "przysiad": [
+                {
+                    "name": "Przysiad ze sztangą",
+                    "difficulty": "hard",
+                    "equipment": "sztanga",
+                    "muscle_group": "nogi"
+                },
+                {
+                    "name": "Przysiad z hantlami",
+                    "difficulty": "medium",
+                    "equipment": "hantle",
+                    "muscle_group": "nogi"
+                },
+                {
+                    "name": "Przysiad na maszynach",
+                    "difficulty": "easy",
+                    "equipment": "maszyna",
+                    "muscle_group": "nogi"
+                },
+                {
+                    "name": "Przysiady bułgarskie",
+                    "difficulty": "medium",
+                    "equipment": "ławka",
+                    "muscle_group": "nogi"
+                }
+            ],
+            "bieganie": [
+                {
+                    "name": "Bieganie na bieżni",
+                    "difficulty": "medium",
+                    "equipment": "bieżnia",
+                    "muscle_group": "kardio"
+                },
+                {
+                    "name": "Bieganie na zewnątrz",
+                    "difficulty": "medium",
+                    "equipment": "brak",
+                    "muscle_group": "kardio"
+                },
+                {
+                    "name": "Rower stacjonarny",
+                    "difficulty": "medium",
+                    "equipment": "rower",
+                    "muscle_group": "kardio"
+                },
+                {
+                    "name": "Eliptical",
+                    "difficulty": "easy",
+                    "equipment": "elliptical",
+                    "muscle_group": "kardio"
+                }
+            ]
+        }
+    },
+    "user_preferences": {
+        "notifications_enabled": true,
+        "push_notifications_enabled": true,
+        "offline_sync": true,
+        "sync_interval": 300000
+    }
+}
