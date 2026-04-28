@@ -1096,77 +1096,90 @@
     setupTabs();
 
     async function loadProfile() {
-      const profile = await api(`/app/profile/${idOrThrow()}`);
-      state.profile = profile;
-      document.getElementById('kpiPlan').textContent = profile.plan || 'free';
-      document.getElementById('kpiRole').textContent = profile.role || 'free_user';
-      document.getElementById('planBadge').textContent = profile.plan || 'free';
+      try {
+        const profile = await api(`/app/profile/${idOrThrow()}`);
+        state.profile = profile;
+        document.getElementById('kpiPlan').textContent = profile.plan || 'free';
+        document.getElementById('kpiRole').textContent = profile.role || 'free_user';
+        document.getElementById('planBadge').textContent = profile.plan || 'free';
 
-      const form = document.getElementById('onboardingForm');
-      form.elements.name.value = profile.name || '';
-      form.elements.age.value = profile.age || '';
-      form.elements.height.value = profile.height || '';
-      form.elements.weight.value = profile.weight || '';
-      form.elements.target_weight.value = profile.target_weight || '';
-      form.elements.gender.value = profile.gender || 'mężczyzna';
-      form.elements.goal.value = profile.goal || 'Redukcja tkanki tłuszczowej';
-      form.elements.frequency.value = profile.frequency || '3-4 razy w tygodniu';
-      form.elements.diet.value = profile.diet || 'Brak preferencji';
-      form.elements.meals_per_day.value = profile.meals_per_day || 5;
-      form.elements.allergies.value = profile.allergies || '';
-      form.elements.notes.value = profile.notes || '';
+        const form = document.getElementById('onboardingForm');
+        form.elements.name.value = profile.name || '';
+        form.elements.age.value = profile.age || '';
+        form.elements.height.value = profile.height || '';
+        form.elements.weight.value = profile.weight || '';
+        form.elements.target_weight.value = profile.target_weight || '';
+        form.elements.gender.value = profile.gender || 'mężczyzna';
+        form.elements.goal.value = profile.goal || 'Redukcja tkanki tłuszczowej';
+        form.elements.frequency.value = profile.frequency || '3-4 razy w tygodniu';
+        form.elements.diet.value = profile.diet || 'Brak preferencji';
+        form.elements.meals_per_day.value = profile.meals_per_day || 5;
+        form.elements.allergies.value = profile.allergies || '';
+        form.elements.notes.value = profile.notes || '';
 
-      const focusForm = document.getElementById('focusForm');
-      setMultiValues(focusForm, 'sports', profile.sports || []);
-      setMultiValues(focusForm, 'improvement_areas', profile.improvement_areas || []);
-      setMultiValues(focusForm, 'training_focus', profile.training_focus || []);
+        const focusForm = document.getElementById('focusForm');
+        setMultiValues(focusForm, 'sports', profile.sports || []);
+        setMultiValues(focusForm, 'improvement_areas', profile.improvement_areas || []);
+        setMultiValues(focusForm, 'training_focus', profile.training_focus || []);
 
-      // Pre-fill personalizacji diety i treningu
-      form.elements.preferred_foods.value = (profile.preferred_foods || []).join(', ');
-      form.elements.avoid_foods.value = (profile.avoid_foods || []).join(', ');
-      form.elements.available_equipment.value = (profile.available_equipment || []).join(', ');
-      form.elements.avoid_exercises.value = (profile.avoid_exercises || []).join(', ');
+        // Pre-fill personalizacji diety i treningu
+        form.elements.preferred_foods.value = (profile.preferred_foods || []).join(', ');
+        form.elements.avoid_foods.value = (profile.avoid_foods || []).join(', ');
+        form.elements.available_equipment.value = (profile.available_equipment || []).join(', ');
+        form.elements.avoid_exercises.value = (profile.avoid_exercises || []).join(', ');
 
-      if (profile.reminders) {
-        const rem = document.getElementById('reminderForm').elements;
-        rem.discord_channel_id.value = profile.reminders.discord_channel_id || '';
-        rem.email_enabled.checked = Boolean(profile.reminders.email_enabled);
-        rem.discord_enabled.checked = Boolean(profile.reminders.discord_enabled);
+        if (profile.reminders) {
+          const rem = document.getElementById('reminderForm').elements;
+          rem.discord_channel_id.value = profile.reminders.discord_channel_id || '';
+          rem.email_enabled.checked = Boolean(profile.reminders.email_enabled);
+          rem.discord_enabled.checked = Boolean(profile.reminders.discord_enabled);
+        }
+      } catch (err) {
+        console.error('Błąd wczytywania profilu:', err);
+        // Nawet jeśli błąd, nie przerywaj - profil będzie pusty
       }
     }
 
     async function loadDashboard() {
-      const dashboard = await api(`/app/dashboard/${idOrThrow()}`);
-      document.getElementById('kpiStreak').textContent = dashboard.streak_days || 0;
-      document.getElementById('kpiConsistency').textContent = `${dashboard.workout_consistency_pct || 0}%`;
-      document.getElementById('kpiTargets').textContent = `${dashboard.targets.calories} / ${dashboard.targets.protein}g`;
+      try {
+        const dashboard = await api(`/app/dashboard/${idOrThrow()}`);
+        document.getElementById('kpiStreak').textContent = dashboard.streak_days || 0;
+        document.getElementById('kpiConsistency').textContent = `${dashboard.workout_consistency_pct || 0}%`;
+        document.getElementById('kpiTargets').textContent = `${dashboard.targets.calories} / ${dashboard.targets.protein}g`;
 
-      const labels = dashboard.weight_series.map(p => p.date);
-      const values = dashboard.weight_series.map(p => p.weight);
-      if (state.chart) state.chart.destroy();
-      state.chart = new Chart(document.getElementById('weightChart'), {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [{
-            label: 'Waga (kg)',
-            data: values,
-            borderColor: '#2dd5ff',
-            backgroundColor: 'rgba(45, 213, 255, 0.2)',
-            fill: true,
-            tension: 0.24,
-          }],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { labels: { color: '#edf4ff' } } },
-          scales: {
-            x: { ticks: { color: '#93a8c7' }, grid: { color: 'rgba(255,255,255,0.06)' } },
-            y: { ticks: { color: '#93a8c7' }, grid: { color: 'rgba(255,255,255,0.06)' } },
+        const labels = dashboard.weight_series.map(p => p.date);
+        const values = dashboard.weight_series.map(p => p.weight);
+        if (state.chart) state.chart.destroy();
+        state.chart = new Chart(document.getElementById('weightChart'), {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Waga (kg)',
+              data: values,
+              borderColor: '#2dd5ff',
+              backgroundColor: 'rgba(45, 213, 255, 0.2)',
+              fill: true,
+              tension: 0.24,
+            }],
           },
-        },
-      });
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#edf4ff' } } },
+            scales: {
+              x: { ticks: { color: '#93a8c7' }, grid: { color: 'rgba(255,255,255,0.06)' } },
+              y: { ticks: { color: '#93a8c7' }, grid: { color: 'rgba(255,255,255,0.06)' } },
+            },
+          },
+        });
+      } catch (err) {
+        console.warn('Błąd wczytywania dashboardu:', err);
+        // Jeśli błąd, ustaw domyślne wartości
+        document.getElementById('kpiStreak').textContent = '0';
+        document.getElementById('kpiConsistency').textContent = '0%';
+        document.getElementById('kpiTargets').textContent = '-';
+      }
     }
 
     function setStatus(id, msg, isWarn = false) {

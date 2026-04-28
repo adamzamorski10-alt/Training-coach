@@ -501,7 +501,30 @@ def app_get_profile(identity_id: str):
     db = load_db()
     profile = db.get(user_id)
     if not profile:
-        raise HTTPException(status_code=404, detail="Profil onboarding nie istnieje")
+        # Zwróć default profil zamiast 404, aby frontend mógł go wczytać
+        return {
+            "name": "",
+            "age": "",
+            "height": "",
+            "weight": "",
+            "target_weight": "",
+            "gender": "mężczyzna",
+            "goal": "Redukcja tkanki tłuszczowej",
+            "frequency": "3-4 razy w tygodniu",
+            "sports": [],
+            "training_focus": [],
+            "improvement_areas": [],
+            "diet": "Brak preferencji",
+            "allergies": "",
+            "preferred_foods": [],
+            "avoid_foods": [],
+            "available_equipment": [],
+            "avoid_exercises": [],
+            "meals_per_day": 5,
+            "notes": "",
+            "plan": "free",
+            "role": "free_user",
+        }
     return profile
 
 
@@ -511,7 +534,13 @@ def app_dashboard(identity_id: str):
     db = load_db()
     profile = db.get(user_id)
     if not profile:
-        raise HTTPException(status_code=404, detail="Profil onboarding nie istnieje")
+        # Zwróć default dashboard zamiast 404
+        return {
+            "streak_days": 0,
+            "workout_consistency_pct": 0,
+            "targets": {"calories": "-", "protein": "-"},
+            "weight_series": [],
+        }
     return _build_dashboard(profile)
 
 
@@ -691,10 +720,12 @@ def app_get_plan(identity_id: str):
     db = load_db()
     profile = db.get(user_id)
     if not profile:
-        raise HTTPException(status_code=404, detail="Profil onboarding nie istnieje")
+        # Zwróć pusty plan zamiast 404
+        return {"days": [], "generated_at": None, "weekly_goal": None}
     plan = profile.get("weekly_plan")
     if not plan:
-        raise HTTPException(status_code=404, detail="Plan nie został jeszcze wygenerowany")
+        # Zwróć pusty plan zamiast 404
+        return {"days": [], "generated_at": None, "weekly_goal": None}
     return plan
 
 
