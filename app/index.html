@@ -369,10 +369,8 @@
     .check-pill span {
       color: var(--text);
       font-weight: 500;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      flex: 1;
+      display: block;
+      min-width: 0;
     }
 
     .check-pill input[type="checkbox"]:checked+span {
@@ -625,6 +623,35 @@
                 </label>
               </div>
               <label>Alergie<input name="allergies" placeholder="np. laktoza, orzechy" /></label>
+
+              <div class="section-spacer" style="margin-top: 20px;">
+                <h3 style="margin: 0 0 16px; color: var(--accent);">🍎 Personalizacja diety</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                  <label>
+                    Ulubione produkty (rozdziel przecinkami)
+                    <input name="preferred_foods" placeholder="np. kurczak, ryż, jajka" />
+                  </label>
+                  <label>
+                    Rzeczy do unikania (rozdziel przecinkami)
+                    <input name="avoid_foods" placeholder="np. cukier, plastikowe opakowania" />
+                  </label>
+                </div>
+              </div>
+
+              <div class="section-spacer">
+                <h3 style="margin: 0 0 16px; color: var(--accent);">💪 Personalizacja treningu</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                  <label>
+                    Dostępny sprzęt (rozdziel przecinkami)
+                    <input name="available_equipment" placeholder="np. hantle, guma, mat" />
+                  </label>
+                  <label>
+                    Rzeczy do unikania (rozdziel przecinkami)
+                    <input name="avoid_exercises" placeholder="np. przysiady, podciąganie" />
+                  </label>
+                </div>
+              </div>
+
               <label>Notatki<textarea name="notes"
                   placeholder="np. nie trenuję w środy, wolę krótsze treningi"></textarea></label>
               <button class="btn primary" type="submit">Zapisz profil</button>
@@ -1164,6 +1191,10 @@
           improvement_areas: getMultiValues(focusForm, 'improvement_areas'),
           diet: fd.get('diet'),
           allergies: String(fd.get('allergies') || '').trim(),
+          preferred_foods: String(fd.get('preferred_foods') || '').split(',').map(s => s.trim()).filter(s => s),
+          avoid_foods: String(fd.get('avoid_foods') || '').split(',').map(s => s.trim()).filter(s => s),
+          available_equipment: String(fd.get('available_equipment') || '').split(',').map(s => s.trim()).filter(s => s),
+          avoid_exercises: String(fd.get('avoid_exercises') || '').split(',').map(s => s.trim()).filter(s => s),
           meals_per_day: Number(fd.get('meals_per_day') || 5),
           notes: String(fd.get('notes') || '').trim(),
         };

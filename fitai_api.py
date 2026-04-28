@@ -69,6 +69,10 @@ class UserProfile(BaseModel):
     sports: List[str] = []
     diet: str  # rodzaj diety
     allergies: str = ""
+    preferred_foods: List[str] = []  # ulubione produkty
+    avoid_foods: List[str] = []  # rzeczy do unikania w diecie
+    available_equipment: List[str] = []  # dostępny sprzęt
+    avoid_exercises: List[str] = []  # rzeczy do unikania w treningu
     meals_per_day: int = 4
     notes: str = ""
 
@@ -97,8 +101,14 @@ class AppOnboardingRequest(BaseModel):
     goal: str
     frequency: str
     sports: List[str] = []
+    training_focus: List[str] = []
+    improvement_areas: List[str] = []
     diet: str
     allergies: str = ""
+    preferred_foods: List[str] = []
+    avoid_foods: List[str] = []
+    available_equipment: List[str] = []
+    avoid_exercises: List[str] = []
     meals_per_day: int = 4
     notes: str = ""
 
@@ -280,11 +290,19 @@ def _exercise_pool() -> dict:
 def _build_weekly_plan(profile: dict) -> dict:
     meal_catalog = _default_meal_catalog(profile.get("diet", "Brak preferencji"))
     pool = _exercise_pool()
+    
+    # Preferowane partie treningowe
     focus = [x.lower() for x in profile.get("training_focus", []) if isinstance(x, str)]
     improve = [x.lower() for x in profile.get("improvement_areas", []) if isinstance(x, str)]
     preferred = focus + [x for x in improve if x not in focus]
     if not preferred:
         preferred = ["klatka", "plecy", "nogi", "brzuch", "barki"]
+
+    # Personalizacja: ulubione produkty i sprzęt dostępny
+    preferred_foods = [x.lower() for x in profile.get("preferred_foods", []) if isinstance(x, str)]
+    avoid_foods = [x.lower() for x in profile.get("avoid_foods", []) if isinstance(x, str)]
+    available_equipment = [x.lower() for x in profile.get("available_equipment", []) if isinstance(x, str)]
+    avoid_exercises = [x.lower() for x in profile.get("avoid_exercises", []) if isinstance(x, str)]
 
     week_days = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"]
     meal_slots = ["Śniadanie", "Przekąska 1", "Obiad", "Przekąska 2", "Kolacja"]
@@ -295,17 +313,42 @@ def _build_weekly_plan(profile: dict) -> dict:
         if focus_key not in pool:
             focus_key = "klatka"
 
+        # Filtruj ćwiczenia: usuń te, które są w avoid_exercises
+        available_exercises = [
+            ex for ex in pool[focus_key] 
+            if not any(avoid.lower() in ex["name"].lower() for avoid in avoid_exercises)
+        ]
+        if not available_exercises:
+            available_exercises = pool[focus_key]
+
         workout_items = []
-        for idx, ex in enumerate(pool[focus_key]):
-            alternatives = [alt for alt in pool[focus_key] if alt["name"] != ex["name"]]
+        for idx, ex in enumerate(available_exercises[:4]):  # Max 4 ćwiczenia
+            alternatives = [
+                alt for alt in available_exercises 
+                if alt["name"] != ex["name"]
+            ]
             other_key = preferred[(i + idx + 1) % len(preferred)]
             if other_key in pool:
                 alternatives.extend(pool[other_key][:1])
             workout_items.append({**ex, "alternatives": alternatives[:3]})
 
+        # Filtruj posiłki: preferuj ulubione produkty, unikaj avoid_foods
         meals = []
         for slot in meal_slots:
             candidates = meal_catalog.get(slot, [])
+            
+            # Jeśli mamy preferowane produkty, spróbuj ich użyć
+            if preferred_foods:
+                preferred_candidates = [c for c in candidates if any(p in c[0].lower() for p in preferred_foods)]
+                if preferred_candidates:
+                    candidates = preferred_candidates
+            
+            # Filtruj rzeczy do unikania
+            if avoid_foods:
+                candidates = [c for c in candidates if not any(avoid.lower() in c[0].lower() for avoid in avoid_foods)]
+                if not candidates:
+                    candidates = meal_catalog.get(slot, [])  # Jeśli wszystko odfiltrowane, przywróć
+            
             main = candidates[i % len(candidates)] if candidates else ("Posiłek", 500)
             alt = [{"name": c[0], "kcal": c[1]} for c in candidates if c[0] != main[0]][:3]
             meals.append({"slot": slot, "name": main[0], "kcal": main[1], "alternatives": alt})
