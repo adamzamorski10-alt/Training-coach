@@ -51,6 +51,7 @@ html = """<!DOCTYPE html>
     ::-webkit-scrollbar-thumb:hover {
       background: rgba(0, 229, 255, 0.6);
     }
+    option { background: #0a0b0f; color: white; }
   </style>
 </head>
 <body class="bg-slate-950 text-gray-100">
@@ -141,11 +142,11 @@ html = """<!DOCTYPE html>
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <label class="block">
                       <span class="text-sm font-semibold text-cyan-400 mb-2 block">Imię</span>
-                      <input type="text" name="name" class="w-full px-4 py-3 rounded-lg glass border border-cyan-400/20 bg-slate-900/30" required>
+                      <input type="text" name="name" class="w-full px-4 py-3 rounded-lg border border-cyan-400/20 bg-slate-950/80 text-white" required>
                     </label>
                     <label class="block">
                       <span class="text-sm font-semibold text-cyan-400 mb-2 block">Wiek</span>
-                      <input type="number" name="age" min="12" max="99" class="w-full px-4 py-3 rounded-lg glass border border-cyan-400/20 bg-slate-900/30" required>
+                      <input type="number" name="age" min="12" max="99" class="w-full px-4 py-3 rounded-lg border border-cyan-400/20 bg-slate-950/80 text-white" required>
                     </label>
                   </div>
                   <button type="submit" class="w-full px-6 py-3 rounded-lg bg-cyan-400 text-slate-900 font-bold hover:brightness-110">Zapisz Profil</button>
@@ -160,11 +161,11 @@ html = """<!DOCTYPE html>
                 <form id="checkinForm" class="space-y-6">
                   <label class="block">
                     <span class="text-sm font-semibold text-cyan-400 mb-2 block">Dzisiejsze posiłki</span>
-                    <textarea name="food" placeholder="np. owsianka, kurczak z ryżem" class="w-full px-4 py-3 rounded-lg glass border border-cyan-400/20 bg-slate-900/30 min-h-20"></textarea>
+                    <textarea name="food" placeholder="np. owsianka, kurczak z ryżem" class="w-full px-4 py-3 rounded-lg border border-cyan-400/20 bg-slate-950/80 text-white min-h-20"></textarea>
                   </label>
                   <label class="block">
                     <span class="text-sm font-semibold text-cyan-400 mb-2 block">Trening</span>
-                    <textarea name="workout" placeholder="np. push day, 45 min" class="w-full px-4 py-3 rounded-lg glass border border-cyan-400/20 bg-slate-900/30 min-h-20"></textarea>
+                    <textarea name="workout" placeholder="np. push day, 45 min" class="w-full px-4 py-3 rounded-lg border border-cyan-400/20 bg-slate-950/80 text-white min-h-20"></textarea>
                   </label>
                   <button type="submit" class="w-full px-6 py-3 rounded-lg bg-cyan-400 text-slate-900 font-bold hover:brightness-110">Wyślij Check-in</button>
                 </form>
@@ -176,7 +177,7 @@ html = """<!DOCTYPE html>
               <div class="glass rounded-2xl p-8 border border-cyan-400/10">
                 <h3 class="text-2xl font-bold mb-6">🔗 Integracje</h3>
                 <form id="discordForm" class="space-y-4">
-                  <input type="text" name="discord_id" placeholder="Discord User ID" class="w-full px-4 py-3 rounded-lg glass border border-cyan-400/20 bg-slate-900/30">
+                  <input type="text" name="discord_id" placeholder="Discord User ID" class="w-full px-4 py-3 rounded-lg border border-cyan-400/20 bg-slate-950/80 text-white">
                   <button type="submit" class="w-full px-6 py-3 rounded-lg bg-cyan-400 text-slate-900 font-bold">Połącz Discord</button>
                 </form>
               </div>

@@ -147,11 +147,11 @@ html_content = """<!DOCTYPE html>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
              <div>
                <label class="block text-sm font-medium text-gray-400 mb-2">Co dzisiaj jadłeś?</label>
-               <textarea class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-[#00e5ff]" rows="3" placeholder="np. Owsianka, kurczak z ryżem..."></textarea>
+               <textarea class="w-full bg-slate-900/80 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-[#00e5ff]" rows="3" placeholder="np. Owsianka, kurczak z ryżem..."></textarea>
              </div>
              <div>
                <label class="block text-sm font-medium text-gray-400 mb-2">Trening / Ruch</label>
-               <textarea class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-[#00e5ff]" rows="3" placeholder="np. 45 min siłownia..."></textarea>
+               <textarea class="w-full bg-slate-900/80 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-[#00e5ff]" rows="3" placeholder="np. 45 min siłownia..."></textarea>
              </div>
           </div>
           <button type="submit" class="btn-neon px-8 py-3 rounded-xl w-full md:w-auto">Zapisz Raport</button>

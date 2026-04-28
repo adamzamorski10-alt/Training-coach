@@ -36,7 +36,7 @@ html = """<!DOCTYPE html>
       border-color: rgba(0, 229, 255, 0.6);
     }
     .badge { @apply inline-block px-3 py-1 rounded-full text-xs font-semibold bg-cyan-400/10 text-cyan-400 border border-cyan-400/20; }
-    .input-field { @apply px-4 py-3 rounded-lg glass border border-cyan-400/20 bg-slate-900/30 w-full; }
+    .input-field { @apply px-4 py-3 rounded-lg border border-cyan-400/20 bg-slate-950/80 w-full text-white; }
     .btn-primary { @apply px-6 py-3 rounded-lg bg-cyan-400 text-slate-900 font-bold hover:brightness-110; }
     .btn-secondary { @apply px-6 py-3 rounded-lg border border-cyan-400/50 text-cyan-400 hover:bg-cyan-400/10 font-bold; }
     .loading { animation: spin 0.8s linear infinite; }
@@ -45,6 +45,7 @@ html = """<!DOCTYPE html>
     ::-webkit-scrollbar-track { background: #0f1117; }
     ::-webkit-scrollbar-thumb { background: rgba(0, 229, 255, 0.3); border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: rgba(0, 229, 255, 0.6); }
+    option { background: #0a0b0f; color: white; }
   </style>
 </head>
 <body class="bg-slate-950 text-gray-100">
