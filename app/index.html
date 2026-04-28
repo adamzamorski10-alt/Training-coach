@@ -37,6 +37,27 @@
     .btn-secondary { @apply px-6 py-3 rounded-lg border border-cyan-400/50 text-cyan-400 hover:bg-cyan-400/10 font-bold; }
     .loading { animation: spin 0.8s linear infinite; }
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    /* Select styling */
+    select.input-field {
+      color: #f0f2f8;
+      background-color: #1e293b;
+      appearance: none;
+      padding-right: 2.5rem;
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2300e5ff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      background-size: 16px 12px;
+    }
+    select.input-field option {
+      background-color: #1e293b;
+      color: #f0f2f8;
+      padding: 0.5rem;
+    }
+    select.input-field option:checked {
+      background: linear-gradient(#1e293b, #1e293b), linear-gradient(#00e5ff, #00e5ff);
+      background-color: #1e293b;
+      color: #00e5ff;
+    }
     ::-webkit-scrollbar { width: 8px; }
     ::-webkit-scrollbar-track { background: #0f1117; }
     ::-webkit-scrollbar-thumb { background: rgba(0, 229, 255, 0.3); border-radius: 4px; }
