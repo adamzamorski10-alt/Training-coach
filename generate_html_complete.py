@@ -1,25 +1,25 @@
-<!DOCTYPE html>
-<html lang="pl">
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Generate complete FitAI premium dashboard with full functionality"""
 
+html = """<!DOCTYPE html>
+<html lang="pl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FitAI — Premium Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link
-    href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;700&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <style>
     body {
       font-family: 'DM Sans', sans-serif;
       background: radial-gradient(circle at 85% -5%, rgba(0, 229, 255, 0.08), transparent 35%),
-        radial-gradient(circle at 10% 120%, rgba(124, 58, 237, 0.06), transparent 35%),
-        #0a0b0f;
+                  radial-gradient(circle at 10% 120%, rgba(124, 58, 237, 0.06), transparent 35%),
+                  #0a0b0f;
       color: #f0f2f8;
     }
-
     .glass {
       background: rgba(15, 17, 23, 0.5);
       backdrop-filter: blur(16px);
@@ -27,73 +27,35 @@
       border: 1px solid rgba(0, 229, 255, 0.15);
       transition: all 0.3s ease;
     }
-
     .glass:hover {
       background: rgba(15, 17, 23, 0.6);
       border-color: rgba(0, 229, 255, 0.3);
     }
-
     .neon-glow:hover {
       box-shadow: 0 0 24px rgba(0, 229, 255, 0.4);
       border-color: rgba(0, 229, 255, 0.6);
     }
-
-    button,
-    a,
-    input,
-    select,
-    textarea {
+    button, a, input, select, textarea {
       transition: all 0.2s ease;
     }
-
-    .loading {
-      animation: spin 0.8s linear infinite;
-    }
-
-    @keyframes spin {
-      from {
-        transform: rotate(0deg);
-      }
-
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
-    ::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: #0f1117;
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: rgba(0, 229, 255, 0.3);
-      border-radius: 4px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: rgba(0, 229, 255, 0.6);
-    }
+    .loading { animation: spin 0.8s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #0f1117; }
+    ::-webkit-scrollbar-thumb { background: rgba(0, 229, 255, 0.3); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(0, 229, 255, 0.6); }
   </style>
 </head>
-
 <body class="bg-slate-950 text-gray-100">
   <div class="flex h-screen bg-slate-950 overflow-hidden">
     <aside class="hidden md:flex w-20 bg-slate-900 border-r border-cyan-400/10 flex-col items-center py-6 space-y-8">
-      <div
-        class="w-12 h-12 rounded-lg bg-gradient-to-br from-cyan-400 to-violet-500 flex items-center justify-center font-bold text-slate-900 text-lg">
-        F</div>
+      <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-cyan-400 to-violet-500 flex items-center justify-center font-bold text-slate-900 text-lg">F</div>
       <nav class="flex flex-col space-y-6">
         <button class="nav-icon active opacity-100" data-tab="dashboard"><span class="text-2xl">📊</span></button>
         <button class="nav-icon opacity-70 hover:opacity-100" data-tab="panel"><span class="text-2xl">⚙️</span></button>
-        <button class="nav-icon opacity-70 hover:opacity-100" data-tab="checkin"><span
-            class="text-2xl">✅</span></button>
-        <button class="nav-icon opacity-70 hover:opacity-100" data-tab="integrations"><span
-            class="text-2xl">🔗</span></button>
-        <button class="nav-icon opacity-70 hover:opacity-100" data-tab="billing"><span
-            class="text-2xl">💳</span></button>
+        <button class="nav-icon opacity-70 hover:opacity-100" data-tab="checkin"><span class="text-2xl">✅</span></button>
+        <button class="nav-icon opacity-70 hover:opacity-100" data-tab="integrations"><span class="text-2xl">🔗</span></button>
+        <button class="nav-icon opacity-70 hover:opacity-100" data-tab="billing"><span class="text-2xl">💳</span></button>
       </nav>
     </aside>
 
@@ -106,12 +68,9 @@
         <div class="flex items-center gap-4">
           <div id="version" class="text-xs text-gray-500 px-3 py-1 rounded-full bg-slate-900/50">v--</div>
           <div class="hidden md:flex gap-2">
-            <button id="loginBtn"
-              class="px-4 py-2 rounded-lg border border-cyan-400/30 text-cyan-400 hover:bg-cyan-400/10 text-sm font-medium">Zaloguj</button>
-            <button id="signupBtn"
-              class="px-4 py-2 rounded-lg border border-cyan-400/30 text-cyan-400 hover:bg-cyan-400/10 text-sm font-medium">Rejestracja</button>
-            <button id="logoutBtn"
-              class="hidden px-4 py-2 rounded-lg border border-cyan-400/30 text-cyan-400 hover:bg-cyan-400/10 text-sm font-medium">Wyloguj</button>
+            <button id="loginBtn" class="px-4 py-2 rounded-lg border border-cyan-400/30 text-cyan-400 hover:bg-cyan-400/10 text-sm font-medium">Zaloguj</button>
+            <button id="signupBtn" class="px-4 py-2 rounded-lg border border-cyan-400/30 text-cyan-400 hover:bg-cyan-400/10 text-sm font-medium">Rejestracja</button>
+            <button id="logoutBtn" class="hidden px-4 py-2 rounded-lg border border-cyan-400/30 text-cyan-400 hover:bg-cyan-400/10 text-sm font-medium">Wyloguj</button>
           </div>
         </div>
       </header>
@@ -119,16 +78,13 @@
       <div class="flex-1 overflow-y-auto">
         <div class="p-4 md:p-8">
           <div id="appLocked">
-            <div
-              class="glass neon-glow rounded-2xl p-8 md:p-12 border border-cyan-400/20 max-w-2xl mx-auto text-center mt-12">
+            <div class="glass neon-glow rounded-2xl p-8 md:p-12 border border-cyan-400/20 max-w-2xl mx-auto text-center mt-12">
               <div class="text-6xl mb-6">🔒</div>
               <h2 class="text-3xl font-bold mb-3">Panel chroniony</h2>
               <p class="text-gray-500 text-lg">Zaloguj się aby uzyskać dostęp do pełnego dashboardu.</p>
               <div class="flex gap-4 justify-center mt-8">
-                <button id="loginModal"
-                  class="px-6 py-3 rounded-lg bg-cyan-400 text-slate-900 font-bold hover:brightness-110">Zaloguj</button>
-                <button id="signupModal"
-                  class="px-6 py-3 rounded-lg border border-cyan-400/50 text-cyan-400 hover:bg-cyan-400/10 font-bold">Rejestracja</button>
+                <button id="loginModal" class="px-6 py-3 rounded-lg bg-cyan-400 text-slate-900 font-bold hover:brightness-110">Zaloguj</button>
+                <button id="signupModal" class="px-6 py-3 rounded-lg border border-cyan-400/50 text-cyan-400 hover:bg-cyan-400/10 font-bold">Rejestracja</button>
               </div>
             </div>
           </div>
@@ -177,21 +133,16 @@
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <label class="block">
                       <span class="text-sm font-semibold text-cyan-400 mb-2 block">Imię</span>
-                      <input type="text" name="name"
-                        class="w-full px-4 py-3 rounded-lg glass border border-cyan-400/20 bg-slate-900/30" required>
+                      <input type="text" name="name" class="w-full px-4 py-3 rounded-lg glass border border-cyan-400/20 bg-slate-900/30" required>
                     </label>
                     <label class="block">
                       <span class="text-sm font-semibold text-cyan-400 mb-2 block">Wiek</span>
-                      <input type="number" name="age" min="12" max="99"
-                        class="w-full px-4 py-3 rounded-lg glass border border-cyan-400/20 bg-slate-900/30" required>
+                      <input type="number" name="age" min="12" max="99" class="w-full px-4 py-3 rounded-lg glass border border-cyan-400/20 bg-slate-900/30" required>
                     </label>
                   </div>
-                  <button type="submit"
-                    class="w-full px-6 py-3 rounded-lg bg-cyan-400 text-slate-900 font-bold hover:brightness-110">Zapisz
-                    Profil</button>
+                  <button type="submit" class="w-full px-6 py-3 rounded-lg bg-cyan-400 text-slate-900 font-bold hover:brightness-110">Zapisz Profil</button>
                 </form>
-                <div id="profileStatus" class="mt-6 p-4 rounded-lg bg-slate-900/50 text-gray-500 text-sm">Uzupełnij
-                  swoje dane.</div>
+                <div id="profileStatus" class="mt-6 p-4 rounded-lg bg-slate-900/50 text-gray-500 text-sm">Uzupełnij swoje dane.</div>
               </div>
             </section>
 
@@ -202,20 +153,15 @@
                 <form id="checkinForm" class="space-y-6">
                   <label class="block">
                     <span class="text-sm font-semibold text-cyan-400 mb-2 block">Dzisiejsze posiłki</span>
-                    <textarea name="food" placeholder="np. owsianka, kurczak z ryżem"
-                      class="w-full px-4 py-3 rounded-lg glass border border-cyan-400/20 bg-slate-900/30 min-h-24 resize-none"></textarea>
+                    <textarea name="food" placeholder="np. owsianka, kurczak z ryżem" class="w-full px-4 py-3 rounded-lg glass border border-cyan-400/20 bg-slate-900/30 min-h-24 resize-none"></textarea>
                   </label>
                   <label class="block">
                     <span class="text-sm font-semibold text-cyan-400 mb-2 block">Trening</span>
-                    <textarea name="workout" placeholder="np. push day, 45 minut"
-                      class="w-full px-4 py-3 rounded-lg glass border border-cyan-400/20 bg-slate-900/30 min-h-24 resize-none"></textarea>
+                    <textarea name="workout" placeholder="np. push day, 45 minut" class="w-full px-4 py-3 rounded-lg glass border border-cyan-400/20 bg-slate-900/30 min-h-24 resize-none"></textarea>
                   </label>
-                  <button type="submit"
-                    class="w-full px-6 py-3 rounded-lg bg-cyan-400 text-slate-900 font-bold hover:brightness-110">Wyślij
-                    Check-in</button>
+                  <button type="submit" class="w-full px-6 py-3 rounded-lg bg-cyan-400 text-slate-900 font-bold hover:brightness-110">Wyślij Check-in</button>
                 </form>
-                <div id="checkinStatus" class="mt-6 p-4 rounded-lg bg-slate-900/50 text-gray-500 text-sm">Brak
-                  dzisiejszego check-in'u.</div>
+                <div id="checkinStatus" class="mt-6 p-4 rounded-lg bg-slate-900/50 text-gray-500 text-sm">Brak dzisiejszego check-in'u.</div>
               </div>
             </section>
 
@@ -224,14 +170,10 @@
               <div class="glass rounded-2xl p-8 border border-cyan-400/10">
                 <h3 class="text-2xl font-bold mb-6">🔗 Integracje</h3>
                 <form id="discordForm" class="space-y-4 mb-8">
-                  <input type="text" name="discord_id" placeholder="Discord User ID"
-                    class="w-full px-4 py-3 rounded-lg glass border border-cyan-400/20 bg-slate-900/30">
-                  <button type="submit"
-                    class="w-full px-6 py-3 rounded-lg bg-cyan-400 text-slate-900 font-bold hover:brightness-110">Połącz
-                    Discord</button>
+                  <input type="text" name="discord_id" placeholder="Discord User ID" class="w-full px-4 py-3 rounded-lg glass border border-cyan-400/20 bg-slate-900/30">
+                  <button type="submit" class="w-full px-6 py-3 rounded-lg bg-cyan-400 text-slate-900 font-bold hover:brightness-110">Połącz Discord</button>
                 </form>
-                <div id="integrationStatus" class="p-4 rounded-lg bg-slate-900/50 text-gray-500 text-sm">Brak aktywnych
-                  integracji.</div>
+                <div id="integrationStatus" class="p-4 rounded-lg bg-slate-900/50 text-gray-500 text-sm">Brak aktywnych integracji.</div>
               </div>
             </section>
 
@@ -239,13 +181,9 @@
             <section id="billing-tab" class="tab-content hidden">
               <div class="glass rounded-2xl p-8 border border-cyan-400/10 max-w-2xl">
                 <h3 class="text-2xl font-bold mb-6">💳 Plan Płatności</h3>
-                <p class="text-gray-500 mb-6">Aktualny plan: <strong class="text-cyan-400" id="planBadge">free</strong>
-                </p>
-                <button id="buyProBtn"
-                  class="px-6 py-3 rounded-lg bg-cyan-400 text-slate-900 font-bold hover:brightness-110">Kup Pro
-                  (Stripe)</button>
-                <div id="billingStatus" class="mt-6 p-4 rounded-lg bg-slate-900/50 text-gray-500 text-sm">Jesteś na
-                  planie free.</div>
+                <p class="text-gray-500 mb-6">Aktualny plan: <strong class="text-cyan-400" id="planBadge">free</strong></p>
+                <button id="buyProBtn" class="px-6 py-3 rounded-lg bg-cyan-400 text-slate-900 font-bold hover:brightness-110">Kup Pro (Stripe)</button>
+                <div id="billingStatus" class="mt-6 p-4 rounded-lg bg-slate-900/50 text-gray-500 text-sm">Jesteś na planie free.</div>
               </div>
             </section>
           </div>
@@ -257,8 +195,8 @@
   <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
   <script>
     const state = { user: null, profile: null, chart: null };
-    const DEFAULT_API_BASE = window.location.hostname === 'localhost'
-      ? 'http://127.0.0.1:8000'
+    const DEFAULT_API_BASE = window.location.hostname === 'localhost' 
+      ? 'http://127.0.0.1:8000' 
       : 'https://fitai-api-v83w.onrender.com';
     let API_BASE = localStorage.getItem('fitai_api_base') || DEFAULT_API_BASE;
 
@@ -276,11 +214,11 @@
           credentials: 'omit',
           ...(options.body && { body: JSON.stringify(options.body) }),
         });
-
+        
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-
+        
         const data = await response.json();
         return data;
       } catch (err) {
@@ -304,11 +242,11 @@
         btn.addEventListener('click', () => {
           const tab = btn.dataset.tab;
           if (!tab) return;
-
+          
           document.querySelectorAll('.nav-icon').forEach(b => b.classList.remove('opacity-100'));
           btn.classList.add('opacity-100');
           document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
-
+          
           const tabEl = document.getElementById(`${tab}-tab`);
           if (tabEl) tabEl.classList.remove('hidden');
         });
@@ -379,7 +317,7 @@
         state.user = user;
         showUnlocked(Boolean(user));
         document.getElementById('status').textContent = user ? `Zalogowano: ${user.email}` : 'Niezalogowany';
-
+        
         if (user) {
           try {
             const profile = await api('/profile');
@@ -393,20 +331,20 @@
           }
         }
       });
-
+      
       window.netlifyIdentity.on('login', async (user) => {
         state.user = user;
         showUnlocked(true);
         window.netlifyIdentity.close();
         document.getElementById('status').textContent = `Zalogowano: ${user.email}`;
       });
-
+      
       window.netlifyIdentity.on('logout', () => {
         state.user = null;
         showUnlocked(false);
         document.getElementById('status').textContent = 'Niezalogowany';
       });
-
+      
       window.netlifyIdentity.init();
     }
 
@@ -416,7 +354,7 @@
         document.getElementById('chartLoading').classList.remove('hidden');
         const data = await api('/weight-history');
         document.getElementById('chartLoading').classList.add('hidden');
-
+        
         const ctx = document.getElementById('weightChart').getContext('2d');
         state.chart = new Chart(ctx, {
           type: 'line',
@@ -463,12 +401,19 @@
     }
 
     loadVersionInfo();
-
+    
     // Load chart when dashboard tab is active
     document.addEventListener('DOMContentLoaded', () => {
       setTimeout(initChart, 500);
     });
   </script>
 </body>
+</html>"""
 
-</html>
+with open(r"c:\\Users\\adamz\\OneDrive\\Desktop\\Projects\\Training coach\\app\\index.html", "w", encoding="utf-8") as f:
+    f.write(html)
+
+print("✅ Complete FitAI Dashboard generated!")
+print("📊 Features: Tailwind CSS, Glassmorphism, Dark Mode, Chart.js, Form handlers, API integration")
+print("🔐 Auth: Netlify Identity enabled")
+print("📱 Responsive: Mobile-first design")
