@@ -4,1245 +4,1411 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0a0b10">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>FitAI — Premium SaaS Platform</title>
-  
-  <!-- Tailwind & Fonts -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  
-  <!-- Chart.js for KPI visualization -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-  
-  <!-- PWA Manifest -->
-  <link rel="manifest" href="data:application/manifest+json,{\"name\":\"FitAI\",\"short_name\":\"FitAI\",\"start_url\":\"\/\",\"display\":\"standalone\",\"background_color\":\"#0a0b10\",\"theme_color\":\"#00e5ff\"}">
-  
   <style>
-    * { box-sizing: border-box; }
-    
-    :root {
-      --neon-cyan: #00e5ff;
-      --neon-purple: #7c3aed;
-      --deep-bg: #0a0b10;
-      --card-bg: rgba(255, 255, 255, 0.03);
-      --alert-red: #ff4444;
+    *{box-sizing:border-box;margin:0;padding:0;}
+    :root{
+      --cyan:#00e5ff;--violet:#7c3aed;--bg:#0a0b10;
+      --card:rgba(255,255,255,0.03);--border:rgba(255,255,255,0.08);
+      --border-cyan:rgba(0,229,255,0.25);--text:#e2e8f0;--muted:#64748b;
     }
-    
-    html { scroll-behavior: smooth; }
-    
-    body {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      background-color: var(--deep-bg);
-      background-image: 
-        radial-gradient(circle at 0% 0%, rgba(0, 229, 255, 0.05) 0%, transparent 50%),
-        radial-gradient(circle at 100% 100%, rgba(124, 58, 237, 0.05) 0%, transparent 50%);
-      color: #e2e8f0;
-      min-height: 100vh;
+    html{scroll-behavior:smooth;}
+    body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);background-image:radial-gradient(circle at 0% 0%,rgba(0,229,255,0.05) 0%,transparent 50%),radial-gradient(circle at 100% 100%,rgba(124,58,237,0.05) 0%,transparent 50%);color:var(--text);min-height:100vh;}
+    /* SCROLLBAR */
+    ::-webkit-scrollbar{width:6px;height:6px;}
+    ::-webkit-scrollbar-track{background:transparent;}
+    ::-webkit-scrollbar-thumb{background:rgba(0,229,255,0.2);border-radius:4px;}
+    /* GLASS */
+    .glass{background:var(--card);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:16px;transition:border-color 0.3s,box-shadow 0.3s;}
+    .glass:hover{border-color:var(--border-cyan);box-shadow:0 0 30px rgba(0,229,255,0.05);}
+    .glass-nav{background:rgba(10,11,16,0.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
+    .glass-sidebar{background:rgba(10,11,16,0.7);backdrop-filter:blur(20px);border-right:1px solid var(--border);}
+    /* BUTTONS */
+    .btn-neon{background:linear-gradient(135deg,var(--cyan),var(--violet));color:#000;font-weight:700;border:none;cursor:pointer;transition:all 0.3s;box-shadow:0 0 15px rgba(0,229,255,0.3);}
+    .btn-neon:hover{box-shadow:0 0 30px rgba(0,229,255,0.5),0 0 50px rgba(124,58,237,0.3);transform:translateY(-2px);}
+    .btn-ghost{background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text);cursor:pointer;transition:all 0.2s;}
+    .btn-ghost:hover{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.2);}
+    .btn-outline-cyan{background:transparent;border:1px solid var(--border-cyan);color:var(--cyan);cursor:pointer;transition:all 0.2s;}
+    .btn-outline-cyan:hover{background:rgba(0,229,255,0.08);}
+    /* ANIMATIONS */
+    @keyframes pulseNeon{0%,100%{box-shadow:0 0 15px rgba(0,229,255,0.3),inset 0 0 15px rgba(0,229,255,0.1);}50%{box-shadow:0 0 35px rgba(0,229,255,0.7),inset 0 0 20px rgba(0,229,255,0.2);}}
+    @keyframes slideUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+    @keyframes slideInRight{from{opacity:0;transform:translateX(30px);}to{opacity:1;transform:translateX(0);}}
+    @keyframes slideInLeft{from{opacity:0;transform:translateX(-30px);}to{opacity:1;transform:translateX(0);}}
+    @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+    @keyframes springBounce{0%{transform:scale(0.9);}60%{transform:scale(1.05);}100%{transform:scale(1);}}
+    @keyframes rotateRing{from{stroke-dashoffset:283;}to{stroke-dashoffset:var(--target-offset);}}
+    @keyframes floatPulse{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+    @keyframes heroFloat{0%,100%{transform:translateY(0) rotate(0deg);}33%{transform:translateY(-12px) rotate(1deg);}66%{transform:translateY(6px) rotate(-1deg);}}
+    .tab-anim{animation:slideUp 0.4s cubic-bezier(0.4,0,0.2,1);}
+    .tab-anim-right{animation:slideInRight 0.35s cubic-bezier(0.4,0,0.2,1);}
+    .tab-anim-left{animation:slideInLeft 0.35s cubic-bezier(0.4,0,0.2,1);}
+    .pulse-neon{animation:pulseNeon 2s infinite;}
+    .float-anim{animation:floatPulse 3s ease-in-out infinite;}
+    /* NAV */
+    .nav-item{transition:all 0.2s;border-radius:12px;cursor:pointer;position:relative;}
+    .nav-item.active{background:rgba(0,229,255,0.1);color:var(--cyan);border-left:3px solid var(--cyan);padding-left:calc(0.75rem - 3px);}
+    .nav-item:hover:not(.active){background:rgba(255,255,255,0.05);color:var(--text);}
+    /* TEXT GRADIENT */
+    .text-gradient{background:linear-gradient(135deg,var(--cyan),var(--violet));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    /* CHIPS / TAGS */
+    .chip{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:99px;font-size:12px;font-weight:600;background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.2);color:var(--cyan);cursor:pointer;transition:all 0.2s;margin:3px;}
+    .chip:hover{background:rgba(0,229,255,0.15);}
+    .chip.selected{background:rgba(0,229,255,0.2);border-color:var(--cyan);box-shadow:0 0 8px rgba(0,229,255,0.2);}
+    .chip-remove{opacity:0.6;font-size:14px;}
+    .chip-remove:hover{opacity:1;}
+    /* PROFILE TABS */
+    .profile-tab.active{background:rgba(0,229,255,0.1);color:var(--cyan);}
+    /* INPUTS */
+    input,textarea,select{background:rgba(0,0,0,0.3)!important;border:1px solid var(--border)!important;color:var(--text)!important;border-radius:10px!important;padding:10px 14px!important;font-family:'Plus Jakarta Sans',sans-serif;transition:all 0.2s!important;}
+    input:focus,textarea:focus,select:focus{outline:none!important;border-color:var(--cyan)!important;box-shadow:0 0 12px rgba(0,229,255,0.15)!important;}
+    select option{background:#0a0b10;}
+    /* PROGRESS RING */
+    .progress-ring-circle{transition:stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1);transform:rotate(-90deg);transform-origin:50% 50%;}
+    /* HERO SECTION */
+    .hero-bg{background:linear-gradient(135deg,rgba(0,229,255,0.03) 0%,transparent 50%,rgba(124,58,237,0.05) 100%);}
+    .hero-orb{width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(0,229,255,0.08) 0%,transparent 70%);position:absolute;top:-200px;right:-200px;pointer-events:none;}
+    .hero-orb2{width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(124,58,237,0.06) 0%,transparent 70%);position:absolute;bottom:-100px;left:-100px;pointer-events:none;}
+    /* PRICING CARDS */
+    .plan-card{transition:all 0.3s cubic-bezier(0.4,0,0.2,1);}
+    .plan-card:hover{transform:translateY(-8px);}
+    .plan-card.featured{border-color:var(--border-cyan)!important;box-shadow:0 0 40px rgba(0,229,255,0.1);}
+    /* MODAL */
+    .modal-backdrop{background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);}
+    /* FLOATING AI BUTTON */
+    .fab{position:fixed;bottom:24px;right:24px;z-index:200;animation:floatPulse 3s ease-in-out infinite;}
+    /* STATUS BADGES */
+    .badge-incomplete{background:rgba(255,170,0,0.1);border:1px solid rgba(255,170,0,0.3);color:#ffaa00;}
+    .badge-complete{background:rgba(0,229,255,0.1);border:1px solid var(--border-cyan);color:var(--cyan);}
+    /* RESPONSIVE */
+    @media(max-width:768px){
+      .glass-sidebar{position:fixed;left:-100%;top:64px;width:100%;height:calc(100vh-64px);z-index:999;transition:left 0.3s ease;}
+      .glass-sidebar.open{left:0;}
+      .hide-mobile{display:none!important;}
     }
-    
-    /* === GLASSMORPHISM === */
-    .glass-card {
-      background: var(--card-bg);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 16px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    
-    .glass-card:hover {
-      border-color: rgba(0, 229, 255, 0.3);
-      box-shadow: 0 0 30px rgba(0, 229, 255, 0.05);
-      transform: translateY(-1px);
-    }
-    
-    .glass-sidebar {
-      background: rgba(10, 11, 16, 0.7);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-    
-    /* === ANIMATIONS === */
-    @keyframes slideUpFade {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-    
-    @keyframes fadeOutFast {
-      from { opacity: 1; }
-      to { opacity: 0; }
-    }
-    
-    @keyframes springBounce {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-8px); }
-      75% { transform: translateX(8px); }
-    }
-    
-    @keyframes pulseNeon {
-      0%, 100% {
-        box-shadow: 0 0 15px rgba(0, 229, 255, 0.3),
-                    inset 0 0 15px rgba(0, 229, 255, 0.1);
-      }
-      50% {
-        box-shadow: 0 0 30px rgba(0, 229, 255, 0.6),
-                    inset 0 0 20px rgba(0, 229, 255, 0.2);
-      }
-    }
-    
-    @keyframes slideRightToLeft {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-    
-    @keyframes slideLeftToRight {
-      from { transform: translateX(-100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-    
-    .tab-content {
-      animation: slideUpFade 0.4s ease-out;
-    }
-    
-    .tab-content.exit {
-      animation: fadeOutFast 0.2s ease-out;
-    }
-    
-    .day-carousel-item {
-      animation: springBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-    
-    .btn-neon {
-      background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
-      color: #fff;
-      font-weight: 600;
-      box-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
-      transition: all 0.3s ease;
-      border: none;
-      cursor: pointer;
-    }
-    
-    .btn-neon:hover {
-      box-shadow: 0 0 25px rgba(0, 229, 255, 0.5), 0 0 40px rgba(124, 58, 237, 0.3);
-      transform: translateY(-2px);
-    }
-    
-    .btn-neon.pulse {
-      animation: pulseNeon 2s infinite;
-    }
-    
-    .btn-secondary {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #e2e8f0;
-      transition: all 0.2s ease;
-      cursor: pointer;
-    }
-    
-    .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.2);
-    }
-    
-    /* === NAVIGATION === */
-    .nav-item {
-      transition: all 0.2s ease;
-      border-radius: 12px;
-      cursor: pointer;
-    }
-    
-    .nav-item.active {
-      background: rgba(0, 229, 255, 0.1);
-      color: var(--neon-cyan);
-      border-left: 4px solid var(--neon-cyan);
-      padding-left: calc(0.75rem - 4px);
-    }
-    
-    .nav-item:hover:not(.active) {
-      background: rgba(255, 255, 255, 0.05);
-      color: #e2e8f0;
-    }
-    
-    /* === ALERTS & NOTIFICATIONS === */
-    .alert-neon {
-      background: linear-gradient(135deg, rgba(0, 229, 255, 0.1), rgba(124, 58, 237, 0.1));
-      border: 1px solid rgba(0, 229, 255, 0.3);
-      border-radius: 12px;
-      padding: 12px 16px;
-      animation: slideUpFade 0.4s ease-out;
-    }
-    
-    .alert-warning {
-      background: rgba(255, 68, 68, 0.1);
-      border: 1px solid rgba(255, 68, 68, 0.3);
-      color: #ff9999;
-    }
-    
-    /* === SCROLLBAR === */
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { 
-      background: rgba(0, 229, 255, 0.2);
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: rgba(0, 229, 255, 0.4);
-    }
-    
-    /* === INPUTS & FORMS === */
-    input, textarea, select {
-      background: rgba(0, 0, 0, 0.3) !important;
-      border: 1px solid rgba(255, 255, 255, 0.1) !important;
-      color: #e2e8f0 !important;
-      border-radius: 8px !important;
-      padding: 10px 12px !important;
-      transition: all 0.2s ease !important;
-    }
-    
-    input:focus, textarea:focus, select:focus {
-      outline: none !important;
-      border-color: var(--neon-cyan) !important;
-      box-shadow: 0 0 15px rgba(0, 229, 255, 0.2) !important;
-    }
-    
-    /* === RESPONSIVE === */
-    @media (max-width: 768px) {
-      .glass-sidebar {
-        position: fixed;
-        left: -100%;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 999;
-        transition: left 0.3s ease;
-      }
-      
-      .glass-sidebar.mobile-open {
-        left: 0;
-      }
-    }
-    
-    /* === UTILITY CLASSES === */
-    .text-gradient {
-      background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    
-    .shimmer {
-      animation: shimmer 2s infinite;
-    }
-    
-    @keyframes shimmer {
-      0% { opacity: 0.5; }
-      50% { opacity: 1; }
-      100% { opacity: 0.5; }
-    }
+    /* SECTION SCROLL */
+    .landing-section{min-height:100vh;position:relative;}
+    /* FEATURE CARD */
+    .feature-card{transition:all 0.3s;}
+    .feature-card:hover{transform:translateY(-4px);border-color:var(--border-cyan)!important;box-shadow:0 0 20px rgba(0,229,255,0.05);}
+    /* DAY ACTIVE */
+    .day-btn.active{background:linear-gradient(135deg,var(--cyan),var(--violet));color:#000;font-weight:700;box-shadow:0 0 16px rgba(0,229,255,0.4);}
+    /* COMPARISON RING */
+    .user-ring{transition:all 0.3s;}
+    .user-ring:hover{transform:scale(1.05);}
+    /* ALERT NEON */
+    .alert-neon{background:linear-gradient(135deg,rgba(0,229,255,0.08),rgba(124,58,237,0.08));border:1px solid rgba(0,229,255,0.3);border-radius:12px;padding:12px 16px;}
+    .alert-warn{background:rgba(255,68,68,0.1);border:1px solid rgba(255,68,68,0.3);color:#ff9999;border-radius:12px;padding:12px 16px;}
+    /* AI CHAT */
+    #aiChat{max-height:0;overflow:hidden;transition:max-height 0.5s cubic-bezier(0.4,0,0.2,1);}
+    #aiChat.open{max-height:500px;}
+    .msg-ai{background:rgba(0,229,255,0.08);border:1px solid var(--border-cyan);border-radius:12px 12px 12px 2px;padding:10px 14px;margin-bottom:8px;font-size:13px;}
+    .msg-user{background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.3);border-radius:12px 12px 2px 12px;padding:10px 14px;margin-bottom:8px;font-size:13px;text-align:right;}
   </style>
 </head>
 <body>
 
-<!-- ======== NAVBAR ======== -->
-<nav class="fixed top-0 left-0 right-0 bg-gradient-to-b from-[#0a0b10] via-[rgba(10,11,16,0.8)] to-transparent backdrop-blur-xl border-b border-white/5 z-40 px-4 md:px-8 py-4">
+<!-- ======= NAVBAR ======= -->
+<nav id="mainNav" class="fixed top-0 left-0 right-0 z-50 glass-nav px-4 md:px-8 py-3">
   <div class="max-w-7xl mx-auto flex justify-between items-center">
-    <!-- Logo -->
     <div class="flex items-center gap-3">
-      <div class="w-8 h-8 bg-gradient-to-br from-[#00e5ff] to-[#7c3aed] rounded-lg rotate-12 flex items-center justify-center font-bold text-white text-lg">F</div>
-      <h1 class="text-xl font-bold tracking-tight text-white hidden sm:block">FitAI</h1>
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-[#00e5ff] to-[#7c3aed] flex items-center justify-center font-bold text-black text-lg shadow-[0_0_20px_rgba(0,229,255,0.4)]">F</div>
+      <span class="font-bold text-white text-xl hidden sm:block" style="font-family:'Syne',sans-serif;">FitAI</span>
     </div>
-    
-    <!-- Right Menu -->
-    <div class="flex items-center gap-4">
-      <!-- User Switcher (Dropdown) -->
-      <div class="relative group">
-        <button id="userMenuBtn" class="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors text-sm font-medium">
-          <span id="currentUserDisplay">👤 Użytkownik</span>
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
-          </svg>
+    <!-- Landing Links (visible only on landing) -->
+    <div id="landingLinks" class="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
+      <a href="#o-nas" class="hover:text-white transition-colors">O nas</a>
+      <a href="#funkcje" class="hover:text-white transition-colors">Funkcje</a>
+      <a href="#cennik" class="hover:text-white transition-colors">Cennik</a>
+    </div>
+    <div class="flex items-center gap-3">
+      <!-- User Switcher -->
+      <div id="userSwitcher" class="hidden relative">
+        <button id="userMenuBtn" class="flex items-center gap-2 px-3 py-2 btn-ghost rounded-xl text-sm font-medium">
+          <span id="currentUserAvatar" class="w-6 h-6 rounded-full bg-gradient-to-br from-[#00e5ff] to-[#7c3aed] flex items-center justify-center text-black text-xs font-bold">M</span>
+          <span id="currentUserName">Marek</span>
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
         </button>
-        <div id="userDropdown" class="absolute right-0 mt-2 w-48 bg-gradient-to-b from-white/10 to-white/5 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 p-2">
-          <div id="userList" class="space-y-1 max-h-64 overflow-y-auto"></div>
-          <div class="border-t border-white/10 mt-2 pt-2">
-            <button onclick="showTab('profile')" class="w-full text-left px-3 py-2 text-sm text-gray-400 hover:bg-white/5 rounded transition-colors">⚙️ Ustawienia</button>
-            <button id="addUserBtn" class="w-full text-left px-3 py-2 text-sm text-cyan-400 hover:bg-cyan-500/10 rounded transition-colors">+ Dodaj użytkownika</button>
+        <div id="userDropdown" class="absolute right-0 mt-2 w-56 glass rounded-2xl shadow-2xl opacity-0 pointer-events-none transition-all duration-200 p-2 z-50" style="border-color:rgba(0,229,255,0.2)!important;">
+          <div id="userDropdownList" class="space-y-1 mb-2"></div>
+          <div class="border-t pt-2" style="border-color:var(--border);">
+            <button id="addUserBtn" class="w-full text-left px-3 py-2 text-sm text-cyan-400 hover:bg-white/5 rounded-xl transition-colors font-medium">+ Dodaj profil</button>
           </div>
         </div>
       </div>
-      
-      <!-- Main PANEL Button (Pulsing Neon) -->
-      <button onclick="showTab('dashboard')" class="btn-neon pulse px-6 py-2 rounded-lg font-bold text-sm">PANEL</button>
-      
-      <!-- Mobile Menu Toggle -->
-      <button id="mobileMenuBtn" class="md:hidden p-2 hover:bg-white/10 rounded-lg transition-colors">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-        </svg>
+      <button id="panelBtn" onclick="enterDashboard()" class="btn-neon pulse-neon px-5 py-2 rounded-xl text-sm">PANEL</button>
+      <button id="mobileMenuBtn" class="md:hidden p-2 btn-ghost rounded-xl">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
     </div>
   </div>
 </nav>
 
-<!-- ======== LAYOUT CONTAINER ======== -->
-<div class="flex pt-16 min-h-screen">
+<!-- ======= LANDING PAGE ======= -->
+<div id="landingPage">
 
-  <!-- ======== SIDEBAR (GLASSMORPHISM) ======== -->
-  <aside id="sidebar" class="hidden md:flex w-64 glass-sidebar p-6 border-r border-white/5 fixed md:sticky top-16 h-[calc(100vh-64px)] flex-col gap-6 overflow-y-auto md:z-0 z-50">
-    <nav class="space-y-2 flex-1">
-      <div class="px-3 py-2 text-xs font-bold text-gray-500 uppercase tracking-wide">Menu</div>
-      
-      <a href="#" onclick="showTab('dashboard'); return false;" class="nav-item active flex items-center gap-3 p-3 text-sm font-medium">
-        <span class="text-lg">🏠</span> <span>Home</span>
-      </a>
-      
-      <a href="#" onclick="showTab('my-day'); return false;" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white">
-        <span class="text-lg">📋</span> <span>Mój Dzień</span>
-      </a>
-      
-      <a href="#" onclick="showTab('plan'); return false;" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white">
-        <span class="text-lg">📅</span> <span>Plan</span>
-      </a>
-      
-      <a href="#" onclick="showTab('profile'); return false;" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white">
-        <span class="text-lg">👤</span> <span>Profil</span>
-      </a>
-      
-      <a href="#" onclick="showTab('contact'); return false;" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white">
-        <span class="text-lg">💬</span> <span>Kontakt</span>
-      </a>
-    </nav>
-    
-    <!-- Footer Info -->
-    <div class="border-t border-white/5 pt-4">
-      <div class="text-xs text-gray-500 space-y-1">
-        <p>📊 <span id="versionInfo">FitAI v2.0</span></p>
-        <button id="logoutBtn" class="text-red-400 hover:text-red-300 text-xs font-medium transition-colors w-full text-left">🚪 Wyloguj</button>
+  <!-- HERO SECTION -->
+  <section class="landing-section hero-bg flex items-center justify-center relative overflow-hidden pt-20">
+    <div class="hero-orb"></div>
+    <div class="hero-orb2"></div>
+    <div class="max-w-6xl mx-auto px-4 md:px-8 py-20 md:py-32 grid md:grid-cols-2 gap-16 items-center relative z-10">
+      <div>
+        <div class="inline-flex items-center gap-2 px-4 py-2 glass rounded-full mb-6 text-sm font-medium text-cyan-400" style="border-color:var(--border-cyan)!important;">
+          <span class="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></span>
+          Platforma SaaS v2.0 — Premium
+        </div>
+        <h1 class="text-5xl md:text-7xl font-bold leading-tight mb-6" style="font-family:'Syne',sans-serif;">
+          Trenuj<br><span class="text-gradient">inteligentnie.</span><br>Żyj lepiej.
+        </h1>
+        <p class="text-gray-400 text-lg md:text-xl leading-relaxed mb-8">FitAI to zaawansowana platforma zarządzania dietą i treningiem z silnikiem AI, multi-profilami i planem dopasowanym do Ciebie.</p>
+        <div class="flex flex-wrap gap-4">
+          <button onclick="enterDashboard()" class="btn-neon px-8 py-4 rounded-2xl text-base font-bold">Zacznij Teraz →</button>
+          <a href="#funkcje" class="btn-ghost px-8 py-4 rounded-2xl text-base font-medium">Poznaj funkcje</a>
+        </div>
+        <div class="flex items-center gap-6 mt-8 text-sm text-gray-500">
+          <span>✅ Bezpłatny start</span>
+          <span>✅ Brak karty kredytowej</span>
+          <span>✅ Offline PWA</span>
+        </div>
       </div>
+      <!-- Hero Visual -->
+      <div class="relative hidden md:block">
+        <div class="float-anim">
+          <div class="glass rounded-3xl p-6" style="border-color:var(--border-cyan)!important;box-shadow:0 0 60px rgba(0,229,255,0.1);">
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-white font-bold" style="font-family:'Syne',sans-serif;">Dashboard</span>
+              <span class="badge-complete px-3 py-1 rounded-full text-xs font-bold">PRO</span>
+            </div>
+            <div class="grid grid-cols-3 gap-3 mb-4">
+              <div class="glass rounded-xl p-3 text-center"><p class="text-xs text-gray-500 mb-1">Kalorie</p><p class="text-xl font-bold text-cyan-400" style="font-family:'Syne',sans-serif;">87%</p></div>
+              <div class="glass rounded-xl p-3 text-center"><p class="text-xs text-gray-500 mb-1">Białko</p><p class="text-xl font-bold text-violet-400" style="font-family:'Syne',sans-serif;">124g</p></div>
+              <div class="glass rounded-xl p-3 text-center"><p class="text-xs text-gray-500 mb-1">Streak</p><p class="text-xl font-bold text-yellow-400" style="font-family:'Syne',sans-serif;">12🔥</p></div>
+            </div>
+            <div class="glass rounded-xl p-3">
+              <p class="text-xs text-gray-500 mb-2">Dzisiejszy plan</p>
+              <div class="space-y-1">
+                <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-cyan-400"></span><span class="text-xs text-white">Owsianka z jagodami</span><span class="ml-auto text-xs text-gray-500">340 kcal</span></div>
+                <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-violet-400"></span><span class="text-xs text-white">Push Day — siłownia</span><span class="ml-auto text-xs text-gray-500">45 min</span></div>
+                <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-yellow-400"></span><span class="text-xs text-white">Shake proteinowy</span><span class="ml-auto text-xs text-gray-500">180 kcal</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- O NAS SECTION -->
+  <section id="o-nas" class="py-24 px-4 md:px-8 relative">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl md:text-5xl font-bold mb-4" style="font-family:'Syne',sans-serif;">Dlaczego <span class="text-gradient">FitAI?</span></h2>
+        <p class="text-gray-400 text-lg max-w-2xl mx-auto">Stworzyliśmy platformę, która łączy precyzję nauki z prostotą użycia. Twój osobisty trener i dietetyk w jednym.</p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="text-center p-8 glass rounded-2xl feature-card">
+          <div class="text-5xl mb-4">🤖</div>
+          <h3 class="text-xl font-bold text-white mb-3" style="font-family:'Syne',sans-serif;">Silnik AI</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">Claude AI generuje spersonalizowane plany posiłków i treningów na podstawie Twojego profilu, celów i wykluczeń.</p>
+        </div>
+        <div class="text-center p-8 glass rounded-2xl feature-card">
+          <div class="text-5xl mb-4">📊</div>
+          <h3 class="text-xl font-bold text-white mb-3" style="font-family:'Syne',sans-serif;">Kalkulator BMR</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">Wzór Mifflin-St Jeor przelicza Twoje zapotrzebowanie kaloryczne z uwzględnieniem aktywności i celu.</p>
+        </div>
+        <div class="text-center p-8 glass rounded-2xl feature-card">
+          <div class="text-5xl mb-4">👥</div>
+          <h3 class="text-xl font-bold text-white mb-3" style="font-family:'Syne',sans-serif;">Multi-profile</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">Zarządzaj do 3 profili jednocześnie — idealne dla całej rodziny lub różnych planów treningowych.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FUNKCJE SECTION -->
+  <section id="funkcje" class="py-24 px-4 md:px-8">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl md:text-5xl font-bold mb-4" style="font-family:'Syne',sans-serif;"><span class="text-gradient">Funkcje</span> premium</h2>
+        <p class="text-gray-400 text-lg">Wszystko czego potrzebujesz do osiągnięcia swoich celów</p>
+      </div>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="p-6 glass rounded-2xl feature-card"><div class="text-3xl mb-3">🔄</div><h3 class="text-lg font-bold text-white mb-2">System Wykluczeń</h3><p class="text-sm text-gray-400">Dodaj alergie i preferencje — AI automatycznie pominie niedozwolone składniki z planu.</p></div>
+        <div class="p-6 glass rounded-2xl feature-card"><div class="text-3xl mb-3">💪</div><h3 class="text-lg font-bold text-white mb-2">Plan 7-dniowy</h3><p class="text-sm text-gray-400">Pełny tydzień diety i treningów z możliwością zamiany elementów na alternatywy AI.</p></div>
+        <div class="p-6 glass rounded-2xl feature-card"><div class="text-3xl mb-3">📱</div><h3 class="text-lg font-bold text-white mb-2">PWA Offline</h3><p class="text-sm text-gray-400">Aplikacja działa bez internetu. Synchronizacja automatyczna po powrocie online.</p></div>
+        <div class="p-6 glass rounded-2xl feature-card"><div class="text-3xl mb-3">📈</div><h3 class="text-lg font-bold text-white mb-2">Pierścienie Postępu</h3><p class="text-sm text-gray-400">Wizualne wskaźniki kalorii, białka i makroskładników aktualizowane w czasie rzeczywistym.</p></div>
+        <div class="p-6 glass rounded-2xl feature-card"><div class="text-3xl mb-3">🎯</div><h3 class="text-lg font-bold text-white mb-2">Dziennik Dzienny</h3><p class="text-sm text-gray-400">Loguj posiłki i treningi ręcznie lub z planu. Automatyczna suma makroskładników.</p></div>
+        <div class="p-6 glass rounded-2xl feature-card"><div class="text-3xl mb-3">💬</div><h3 class="text-lg font-bold text-white mb-2">AI Coach</h3><p class="text-sm text-gray-400">Zadaj pytanie trenerowi FitAI — dostaniesz spersonalizowaną odpowiedź na podstawie profilu.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CENNIK SECTION -->
+  <section id="cennik" class="py-24 px-4 md:px-8">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl md:text-5xl font-bold mb-4" style="font-family:'Syne',sans-serif;">Plany <span class="text-gradient">Cenowe</span></h2>
+        <p class="text-gray-400 text-lg">Wybierz plan dopasowany do Twoich celów</p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        <!-- Free -->
+        <div class="glass rounded-3xl p-8 plan-card flex flex-col">
+          <div class="mb-6">
+            <p class="text-sm font-bold text-gray-500 uppercase tracking-widest mb-2">Free</p>
+            <div class="flex items-baseline gap-1"><span class="text-5xl font-bold text-white" style="font-family:'Syne',sans-serif;">0</span><span class="text-gray-400">zł/mies.</span></div>
+          </div>
+          <ul class="space-y-3 text-sm text-gray-400 flex-1 mb-8">
+            <li class="flex items-center gap-2"><span class="text-cyan-400">✓</span> 1 profil użytkownika</li>
+            <li class="flex items-center gap-2"><span class="text-cyan-400">✓</span> Dziennik dzienny</li>
+            <li class="flex items-center gap-2"><span class="text-cyan-400">✓</span> Kalkulator BMR</li>
+            <li class="flex items-center gap-2"><span class="text-gray-600">✗</span> AI Coach</li>
+            <li class="flex items-center gap-2"><span class="text-gray-600">✗</span> Generowanie planu</li>
+          </ul>
+          <button onclick="enterDashboard()" class="w-full py-3 rounded-xl btn-ghost font-bold text-sm">Wybierz Free</button>
+        </div>
+        <!-- Pro (featured) -->
+        <div class="glass rounded-3xl p-8 plan-card featured flex flex-col" style="transform:translateY(-8px);">
+          <div class="mb-2"><span class="text-xs font-bold bg-gradient-to-r from-cyan-400 to-violet-500 text-black px-3 py-1 rounded-full">POPULARNY</span></div>
+          <div class="mb-6 mt-3">
+            <p class="text-sm font-bold text-cyan-400 uppercase tracking-widest mb-2">Pro</p>
+            <div class="flex items-baseline gap-1"><span class="text-5xl font-bold text-white" style="font-family:'Syne',sans-serif;">49</span><span class="text-gray-400">zł/mies.</span></div>
+          </div>
+          <ul class="space-y-3 text-sm text-gray-300 flex-1 mb-8">
+            <li class="flex items-center gap-2"><span class="text-cyan-400">✓</span> 3 profile użytkowników</li>
+            <li class="flex items-center gap-2"><span class="text-cyan-400">✓</span> AI Coach 24/7</li>
+            <li class="flex items-center gap-2"><span class="text-cyan-400">✓</span> Generowanie planu AI</li>
+            <li class="flex items-center gap-2"><span class="text-cyan-400">✓</span> System wykluczeń</li>
+            <li class="flex items-center gap-2"><span class="text-cyan-400">✓</span> Analityki zaawansowane</li>
+          </ul>
+          <button onclick="enterDashboard()" class="w-full py-3 rounded-xl btn-neon font-bold text-sm">Wybierz Pro</button>
+        </div>
+        <!-- Elite -->
+        <div class="glass rounded-3xl p-8 plan-card flex flex-col">
+          <div class="mb-6">
+            <p class="text-sm font-bold text-violet-400 uppercase tracking-widest mb-2">Elite</p>
+            <div class="flex items-baseline gap-1"><span class="text-5xl font-bold text-white" style="font-family:'Syne',sans-serif;">129</span><span class="text-gray-400">zł/mies.</span></div>
+          </div>
+          <ul class="space-y-3 text-sm text-gray-400 flex-1 mb-8">
+            <li class="flex items-center gap-2"><span class="text-violet-400">✓</span> Wszystko z Pro</li>
+            <li class="flex items-center gap-2"><span class="text-violet-400">✓</span> Trener personalny AI</li>
+            <li class="flex items-center gap-2"><span class="text-violet-400">✓</span> Integracje (Discord/API)</li>
+            <li class="flex items-center gap-2"><span class="text-violet-400">✓</span> Export PDF/CSV</li>
+            <li class="flex items-center gap-2"><span class="text-violet-400">✓</span> Wsparcie priorytetowe</li>
+          </ul>
+          <button onclick="enterDashboard()" class="w-full py-3 rounded-xl btn-outline-cyan font-bold text-sm">Wybierz Elite</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+<!-- END LANDING -->
+
+<!-- ======= DASHBOARD PAGE ======= -->
+<div id="dashboardPage" class="hidden flex pt-16 min-h-screen">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="hidden md:flex w-64 glass-sidebar p-6 border-r fixed top-16 h-[calc(100vh-64px)] flex-col gap-6 overflow-y-auto z-40" style="border-color:var(--border);">
+    <nav class="space-y-1 flex-1">
+      <p class="px-3 py-1 text-xs font-bold text-gray-600 uppercase tracking-wider">Menu</p>
+      <a href="#" onclick="showTab('home');return false;" data-tab="home" class="nav-item active flex items-center gap-3 p-3 text-sm font-medium text-cyan-400"><span>🏠</span><span>Home</span></a>
+      <a href="#" onclick="showTab('my-day');return false;" data-tab="my-day" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>📋</span><span>Mój Dzień</span></a>
+      <a href="#" onclick="showTab('plan');return false;" data-tab="plan" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>📅</span><span>Plan</span></a>
+      <a href="#" onclick="showTab('profile');return false;" data-tab="profile" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>👤</span><span>Profil</span></a>
+      <a href="#" onclick="showTab('contact');return false;" data-tab="contact" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>💬</span><span>Kontakt</span></a>
+    </nav>
+    <!-- Sidebar foundation info -->
+    <div class="glass rounded-2xl p-4">
+      <p class="text-xs font-bold text-gray-500 uppercase mb-3">Twój Fundament</p>
+      <div class="space-y-2 text-xs">
+        <div class="flex justify-between"><span class="text-gray-500">Kalorie/dzień</span><span class="text-cyan-400 font-bold" id="sidebarCalories">—</span></div>
+        <div class="flex justify-between"><span class="text-gray-500">Białko</span><span class="text-violet-400 font-bold" id="sidebarProtein">—</span></div>
+        <div class="flex justify-between"><span class="text-gray-500">Waga cel</span><span class="text-yellow-400 font-bold" id="sidebarTarget">—</span></div>
+      </div>
+    </div>
+    <div class="border-t pt-4" style="border-color:var(--border);">
+      <p class="text-xs text-gray-600 mb-2">FitAI v2.0</p>
+      <button onclick="exitDashboard()" class="text-xs text-red-400 hover:text-red-300 transition-colors">← Powrót do strony głównej</button>
     </div>
   </aside>
 
-  <!-- ======== MAIN CONTENT ======== -->
-  <main class="flex-1 p-4 md:p-8 w-full">
-    <!-- Header with User Greeting -->
-    <header class="mb-8 animate-fadeIn">
-      <div class="flex justify-between items-start md:items-center">
+  <!-- MAIN -->
+  <main id="mainContent" class="flex-1 p-4 md:p-8 md:ml-64 w-full">
+
+    <!-- Greeting Header -->
+    <header class="mb-8">
+      <div class="flex justify-between items-start">
         <div>
-          <h2 class="text-3xl md:text-4xl font-bold text-white mb-1">
-            👋 Witaj, <span id="greetingName">Użytkowniku</span>!
-          </h2>
-          <p class="text-gray-400 text-sm md:text-base">Twój cel jest blisko. Sprawdzaj postęp każdego dnia.</p>
+          <h2 class="text-3xl md:text-4xl font-bold text-white mb-1" style="font-family:'Syne',sans-serif;">👋 Witaj, <span id="greetingName" class="text-gradient">Użytkowniku</span>!</h2>
+          <p class="text-gray-500 text-sm" id="todayDate"></p>
         </div>
-        <div class="text-right">
-          <p id="todayDate" class="text-sm text-gray-500 font-mono"></p>
+        <div class="text-right hide-mobile">
+          <p class="text-xs text-gray-600 mb-1">Aktywny profil</p>
+          <p class="text-sm font-bold text-cyan-400" id="headerUserBadge">—</p>
         </div>
       </div>
     </header>
 
-    <!-- ======== TAB: HOME ======== -->
-    <section id="dashboard" class="tab-content space-y-8">
-      <!-- KPI Cards Grid -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-        <!-- Consistency -->
-        <div class="glass-card p-4 md:p-6 border-l-4 border-cyan-500">
-          <p class="text-gray-400 text-xs font-semibold uppercase mb-2">🔥 Spójność</p>
-          <h3 class="text-2xl md:text-3xl font-bold text-cyan-400 mb-2" id="kpiConsistency">0%</h3>
-          <div class="w-full bg-white/5 h-1 rounded-full overflow-hidden">
-            <div id="consistencyBar" class="h-full bg-gradient-to-r from-cyan-500 to-purple-500 w-0 transition-all duration-500"></div>
-          </div>
+    <!-- ====== TAB: HOME ====== -->
+    <section id="tab-home" class="space-y-6">
+      <!-- KPI ROW -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="glass p-5 border-l-4" style="border-left-color:var(--cyan)!important;">
+          <p class="text-xs font-bold text-gray-500 uppercase mb-2">🔥 Spójność</p>
+          <p class="text-3xl font-bold text-cyan-400 mb-2" style="font-family:'Syne',sans-serif;" id="kpiConsistency">0%</p>
+          <div class="h-1 bg-white/5 rounded-full overflow-hidden"><div id="consistencyBar" class="h-full bg-gradient-to-r from-cyan-500 to-violet-500 transition-all duration-700 w-0"></div></div>
         </div>
-        
-        <!-- Calories Today -->
-        <div class="glass-card p-4 md:p-6">
-          <p class="text-gray-400 text-xs font-semibold uppercase mb-2">🍽️ Dzisiaj</p>
-          <h3 class="text-2xl md:text-3xl font-bold text-white mb-2">
-            <span id="caloriesEaten">0</span> / <span id="caloriesTarget">2500</span>
-          </h3>
-          <p class="text-xs text-gray-500" id="caloriesRemaining">2500 kcal pozostało</p>
+        <div class="glass p-5">
+          <p class="text-xs font-bold text-gray-500 uppercase mb-2">⚖️ Waga</p>
+          <p class="text-3xl font-bold text-white" style="font-family:'Syne',sans-serif;" id="kpiWeight">—</p>
+          <p class="text-xs text-gray-600 mt-1" id="weightDiff">Brak danych</p>
         </div>
-        
-        <!-- Current Weight -->
-        <div class="glass-card p-4 md:p-6">
-          <p class="text-gray-400 text-xs font-semibold uppercase mb-2">⚖️ Waga</p>
-          <h3 class="text-2xl md:text-3xl font-bold text-white" id="kpiWeight">-- kg</h3>
-          <p class="text-xs text-gray-500 mt-1" id="weightTrend">Oczekuję na dane</p>
+        <div class="glass p-5">
+          <p class="text-xs font-bold text-gray-500 uppercase mb-2">🎯 Cel</p>
+          <p class="text-3xl font-bold text-violet-400" style="font-family:'Syne',sans-serif;" id="kpiGoal">—</p>
+          <p class="text-xs text-gray-600 mt-1" id="kpiGoalLabel">Brak celu</p>
         </div>
-        
-        <!-- Plan Status -->
-        <div class="glass-card p-4 md:p-6">
-          <p class="text-gray-400 text-xs font-semibold uppercase mb-2">📊 Plan</p>
-          <h3 class="text-2xl md:text-3xl font-bold text-gradient mb-2" id="planStatus">Free</h3>
-          <button onclick="showTab('profile')" class="text-xs text-cyan-400 hover:text-cyan-300 transition-colors">Uaktualnij plan →</button>
+        <div class="glass p-5">
+          <p class="text-xs font-bold text-gray-500 uppercase mb-2">📊 Plan</p>
+          <p class="text-3xl font-bold text-gradient" style="font-family:'Syne',sans-serif;">Free</p>
+          <button onclick="showTab('profile');switchProfileTab('payments');" class="text-xs text-cyan-400 hover:text-cyan-300 mt-1">Ulepsz →</button>
         </div>
       </div>
 
-      <!-- Charts Row -->
+      <!-- Progress Rings + Chart -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Consistency Chart -->
-        <div class="lg:col-span-2 glass-card p-6">
-          <h4 class="text-lg font-bold text-white mb-4">Analiza Spójności (7 dni)</h4>
-          <div class="h-64">
-            <canvas id="consistencyChart"></canvas>
-          </div>
-        </div>
-
-        <!-- Next Steps Card -->
-        <div class="glass-card p-6 flex flex-col justify-between">
-          <div>
-            <h4 class="text-lg font-bold text-white mb-4">🎯 Następny Krok</h4>
-            <div id="nextStepContent" class="space-y-3">
-              <div class="p-3 bg-white/5 rounded-lg border border-white/10">
-                <p class="text-sm text-gray-400">Ładowanie danych...</p>
-              </div>
-            </div>
-          </div>
-          <button class="btn-neon px-4 py-2 rounded-lg text-sm font-bold mt-4 w-full">+ DODAJ POSIŁEK</button>
-        </div>
-      </div>
-
-      <!-- Recent Activity -->
-      <div class="glass-card p-6">
-        <h4 class="text-lg font-bold text-white mb-4">📈 Ostatnia Aktywność</h4>
-        <div id="recentActivityContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="text-center text-gray-500 text-sm italic py-8">Brak logów do wyświetlenia</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ======== TAB: MY DAY ======== -->
-    <section id="my-day" class="tab-content hidden space-y-6">
-      <h3 class="text-2xl md:text-3xl font-bold">Mój Dzień</h3>
-      
-      <!-- Neon Alert for Macro Deficiency (if applicable) -->
-      <div id="macroAlert" class="hidden">
-        <div class="alert-neon alert-warning">
-          <p class="text-sm font-medium" id="macroAlertText"></p>
-        </div>
-      </div>
-
-      <!-- Two Containers: Diet & Training -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        <!-- DIET CONTAINER -->
-        <div class="glass-card p-6">
-          <h4 class="text-xl font-bold text-white mb-4">🍽️ Dieta</h4>
-          
-          <!-- Diet Log -->
-          <div id="dietLogContainer" class="space-y-3 mb-6 max-h-96 overflow-y-auto pr-2">
-            <p class="text-gray-500 text-sm italic">Dodaj posiłki z planu lub manualnie</p>
-          </div>
-          
-          <!-- Buttons -->
-          <div class="flex gap-3">
-            <button onclick="addFromPlan('diet')" class="flex-1 btn-secondary py-2 rounded-lg text-sm font-medium">📌 Z Planu</button>
-            <button onclick="showManualForm('diet')" class="flex-1 btn-secondary py-2 rounded-lg text-sm font-medium">✏️ Inny</button>
-          </div>
-        </div>
-
-        <!-- TRAINING CONTAINER -->
-        <div class="glass-card p-6">
-          <h4 class="text-xl font-bold text-white mb-4">💪 Trening</h4>
-          
-          <!-- Training Log -->
-          <div id="trainingLogContainer" class="space-y-3 mb-6 max-h-96 overflow-y-auto pr-2">
-            <p class="text-gray-500 text-sm italic">Dodaj ćwiczenia z planu lub manualnie</p>
-          </div>
-          
-          <!-- Buttons -->
-          <div class="flex gap-3">
-            <button onclick="addFromPlan('training')" class="flex-1 btn-secondary py-2 rounded-lg text-sm font-medium">📌 Z Planu</button>
-            <button onclick="showManualForm('training')" class="flex-1 btn-secondary py-2 rounded-lg text-sm font-medium">✏️ Inny</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Manual Entry Form (Hidden by default) -->
-      <div id="manualFormContainer" class="glass-card p-6 hidden">
-        <h4 class="text-lg font-bold text-white mb-4" id="manualFormTitle">Dodaj pozycję</h4>
-        <form id="manualEntryForm" class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-300 mb-2">Nazwa</label>
-            <input type="text" id="entryName" placeholder="np. Baton proteinowy, Pompki" class="w-full p-3 rounded-lg">
-          </div>
+        <!-- Progress Rings -->
+        <div class="glass p-6">
+          <h4 class="text-lg font-bold text-white mb-5" style="font-family:'Syne',sans-serif;">Postęp Dnia</h4>
           <div class="grid grid-cols-3 gap-3">
-            <div>
-              <label class="block text-sm font-medium text-gray-300 mb-2">Białko (g)</label>
-              <input type="number" id="entryProtein" placeholder="0" class="w-full p-3 rounded-lg">
+            <!-- Kalorie Ring -->
+            <div class="flex flex-col items-center gap-2">
+              <div class="relative w-20 h-20">
+                <svg class="w-20 h-20" viewBox="0 0 90 90"><circle cx="45" cy="45" r="36" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="8"/><circle id="ringCalories" class="progress-ring-circle" cx="45" cy="45" r="36" fill="none" stroke="#00e5ff" stroke-width="8" stroke-linecap="round" stroke-dasharray="226" stroke-dashoffset="226"/></svg>
+                <div class="absolute inset-0 flex items-center justify-center"><span class="text-xs font-bold text-cyan-400" id="ringCalPct">0%</span></div>
+              </div>
+              <p class="text-xs text-gray-500 text-center">Kalorie</p>
+              <p class="text-xs font-bold text-white text-center"><span id="ringCalVal">0</span>/<span id="ringCalMax">2500</span></p>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-300 mb-2">Węgle (g)</label>
-              <input type="number" id="entryCarbs" placeholder="0" class="w-full p-3 rounded-lg">
+            <!-- Białko Ring -->
+            <div class="flex flex-col items-center gap-2">
+              <div class="relative w-20 h-20">
+                <svg class="w-20 h-20" viewBox="0 0 90 90"><circle cx="45" cy="45" r="36" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="8"/><circle id="ringProtein" class="progress-ring-circle" cx="45" cy="45" r="36" fill="none" stroke="#7c3aed" stroke-width="8" stroke-linecap="round" stroke-dasharray="226" stroke-dashoffset="226"/></svg>
+                <div class="absolute inset-0 flex items-center justify-center"><span class="text-xs font-bold text-violet-400" id="ringProtPct">0%</span></div>
+              </div>
+              <p class="text-xs text-gray-500 text-center">Białko</p>
+              <p class="text-xs font-bold text-white text-center"><span id="ringProtVal">0</span>g/<span id="ringProtMax">150</span>g</p>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-300 mb-2">Tłuszcz (g)</label>
-              <input type="number" id="entryFat" placeholder="0" class="w-full p-3 rounded-lg">
+            <!-- Makro Ring -->
+            <div class="flex flex-col items-center gap-2">
+              <div class="relative w-20 h-20">
+                <svg class="w-20 h-20" viewBox="0 0 90 90"><circle cx="45" cy="45" r="36" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="8"/><circle id="ringMacro" class="progress-ring-circle" cx="45" cy="45" r="36" fill="none" stroke="#f59e0b" stroke-width="8" stroke-linecap="round" stroke-dasharray="226" stroke-dashoffset="226"/></svg>
+                <div class="absolute inset-0 flex items-center justify-center"><span class="text-xs font-bold text-yellow-400" id="ringMacroPct">0%</span></div>
+              </div>
+              <p class="text-xs text-gray-500 text-center">Makro</p>
+              <p class="text-xs font-bold text-white text-center" id="ringMacroDetail">—</p>
             </div>
+          </div>
+        </div>
+
+        <!-- Consistency Chart -->
+        <div class="glass p-6 lg:col-span-2">
+          <h4 class="text-lg font-bold text-white mb-4" style="font-family:'Syne',sans-serif;">Spójność 7 dni</h4>
+          <div class="h-48"><canvas id="consistencyChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Group Comparison + Next Steps -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Group Widget -->
+        <div class="glass p-6">
+          <h4 class="text-lg font-bold text-white mb-4" style="font-family:'Syne',sans-serif;">Twoja Grupa</h4>
+          <div id="groupWidget" class="space-y-3">
+            <p class="text-sm text-gray-500 italic">Brak innych profili</p>
+          </div>
+        </div>
+        <!-- Next Steps -->
+        <div class="glass p-6 lg:col-span-2">
+          <h4 class="text-lg font-bold text-white mb-4" style="font-family:'Syne',sans-serif;">🎯 Co teraz?</h4>
+          <div id="nextSteps" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== TAB: MY DAY ====== -->
+    <section id="tab-my-day" class="hidden space-y-6">
+      <h3 class="text-3xl font-bold" style="font-family:'Syne',sans-serif;">Mój Dzień</h3>
+      <div id="macroAlertBanner" class="hidden alert-warn"><p id="macroAlertText" class="text-sm font-medium"></p></div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Diet -->
+        <div class="glass p-6">
+          <div class="flex justify-between items-center mb-4">
+            <h4 class="text-xl font-bold text-white" style="font-family:'Syne',sans-serif;">🍽️ Dieta</h4>
+            <div class="text-right"><p class="text-xs text-gray-500">Dzisiaj</p><p class="text-sm font-bold text-cyan-400"><span id="dayCalEaten">0</span> kcal</p></div>
+          </div>
+          <div id="dietLogContainer" class="space-y-2 mb-4 max-h-64 overflow-y-auto pr-1"><p class="text-gray-500 text-sm italic text-center py-4">Brak wpisów</p></div>
+          <div class="flex gap-2">
+            <button onclick="addFromPlan('diet')" class="flex-1 btn-ghost py-2 rounded-xl text-sm font-medium">📌 Z Planu</button>
+            <button onclick="showManualForm('diet')" class="flex-1 btn-ghost py-2 rounded-xl text-sm font-medium">✏️ Ręcznie</button>
+          </div>
+        </div>
+        <!-- Training -->
+        <div class="glass p-6">
+          <div class="flex justify-between items-center mb-4">
+            <h4 class="text-xl font-bold text-white" style="font-family:'Syne',sans-serif;">💪 Trening</h4>
+            <div class="text-right"><p class="text-xs text-gray-500">Serie</p><p class="text-sm font-bold text-violet-400"><span id="dayTrainCount">0</span> aktywności</p></div>
+          </div>
+          <div id="trainingLogContainer" class="space-y-2 mb-4 max-h-64 overflow-y-auto pr-1"><p class="text-gray-500 text-sm italic text-center py-4">Brak wpisów</p></div>
+          <div class="flex gap-2">
+            <button onclick="addFromPlan('training')" class="flex-1 btn-ghost py-2 rounded-xl text-sm font-medium">📌 Z Planu</button>
+            <button onclick="showManualForm('training')" class="flex-1 btn-ghost py-2 rounded-xl text-sm font-medium">✏️ Ręcznie</button>
+          </div>
+        </div>
+      </div>
+      <!-- Manual Form -->
+      <div id="manualFormContainer" class="hidden glass p-6">
+        <h4 class="text-lg font-bold text-white mb-4" id="manualFormTitle">Dodaj pozycję</h4>
+        <div class="space-y-4">
+          <div><label class="block text-sm font-medium text-gray-300 mb-2">Nazwa</label><input type="text" id="entryName" placeholder="np. Kurczak z ryżem" class="w-full"></div>
+          <div class="grid grid-cols-3 gap-3" id="macroFields">
+            <div><label class="block text-xs font-medium text-gray-400 mb-2">Białko (g)</label><input type="number" id="entryProtein" placeholder="0" class="w-full"></div>
+            <div><label class="block text-xs font-medium text-gray-400 mb-2">Węgle (g)</label><input type="number" id="entryCarbs" placeholder="0" class="w-full"></div>
+            <div><label class="block text-xs font-medium text-gray-400 mb-2">Tłuszcz (g)</label><input type="number" id="entryFat" placeholder="0" class="w-full"></div>
           </div>
           <div class="flex gap-3">
-            <button type="submit" class="flex-1 btn-neon py-2 rounded-lg font-bold">Dodaj</button>
-            <button type="button" onclick="closeManualForm()" class="flex-1 btn-secondary py-2 rounded-lg font-medium">Anuluj</button>
+            <button onclick="submitManualEntry()" class="flex-1 btn-neon py-2 rounded-xl font-bold text-sm">Dodaj</button>
+            <button onclick="closeManualForm()" class="flex-1 btn-ghost py-2 rounded-xl font-medium text-sm">Anuluj</button>
           </div>
-        </form>
+        </div>
       </div>
     </section>
 
-    <!-- ======== TAB: PLAN ======== -->
-    <section id="plan" class="tab-content hidden space-y-6">
+    <!-- ====== TAB: PLAN ====== -->
+    <section id="tab-plan" class="hidden space-y-6">
       <div class="flex justify-between items-center">
-        <h3 class="text-2xl md:text-3xl font-bold">Plan Treningowy & Dieta</h3>
+        <h3 class="text-3xl font-bold" style="font-family:'Syne',sans-serif;">Plan Tygodniowy</h3>
         <div class="flex items-center gap-2">
-          <button onclick="prevDay()" class="btn-secondary p-2 rounded-lg">←</button>
-          <span id="currentDay" class="text-sm font-medium text-gray-400">Pon</span>
-          <button onclick="nextDay()" class="btn-secondary p-2 rounded-lg">→</button>
+          <button onclick="prevDay()" class="btn-ghost p-2 rounded-xl text-lg w-10 h-10 flex items-center justify-center">←</button>
+          <span id="currentDayLabel" class="text-sm font-bold text-cyan-400 w-12 text-center">Pon</span>
+          <button onclick="nextDay()" class="btn-ghost p-2 rounded-xl text-lg w-10 h-10 flex items-center justify-center">→</button>
         </div>
       </div>
-
-      <!-- Day Selector Carousel -->
-      <div class="glass-card p-4 overflow-x-auto">
-        <div class="flex gap-2" id="dayCarousel">
-          <!-- Days generated by JS -->
-        </div>
+      <!-- Day Carousel -->
+      <div class="glass p-4 overflow-x-auto">
+        <div class="flex gap-2 min-w-max" id="dayCarousel"></div>
       </div>
-
-      <!-- Two Column Layout: Diet & Training -->
+      <!-- Plan Grid -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- DIET PLAN -->
-        <div class="glass-card p-6">
-          <h4 class="text-xl font-bold text-white mb-4">🍽️ Dieta Zaplanowana</h4>
-          <div id="planDietContainer" class="space-y-3">
-            <div class="p-4 bg-white/5 rounded-lg text-gray-500 text-sm italic text-center">
-              Zaplanowane posiłki pojawią się tutaj
-            </div>
-          </div>
+        <div class="glass p-6">
+          <h4 class="text-xl font-bold text-white mb-4" style="font-family:'Syne',sans-serif;">🍽️ Zaplanowana Dieta</h4>
+          <div id="planDietContainer" class="space-y-3"></div>
         </div>
-
-        <!-- TRAINING PLAN -->
-        <div class="glass-card p-6">
-          <h4 class="text-xl font-bold text-white mb-4">💪 Trening Zaplanowany</h4>
-          <div id="planTrainingContainer" class="space-y-3">
-            <div class="p-4 bg-white/5 rounded-lg text-gray-500 text-sm italic text-center">
-              Zaplanowane ćwiczenia pojawią się tutaj
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Expand Details Modal (Hidden by default) -->
-      <div id="expandModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="glass-card max-w-2xl w-full p-6 max-h-[80vh] overflow-y-auto">
-          <div class="flex justify-between items-start mb-4">
-            <h5 id="expandTitle" class="text-xl font-bold text-white"></h5>
-            <button onclick="closeExpandModal()" class="text-gray-400 hover:text-white">✕</button>
-          </div>
-          <div id="expandContent" class="space-y-4 text-gray-300">
-            <!-- Content populated by JS -->
-          </div>
-          <div class="mt-6 flex gap-3">
-            <button onclick="swapItem()" class="flex-1 btn-neon py-2 rounded-lg font-bold">Zamień na inne</button>
-            <button onclick="closeExpandModal()" class="flex-1 btn-secondary py-2 rounded-lg font-medium">Zamknij</button>
-          </div>
+        <div class="glass p-6">
+          <h4 class="text-xl font-bold text-white mb-4" style="font-family:'Syne',sans-serif;">💪 Zaplanowany Trening</h4>
+          <div id="planTrainingContainer" class="space-y-3"></div>
         </div>
       </div>
     </section>
 
-    <!-- ======== TAB: PROFILE ======== -->
-    <section id="profile" class="tab-content hidden space-y-6">
-      <h3 class="text-2xl md:text-3xl font-bold">Profil</h3>
-
-      <!-- Profile Sub-tabs -->
-      <div class="glass-card p-2 flex gap-2 overflow-x-auto">
-        <button onclick="switchProfileTab('user-data')" class="profile-tab active px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap">👤 Dane</button>
-        <button onclick="switchProfileTab('goals')" class="profile-tab px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap">🎯 Cele</button>
-        <button onclick="switchProfileTab('preferences')" class="profile-tab px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap">⚙️ Preferencje</button>
-        <button onclick="switchProfileTab('payments')" class="profile-tab px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap">💳 Płatności</button>
+    <!-- ====== TAB: PROFILE ====== -->
+    <section id="tab-profile" class="hidden space-y-6">
+      <h3 class="text-3xl font-bold" style="font-family:'Syne',sans-serif;">Profil</h3>
+      <!-- Profile Tab Bar -->
+      <div class="glass p-2 flex gap-2 overflow-x-auto">
+        <button onclick="switchProfileTab('data')" data-ptab="data" class="profile-tab active px-4 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap">👤 Dane</button>
+        <button onclick="switchProfileTab('goals')" data-ptab="goals" class="profile-tab px-4 py-2 rounded-xl text-sm font-medium text-gray-400 transition-colors whitespace-nowrap">🎯 Cele</button>
+        <button onclick="switchProfileTab('exclusions')" data-ptab="exclusions" class="profile-tab px-4 py-2 rounded-xl text-sm font-medium text-gray-400 transition-colors whitespace-nowrap">🚫 Wykluczenia</button>
+        <button onclick="switchProfileTab('preferences')" data-ptab="preferences" class="profile-tab px-4 py-2 rounded-xl text-sm font-medium text-gray-400 transition-colors whitespace-nowrap">⚙️ Preferencje</button>
+        <button onclick="switchProfileTab('payments')" data-ptab="payments" class="profile-tab px-4 py-2 rounded-xl text-sm font-medium text-gray-400 transition-colors whitespace-nowrap">💳 Płatności</button>
       </div>
 
-      <!-- USER DATA TAB -->
-      <div id="profile-user-data" class="profile-tab-content space-y-4">
-        <div class="glass-card p-6">
-          <h4 class="text-lg font-bold text-white mb-4">Informacje Podstawowe</h4>
-          <form id="userDataForm" class="space-y-4">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">Imię</label>
-                <input type="text" id="firstName" placeholder="Imię" class="w-full p-3 rounded-lg">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">Wiek</label>
-                <input type="number" id="age" placeholder="Wiek" class="w-full p-3 rounded-lg">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">Wzrost (cm)</label>
-                <input type="number" id="height" placeholder="180" class="w-full p-3 rounded-lg">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">Waga (kg)</label>
-                <input type="number" id="weight" placeholder="80" step="0.1" class="w-full p-3 rounded-lg">
-              </div>
-            </div>
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">Cel (waga, kg)</label>
-                <input type="number" id="targetWeight" placeholder="75" step="0.1" class="w-full p-3 rounded-lg">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">Płeć</label>
-                <select id="gender" class="w-full p-3 rounded-lg">
-                  <option value="">Wybierz</option>
-                  <option value="mężczyzna">Mężczyzna</option>
-                  <option value="kobieta">Kobieta</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">Alergie</label>
-                <input type="text" id="allergies" placeholder="np. orzechy, mleko" class="w-full p-3 rounded-lg">
-              </div>
-            </div>
-            <button type="submit" class="btn-neon px-6 py-2 rounded-lg font-bold">Zapisz Zmiany</button>
-          </form>
+      <!-- DATA TAB -->
+      <div id="ptab-data" class="profile-tab-panel space-y-4">
+        <div class="glass p-6">
+          <h4 class="text-lg font-bold text-white mb-4" style="font-family:'Syne',sans-serif;">Dane Podstawowe</h4>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div><label class="block text-xs text-gray-400 mb-2">Imię</label><input type="text" id="pName" placeholder="Imię" class="w-full"></div>
+            <div><label class="block text-xs text-gray-400 mb-2">Wiek</label><input type="number" id="pAge" placeholder="28" class="w-full"></div>
+            <div><label class="block text-xs text-gray-400 mb-2">Wzrost (cm)</label><input type="number" id="pHeight" placeholder="182" class="w-full"></div>
+            <div><label class="block text-xs text-gray-400 mb-2">Waga (kg)</label><input type="number" id="pWeight" placeholder="84" step="0.1" class="w-full"></div>
+          </div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div><label class="block text-xs text-gray-400 mb-2">Cel wagowy (kg)</label><input type="number" id="pTargetWeight" placeholder="78" step="0.1" class="w-full"></div>
+            <div><label class="block text-xs text-gray-400 mb-2">Płeć</label><select id="pGender" class="w-full"><option value="">Wybierz</option><option value="mężczyzna">Mężczyzna</option><option value="kobieta">Kobieta</option></select></div>
+            <div><label class="block text-xs text-gray-400 mb-2">Częstotliwość treningów</label><select id="pFrequency" class="w-full"><option value="sedentaryczny">Sedentaryczny (0)</option><option value="1-2">1-2 razy/tydz.</option><option value="3-4" selected>3-4 razy/tydz.</option><option value="5-6">5-6 razy/tydz.</option><option value="codziennie">Codziennie</option></select></div>
+            <div><label class="block text-xs text-gray-400 mb-2">Typ diety</label><select id="pDietType" class="w-full"><option value="standard">Standard</option><option value="wege">Wegańska/Wegetariańska</option><option value="keto">Keto</option><option value="high-protein">High Protein</option></select></div>
+          </div>
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <div><label class="block text-xs text-gray-400 mb-2">Liczba posiłków / dzień</label><select id="pMealsPerDay" class="w-full"><option value="3">3 posiłki</option><option value="4">4 posiłki</option><option value="5" selected>5 posiłków</option><option value="6">6 posiłków</option></select></div>
+            <div><label class="block text-xs text-gray-400 mb-2">Alergie (tekst)</label><input type="text" id="pAllergies" placeholder="np. orzechy, gluten" class="w-full"></div>
+          </div>
+          <button onclick="saveProfileData()" class="btn-neon px-6 py-2 rounded-xl font-bold text-sm">Zapisz Profil</button>
+        </div>
+        <!-- BMR Result -->
+        <div class="glass p-6">
+          <h4 class="text-lg font-bold text-white mb-4" style="font-family:'Syne',sans-serif;">📐 Twój Fundament Kaloryczny</h4>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="glass rounded-xl p-4 text-center"><p class="text-xs text-gray-500 mb-1">BMR</p><p class="text-2xl font-bold text-cyan-400" style="font-family:'Syne',sans-serif;" id="calcBMR">—</p><p class="text-xs text-gray-600">kcal bazowo</p></div>
+            <div class="glass rounded-xl p-4 text-center"><p class="text-xs text-gray-500 mb-1">TDEE</p><p class="text-2xl font-bold text-violet-400" style="font-family:'Syne',sans-serif;" id="calcTDEE">—</p><p class="text-xs text-gray-600">kcal/dzień</p></div>
+            <div class="glass rounded-xl p-4 text-center"><p class="text-xs text-gray-500 mb-1">Białko</p><p class="text-2xl font-bold text-yellow-400" style="font-family:'Syne',sans-serif;" id="calcProtein">—</p><p class="text-xs text-gray-600">gram/dzień</p></div>
+            <div class="glass rounded-xl p-4 text-center"><p class="text-xs text-gray-500 mb-1">Cel</p><p class="text-xl font-bold text-green-400" style="font-family:'Syne',sans-serif;" id="calcGoalKcal">—</p><p class="text-xs text-gray-600">z korektą celu</p></div>
+          </div>
         </div>
       </div>
 
       <!-- GOALS TAB -->
-      <div id="profile-goals" class="profile-tab-content hidden space-y-4">
-        <div class="glass-card p-6">
-          <h4 class="text-lg font-bold text-white mb-4">🎯 Cele Treningowe</h4>
-          <p class="text-sm text-gray-400 mb-4">Zaznacz cele, które Cię interesują. Wpłyną na Twój plan treningowy.</p>
-          <div id="goalsCheckboxes" class="space-y-3">
-            <!-- Populated by JS -->
+      <div id="ptab-goals" class="profile-tab-panel hidden space-y-4">
+        <div class="glass p-6">
+          <h4 class="text-lg font-bold text-white mb-2" style="font-family:'Syne',sans-serif;">🎯 Cele Treningowe</h4>
+          <p class="text-sm text-gray-500 mb-4">Zaznacz cele — wpłyną na generowany plan.</p>
+          <div id="goalsGrid" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
+          <button onclick="saveGoals()" class="btn-neon px-6 py-2 rounded-xl font-bold text-sm mt-4">Zapisz Cele</button>
+        </div>
+      </div>
+
+      <!-- EXCLUSIONS TAB -->
+      <div id="ptab-exclusions" class="profile-tab-panel hidden space-y-4">
+        <div class="glass p-6">
+          <h4 class="text-lg font-bold text-white mb-2" style="font-family:'Syne',sans-serif;">🚫 Filtry Bezpieczeństwa</h4>
+          <p class="text-sm text-gray-500 mb-4">Zaznaczone produkty/typy ćwiczeń zostaną automatycznie zastąpione w planie.</p>
+          <p class="text-xs font-bold text-gray-400 uppercase mb-2">Produkty spożywcze</p>
+          <div id="foodExclusionChips" class="mb-4"></div>
+          <p class="text-xs font-bold text-gray-400 uppercase mb-2 mt-4">Typy ćwiczeń</p>
+          <div id="exerciseExclusionChips" class="mb-4"></div>
+          <div class="flex gap-3 mt-4">
+            <input type="text" id="customExclusionInput" placeholder="Dodaj własne wykluczenie..." class="flex-1">
+            <button onclick="addCustomExclusion()" class="btn-outline-cyan px-4 py-2 rounded-xl text-sm font-bold">+ Dodaj</button>
           </div>
-          <button onclick="saveGoals()" class="btn-neon px-6 py-2 rounded-lg font-bold mt-4">Zapisz Cele</button>
+          <div id="activeExclusions" class="mt-3 flex flex-wrap gap-1"></div>
+          <button onclick="saveExclusions()" class="btn-neon px-6 py-2 rounded-xl font-bold text-sm mt-4">Zapisz Wykluczenia</button>
         </div>
       </div>
 
       <!-- PREFERENCES TAB -->
-      <div id="profile-preferences" class="profile-tab-content hidden space-y-4">
-        <div class="glass-card p-6">
-          <h4 class="text-lg font-bold text-white mb-4">⚙️ Preferencje</h4>
-          
-          <div class="space-y-4">
-            <div>
-              <h5 class="text-sm font-bold text-white mb-2">Dostępny Sprzęt</h5>
-              <p class="text-xs text-gray-500 mb-3">Jeśli odznaczysz sprzęt, zostanie usunięty z Twojego planu.</p>
-              <div id="equipmentCheckboxes" class="space-y-2">
-                <!-- Populated by JS -->
-              </div>
-            </div>
-            
-            <div class="border-t border-white/10 pt-4">
-              <h5 class="text-sm font-bold text-white mb-2">Wykluczone Potrawy</h5>
-              <input type="text" id="excludedFoods" placeholder="np. kurczak, ryż, orzechy (oddzielone przecinkami)" class="w-full p-3 rounded-lg">
-            </div>
-            
-            <button onclick="savePreferences()" class="btn-neon px-6 py-2 rounded-lg font-bold w-full">Zapisz Preferencje</button>
-          </div>
+      <div id="ptab-preferences" class="profile-tab-panel hidden space-y-4">
+        <div class="glass p-6">
+          <h4 class="text-lg font-bold text-white mb-4" style="font-family:'Syne',sans-serif;">⚙️ Preferencje</h4>
+          <p class="text-xs font-bold text-gray-400 uppercase mb-2">Dostępny sprzęt</p>
+          <div id="equipmentGrid" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4"></div>
+          <button onclick="savePreferences()" class="btn-neon px-6 py-2 rounded-xl font-bold text-sm">Zapisz Preferencje</button>
         </div>
       </div>
 
       <!-- PAYMENTS TAB -->
-      <div id="profile-payments" class="profile-tab-content hidden space-y-4">
-        <div class="glass-card p-6">
-          <h4 class="text-lg font-bold text-white mb-4">💳 Płatności</h4>
-          <div class="text-center py-8">
-            <div class="text-4xl mb-2">🚀</div>
-            <p class="text-gray-400">Moduł płatności jest w przygotowaniu.</p>
-            <p class="text-sm text-gray-500 mt-2">Wkrótce będziesz mógł uaktualnić swój plan Premium.</p>
-          </div>
+      <div id="ptab-payments" class="profile-tab-panel hidden space-y-4">
+        <div class="glass p-6 text-center py-12">
+          <div class="text-5xl mb-4">🚀</div>
+          <h4 class="text-xl font-bold text-white mb-2">Ulepsz do Pro</h4>
+          <p class="text-gray-400 text-sm mb-6">Odblokuj pełny dostęp do AI, 3 profile i zaawansowaną analitykę.</p>
+          <button class="btn-neon px-8 py-3 rounded-2xl font-bold">Kup Pro — 49 zł/mies.</button>
+          <p class="text-xs text-gray-600 mt-3">Moduł Stripe w przygotowaniu</p>
         </div>
       </div>
     </section>
 
-    <!-- ======== TAB: CONTACT ======== -->
-    <section id="contact" class="tab-content hidden space-y-6">
-      <h3 class="text-2xl md:text-3xl font-bold">Kontakt</h3>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Discord Tile -->
-        <div class="glass-card p-8 flex flex-col items-center justify-center text-center hover:border-cyan-500/50 cursor-pointer transition-all group">
+    <!-- ====== TAB: CONTACT ====== -->
+    <section id="tab-contact" class="hidden space-y-6">
+      <h3 class="text-3xl font-bold" style="font-family:'Syne',sans-serif;">Kontakt</h3>
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="glass p-8 flex flex-col items-center text-center hover:border-cyan-500/40 cursor-pointer group">
           <div class="text-5xl mb-4 group-hover:scale-110 transition-transform">💜</div>
           <h4 class="text-xl font-bold text-white mb-2">Discord</h4>
-          <p class="text-sm text-gray-400 mb-4">Dołącz do naszej społeczności i czat z innymi użytkownikami.</p>
+          <p class="text-sm text-gray-400 mb-4">Dołącz do społeczności FitAI</p>
           <div class="flex gap-2 w-full">
-            <button onclick="window.open('https://discord.gg/z3tol', '_blank')" class="flex-1 btn-neon py-2 rounded-lg text-sm font-bold">Otwórz Discord</button>
-            <button onclick="copyToClipboard('z3tol')" class="btn-secondary px-3 py-2 rounded-lg text-sm">📋</button>
+            <button onclick="window.open('https://discord.gg/z3tol','_blank')" class="flex-1 btn-neon py-2 rounded-xl text-sm font-bold">Otwórz Discord</button>
+            <button onclick="copyToClipboard('z3tol')" class="btn-ghost px-3 py-2 rounded-xl text-sm">📋</button>
           </div>
-          <p class="text-xs text-gray-600 mt-2">Nazwa: z3tol</p>
+          <p class="text-xs text-gray-600 mt-2">z3tol</p>
         </div>
-
-        <!-- Email Tile -->
-        <div class="glass-card p-8 flex flex-col items-center justify-center text-center hover:border-cyan-500/50 cursor-pointer transition-all group">
+        <div class="glass p-8 flex flex-col items-center text-center hover:border-cyan-500/40 cursor-pointer group">
           <div class="text-5xl mb-4 group-hover:scale-110 transition-transform">✉️</div>
           <h4 class="text-xl font-bold text-white mb-2">Email</h4>
-          <p class="text-sm text-gray-400 mb-4">Napisz do nas bezpośrednio ze swoimi pytaniami.</p>
+          <p class="text-sm text-gray-400 mb-4">Napisz do nas bezpośrednio</p>
           <div class="flex gap-2 w-full">
-            <button onclick="window.location.href='mailto:adam.zamorski.10@gmail.com'" class="flex-1 btn-neon py-2 rounded-lg text-sm font-bold">Wyślij Email</button>
-            <button onclick="copyToClipboard('adam.zamorski.10@gmail.com')" class="btn-secondary px-3 py-2 rounded-lg text-sm">📋</button>
+            <button onclick="window.location.href='mailto:adam.zamorski.10@gmail.com'" class="flex-1 btn-neon py-2 rounded-xl text-sm font-bold">Wyślij Email</button>
+            <button onclick="copyToClipboard('adam.zamorski.10@gmail.com')" class="btn-ghost px-3 py-2 rounded-xl text-sm">📋</button>
           </div>
           <p class="text-xs text-gray-600 mt-2">adam.zamorski.10@gmail.com</p>
         </div>
       </div>
-
-      <!-- FAQ Section -->
-      <div class="glass-card p-6">
-        <h4 class="text-lg font-bold text-white mb-4">❓ Popularne Pytania</h4>
-        <div class="space-y-4">
-          <details class="group">
-            <summary class="flex cursor-pointer items-center justify-between font-medium text-white hover:text-cyan-400 transition-colors">
-              Jak dodać nowy posiłek?
-              <span class="transition group-open:rotate-180">▼</span>
-            </summary>
-            <p class="text-sm text-gray-400 mt-2">Przejdź do „Mój Dzień" → Kliknij „✏️ Inny" w sekcji Dieta. Wpisz nazwę, makroskładniki i gotowe!</p>
-          </details>
-          
-          <details class="group">
-            <summary class="flex cursor-pointer items-center justify-between font-medium text-white hover:text-cyan-400 transition-colors">
-              Czy mogę zamienić ćwiczenie?
-              <span class="transition group-open:rotate-180">▼</span>
-            </summary>
-            <p class="text-sm text-gray-400 mt-2">Oczywiście! W zakładce „Plan" kliknij na ćwiczenie, a następnie przycisk „Zamień na inne". System zaproponuje alternatywy.</p>
-          </details>
-          
-          <details class="group">
-            <summary class="flex cursor-pointer items-center justify-between font-medium text-white hover:text-cyan-400 transition-colors">
-              Czy działam offline?
-              <span class="transition group-open:rotate-180">▼</span>
-            </summary>
-            <p class="text-sm text-gray-400 mt-2">Tak! FitAI jest Progressive Web App. Wszystkie dane synchronizują się automatycznie.</p>
-          </details>
+      <div class="glass p-6">
+        <h4 class="text-lg font-bold text-white mb-4">❓ FAQ</h4>
+        <div class="space-y-3">
+          <details class="group cursor-pointer"><summary class="flex justify-between items-center font-medium text-white hover:text-cyan-400 transition-colors py-2">Jak dodać nowy posiłek?<span class="transition group-open:rotate-180 text-gray-500">▼</span></summary><p class="text-sm text-gray-400 mt-2 pb-2">Idź do „Mój Dzień" → kliknij „✏️ Ręcznie" w sekcji Dieta.</p></details>
+          <details class="group cursor-pointer"><summary class="flex justify-between items-center font-medium text-white hover:text-cyan-400 transition-colors py-2">Jak działa system wykluczeń?<span class="transition group-open:rotate-180 text-gray-500">▼</span></summary><p class="text-sm text-gray-400 mt-2 pb-2">W Profilu → Wykluczenia zaznacz tagi. Plan automatycznie pominie lub zamieni wykluczone produkty.</p></details>
+          <details class="group cursor-pointer"><summary class="flex justify-between items-center font-medium text-white hover:text-cyan-400 transition-colors py-2">Czy działa offline?<span class="transition group-open:rotate-180 text-gray-500">▼</span></summary><p class="text-sm text-gray-400 mt-2 pb-2">Tak! FitAI jest PWA. Cache pokrywa całą aplikację, synchronizacja odbywa się automatycznie.</p></details>
         </div>
       </div>
     </section>
 
   </main>
+</div>
+<!-- END DASHBOARD -->
 
+<!-- ====== EXPAND MODAL ====== -->
+<div id="expandModal" class="hidden fixed inset-0 modal-backdrop flex items-center justify-center z-[100] p-4">
+  <div class="glass max-w-lg w-full p-6 max-h-[80vh] overflow-y-auto tab-anim" style="border-color:var(--border-cyan)!important;">
+    <div class="flex justify-between items-start mb-4">
+      <h5 id="expandTitle" class="text-xl font-bold text-white" style="font-family:'Syne',sans-serif;"></h5>
+      <button onclick="closeExpandModal()" class="text-gray-500 hover:text-white text-xl">✕</button>
+    </div>
+    <div id="expandContent" class="space-y-4 text-gray-300"></div>
+    <div class="mt-5 flex gap-3">
+      <button onclick="swapItem()" class="flex-1 btn-neon py-2 rounded-xl font-bold text-sm">🔄 Zamień na inne</button>
+      <button onclick="closeExpandModal()" class="flex-1 btn-ghost py-2 rounded-xl text-sm">Zamknij</button>
+    </div>
+  </div>
 </div>
 
-<!-- ======== JAVASCRIPT - CORE LOGIC ======== -->
+<!-- ====== ADD PROFILE MODAL ====== -->
+<div id="addProfileModal" class="hidden fixed inset-0 modal-backdrop flex items-center justify-center z-[100] p-4">
+  <div class="glass max-w-md w-full p-6 tab-anim" style="border-color:var(--border-cyan)!important;">
+    <div class="flex justify-between items-center mb-4">
+      <h5 class="text-xl font-bold text-white" style="font-family:'Syne',sans-serif;">Nowy Profil</h5>
+      <button onclick="closeAddProfileModal()" class="text-gray-500 hover:text-white text-xl">✕</button>
+    </div>
+    <p class="text-sm text-gray-400 mb-4">Wypełnij podstawowe dane, aby skonfigurować nowy profil.</p>
+    <div class="space-y-3">
+      <div><label class="block text-xs text-gray-400 mb-1">Imię *</label><input type="text" id="newProfileName" placeholder="np. Ania" class="w-full"></div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="block text-xs text-gray-400 mb-1">Wiek *</label><input type="number" id="newProfileAge" placeholder="25" class="w-full"></div>
+        <div><label class="block text-xs text-gray-400 mb-1">Płeć</label><select id="newProfileGender" class="w-full"><option value="mężczyzna">Mężczyzna</option><option value="kobieta">Kobieta</option></select></div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="block text-xs text-gray-400 mb-1">Wzrost (cm)</label><input type="number" id="newProfileHeight" placeholder="170" class="w-full"></div>
+        <div><label class="block text-xs text-gray-400 mb-1">Waga (kg)</label><input type="number" id="newProfileWeight" placeholder="65" class="w-full"></div>
+      </div>
+    </div>
+    <div class="flex gap-3 mt-5">
+      <button onclick="createNewProfile()" class="flex-1 btn-neon py-2 rounded-xl font-bold text-sm">Utwórz Profil</button>
+      <button onclick="closeAddProfileModal()" class="flex-1 btn-ghost py-2 rounded-xl text-sm">Anuluj</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== FLOATING AI BUTTON ====== -->
+<div id="aiFloatBtn" class="hidden fab">
+  <button onclick="toggleAIChat()" class="btn-neon w-14 h-14 rounded-full flex items-center justify-center text-2xl shadow-[0_0_30px_rgba(0,229,255,0.4)]">🤖</button>
+</div>
+
+<!-- ====== AI CHAT PANEL ====== -->
+<div id="aiChatPanel" class="hidden fixed bottom-24 right-6 z-[150] w-80">
+  <div class="glass rounded-3xl overflow-hidden" style="border-color:var(--border-cyan)!important;box-shadow:0 0 40px rgba(0,229,255,0.1);">
+    <div class="px-4 py-3 flex items-center justify-between" style="background:rgba(0,229,255,0.05);">
+      <div class="flex items-center gap-2"><span class="text-lg">🤖</span><span class="font-bold text-white text-sm" style="font-family:'Syne',sans-serif;">FitAI Coach</span></div>
+      <button onclick="toggleAIChat()" class="text-gray-500 hover:text-white">✕</button>
+    </div>
+    <div id="aiChatMessages" class="p-4 max-h-64 overflow-y-auto space-y-2">
+      <div class="msg-ai">👋 Cześć! Jestem Twoim trenerem AI. Jak mogę Ci dziś pomóc?</div>
+    </div>
+    <div class="p-3 flex gap-2" style="border-top:1px solid var(--border);">
+      <input type="text" id="aiInput" placeholder="Zapytaj trenera..." class="flex-1 text-sm" style="padding:8px 12px!important;" onkeydown="if(event.key==='Enter')sendAIMessage()">
+      <button onclick="sendAIMessage()" class="btn-neon px-3 py-2 rounded-xl text-sm font-bold">→</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== COPY TOAST ====== -->
+<div id="toast" class="hidden fixed top-24 right-4 z-[200] glass px-4 py-2 rounded-xl text-sm font-medium text-cyan-400" style="border-color:var(--border-cyan)!important;">✅ Skopiowano!</div>
+
 <script>
-  // ============ STATE MANAGEMENT ============
-  const state = {
-    currentUser: null,
-    users: {},
-    substitutes: {}, // Persistent AI-generated alternatives
-    currentDay: 0,
-    expandedItem: null,
-    manualFormType: null,
-    days: ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz']
+// ========== STATE ==========
+const state = {
+  view: 'landing', // 'landing' | 'dashboard'
+  currentProfile: null,
+  profiles: [],
+  currentDay: 0,
+  days: ['Pon','Wt','Śr','Czw','Pt','Sob','Niedz'],
+  expandedItem: null,
+  manualFormType: null,
+  dayLogs: { diet: [], training: [] },
+  aiOpen: false,
+};
+
+const FOOD_EXCLUSIONS = [
+  { id:'nabiał', label:'🥛 Nabiał' }, { id:'gluten', label:'🌾 Gluten' },
+  { id:'orzechy', label:'🥜 Orzechy' }, { id:'wieprzowina', label:'🐷 Wieprzowina' },
+  { id:'ryby', label:'🐟 Ryby/Owoce morza' }, { id:'jajka', label:'🥚 Jajka' },
+  { id:'soja', label:'🫘 Soja' }, { id:'kurczak', label:'🍗 Kurczak' },
+  { id:'ryż', label:'🍚 Ryż' }, { id:'cukier', label:'🍬 Cukier' },
+];
+const EXERCISE_EXCLUSIONS = [
+  { id:'bieganie', label:'🏃 Bieganie' }, { id:'skakanie', label:'🦘 Skakanie' },
+  { id:'ciężary', label:'🏋️ Ciężary' }, { id:'pływanie', label:'🏊 Pływanie' },
+  { id:'HIIT', label:'⚡ HIIT' }, { id:'rozciąganie', label:'🧘 Rozciąganie' },
+];
+const MOCK_GOALS = [
+  { id:'strength', emoji:'🏋️', label:'Siłownia' }, { id:'cardio', emoji:'🏃', label:'Kardio' },
+  { id:'mobility', emoji:'🧘', label:'Mobilność' }, { id:'mass', emoji:'📈', label:'Masa' },
+];
+const MOCK_EQUIPMENT = [
+  { id:'hantle', emoji:'🏋️', label:'Hantle' }, { id:'sztanga', emoji:'⚖️', label:'Sztanga' },
+  { id:'kable', emoji:'⚙️', label:'Kable/Maszyny' }, { id:'mata', emoji:'🧵', label:'Mata' },
+  { id:'kettlebell', emoji:'🔔', label:'Kettlebell' }, { id:'drabinka', emoji:'🪜', label:'Drabinka' },
+];
+
+// MOCK USER DATA
+function createDefaultProfile(id, name, age=28, height=182, weight=84.5, gender='mężczyzna') {
+  return {
+    id, name, age, height, weight, targetWeight: 78, gender,
+    frequency: '3-4', dietType: 'standard', mealsPerDay: 5, allergies: '',
+    goals: ['strength','cardio'], equipment: ['hantle','sztanga','mata'],
+    exclusions: [], completed: true,
+    caloriesTarget: 2463, proteinTarget: 185,
+    dietPlan: {
+      'Pon':[{id:'m1',name:'Owsianka z jagodami',protein:15,carbs:50,fat:5,kcal:300,tags:['nabiał','owies']},{id:'m2',name:'Kurczak z ryżem',protein:35,carbs:50,fat:5,kcal:450,tags:['kurczak','ryż']},{id:'m3',name:'Shake proteinowy',protein:25,carbs:10,fat:2,kcal:180,tags:['nabiał']}],
+      'Wt':[{id:'m1',name:'Jajecznica na bekonie',protein:22,carbs:5,fat:18,kcal:310,tags:['jajka','wieprzowina']},{id:'m2',name:'Sałatka grecka',protein:15,carbs:20,fat:12,kcal:260,tags:['nabiał']}],
+      'Śr':[{id:'m1',name:'Płatki owsiane',protein:10,carbs:60,fat:4,kcal:320,tags:['gluten','owies']},{id:'m2',name:'Łosoś z warzywami',protein:30,carbs:15,fat:14,kcal:320,tags:['ryby']}],
+      'Czw':[{id:'m1',name:'Tost z awokado',protein:10,carbs:35,fat:15,kcal:320,tags:['gluten']}],
+      'Pt':[{id:'m1',name:'Jogurt z granolą',protein:12,carbs:45,fat:6,kcal:300,tags:['nabiał']}],
+      'Sob':[{id:'m1',name:'Omlet z warzywami',protein:20,carbs:10,fat:10,kcal:230,tags:['jajka']}],
+      'Niedz':[{id:'m1',name:'Naleśniki proteinowe',protein:18,carbs:40,fat:5,kcal:290,tags:['gluten','jajka']}],
+    },
+    trainingPlan: {
+      'Pon':[{id:'e1',name:'Wyciskanie sztangi leżąc',sets:4,reps:6,weight:120,tags:['sztanga','klatka'],muscles:'klatka piersio\xa0wa'},{id:'e2',name:'Wiosłowanie sztangą',sets:4,reps:8,weight:100,tags:['sztanga','plecy'],muscles:'plecy'}],
+      'Wt':[{id:'e1',name:'Bieganie 5km',sets:1,reps:1,weight:0,tags:['bieganie','kardio'],muscles:'kardio'}],
+      'Śr':[{id:'e1',name:'Przysiad ze sztangą',sets:5,reps:5,weight:140,tags:['sztanga','nogi'],muscles:'nogi'},{id:'e2',name:'Martwy ciąg',sets:4,reps:6,weight:160,tags:['sztanga','plecy'],muscles:'plecy, nogi'}],
+      'Czw':[],
+      'Pt':[{id:'e1',name:'Pompki',sets:4,reps:20,weight:0,tags:['klatka'],muscles:'klatka'},{id:'e2',name:'Podciąganie',sets:4,reps:10,weight:0,tags:['plecy'],muscles:'plecy'}],
+      'Sob':[{id:'e1',name:'HIIT 20 min',sets:1,reps:1,weight:0,tags:['HIIT','kardio'],muscles:'całe ciało'}],
+      'Niedz':[],
+    }
   };
+}
 
-  const mockGoals = [
-    { id: 'strength', label: 'Siłownia', emoji: '🏋️' },
-    { id: 'cardio', label: 'Kardio/Bieganie', emoji: '🏃' },
-    { id: 'mobility', label: 'Mobilność/Joga', emoji: '🧘' },
-    { id: 'mass', label: 'Budowanie Masy', emoji: '📈' }
-  ];
-
-  const mockEquipment = [
-    { id: 'dumbbells', label: 'Hantle', emoji: '🏋️' },
-    { id: 'barbell', label: 'Sztanga', emoji: '⚖️' },
-    { id: 'cables', label: 'Kable/Maszyny', emoji: '⚙️' },
-    { id: 'mat', label: 'Mata treningowa', emoji: '🧵' }
-  ];
-
-  // ============ INIT & LOAD ============
-  function initApp() {
-    updateDate();
-    loadUsersFromStorage();
-    renderUserList();
-    if (!state.currentUser && Object.keys(state.users).length > 0) {
-      switchUser(Object.keys(state.users)[0]);
-    }
-    initCharts();
-    renderGoalsCheckboxes();
-    renderEquipmentCheckboxes();
-    renderDayCarousel();
+// ========== INIT ==========
+function initApp() {
+  const saved = localStorage.getItem('fitai_profiles_v2');
+  if (saved) {
+    state.profiles = JSON.parse(saved);
+    state.currentProfile = state.profiles[0]?.id || null;
+  } else {
+    const p1 = createDefaultProfile('user1','Marek');
+    state.profiles = [p1];
+    state.currentProfile = 'user1';
+    saveState();
   }
+  document.getElementById('todayDate').textContent = new Date().toLocaleDateString('pl-PL',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  renderUserSwitcher();
+  updateDashboard();
+}
 
-  function updateDate() {
-    const today = new Date();
-    document.getElementById('todayDate').textContent = today.toLocaleDateString('pl-PL', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+function saveState() {
+  localStorage.setItem('fitai_profiles_v2', JSON.stringify(state.profiles));
+}
+
+function getCurrentProfile() {
+  return state.profiles.find(p => p.id === state.currentProfile) || state.profiles[0];
+}
+
+// ========== LANDING / DASHBOARD SWITCH ==========
+function enterDashboard() {
+  state.view = 'dashboard';
+  document.getElementById('landingPage').classList.add('hidden');
+  document.getElementById('dashboardPage').classList.remove('hidden');
+  document.getElementById('landingLinks').classList.add('hidden');
+  document.getElementById('userSwitcher').classList.remove('hidden');
+  document.getElementById('aiFloatBtn').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  showTab('home');
+  updateDashboard();
+}
+
+function exitDashboard() {
+  state.view = 'landing';
+  document.getElementById('landingPage').classList.remove('hidden');
+  document.getElementById('dashboardPage').classList.add('hidden');
+  document.getElementById('landingLinks').classList.remove('hidden');
+  document.getElementById('userSwitcher').classList.add('hidden');
+  document.getElementById('aiFloatBtn').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+// ========== USER SWITCHER ==========
+function renderUserSwitcher() {
+  const p = getCurrentProfile();
+  if (!p) return;
+  document.getElementById('currentUserAvatar').textContent = p.name[0].toUpperCase();
+  document.getElementById('currentUserName').textContent = p.name;
+  document.getElementById('greetingName').textContent = p.name;
+  document.getElementById('headerUserBadge').textContent = p.name + (p.completed ? ' ✅' : ' ⚠️');
+
+  const list = document.getElementById('userDropdownList');
+  list.innerHTML = state.profiles.map(pr => `
+    <button onclick="switchProfile('${pr.id}')" class="w-full flex items-center gap-2 text-left px-3 py-2 text-sm rounded-xl transition-colors ${pr.id===state.currentProfile?'bg-white/10 text-cyan-400':'text-gray-400 hover:bg-white/5'}">
+      <span class="w-6 h-6 rounded-full bg-gradient-to-br from-[#00e5ff] to-[#7c3aed] flex items-center justify-center text-black text-xs font-bold">${pr.name[0]}</span>
+      <span>${pr.name}</span>
+      ${!pr.completed?'<span class="ml-auto text-yellow-400 text-xs">W konfiguracji...</span>':''}
+      ${pr.id===state.currentProfile?'<span class="ml-auto text-cyan-400">✓</span>':''}
+    </button>
+  `).join('');
+
+  const addBtn = document.getElementById('addUserBtn');
+  addBtn.disabled = state.profiles.length >= 3;
+  addBtn.classList.toggle('opacity-30',state.profiles.length>=3);
+}
+
+document.getElementById('userMenuBtn').addEventListener('click',()=>{
+  const dd = document.getElementById('userDropdown');
+  dd.classList.toggle('opacity-0');
+  dd.classList.toggle('pointer-events-none');
+});
+document.addEventListener('click',(e)=>{
+  if(!document.getElementById('userMenuBtn').contains(e.target)){
+    document.getElementById('userDropdown').classList.add('opacity-0','pointer-events-none');
   }
+});
 
-  // ============ MULTI-USER SYSTEM ============
-  function loadUsersFromStorage() {
-    // In a real app, fetch from API: fetch('/api/users').then(r => r.json())
-    // For now, using mock data from fitai_users.json
-    state.users = {
-      'user123': {
-        name: 'Marek',
-        age: 28,
-        height: 182,
-        weight: 84.5,
-        targetWeight: 78,
-        gender: 'mężczyzna',
-        goal: 'Redukcja',
-        caloriesTarget: 2463,
-        proteinTarget: 185,
-        goals: ['strength', 'cardio'],
-        equipment: ['dumbbells', 'barbell', 'mat'],
-        excludedFoods: [],
-        logs: [],
-        dietPlan: {
-          'Pon': [
-            { id: '1', name: 'Owsianka', protein: 15, carbs: 50, fat: 5, kcal: 300 }
-          ]
-        },
-        trainingPlan: {
-          'Pon': [
-            { id: '1', name: 'Wyciskanie sztangi leżąc', sets: 4, reps: 6, weight: 120, tags: ['hantle', 'klatka'] }
-          ]
-        }
-      }
-    };
-  }
+function switchProfile(id) {
+  state.currentProfile = id;
+  renderUserSwitcher();
+  updateDashboard();
+  document.getElementById('userDropdown').classList.add('opacity-0','pointer-events-none');
+}
 
-  function renderUserList() {
-    const userList = document.getElementById('userList');
-    userList.innerHTML = Object.entries(state.users).map(([id, user]) => `
-      <button onclick="switchUser('${id}')" class="w-full text-left px-3 py-2 text-sm hover:bg-white/10 rounded transition-colors ${state.currentUser === id ? 'text-cyan-400 bg-white/10' : 'text-gray-400'}" >
-        ${user.name} ${state.currentUser === id ? '✓' : ''}
-      </button>
-    `).join('');
-  }
+document.getElementById('addUserBtn').addEventListener('click',()=>{
+  if(state.profiles.length<3) document.getElementById('addProfileModal').classList.remove('hidden');
+});
 
-  function switchUser(userId) {
-    state.currentUser = userId;
-    const user = state.users[userId];
-    document.getElementById('greetingName').textContent = user.name;
-    document.getElementById('currentUserDisplay').textContent = `👤 ${user.name}`;
-    document.getElementById('kpiWeight').textContent = user.weight + ' kg';
-    document.getElementById('caloriesTarget').textContent = user.caloriesTarget;
-    renderUserList();
-    updateDashboard();
-  }
+function createNewProfile() {
+  const name = document.getElementById('newProfileName').value.trim();
+  const age = parseInt(document.getElementById('newProfileAge').value)||25;
+  const gender = document.getElementById('newProfileGender').value;
+  const height = parseInt(document.getElementById('newProfileHeight').value)||170;
+  const weight = parseFloat(document.getElementById('newProfileWeight').value)||70;
+  if(!name){alert('Podaj imię!');return;}
+  const id = 'user_'+Date.now();
+  const profile = createDefaultProfile(id,name,age,height,weight,gender);
+  profile.caloriesTarget = calculateNutrition(profile).tdee;
+  profile.proteinTarget = calculateNutrition(profile).protein;
+  state.profiles.push(profile);
+  state.currentProfile = id;
+  saveState();
+  renderUserSwitcher();
+  closeAddProfileModal();
+  showTab('profile');
+}
 
-  // ============ TAB SWITCHING ============
-  function showTab(tabId) {
-    // Fade out all tabs
-    const tabs = document.querySelectorAll('.tab-content');
-    tabs.forEach(tab => {
-      if (!tab.classList.contains('hidden')) {
-        tab.classList.add('exit');
-        setTimeout(() => {
-          tab.classList.add('hidden');
-          tab.classList.remove('exit');
-        }, 200);
-      }
-    });
+function closeAddProfileModal() {
+  document.getElementById('addProfileModal').classList.add('hidden');
+  ['newProfileName','newProfileAge','newProfileHeight','newProfileWeight'].forEach(id=>{document.getElementById(id).value='';});
+}
 
-    // Show new tab
-    setTimeout(() => {
-      document.getElementById(tabId).classList.remove('hidden');
-    }, 200);
+// ========== NUTRITION CALCULATOR ==========
+function calculateNutrition(profile) {
+  const w=profile.weight||75, h=profile.height||175, a=profile.age||25;
+  const isFemale = (profile.gender||'').toLowerCase().includes('kobieta')||profile.gender==='female';
+  let bmr = isFemale ? (10*w+6.25*h-5*a-161) : (10*w+6.25*h-5*a+5);
+  const mults={'sedentaryczny':1.2,'1-2':1.375,'3-4':1.55,'5-6':1.725,'codziennie':1.9};
+  let mult=1.2;
+  const freq=profile.frequency||'';
+  for(const[k,v] of Object.entries(mults)){if(freq.includes(k)){mult=v;break;}}
+  let tdee=Math.round(bmr*mult);
+  const goal=(profile.goal||'').toLowerCase();
+  if(goal.includes('redukcj')||goal.includes('odchudzani')||goal.includes('schud')) tdee-=400;
+  else if(goal.includes('masa')||goal.includes('budow')||goal.includes('przyty')) tdee+=300;
+  const protein = goal.includes('masa') ? Math.round(w*2.0) : goal.includes('redukcj') ? Math.round(w*2.2) : Math.round(w*1.6);
+  return { bmr: Math.round(bmr), tdee, protein };
+}
 
-    // Update nav items
-    document.querySelectorAll('.nav-item').forEach(item => {
-      item.classList.remove('active');
-    });
-    event?.currentTarget?.classList.add('active');
+// ========== PLAN FILTER ENGINE ==========
+function planFilter(items, exclusions) {
+  if(!exclusions||exclusions.length===0) return items.map(i=>({...i,hidden:false}));
+  return items.map(item=>{
+    const tags=(item.tags||[]).map(t=>t.toLowerCase());
+    const nameWords=(item.name||'').toLowerCase().split(/\s+/);
+    const allWords=[...tags,...nameWords];
+    const hidden=exclusions.some(ex=>allWords.some(w=>w.includes(ex.toLowerCase())||ex.toLowerCase().includes(w)));
+    return {...item,hidden};
+  });
+}
 
-    // Close mobile menu
-    document.getElementById('sidebar').classList.remove('mobile-open');
-  }
+// ========== UPDATE DASHBOARD ==========
+function updateDashboard() {
+  const p = getCurrentProfile();
+  if(!p) return;
+  // Greeting
+  document.getElementById('greetingName').textContent = p.name;
+  document.getElementById('headerUserBadge').textContent = p.name;
 
-  // ============ PROFILE TABS ============
-  function switchProfileTab(tab) {
-    document.querySelectorAll('.profile-tab-content').forEach(el => {
-      el.classList.add('hidden');
-    });
-    document.querySelectorAll('.profile-tab').forEach(el => {
-      el.classList.remove('active', 'bg-white/10', 'text-cyan-400');
-      el.classList.add('text-gray-400');
-    });
-    document.getElementById(`profile-${tab}`).classList.remove('hidden');
-    event.currentTarget.classList.add('active', 'bg-white/10', 'text-cyan-400');
-  }
+  // Nutrition calc
+  const {bmr, tdee, protein} = calculateNutrition(p);
+  document.getElementById('sidebarCalories').textContent = tdee+' kcal';
+  document.getElementById('sidebarProtein').textContent = protein+'g';
+  document.getElementById('sidebarTarget').textContent = (p.targetWeight||'—')+' kg';
+  document.getElementById('calcBMR').textContent = bmr;
+  document.getElementById('calcTDEE').textContent = tdee;
+  document.getElementById('calcProtein').textContent = protein+'g';
+  document.getElementById('calcGoalKcal').textContent = tdee+'kcal';
 
-  // ============ DASHBOARD RENDERING ============
-  function updateDashboard() {
-    const user = state.users[state.currentUser];
-    if (!user) return;
+  // KPIs
+  const consistency = 72 + Math.floor(Math.random()*20);
+  document.getElementById('kpiConsistency').textContent = consistency+'%';
+  document.getElementById('consistencyBar').style.width = consistency+'%';
+  document.getElementById('kpiWeight').textContent = (p.weight||'—')+' kg';
+  const diff = p.weight && p.targetWeight ? (p.weight-p.targetWeight).toFixed(1) : null;
+  document.getElementById('weightDiff').textContent = diff ? (diff>0?`${diff} kg do celu`:'Cel osiągnięty! 🎉') : 'Brak danych';
+  document.getElementById('kpiGoal').textContent = (p.goals||[]).length+'×';
+  document.getElementById('kpiGoalLabel').textContent = (p.goals||[]).length>0?(p.goals[0]==='strength'?'Siłownia':'Twój cel'):'Brak celów';
 
-    // Update KPIs
-    const consistency = Math.round(Math.random() * 100);
-    document.getElementById('kpiConsistency').textContent = consistency + '%';
-    document.getElementById('consistencyBar').style.width = consistency + '%';
+  // Progress Rings
+  const calEaten = Math.round(tdee * 0.65);
+  const protEaten = Math.round(protein * 0.6);
+  setRing('ringCalories',calEaten,tdee,'ringCalPct','ringCalVal','ringCalMax');
+  setRing('ringProtein',protEaten,protein,'ringProtPct','ringProtVal','ringProtMax');
+  const macroTot = Math.round((calEaten/tdee)*100);
+  const macroCircle=document.getElementById('ringMacro');
+  const macroOffset=226-(226*(Math.min(macroTot,100)/100));
+  macroCircle.style.strokeDashoffset=macroOffset;
+  document.getElementById('ringMacroPct').textContent=macroTot+'%';
+  document.getElementById('ringMacroDetail').textContent='Łącznie';
 
-    // Update calories
-    const caloriesEaten = Math.round(Math.random() * user.caloriesTarget);
-    document.getElementById('caloriesEaten').textContent = caloriesEaten;
-    document.getElementById('caloriesRemaining').textContent = (user.caloriesTarget - caloriesEaten) + ' kcal pozostało';
+  // Group widget
+  renderGroupWidget();
+  // Next steps
+  renderNextSteps(p);
+  // Charts
+  renderConsistencyChart();
+  // Profile form
+  fillProfileForm(p);
+}
 
-    // Update next steps
-    const steps = [
-      '🍽️ Dodaj drugi posiłek',
-      '💪 Zrób dzisiejszy trening',
-      '💧 Pij więcej wody',
-      '📊 Zalog swoją wagę'
-    ];
-    document.getElementById('nextStepContent').innerHTML = `
-      <div class="p-3 bg-white/5 rounded-lg border border-white/10">
-        <p class="text-sm text-white font-medium">${steps[Math.floor(Math.random() * steps.length)]}</p>
+function setRing(circleId, val, max, pctId, valId, maxId) {
+  const pct = Math.min(100, Math.round((val/max)*100));
+  const offset = 226 - (226 * (pct/100));
+  const circle = document.getElementById(circleId);
+  circle.style.strokeDashoffset = offset;
+  document.getElementById(pctId).textContent = pct+'%';
+  document.getElementById(valId).textContent = val;
+  document.getElementById(maxId).textContent = max;
+}
+
+function renderGroupWidget() {
+  const container = document.getElementById('groupWidget');
+  if(state.profiles.length<=1){container.innerHTML='<p class="text-sm text-gray-500 italic">Tylko jeden profil. Dodaj więcej!</p>';return;}
+  container.innerHTML = state.profiles.map(p=>{
+    const pct = 60 + Math.floor(Math.random()*40);
+    return `<div class="user-ring flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors">
+      <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#00e5ff] to-[#7c3aed] flex items-center justify-center text-black text-sm font-bold flex-shrink-0">${p.name[0]}</div>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-medium text-white truncate">${p.name}</p>
+        <div class="h-1.5 bg-white/5 rounded-full mt-1"><div class="h-full rounded-full ${p.id===state.currentProfile?'bg-gradient-to-r from-cyan-500 to-violet-500':'bg-white/20'}" style="width:${pct}%"></div></div>
       </div>
+      <span class="text-xs font-bold ${p.id===state.currentProfile?'text-cyan-400':'text-gray-500'}">${pct}%</span>
+    </div>`;
+  }).join('');
+}
+
+function renderNextSteps(p) {
+  const steps = [
+    {icon:'🍽️',text:'Dodaj pierwszy posiłek dnia',action:"showTab('my-day')"},
+    {icon:'💪',text:'Zrób dzisiejszy trening',action:"showTab('plan')"},
+    {icon:'💧',text:'Wypij 2L wody'},
+    {icon:'📊',text:'Zaktualizuj wagę',action:"showTab('profile')"},
+  ];
+  document.getElementById('nextSteps').innerHTML = steps.map(s=>`
+    <div class="glass rounded-xl p-3 flex items-center gap-3 cursor-pointer hover:border-cyan-500/30 transition-colors" ${s.action?`onclick="${s.action}"`:''}">
+      <span class="text-2xl">${s.icon}</span>
+      <p class="text-sm text-gray-300 font-medium">${s.text}</p>
+    </div>
+  `).join('');
+}
+
+let consistencyChartInstance = null;
+function renderConsistencyChart() {
+  const ctx = document.getElementById('consistencyChart');
+  if(!ctx) return;
+  if(consistencyChartInstance) { consistencyChartInstance.destroy(); }
+  consistencyChartInstance = new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:state.days,
+      datasets:[{label:'Spójność (%)',data:[80,85,70,90,75,92,88],backgroundColor:'rgba(0,229,255,0.15)',borderColor:'#00e5ff',borderWidth:2,borderRadius:8}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#64748b'}},x:{grid:{display:false},ticks:{color:'#64748b'}}}}
+  });
+}
+
+// ========== TAB SWITCHING ==========
+function showTab(tabId) {
+  document.querySelectorAll('[id^="tab-"]').forEach(t=>{t.classList.add('hidden');});
+  const el = document.getElementById('tab-'+tabId);
+  if(el){el.classList.remove('hidden');el.classList.add('tab-anim');setTimeout(()=>el.classList.remove('tab-anim'),400);}
+  document.querySelectorAll('.nav-item').forEach(n=>{
+    n.classList.remove('active','text-cyan-400');n.classList.add('text-gray-400');
+  });
+  const active = document.querySelector(`.nav-item[data-tab="${tabId}"]`);
+  if(active){active.classList.add('active','text-cyan-400');active.classList.remove('text-gray-400');}
+  if(tabId==='plan') loadPlanForDay();
+  if(tabId==='profile') renderProfileTabs();
+  if(tabId==='home') updateDashboard();
+}
+
+// ========== PROFILE TABS ==========
+function switchProfileTab(tab) {
+  document.querySelectorAll('.profile-tab-panel').forEach(el=>el.classList.add('hidden'));
+  document.querySelectorAll('[data-ptab]').forEach(btn=>{
+    btn.classList.remove('active','text-cyan-400');btn.classList.add('text-gray-400');
+  });
+  const panel = document.getElementById('ptab-'+tab);
+  if(panel) panel.classList.remove('hidden');
+  const btn = document.querySelector(`[data-ptab="${tab}"]`);
+  if(btn){btn.classList.add('active','text-cyan-400');btn.classList.remove('text-gray-400');}
+}
+
+function renderProfileTabs() {
+  const p = getCurrentProfile();
+  fillProfileForm(p);
+  renderGoalsGrid();
+  renderExclusionChips();
+  renderEquipmentGrid();
+}
+
+function fillProfileForm(p) {
+  if(!p) return;
+  const {bmr,tdee,protein}=calculateNutrition(p);
+  const fields={pName:p.name,pAge:p.age,pHeight:p.height,pWeight:p.weight,pTargetWeight:p.targetWeight,pGender:p.gender,pFrequency:p.frequency,pDietType:p.dietType,pMealsPerDay:p.mealsPerDay,pAllergies:p.allergies};
+  for(const[id,val] of Object.entries(fields)){const el=document.getElementById(id);if(el&&val!==undefined)el.value=val;}
+  document.getElementById('calcBMR').textContent=bmr;
+  document.getElementById('calcTDEE').textContent=tdee;
+  document.getElementById('calcProtein').textContent=protein+'g';
+  document.getElementById('calcGoalKcal').textContent=tdee+'kcal';
+}
+
+function saveProfileData() {
+  const p = getCurrentProfile();
+  p.name=document.getElementById('pName').value||p.name;
+  p.age=parseInt(document.getElementById('pAge').value)||p.age;
+  p.height=parseInt(document.getElementById('pHeight').value)||p.height;
+  p.weight=parseFloat(document.getElementById('pWeight').value)||p.weight;
+  p.targetWeight=parseFloat(document.getElementById('pTargetWeight').value)||p.targetWeight;
+  p.gender=document.getElementById('pGender').value||p.gender;
+  p.frequency=document.getElementById('pFrequency').value||p.frequency;
+  p.dietType=document.getElementById('pDietType').value||p.dietType;
+  p.mealsPerDay=parseInt(document.getElementById('pMealsPerDay').value)||p.mealsPerDay;
+  p.allergies=document.getElementById('pAllergies').value||'';
+  const {tdee,protein}=calculateNutrition(p);
+  p.caloriesTarget=tdee; p.proteinTarget=protein;
+  p.completed=!!(p.name&&p.age&&p.weight&&p.height);
+  saveState();
+  renderUserSwitcher();
+  fillProfileForm(p);
+  showToast('✅ Profil zapisany!');
+}
+
+function renderGoalsGrid() {
+  const p=getCurrentProfile();
+  document.getElementById('goalsGrid').innerHTML=MOCK_GOALS.map(g=>`
+    <label class="glass rounded-xl p-4 cursor-pointer hover:border-cyan-500/30 flex flex-col items-center gap-2 text-center transition-all ${(p.goals||[]).includes(g.id)?'border-cyan-500/40 bg-cyan-500/5':''}">
+      <input type="checkbox" class="goal-cb sr-only" value="${g.id}" ${(p.goals||[]).includes(g.id)?'checked':''}>
+      <span class="text-3xl">${g.emoji}</span>
+      <span class="text-sm font-medium text-white">${g.label}</span>
+    </label>
+  `).join('');
+}
+
+function saveGoals() {
+  const p=getCurrentProfile();
+  p.goals=Array.from(document.querySelectorAll('.goal-cb:checked')).map(cb=>cb.value);
+  saveState();
+  showToast('✅ Cele zapisane!');
+}
+
+function renderExclusionChips() {
+  const p=getCurrentProfile();
+  const excl=p.exclusions||[];
+  document.getElementById('foodExclusionChips').innerHTML=FOOD_EXCLUSIONS.map(f=>`
+    <span class="chip ${excl.includes(f.id)?'selected':''}" onclick="toggleExclusion('${f.id}',this)">${f.label}</span>
+  `).join('');
+  document.getElementById('exerciseExclusionChips').innerHTML=EXERCISE_EXCLUSIONS.map(e=>`
+    <span class="chip ${excl.includes(e.id)?'selected':''}" onclick="toggleExclusion('${e.id}',this)">${e.label}</span>
+  `).join('');
+  renderActiveExclusions();
+}
+
+function toggleExclusion(id, el) {
+  const p=getCurrentProfile();
+  if(!p.exclusions) p.exclusions=[];
+  if(p.exclusions.includes(id)){p.exclusions=p.exclusions.filter(e=>e!==id);el.classList.remove('selected');}
+  else{p.exclusions.push(id);el.classList.add('selected');}
+  renderActiveExclusions();
+}
+
+function addCustomExclusion() {
+  const input=document.getElementById('customExclusionInput');
+  const val=input.value.trim().toLowerCase();
+  if(!val) return;
+  const p=getCurrentProfile();
+  if(!p.exclusions) p.exclusions=[];
+  if(!p.exclusions.includes(val)){p.exclusions.push(val);}
+  input.value='';
+  renderActiveExclusions();
+}
+
+function renderActiveExclusions() {
+  const p=getCurrentProfile();
+  const excl=p.exclusions||[];
+  const allLabels={...Object.fromEntries(FOOD_EXCLUSIONS.map(f=>[f.id,f.label])),...Object.fromEntries(EXERCISE_EXCLUSIONS.map(e=>[e.id,e.label]))};
+  document.getElementById('activeExclusions').innerHTML=excl.map(ex=>`
+    <span class="chip selected">${allLabels[ex]||ex}<span class="chip-remove ml-1" onclick="removeExclusion('${ex}')">×</span></span>
+  `).join('');
+}
+
+function removeExclusion(id) {
+  const p=getCurrentProfile();
+  p.exclusions=(p.exclusions||[]).filter(e=>e!==id);
+  renderExclusionChips();
+}
+
+function saveExclusions() {
+  saveState();
+  showToast('✅ Wykluczenia zapisane!');
+  loadPlanForDay();
+}
+
+function renderEquipmentGrid() {
+  const p=getCurrentProfile();
+  document.getElementById('equipmentGrid').innerHTML=MOCK_EQUIPMENT.map(eq=>`
+    <label class="glass rounded-xl p-3 cursor-pointer hover:border-cyan-500/30 flex items-center gap-2 transition-all">
+      <input type="checkbox" class="equip-cb" value="${eq.id}" ${(p.equipment||[]).includes(eq.id)?'checked':''}> 
+      <span>${eq.emoji} ${eq.label}</span>
+    </label>
+  `).join('');
+}
+
+function savePreferences() {
+  const p=getCurrentProfile();
+  p.equipment=Array.from(document.querySelectorAll('.equip-cb:checked')).map(cb=>cb.value);
+  saveState();
+  showToast('✅ Preferencje zapisane!');
+}
+
+// ========== PLAN ==========
+function renderDayCarousel() {
+  document.getElementById('dayCarousel').innerHTML=state.days.map((d,i)=>`
+    <button onclick="selectDay(${i})" class="day-btn px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all btn-ghost ${i===state.currentDay?'active':''}">${d}</button>
+  `).join('');
+}
+
+function selectDay(i) {
+  state.currentDay=i;
+  document.getElementById('currentDayLabel').textContent=state.days[i];
+  renderDayCarousel();
+  loadPlanForDay();
+}
+function prevDay(){selectDay((state.currentDay-1+7)%7);}
+function nextDay(){selectDay((state.currentDay+1)%7);}
+
+function loadPlanForDay() {
+  const p=getCurrentProfile();
+  const day=state.days[state.currentDay];
+  const rawMeals=p.dietPlan[day]||[];
+  const rawExercises=p.trainingPlan[day]||[];
+  const excl=p.exclusions||[];
+
+  const meals=planFilter(rawMeals,excl);
+  const exercises=planFilter(rawExercises,excl);
+
+  const dietContainer=document.getElementById('planDietContainer');
+  dietContainer.innerHTML=meals.length?meals.map(m=>{
+    if(m.hidden) return `<div class="p-3 rounded-xl text-xs text-gray-600 bg-white/2 border border-white/5 italic flex items-center gap-2"><span>🚫</span> ${m.name} — ukryto (wykluczenie)</div>`;
+    return `<div class="glass rounded-xl p-4 cursor-pointer hover:border-cyan-500/30 transition-all" onclick="openExpandModal('diet','${m.id}','${m.name}',${JSON.stringify(m).replace(/'/g,'')})">
+      <div class="flex justify-between items-start mb-2"><p class="font-medium text-white text-sm">${m.name}</p><span class="text-xs bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded">${m.kcal} kcal</span></div>
+      <div class="flex gap-3 text-xs text-gray-500"><span>P: ${m.protein}g</span><span>W: ${m.carbs}g</span><span>T: ${m.fat}g</span></div>
+    </div>`;
+  }).join(''):'<p class="text-sm text-gray-600 italic text-center py-4">Brak zaplanowanych posiłków</p>';
+
+  const trainingContainer=document.getElementById('planTrainingContainer');
+  trainingContainer.innerHTML=exercises.length?exercises.map(e=>{
+    if(e.hidden) return `<div class="p-3 rounded-xl text-xs text-gray-600 bg-white/2 border border-white/5 italic flex items-center gap-2"><span>🚫</span> ${e.name} — ukryto (wykluczenie)</div>`;
+    return `<div class="glass rounded-xl p-4 cursor-pointer hover:border-cyan-500/30 transition-all" onclick="openExpandModal('training','${e.id}','${e.name}',${JSON.stringify(e).replace(/'/g,'')})">
+      <p class="font-medium text-white text-sm mb-2">${e.name}</p>
+      <div class="flex justify-between items-center">
+        <div class="flex gap-3 text-xs text-gray-500">${e.sets>0?`<span>${e.sets} sety</span>`:''}${e.reps>1?`<span>${e.reps} powt.</span>`:''}${e.weight>0?`<span>${e.weight}kg</span>`:''}</div>
+        <div class="flex gap-1">${(e.tags||[]).map(t=>`<span class="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-gray-500">#${t}</span>`).join('')}</div>
+      </div>
+    </div>`;
+  }).join(''):'<div class="text-sm text-gray-600 italic text-center py-8">Dzień odpoczynku 🧘</div>';
+
+  renderDayCarousel();
+}
+
+// ========== EXPAND MODAL ==========
+function openExpandModal(type, itemId, name, data) {
+  const modal=document.getElementById('expandModal');
+  document.getElementById('expandTitle').textContent=name;
+  state.expandedItem={type,itemId,name,data};
+  const content=document.getElementById('expandContent');
+  if(type==='diet'&&data){
+    content.innerHTML=`
+      <div class="grid grid-cols-4 gap-3 text-center">
+        <div class="glass rounded-xl p-3"><p class="text-xs text-gray-500 mb-1">Kalorie</p><p class="text-xl font-bold text-white" style="font-family:'Syne',sans-serif;">${data.kcal||'—'}</p><p class="text-xs text-gray-600">kcal</p></div>
+        <div class="glass rounded-xl p-3"><p class="text-xs text-gray-500 mb-1">Białko</p><p class="text-xl font-bold text-cyan-400" style="font-family:'Syne',sans-serif;">${data.protein||0}g</p></div>
+        <div class="glass rounded-xl p-3"><p class="text-xs text-gray-500 mb-1">Węgle</p><p class="text-xl font-bold text-yellow-400" style="font-family:'Syne',sans-serif;">${data.carbs||0}g</p></div>
+        <div class="glass rounded-xl p-3"><p class="text-xs text-gray-500 mb-1">Tłuszcz</p><p class="text-xl font-bold text-orange-400" style="font-family:'Syne',sans-serif;">${data.fat||0}g</p></div>
+      </div>
+      <div><h6 class="text-sm font-bold text-white mb-2">Tagi</h6><div>${(data.tags||[]).map(t=>`<span class="chip text-xs">${t}</span>`).join('')||'Brak tagów'}</div></div>
+      <div><h6 class="text-sm font-bold text-white mb-2">Sposób przygotowania</h6><ol class="list-decimal list-inside text-sm text-gray-400 space-y-1"><li>Przygotuj składniki według gramatur powyżej</li><li>Dopraw solą, pieprzem i ziołami według preferencji</li><li>Gotuj/smaż/piecz według metody dla potrawy</li></ol></div>
     `;
-
-    // Render recent activity
-    renderRecentActivity(user);
-
-    // Check for macro deficiencies and show alert
-    if (caloriesEaten > 0 && (user.caloriesTarget - caloriesEaten) < 300) {
-      const alert = document.getElementById('macroAlert');
-      alert.classList.remove('hidden');
-      document.getElementById('macroAlertText').textContent = `🚀 Brakuje Ci ${user.caloriesTarget - caloriesEaten} kcal! Dodaj ostatni posiłek.`;
-    }
+  } else if(type==='training'&&data){
+    content.innerHTML=`
+      <div class="grid grid-cols-3 gap-3 text-center">
+        <div class="glass rounded-xl p-3"><p class="text-xs text-gray-500 mb-1">Serie</p><p class="text-2xl font-bold text-cyan-400" style="font-family:'Syne',sans-serif;">${data.sets||'—'}</p></div>
+        <div class="glass rounded-xl p-3"><p class="text-xs text-gray-500 mb-1">Powtórzenia</p><p class="text-2xl font-bold text-violet-400" style="font-family:'Syne',sans-serif;">${data.reps||'—'}</p></div>
+        <div class="glass rounded-xl p-3"><p class="text-xs text-gray-500 mb-1">Ciężar</p><p class="text-2xl font-bold text-yellow-400" style="font-family:'Syne',sans-serif;">${data.weight>0?data.weight+'kg':'BW'}</p></div>
+      </div>
+      <div><h6 class="text-sm font-bold text-white mb-2">Mięśnie</h6><p class="text-sm text-gray-400">${data.muscles||'—'}</p></div>
+      <div><h6 class="text-sm font-bold text-white mb-2">Technika</h6><p class="text-sm text-gray-400 leading-relaxed">Utrzymuj prawidłową formę przez cały zakres ruchu. Kontroluj fazę ekscentryczną. Oddychaj rytmicznie — wydech przy wysiłku.</p></div>
+    `;
   }
+  modal.classList.remove('hidden');
+}
 
-  function renderRecentActivity(user) {
-    const container = document.getElementById('recentActivityContainer');
-    const activities = [
-      { icon: '🥗', name: 'Sałatka grecka', date: 'Dzisiaj 12:30', kcal: 350 },
-      { icon: '🏃', name: 'Bieganie 5km', date: 'Dzisiaj 07:00', kcal: -450 }
+function closeExpandModal(){document.getElementById('expandModal').classList.add('hidden');}
+
+function swapItem() {
+  if(!state.expandedItem) return;
+  const {name}=state.expandedItem;
+  document.getElementById('expandContent').innerHTML+=`
+    <div class="mt-2 p-3 rounded-xl" style="background:rgba(0,229,255,0.05);border:1px solid var(--border-cyan);">
+      <p class="text-xs font-bold text-cyan-400 mb-2">🔄 Alternatywy dla: ${name}</p>
+      <div class="space-y-2">
+        <div class="flex items-center justify-between p-2 rounded-lg bg-white/3 hover:bg-white/8 cursor-pointer transition-colors"><span class="text-sm text-white">Indyk z quinoą</span><span class="text-xs text-cyan-400">Zamień</span></div>
+        <div class="flex items-center justify-between p-2 rounded-lg bg-white/3 hover:bg-white/8 cursor-pointer transition-colors"><span class="text-sm text-white">Tofu z warzywami</span><span class="text-xs text-cyan-400">Zamień</span></div>
+        <div class="flex items-center justify-between p-2 rounded-lg bg-white/3 hover:bg-white/8 cursor-pointer transition-colors"><span class="text-sm text-white">Łosoś z batatami</span><span class="text-xs text-cyan-400">Zamień</span></div>
+      </div>
+    </div>
+  `;
+}
+
+// ========== MY DAY ==========
+function addFromPlan(type) {
+  const p=getCurrentProfile();
+  const day=state.days[state.currentDay];
+  if(type==='diet'){
+    const meals=p.dietPlan[day]||[];
+    if(!meals.length){showToast('Brak zaplanowanych posiłków na dziś');return;}
+    const meal=meals[0];
+    addDayLogItem('diet',meal.name,`P:${meal.protein}g W:${meal.carbs}g T:${meal.fat}g`,meal.kcal);
+  } else {
+    const exercises=p.trainingPlan[day]||[];
+    if(!exercises.length){showToast('Brak zaplanowanych ćwiczeń na dziś');return;}
+    const ex=exercises[0];
+    addDayLogItem('training',ex.name,`${ex.sets}×${ex.reps}`,0);
+  }
+}
+
+function showManualForm(type) {
+  state.manualFormType=type;
+  document.getElementById('manualFormTitle').textContent=type==='diet'?'Dodaj Posiłek':'Dodaj Ćwiczenie';
+  document.getElementById('macroFields').classList.toggle('hidden',type==='training');
+  document.getElementById('manualFormContainer').classList.remove('hidden');
+  ['entryName','entryProtein','entryCarbs','entryFat'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+}
+
+function closeManualForm(){document.getElementById('manualFormContainer').classList.add('hidden');}
+
+function submitManualEntry() {
+  const name=document.getElementById('entryName').value.trim();
+  if(!name) return;
+  if(state.manualFormType==='diet'){
+    const prot=parseInt(document.getElementById('entryProtein').value)||0;
+    const carbs=parseInt(document.getElementById('entryCarbs').value)||0;
+    const fat=parseInt(document.getElementById('entryFat').value)||0;
+    const kcal=Math.round(prot*4+carbs*4+fat*9);
+    addDayLogItem('diet',name,`P:${prot}g W:${carbs}g T:${fat}g`,kcal);
+  } else {
+    addDayLogItem('training',name,'Ręczny wpis',0);
+  }
+  closeManualForm();
+}
+
+function addDayLogItem(type, name, meta, kcal) {
+  const container=document.getElementById(type==='diet'?'dietLogContainer':'trainingLogContainer');
+  const id='log_'+Date.now();
+  // Clear placeholder
+  if(container.querySelector('.italic')) container.innerHTML='';
+  const html=`<div id="${id}" class="glass rounded-xl p-3 flex justify-between items-start tab-anim">
+    <div><p class="text-sm font-medium text-white">${name}</p><p class="text-xs text-gray-500 mt-0.5">${meta}</p></div>
+    <div class="flex items-center gap-2">${kcal?`<span class="text-xs font-bold text-cyan-400">${kcal} kcal</span>`:''}<button onclick="document.getElementById('${id}').remove();updateDayCounters();" class="text-red-400 hover:text-red-300 text-sm">✕</button></div>
+  </div>`;
+  container.insertAdjacentHTML('beforeend',html);
+  updateDayCounters();
+}
+
+function updateDayCounters() {
+  let totalKcal=0;
+  document.querySelectorAll('#dietLogContainer .text-cyan-400').forEach(el=>{
+    const v=parseInt(el.textContent)||0;totalKcal+=v;
+  });
+  document.getElementById('dayCalEaten').textContent=totalKcal;
+  const trainCount=document.querySelectorAll('#trainingLogContainer .glass').length;
+  document.getElementById('dayTrainCount').textContent=trainCount;
+}
+
+// ========== AI COACH ==========
+function toggleAIChat() {
+  state.aiOpen=!state.aiOpen;
+  document.getElementById('aiChatPanel').classList.toggle('hidden',!state.aiOpen);
+}
+
+function sendAIMessage() {
+  const input=document.getElementById('aiInput');
+  const msg=input.value.trim();
+  if(!msg) return;
+  const messages=document.getElementById('aiChatMessages');
+  messages.insertAdjacentHTML('beforeend',`<div class="msg-user">${msg}</div>`);
+  input.value='';
+  messages.scrollTop=messages.scrollHeight;
+  // Simulate AI response
+  setTimeout(()=>{
+    const p=getCurrentProfile();
+    const responses=[
+      `Hej ${p.name}! Na podstawie Twojego profilu polecam skupić się na białku — cel to ${p.proteinTarget||150}g dziennie.`,
+      `Świetne pytanie! Przy Twojej wadze (${p.weight}kg) i celu, TDEE wynosi ok. ${calculateNutrition(p).tdee} kcal.`,
+      `Pamiętaj o 7-8h snu — to klucz do regeneracji i wzrostu mięśni!`,
+      `Twoje wykluczenia są uwzględnione w planie. Każda zamiana jest dopasowana do Twoich preferencji.`,
     ];
-    container.innerHTML = activities.map(a => `
-      <div class="glass-card p-4">
-        <div class="flex items-start justify-between">
-          <div class="flex gap-3">
-            <span class="text-2xl">${a.icon}</span>
-            <div>
-              <p class="text-white font-medium">${a.name}</p>
-              <p class="text-xs text-gray-500">${a.date}</p>
-            </div>
-          </div>
-          <span class="text-sm font-medium ${a.kcal > 0 ? 'text-yellow-400' : 'text-cyan-400'}">${a.kcal > 0 ? '+' : ''}${a.kcal} kcal</span>
-        </div>
-      </div>
-    `).join('');
-  }
+    const resp=responses[Math.floor(Math.random()*responses.length)];
+    messages.insertAdjacentHTML('beforeend',`<div class="msg-ai">${resp}</div>`);
+    messages.scrollTop=messages.scrollHeight;
+  },800);
+}
 
-  // ============ CHARTS ============
-  function initCharts() {
-    const ctx = document.getElementById('consistencyChart');
-    if (!ctx) return;
+document.getElementById('aiInput').addEventListener('keydown',e=>{if(e.key==='Enter')sendAIMessage();});
 
-    new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'],
-        datasets: [{
-          label: 'Spójność (%)',
-          data: [80, 85, 70, 90, 75, 92, 88],
-          backgroundColor: 'rgba(0, 229, 255, 0.2)',
-          borderColor: '#00e5ff',
-          borderWidth: 2,
-          borderRadius: 8,
-          tension: 0.4
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          filler: { propagate: true }
-        },
-        scales: {
-          y: { 
-            beginAtZero: true,
-            max: 100,
-            grid: { color: 'rgba(255,255,255,0.05)' },
-            ticks: { color: '#64748b' }
-          },
-          x: { grid: { display: false }, ticks: { color: '#64748b' } }
-        }
-      }
-    });
-  }
+// ========== UTILITIES ==========
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).catch(()=>{});
+  showToast('✅ Skopiowano: '+text);
+}
 
-  // ============ PLAN & CAROUSEL ============
-  function renderDayCarousel() {
-    const carousel = document.getElementById('dayCarousel');
-    carousel.innerHTML = state.days.map((day, i) => `
-      <button onclick="selectDay(${i})" class="day-carousel-item px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${i === state.currentDay ? 'btn-neon' : 'btn-secondary'}">
-        ${day}
-      </button>
-    `).join('');
-  }
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.remove('hidden');
+  setTimeout(()=>t.classList.add('hidden'),2500);
+}
 
-  function selectDay(dayIndex) {
-    state.currentDay = dayIndex;
-    document.getElementById('currentDay').textContent = state.days[dayIndex];
-    renderDayCarousel();
-    loadPlanForDay();
-  }
+// Mobile menu
+document.getElementById('mobileMenuBtn').addEventListener('click',()=>{
+  document.getElementById('sidebar').classList.toggle('open');
+});
 
-  function prevDay() {
-    state.currentDay = (state.currentDay - 1 + 7) % 7;
-    selectDay(state.currentDay);
-  }
-
-  function nextDay() {
-    state.currentDay = (state.currentDay + 1) % 7;
-    selectDay(state.currentDay);
-  }
-
-  function loadPlanForDay() {
-    const user = state.users[state.currentUser];
-    const day = state.days[state.currentDay];
-    const dietPlan = user.dietPlan[day] || [];
-    const trainingPlan = user.trainingPlan[day] || [];
-
-    const dietContainer = document.getElementById('planDietContainer');
-    dietContainer.innerHTML = dietPlan.map(meal => `
-      <div class="glass-card p-4 cursor-pointer hover:border-cyan-500/50 transition-colors" onclick="openExpandModal('diet', ${meal.id}, '${meal.name}')">
-        <div class="flex justify-between items-start mb-2">
-          <p class="font-medium text-white">${meal.name}</p>
-          <span class="text-xs bg-cyan-500/20 text-cyan-300 px-2 py-1 rounded">${meal.kcal} kcal</span>
-        </div>
-        <div class="flex gap-4 text-xs text-gray-400">
-          <span>P: ${meal.protein}g</span>
-          <span>W: ${meal.carbs}g</span>
-          <span>T: ${meal.fat}g</span>
-        </div>
-      </div>
-    `).join('');
-
-    const trainingContainer = document.getElementById('planTrainingContainer');
-    trainingContainer.innerHTML = trainingPlan.map(exercise => `
-      <div class="glass-card p-4 cursor-pointer hover:border-cyan-500/50 transition-colors" onclick="openExpandModal('training', ${exercise.id}, '${exercise.name}')">
-        <p class="font-medium text-white mb-2">${exercise.name}</p>
-        <div class="flex justify-between items-center">
-          <div class="flex gap-4 text-xs text-gray-400">
-            <span>${exercise.sets} sety</span>
-            <span>${exercise.reps} powtórzeń</span>
-            <span>${exercise.weight}kg</span>
-          </div>
-          <div class="flex gap-1 flex-wrap">
-            ${exercise.tags.map(tag => `<span class="text-[10px] bg-white/10 px-2 py-1 rounded text-gray-400">#${tag}</span>`).join('')}
-          </div>
-        </div>
-      </div>
-    `).join('') || '<div class="text-center text-gray-500 text-sm italic py-8">Brak zaplanowanych ćwiczeń</div>';
-  }
-
-  // ============ EXPAND MODAL ============
-  function openExpandModal(type, itemId, name) {
-    const modal = document.getElementById('expandModal');
-    const title = document.getElementById('expandTitle');
-    const content = document.getElementById('expandContent');
-
-    title.textContent = name;
-    state.expandedItem = { type, itemId, name };
-
-    if (type === 'diet') {
-      content.innerHTML = `
-        <div>
-          <h6 class="font-bold text-white mb-2">Makroskładniki</h6>
-          <div class="grid grid-cols-3 gap-4 text-center">
-            <div class="bg-white/5 p-3 rounded">
-              <p class="text-xs text-gray-400">Białko</p>
-              <p class="text-lg font-bold text-cyan-400">20g</p>
-            </div>
-            <div class="bg-white/5 p-3 rounded">
-              <p class="text-xs text-gray-400">Węgle</p>
-              <p class="text-lg font-bold text-yellow-400">50g</p>
-            </div>
-            <div class="bg-white/5 p-3 rounded">
-              <p class="text-xs text-gray-400">Tłuszcz</p>
-              <p class="text-lg font-bold text-orange-400">8g</p>
-            </div>
-          </div>
-        </div>
-        <div>
-          <h6 class="font-bold text-white mb-2">Sposób przygotowania</h6>
-          <ol class="list-decimal list-inside text-sm space-y-1 text-gray-400">
-            <li>Odparuj w wodzie z odrobiną soli</li>
-            <li>Dodaj przyprawy: czosnek, pieprz, zioła</li>
-            <li>Smażyć na oliwie przez 3 minuty</li>
-          </ol>
-        </div>
-      `;
-    } else if (type === 'training') {
-      content.innerHTML = `
-        <div>
-          <h6 class="font-bold text-white mb-2">Instrukcja Techniki</h6>
-          <p class="text-sm text-gray-400 leading-relaxed">1. Ustaw sztangę na wysokości klatki piersiowej. 2. Wciągnij łopatkę w dół i do tyłu. 3. Wciśnij sztangę w linii prostej ponad klatką. 4. Powoli opuszczaj kontrolując ruch.</p>
-        </div>
-        <div>
-          <h6 class="font-bold text-white mb-2">Na co pomaga</h6>
-          <p class="text-sm text-gray-400">Buduje mięśnie klatki piersiowej, przedniej części ramienia i tricepsów. Świetne dla budowania masy.</p>
-        </div>
-      `;
-    }
-
-    modal.classList.remove('hidden');
-  }
-
-  function closeExpandModal() {
-    document.getElementById('expandModal').classList.add('hidden');
-  }
-
-  function swapItem() {
-    if (!state.expandedItem) return;
-    alert(`Wymiana ${state.expandedItem.name} - AI zaproponuje alternatywy (funkcja w opracowaniu)`);
-  }
-
-  // ============ MY DAY LOGIC ============
-  function showManualForm(type) {
-    state.manualFormType = type;
-    const container = document.getElementById('manualFormContainer');
-    const title = document.getElementById('manualFormTitle');
-    
-    title.textContent = type === 'diet' ? 'Dodaj Posiłek' : 'Dodaj Trening';
-    container.classList.remove('hidden');
-
-    // Clear form
-    document.getElementById('entryName').value = '';
-    document.getElementById('entryProtein').value = '';
-    document.getElementById('entryCarbs').value = '';
-    document.getElementById('entryFat').value = '';
-  }
-
-  function closeManualForm() {
-    document.getElementById('manualFormContainer').classList.add('hidden');
-  }
-
-  function addFromPlan(type) {
-    const user = state.users[state.currentUser];
-    const container = type === 'diet' ? document.getElementById('dietLogContainer') : document.getElementById('trainingLogContainer');
-
-    const mockItems = {
-      diet: [
-        { name: 'Kurczak z ryżem', protein: 35, carbs: 50, fat: 5, kcal: 450 },
-        { name: 'Sałatka grecka', protein: 15, carbs: 20, fat: 12, kcal: 250 }
-      ],
-      training: [
-        { name: 'Pompki 3x20', sets: 3, reps: 20 },
-        { name: 'Przysiad ze sztangą 4x6', sets: 4, reps: 6, weight: 120 }
-      ]
-    };
-
-    const item = mockItems[type][0];
-    const html = type === 'diet'
-      ? `<div class="glass-card p-3 flex justify-between items-start"><div><p class="text-white font-medium">${item.name}</p><p class="text-xs text-gray-500">P: ${item.protein}g | W: ${item.carbs}g | T: ${item.fat}g</p></div><button onclick="this.parentElement.parentElement.remove()" class="text-red-400 text-sm">✕</button></div>`
-      : `<div class="glass-card p-3 flex justify-between items-start"><div><p class="text-white font-medium">${item.name}</p></div><button onclick="this.parentElement.parentElement.remove()" class="text-red-400 text-sm">✕</button></div>`;
-
-    container.innerHTML = html;
-  }
-
-  document.getElementById('manualEntryForm')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const name = document.getElementById('entryName').value;
-    const protein = document.getElementById('entryProtein').value;
-    const carbs = document.getElementById('entryCarbs').value;
-    const fat = document.getElementById('entryFat').value;
-
-    const container = state.manualFormType === 'diet' ? document.getElementById('dietLogContainer') : document.getElementById('trainingLogContainer');
-    const html = state.manualFormType === 'diet'
-      ? `<div class="glass-card p-3 flex justify-between items-start"><div><p class="text-white font-medium">${name}</p><p class="text-xs text-gray-500">P: ${protein}g | W: ${carbs}g | T: ${fat}g</p></div><button onclick="this.parentElement.parentElement.remove()" class="text-red-400 text-sm">✕</button></div>`
-      : `<div class="glass-card p-3 flex justify-between items-start"><div><p class="text-white font-medium">${name}</p></div><button onclick="this.parentElement.parentElement.remove()" class="text-red-400 text-sm">✕</button></div>`;
-
-    container.innerHTML += html;
-    closeManualForm();
-  });
-
-  // ============ PROFILE HELPERS ============
-  function renderGoalsCheckboxes() {
-    const container = document.getElementById('goalsCheckboxes');
-    container.innerHTML = mockGoals.map(goal => `
-      <label class="flex items-center gap-3 p-3 bg-white/5 rounded-lg cursor-pointer hover:bg-white/10 transition-colors">
-        <input type="checkbox" class="goal-checkbox" value="${goal.id}" />
-        <span class="text-white font-medium">${goal.emoji} ${goal.label}</span>
-      </label>
-    `).join('');
-  }
-
-  function renderEquipmentCheckboxes() {
-    const container = document.getElementById('equipmentCheckboxes');
-    container.innerHTML = mockEquipment.map(equip => `
-      <label class="flex items-center gap-3 p-2 bg-white/5 rounded-lg cursor-pointer hover:bg-white/10 transition-colors">
-        <input type="checkbox" class="equipment-checkbox" value="${equip.id}" checked />
-        <span class="text-white font-medium">${equip.emoji} ${equip.label}</span>
-      </label>
-    `).join('');
-  }
-
-  function saveGoals() {
-    const selected = Array.from(document.querySelectorAll('.goal-checkbox:checked')).map(cb => cb.value);
-    state.users[state.currentUser].goals = selected;
-    alert('Cele zostały zaktualizowane!');
-  }
-
-  function savePreferences() {
-    const equipment = Array.from(document.querySelectorAll('.equipment-checkbox:checked')).map(cb => cb.value);
-    const excluded = document.getElementById('excludedFoods').value.split(',').map(s => s.trim()).filter(s => s);
-    state.users[state.currentUser].equipment = equipment;
-    state.users[state.currentUser].excludedFoods = excluded;
-    alert('Preferencje zostały zaktualizowane!');
-  }
-
-  // ============ UTILITY FUNCTIONS ============
-  function copyToClipboard(text) {
-    navigator.clipboard.writeText(text);
-    alert('Skopiowano: ' + text);
-  }
-
-  // Mobile menu toggle
-  document.getElementById('mobileMenuBtn')?.addEventListener('click', () => {
-    document.getElementById('sidebar').classList.toggle('mobile-open');
-  });
-
-  // Logout
-  document.getElementById('logoutBtn')?.addEventListener('click', () => {
-    if (confirm('Wylogować się?')) {
-      state.currentUser = null;
-      alert('Wylogowano!');
-    }
-  });
-
-  // User form submission
-  document.getElementById('userDataForm')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const user = state.users[state.currentUser];
-    user.name = document.getElementById('firstName').value || user.name;
-    user.age = parseInt(document.getElementById('age').value) || user.age;
-    user.height = parseInt(document.getElementById('height').value) || user.height;
-    user.weight = parseFloat(document.getElementById('weight').value) || user.weight;
-    user.targetWeight = parseFloat(document.getElementById('targetWeight').value) || user.targetWeight;
-    user.gender = document.getElementById('gender').value || user.gender;
-    user.allergies = document.getElementById('allergies').value || '';
-    
-    alert('Dane zostały zaktualizowane!');
-    document.getElementById('greetingName').textContent = user.name;
-  });
-
-  // ============ STARTUP ============
-  window.addEventListener('load', initApp);
-  window.addEventListener('beforeunload', () => {
-    // Save state to localStorage (in real app, save to backend)
-    localStorage.setItem('fitai_state', JSON.stringify(state));
-  });
+// Init
+window.addEventListener('load', initApp);
+window.addEventListener('beforeunload', saveState);
 </script>
 
-<!-- PWA Service Worker Registration -->
+<!-- PWA SW -->
 <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(() => {
-      console.log('Service Worker not available');
-    });
-  }
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+}
 </script>
-
 </body>
 </html>
