@@ -492,6 +492,34 @@
         <div id="exerciseSliderInfo" class="text-xs text-gray-500 text-center mt-2">Zmień liczbę i lista zaktualizuje się automatycznie</div>
       </div>
 
+      <!-- Meal Count Slider (only in diet mode) -->
+      <div id="mealSliderRow" class="glass p-5">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-base">🍽️</span>
+            <span class="text-sm font-bold text-white">Liczba posiłków w ciągu dnia</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-2xl font-bold text-cyan-400" style="font-family:'Syne',sans-serif;" id="mealCountLabel">5</span>
+            <span class="text-xs text-gray-500">posiłków</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-4 mb-3">
+          <span class="text-xs text-gray-600 w-4 text-center">2</span>
+          <input type="range" id="mealCountSlider" min="2" max="7" value="5" class="flex-1" oninput="updateMealSlider(this.value)">
+          <span class="text-xs text-gray-600 w-4 text-center">7</span>
+        </div>
+        <div class="flex justify-between px-4 mb-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-white/20" id="mpip1"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-white/20" id="mpip2"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-white/20" id="mpip3"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-white/20" id="mpip4"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-white/20" id="mpip5"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-white/20" id="mpip6"></span>
+        </div>
+        <div id="mealSliderInfo" class="text-xs text-gray-500 text-center mt-2">Zmień liczbę i dieta zaktualizuje się automatycznie</div>
+      </div>
+
       <!-- Diet Plan -->
       <div id="planDietPanel" class="space-y-4">
         <div class="glass p-6">
@@ -581,8 +609,97 @@
           <h4 class="text-lg font-bold text-white mb-3 mt-6" style="font-family:'Syne',sans-serif;">🏅 Sporty dedykowane</h4>
           <div id="sportGrid" class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4"></div>
           <h4 class="text-lg font-bold text-white mb-3 mt-6" style="font-family:'Syne',sans-serif;">💪 Priorytet partii mięśniowych</h4>
-          <p class="text-xs text-gray-500 mb-3">Wybrane partie będą miały więcej ćwiczeń w planie tygodniowym.</p>
-          <div id="muscleGrid" class="grid grid-cols-3 md:grid-cols-6 gap-3 mb-4"></div>
+          <p class="text-xs text-gray-500 mb-4">Kliknij partie na sylwetce lub na kartach. Wybrane partie dostaną więcej ćwiczeń w planie.</p>
+          
+          <!-- Body map + legend side by side -->
+          <div class="flex flex-col md:flex-row gap-6 mb-4">
+            <!-- SVG Body Map -->
+            <div class="flex-shrink-0 flex justify-center">
+              <div class="relative" style="width:160px;">
+                <svg id="bodyMapSvg" viewBox="0 0 160 340" width="160" height="340" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 0 8px rgba(0,229,255,0.08))">
+                  <!-- Background -->
+                  <defs>
+                    <radialGradient id="bodyGrad" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stop-color="#1e293b"/>
+                      <stop offset="100%" stop-color="#0a0b10"/>
+                    </radialGradient>
+                  </defs>
+
+                  <!-- HEAD -->
+                  <ellipse cx="80" cy="28" rx="20" ry="24" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+                  <!-- NECK -->
+                  <rect x="73" y="50" width="14" height="12" rx="4" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+
+                  <!-- TORSO / KLATKA -->
+                  <path id="bm-klatka" d="M52 62 Q80 58 108 62 L112 110 Q80 114 48 110 Z" fill="#1e293b" stroke="#334155" stroke-width="1.5" class="body-part cursor-pointer" onclick="toggleMuscleOnMap('klatka')" data-muscle="klatka"/>
+                  <!-- Text label -->
+                  <text x="80" y="90" text-anchor="middle" font-size="7" fill="#64748b" pointer-events="none">Klatka</text>
+
+                  <!-- BRZUCH -->
+                  <path id="bm-brzuch" d="M52 110 L48 110 L50 150 Q80 154 110 150 L112 110 Z" fill="#1e293b" stroke="#334155" stroke-width="1.5" class="body-part cursor-pointer" onclick="toggleMuscleOnMap('brzuch')" data-muscle="brzuch"/>
+                  <text x="80" y="134" text-anchor="middle" font-size="7" fill="#64748b" pointer-events="none">Brzuch</text>
+                  <!-- Abs lines -->
+                  <line x1="80" y1="112" x2="80" y2="148" stroke="#334155" stroke-width="0.8" pointer-events="none"/>
+                  <line x1="58" y1="122" x2="102" y2="122" stroke="#334155" stroke-width="0.8" pointer-events="none"/>
+                  <line x1="55" y1="134" x2="105" y2="134" stroke="#334155" stroke-width="0.8" pointer-events="none"/>
+
+                  <!-- PLECY (shown left outline) -->
+                  <path id="bm-plecy" d="M52 62 L44 64 L40 110 L50 110 L48 110 L52 62 Z" fill="#1e293b" stroke="#334155" stroke-width="1.5" class="body-part cursor-pointer" onclick="toggleMuscleOnMap('plecy')" data-muscle="plecy"/>
+                  <path d="M108 62 L116 64 L120 110 L110 110 L108 62 Z" fill="#1e293b" stroke="#334155" stroke-width="1.5" class="body-part cursor-pointer" onclick="toggleMuscleOnMap('plecy')" data-muscle="plecy"/>
+                  <text x="38" y="90" text-anchor="middle" font-size="6" fill="#64748b" pointer-events="none" transform="rotate(-15,38,90)">Plecy</text>
+
+                  <!-- RAMIONA -->
+                  <ellipse id="bm-ramiona-l" cx="36" cy="80" rx="10" ry="18" fill="#1e293b" stroke="#334155" stroke-width="1.5" class="body-part cursor-pointer" onclick="toggleMuscleOnMap('ramiona')" data-muscle="ramiona"/>
+                  <ellipse id="bm-ramiona-r" cx="124" cy="80" rx="10" ry="18" fill="#1e293b" stroke="#334155" stroke-width="1.5" class="body-part cursor-pointer" onclick="toggleMuscleOnMap('ramiona')" data-muscle="ramiona"/>
+                  <text x="80" y="78" text-anchor="middle" font-size="6" fill="#64748b" pointer-events="none" opacity="0">R</text>
+
+                  <!-- BICEPS -->
+                  <ellipse id="bm-biceps-l" cx="30" cy="108" rx="8" ry="14" fill="#1e293b" stroke="#334155" stroke-width="1.5" class="body-part cursor-pointer" onclick="toggleMuscleOnMap('biceps')" data-muscle="biceps"/>
+                  <ellipse id="bm-biceps-r" cx="130" cy="108" rx="8" ry="14" fill="#1e293b" stroke="#334155" stroke-width="1.5" class="body-part cursor-pointer" onclick="toggleMuscleOnMap('biceps')" data-muscle="biceps"/>
+
+                  <!-- TRICEPS -->
+                  <ellipse id="bm-triceps-l" cx="22" cy="130" rx="7" ry="13" fill="#1e293b" stroke="#334155" stroke-width="1.5" class="body-part cursor-pointer" onclick="toggleMuscleOnMap('triceps')" data-muscle="triceps"/>
+                  <ellipse id="bm-triceps-r" cx="138" cy="130" rx="7" ry="13" fill="#1e293b" stroke="#334155" stroke-width="1.5" class="body-part cursor-pointer" onclick="toggleMuscleOnMap('triceps')" data-muscle="triceps"/>
+
+                  <!-- FOREARMS (decorative) -->
+                  <ellipse cx="20" cy="155" rx="5" ry="12" fill="#1e293b" stroke="#2d3748" stroke-width="1"/>
+                  <ellipse cx="140" cy="155" rx="5" ry="12" fill="#1e293b" stroke="#2d3748" stroke-width="1"/>
+
+                  <!-- POŚLADKI -->
+                  <path id="bm-posladki" d="M50 150 Q80 154 110 150 L114 175 Q80 182 46 175 Z" fill="#1e293b" stroke="#334155" stroke-width="1.5" class="body-part cursor-pointer" onclick="toggleMuscleOnMap('pośladki')" data-muscle="pośladki"/>
+                  <text x="80" y="168" text-anchor="middle" font-size="7" fill="#64748b" pointer-events="none">Pośladki</text>
+
+                  <!-- NOGI -->
+                  <rect id="bm-nogi-ll" x="52" y="175" width="24" height="70" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5" class="body-part cursor-pointer" onclick="toggleMuscleOnMap('nogi')" data-muscle="nogi"/>
+                  <rect id="bm-nogi-rl" x="84" y="175" width="24" height="70" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5" class="body-part cursor-pointer" onclick="toggleMuscleOnMap('nogi')" data-muscle="nogi"/>
+                  <text x="64" y="215" text-anchor="middle" font-size="7" fill="#64748b" pointer-events="none">Nogi</text>
+                  <text x="96" y="215" text-anchor="middle" font-size="7" fill="#64748b" pointer-events="none">Nogi</text>
+
+                  <!-- CALVES (decorative) -->
+                  <rect x="54" y="248" width="20" height="40" rx="6" fill="#1e293b" stroke="#2d3748" stroke-width="1"/>
+                  <rect x="86" y="248" width="20" height="40" rx="6" fill="#1e293b" stroke="#2d3748" stroke-width="1"/>
+
+                  <!-- CORE overlay on abdomen -->
+                  <path id="bm-core" d="M63 112 L63 148 Q80 151 97 148 L97 112 Z" fill="transparent" stroke="transparent" class="body-part cursor-pointer" onclick="toggleMuscleOnMap('core')" data-muscle="core"/>
+
+                  <!-- Muscle labels on sides -->
+                  <text x="28" y="110" text-anchor="middle" font-size="5.5" fill="#64748b" pointer-events="none">Biceps</text>
+                  <text x="132" y="110" text-anchor="middle" font-size="5.5" fill="#64748b" pointer-events="none">Biceps</text>
+                  <text x="20" y="133" text-anchor="middle" font-size="5.5" fill="#64748b" pointer-events="none">Tri</text>
+                  <text x="140" y="133" text-anchor="middle" font-size="5.5" fill="#64748b" pointer-events="none">Tri</text>
+                  <text x="36" y="83" text-anchor="middle" font-size="5.5" fill="#64748b" pointer-events="none">Bark</text>
+                  <text x="124" y="83" text-anchor="middle" font-size="5.5" fill="#64748b" pointer-events="none">Bark</text>
+                </svg>
+                <div class="text-center mt-2 text-xs text-gray-600">Kliknij partie na sylwetce</div>
+              </div>
+            </div>
+
+            <!-- Muscle cards grid -->
+            <div class="flex-1">
+              <div id="muscleGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3"></div>
+              <div id="muscleMapTooltip" class="hidden text-xs text-cyan-400 font-bold mt-2 text-center py-1.5 px-3 rounded-lg bg-cyan-500/10 border border-cyan-500/20"></div>
+            </div>
+          </div>
           <button onclick="saveGoals()" class="btn-neon px-6 py-2 rounded-xl font-bold text-sm">Zapisz cele</button>
         </div>
       </div>
@@ -841,16 +958,23 @@ const MEAL_DB = {
 const EXERCISE_DB = {
   klatka: [
     {name:'Wyciskanie sztangi leżąc',sets:4,reps:6,weight:80,tags:['sztanga','lawka'],muscles:'klatka piersiowa, trójgłowy',desc:'Połóż się na ławce. Trzymaj sztangę na szerokość barków. Opuszczaj do klatki i wypychaj dynamicznie.'},
-    {name:'Wyciskanie hantli leżąc',sets:4,reps:8,weight:30,tags:['hantle','lawka'],muscles:'klatka piersiowa',desc:'Połóż się na ławce z hantlami. Rozciągnij klatke i wyciskaj do góry.'},
+    {name:'Wyciskanie hantli leżąc',sets:4,reps:8,weight:30,tags:['hantle','lawka'],muscles:'klatka piersiowa',desc:'Połóż się na ławce z hantlami. Rozciągnij klatkę i wyciskaj do góry.'},
     {name:'Pompki',sets:4,reps:20,weight:0,tags:[],muscles:'klatka, trójgłowy',desc:'Pozycja pompki. Opuszczaj ciało do 2cm od podłogi. Dynamicznie się unoś.'},
     {name:'Rozpiętki na maszynie',sets:3,reps:12,weight:40,tags:['kable'],muscles:'klatka piersiowa',desc:'Stań pośrodku wyciągów. Złącz uchwyty przed klatką utrzymując łokcie lekko ugięte.'},
     {name:'Wyciskanie na maszynie',sets:3,reps:12,weight:60,tags:['kable'],muscles:'klatka piersiowa',desc:'Siedź stabilnie. Wyciskaj uchwyty do przodu kontrolując ruch powrotny.'},
+    {name:'Wyciskanie hantli na skosie',sets:4,reps:10,weight:24,tags:['hantle','lawka'],muscles:'górna klatka',desc:'Ławka ustawiona pod kątem 30-45°. Wyciskaj hantle ponad głowę skupiając się na górnej klatce.'},
+    {name:'Rozpiętki z hantlami leżąc',sets:3,reps:12,weight:16,tags:['hantle','lawka'],muscles:'klatka piersiowa',desc:'Leż na ławce, hantle nad klatką. Opuszczaj szeroko w bok z lekko ugiętymi łokciami.'},
+    {name:'Pompki diamentowe',sets:3,reps:15,weight:0,tags:[],muscles:'klatka, triceps',desc:'Dłonie ułożone w diament pod klatką. Pompki angażujące bardziej triceps i wewnętrzną klatkę.'},
   ],
   plecy: [
     {name:'Wiosłowanie sztangą',sets:4,reps:8,weight:70,tags:['sztanga'],muscles:'plecy, bicepsy',desc:'Pochyl się 45°. Wiosłuj sztangę do pasa. Ściskaj łopatki w górze ruchu.'},
     {name:'Podciąganie na drążku',sets:4,reps:8,weight:0,tags:['drążek'],muscles:'plecy, bicepsy',desc:'Chwyć drążek nachwytem. Podciągnij klatkę do drążka. Kontroluj zejście.'},
     {name:'Wiosłowanie hantlem',sets:3,reps:10,weight:25,tags:['hantle','lawka'],muscles:'plecy',desc:'Oprzyj kolano i rękę na ławce. Wiosłuj hantlem do biodra.'},
-    {name:'Ściąganie liny na kable',sets:3,reps:12,weight:50,tags:['kable'],muscles:'plecy',desc:'Siedź przed kable maszyną. Ściągaj uchwyt do klatki.'},
+    {name:'Ściąganie liny na kable',sets:3,reps:12,weight:50,tags:['kable'],muscles:'plecy',desc:'Siedź przed maszyną kablową. Ściągaj uchwyt do klatki.'},
+    {name:'Podciąganie podchwytem',sets:4,reps:8,weight:0,tags:['drążek'],muscles:'plecy, bicepsy',desc:'Chwyć drążek podchwytem (dłonie do siebie). Podciągnij klatkę do drążka.'},
+    {name:'Ściąganie drążka na kable',sets:3,reps:12,weight:55,tags:['kable'],muscles:'plecy szerokie',desc:'Siedź pod wyciągiem górnym. Ściągaj drążek do klatki trzymając plecy wyprostowane.'},
+    {name:'Martwy ciąg rumuński',sets:4,reps:10,weight:60,tags:['sztanga'],muscles:'plecy dolne, nogi',desc:'Nogi lekko ugięte, plecy proste. Opuszczaj sztangę wzdłuż nóg napinając lędźwie.'},
+    {name:'Face Pull na kable',sets:3,reps:15,weight:20,tags:['kable'],muscles:'tył ramion, plecy górne',desc:'Wyciąg ustawiony na wysokości twarzy. Ściągaj linę do twarzy rozdzielając dłonie.'},
   ],
   nogi: [
     {name:'Przysiad ze sztangą',sets:5,reps:5,weight:100,tags:['sztanga'],muscles:'nogi, pośladki',desc:'Sztanga na barkach. Zejdź do równoległości ud. Wyjdź dynamicznie wciskając pięty.'},
@@ -858,23 +982,90 @@ const EXERCISE_DB = {
     {name:'Wykroki z hantlami',sets:3,reps:12,weight:16,tags:['hantle'],muscles:'nogi, pośladki',desc:'Trzymaj hantle. Wykonaj duży krok do przodu. Zegnij oba kolana do 90°.'},
     {name:'Martwy ciąg',sets:4,reps:6,weight:120,tags:['sztanga'],muscles:'plecy, nogi',desc:'Stopy na szerokość bioder. Chwyć sztangę. Unoś trzymając plecy prosto.'},
     {name:'Przysiady bułgarskie',sets:3,reps:10,weight:20,tags:['hantle','lawka'],muscles:'nogi',desc:'Tylna noga na ławce. Zegnij przednią nogę w kolanie i wróć.'},
+    {name:'Prostowanie nóg na maszynie',sets:4,reps:12,weight:50,tags:['kable'],muscles:'czworogłowy',desc:'Siedź na maszynie. Prostuj nogi do pełnego wyprostu kontrolując ruch powrotny.'},
+    {name:'Uginanie nóg leżąc',sets:4,reps:12,weight:40,tags:['kable'],muscles:'dwugłowy uda',desc:'Leż na maszynie do uginania nóg. Uginaj nogi ku pośladkom kontrolując każdą fazę.'},
+    {name:'Wspięcia na palce',sets:4,reps:20,weight:40,tags:['kable'],muscles:'łydki',desc:'Stój na platformie. Unoś się na palcach maksymalnie wysoko i opuszczaj powoli.'},
+    {name:'Przysiad z hantlami goblet',sets:3,reps:12,weight:24,tags:['hantle'],muscles:'nogi, pośladki',desc:'Trzymaj jedną hantlę oburącz przed klatką. Schodź głęboko w przysiad.'},
   ],
   ramiona: [
     {name:'Uginanie ramion ze sztangą',sets:4,reps:10,weight:40,tags:['sztanga'],muscles:'bicepsy',desc:'Chwyć sztangę podchwytem. Ugiaj ramiona kontrolując ruch obu faz.'},
     {name:'Uginanie z hantlami naprzemiennie',sets:3,reps:12,weight:14,tags:['hantle'],muscles:'bicepsy',desc:'Naprzemiennie uginaj ramiona. Trzymaj łokcie przy tułowiu.'},
     {name:'Francuskie wyciskanie',sets:3,reps:12,weight:30,tags:['sztanga','lawka'],muscles:'tricepsy',desc:'Połóż się na ławce. Trzymaj sztangę nad głową i uginaj ramiona w łokciach.'},
     {name:'Prostowanie ramion na linie',sets:3,reps:15,weight:30,tags:['kable'],muscles:'tricepsy',desc:'Stań przed wyciągiem. Prostuj ramiona w dół trzymając łokcie nieruchomo.'},
+    {name:'Hammer Curl z hantlami',sets:3,reps:12,weight:14,tags:['hantle'],muscles:'bicepsy, przedramiona',desc:'Chwyć hantle z kciukiem skierowanym do góry. Uginaj naprzemiennie kontrolując ruch.'},
+    {name:'Pompki na triceps (wąski chwyt)',sets:3,reps:15,weight:0,tags:[],muscles:'tricepsy',desc:'Dłonie na szerokość ramion. Pompki angażujące głównie triceps.'},
+    {name:'Uginanie na maszynie',sets:3,reps:12,weight:35,tags:['kable'],muscles:'bicepsy',desc:'Usiądź przy maszynie. Ugiaj ramiona utrzymując stabilne łokcie.'},
+    {name:'Wyciskanie francuskie z hantlem',sets:3,reps:12,weight:20,tags:['hantle'],muscles:'tricepsy',desc:'Stój lub siedź. Trzymaj hantlę oburącz za głową i prostuj ramiona.'},
   ],
   kardio: [
     {name:'Bieganie 5km',sets:1,reps:1,weight:0,tags:['bieganie'],muscles:'kardio',desc:'Utrzymuj stałe tempo. Cel: 25-30 min. Rozgrzewka marsz 5 min.'},
     {name:'HIIT 20 min',sets:8,reps:1,weight:0,tags:['HIIT'],muscles:'całe ciało',desc:'30s intensywnie, 30s odpoczynek. Powtórz 8-10 razy.'},
     {name:'Rower stacjonarny 30 min',sets:1,reps:1,weight:0,tags:[],muscles:'nogi, kardio',desc:'Utrzymuj 70% max tętna. Zmieniaj opór co 5 min.'},
     {name:'Skakanka 15 min',sets:3,reps:1,weight:0,tags:[],muscles:'kardio, koordynacja',desc:'3 rundy po 5 min. Zmieniaj technikę: oburącz, naprzemiennie.'},
+    {name:'Interwały biegowe',sets:6,reps:1,weight:0,tags:['bieganie'],muscles:'kardio, nogi',desc:'6x 400m w szybkim tempie z 90s przerwy między powtórzeniami.'},
+    {name:'Eliptical 25 min',sets:1,reps:1,weight:0,tags:[],muscles:'kardio, całe ciało',desc:'Utrzymuj stałe tempo na urządzeniu eliptycznym. Idealne dla stawów.'},
+    {name:'Burpees',sets:4,reps:15,weight:0,tags:['HIIT'],muscles:'całe ciało',desc:'Skok w górę → pompka → wstań. 4 serie po 15 powtórzeń z 60s przerwy.'},
+    {name:'Bieganie 3km tempo',sets:1,reps:1,weight:0,tags:['bieganie'],muscles:'kardio',desc:'Biegnij 3km w szybkim, kontrolowanym tempie. Skupiaj się na oddechu.'},
   ],
   core: [
     {name:'Deska (Plank)',sets:3,reps:1,weight:0,tags:['mata'],muscles:'brzuch, core',desc:'Połóż się na przedramionach. Utrzymaj proste ciało 30-60 sekund.'},
     {name:'Russian Twist',sets:3,reps:20,weight:5,tags:['mata'],muscles:'skośne brzucha',desc:'Siedź z uniesionymi nogami. Skręcaj tułów na boki z hantlem.'},
     {name:'Brzuszki rowerowe',sets:3,reps:20,weight:0,tags:['mata'],muscles:'prostownik, skośne',desc:'Leż na plecach. Naprzemiennie przyciągaj kolano do przeciwnego łokcia.'},
+    {name:'Hollow Body Hold',sets:3,reps:1,weight:0,tags:['mata'],muscles:'core, brzuch',desc:'Leż na plecach. Unieś nogi i ramiona. Utrzymaj ciało w kształcie bananowym 30s.'},
+    {name:'Ab Wheel',sets:3,reps:10,weight:0,tags:[],muscles:'core, brzuch',desc:'Klęcz z kołkiem ab wheel. Toczysz do przodu kontrolując napięcie core.'},
+    {name:'Leg Raises',sets:3,reps:15,weight:0,tags:['mata'],muscles:'dolny brzuch',desc:'Leż na plecach. Unoś proste nogi do pionu. Opuszczaj powoli bez dotykania podłogi.'},
+    {name:'Deska boczna',sets:3,reps:1,weight:0,tags:['mata'],muscles:'skośne brzucha',desc:'Oprzyj się na jednym przedramieniu. Utrzymaj ciało w linii prostej 30-45s. Zmień stronę.'},
+    {name:'Mountain Climbers',sets:3,reps:20,weight:0,tags:['mata'],muscles:'core, kardio',desc:'Pozycja pompki. Naprzemiennie przyciągaj kolana do klatki w szybkim tempie.'},
+  ],
+  brzuch: [
+    {name:'Brzuszki klasyczne',sets:3,reps:25,weight:0,tags:['mata'],muscles:'brzuch',desc:'Leż na plecach z ugiętymi kolanami. Unoś tułów do kolan. Kontroluj ruch.'},
+    {name:'Deska (Plank)',sets:3,reps:1,weight:0,tags:['mata'],muscles:'core, brzuch',desc:'Utrzymaj pozycję deski 30-60 sekund. Zachowaj napięcie całego ciała.'},
+    {name:'Leg Raises',sets:3,reps:15,weight:0,tags:['mata'],muscles:'dolny brzuch',desc:'Leż na plecach. Unoś proste nogi do pionu i opuszczaj kontrolując tempo.'},
+    {name:'Russian Twist',sets:3,reps:20,weight:5,tags:['mata'],muscles:'skośne brzucha',desc:'Siedź z uniesionymi nogami. Skręcaj tułów na boki z hantlem lub bez.'},
+    {name:'Brzuszki rowerowe',sets:3,reps:20,weight:0,tags:['mata'],muscles:'prostownik, skośne',desc:'Naprzemiennie przyciągaj kolano do przeciwnego łokcia dynamicznie.'},
+    {name:'Dragon Flag',sets:3,reps:8,weight:0,tags:['lawka'],muscles:'cały brzuch',desc:'Leż na ławce trzymając oparcie za głową. Unoś nogi i tułów w jednej linii i opuszczaj.'},
+    {name:'V-ups',sets:3,reps:15,weight:0,tags:['mata'],muscles:'cały brzuch',desc:'Leż na plecach. Jednocześnie unoś nogi i tułów tworząc literę V i wracaj.'},
+    {name:'Hollow Body Hold',sets:3,reps:1,weight:0,tags:['mata'],muscles:'core, brzuch',desc:'Unieś jednocześnie nogi i ramiona nad podłogę. Utrzymaj napięcie 30s.'},
+  ],
+  biceps: [
+    {name:'Uginanie ze sztangą',sets:4,reps:10,weight:40,tags:['sztanga'],muscles:'bicepsy',desc:'Klasyczne uginanie ze sztangą. Trzymaj łokcie przy tułowiu.'},
+    {name:'Uginanie z hantlami naprzemiennie',sets:3,reps:12,weight:14,tags:['hantle'],muscles:'bicepsy',desc:'Naprzemiennie uginaj ramiona supinując nadgarstek w góry ruchu.'},
+    {name:'Hammer Curl',sets:3,reps:12,weight:14,tags:['hantle'],muscles:'bicepsy, brachialis',desc:'Uginanie z kciukiem skierowanym do góry. Angażuje głębszą część bicepsa.'},
+    {name:'Uginanie na kable',sets:3,reps:15,weight:20,tags:['kable'],muscles:'bicepsy',desc:'Stań przy wyciągu dolnym. Ugiaj ramiona do barku utrzymując łokcie nieruchomo.'},
+    {name:'Scott Curl na maszynie',sets:3,reps:12,weight:30,tags:['kable'],muscles:'bicepsy',desc:'Oprzyj łokcie na podkładce. Ugiaj ramiona do pełnego zakresu.'},
+    {name:'Koncentrowane uginanie',sets:3,reps:12,weight:12,tags:['hantle'],muscles:'bicepsy (szczyt)',desc:'Siedź. Oprzyj łokieć o wewnętrzną część uda. Ugiaj ramię do maksimum.'},
+    {name:'Uginanie na drążku podchwytem',sets:3,reps:8,weight:0,tags:['drążek'],muscles:'bicepsy',desc:'Chwyć drążek podchwytem. Podciągnij się angażując głównie bicepsy.'},
+    {name:'Uginanie z kettlebell',sets:3,reps:12,weight:16,tags:['kettlebell'],muscles:'bicepsy',desc:'Uginaj ramię z kettlebellem. Utrzymaj łokieć blisko tułowia.'},
+  ],
+  triceps: [
+    {name:'Prostowanie na linie',sets:3,reps:15,weight:30,tags:['kable'],muscles:'tricepsy',desc:'Stań przed wyciągiem. Prostuj ramiona w dół trzymając łokcie nieruchomo przy tułowiu.'},
+    {name:'Francuskie wyciskanie',sets:3,reps:12,weight:30,tags:['sztanga','lawka'],muscles:'tricepsy',desc:'Leż na ławce. Opuszczaj sztangę ku czołu zginając łokcie. Prostuj dynamicznie.'},
+    {name:'Wyciskanie wąskim chwytem',sets:4,reps:10,weight:60,tags:['sztanga','lawka'],muscles:'tricepsy, klatka',desc:'Wyciskanie sztangi wąskim chwytem (30cm). Łokcie blisko tułowia.'},
+    {name:'Pompki na triceps',sets:3,reps:15,weight:0,tags:[],muscles:'tricepsy',desc:'Dłonie na szerokość ramion. Opuszczaj łokcie blisko ciała.'},
+    {name:'Skull Crushers z hantlami',sets:3,reps:12,weight:12,tags:['hantle','lawka'],muscles:'tricepsy',desc:'Leż na ławce. Trzymaj hantle ponad klatką. Uginaj ramiona w łokciach ku twarzy.'},
+    {name:'Kick Back z hantlem',sets:3,reps:15,weight:10,tags:['hantle'],muscles:'tricepsy (głowa długa)',desc:'Pochyl się. Trzymaj łokieć przy tułowiu. Prostuj ramię do tyłu i wróć.'},
+    {name:'Dipy na poręczach',sets:3,reps:12,weight:0,tags:[],muscles:'tricepsy, klatka',desc:'Chwyć poręcze. Zegnij łokcie i obniż ciało. Wyprostuj dynamicznie.'},
+    {name:'Overhead triceps extension',sets:3,reps:12,weight:20,tags:['hantle'],muscles:'tricepsy (głowa długa)',desc:'Stój. Trzymaj hantlę oburącz za głową. Prostuj ramiona w górę.'},
+  ],
+  ramiona: [
+    {name:'Wyciskanie żołnierskie',sets:4,reps:8,weight:50,tags:['sztanga'],muscles:'barki, tricepsy',desc:'Stój. Wyciskaj sztangę nad głowę z pozycji na klatce. Trzymaj core napięte.'},
+    {name:'Lateral Raise (odwodzenie bokiem)',sets:3,reps:15,weight:10,tags:['hantle'],muscles:'barki boczne',desc:'Stój. Unoś hantle na boki do wysokości ramion z lekko ugiętymi łokciami.'},
+    {name:'Front Raise',sets:3,reps:12,weight:10,tags:['hantle'],muscles:'barki przednie',desc:'Stój. Unoś hantle przed siebie do wysokości ramion trzymając ręce proste.'},
+    {name:'Arnoldpress',sets:3,reps:12,weight:16,tags:['hantle'],muscles:'barki całe',desc:'Siedź. Zacznij z hantlami na wysokości twarzy. Wyciskaj rotując dłonie w górę.'},
+    {name:'Uginanie ramion ze sztangą',sets:4,reps:10,weight:40,tags:['sztanga'],muscles:'bicepsy',desc:'Chwyć sztangę podchwytem. Ugiaj ramiona kontrolując ruch obu faz.'},
+    {name:'Uginanie z hantlami naprzemiennie',sets:3,reps:12,weight:14,tags:['hantle'],muscles:'bicepsy',desc:'Naprzemiennie uginaj ramiona. Trzymaj łokcie przy tułowiu.'},
+    {name:'Francuskie wyciskanie',sets:3,reps:12,weight:30,tags:['sztanga','lawka'],muscles:'tricepsy',desc:'Połóż się na ławce. Trzymaj sztangę nad głową i uginaj ramiona w łokciach.'},
+    {name:'Prostowanie ramion na linie',sets:3,reps:15,weight:30,tags:['kable'],muscles:'tricepsy',desc:'Stań przed wyciągiem. Prostuj ramiona w dół trzymając łokcie nieruchomo.'},
+  ],
+  pośladki: [
+    {name:'Hip Thrust ze sztangą',sets:4,reps:12,weight:80,tags:['sztanga','lawka'],muscles:'pośladki',desc:'Oprzyj plecy o ławkę. Sztanga na biodrach. Unoś biodra do góry ściskając pośladki.'},
+    {name:'Sumo Deadlift',sets:4,reps:8,weight:80,tags:['sztanga'],muscles:'pośladki, uda wewnętrzne',desc:'Szeroka postawa, palce na zewnątrz. Unoś sztangę trzymając plecy prosto.'},
+    {name:'Wykroki bułgarskie',sets:3,reps:12,weight:20,tags:['hantle','lawka'],muscles:'pośladki, nogi',desc:'Tylna noga na ławce. Zegnij przednią nogę skupiając się na pośladkach.'},
+    {name:'Odpychanie nogi na kable',sets:3,reps:15,weight:20,tags:['kable'],muscles:'pośladki',desc:'Stań przy wyciągu dolnym. Odpychaj nogę do tyłu prostując biodro.'},
+    {name:'Przysiad sumo z hantlem',sets:3,reps:15,weight:24,tags:['hantle'],muscles:'pośladki, uda wewnętrzne',desc:'Szeroka postawa. Trzymaj hantlę między nogami. Schodź głęboko w przysiad.'},
+    {name:'Mostek biodrowy (glute bridge)',sets:4,reps:20,weight:0,tags:['mata'],muscles:'pośladki',desc:'Leż na plecach. Unoś biodra ściskając pośladki w górze. Nie wolno wyginać kręgosłupa.'},
+    {name:'Abdukcja na maszynie',sets:3,reps:20,weight:40,tags:['kable'],muscles:'pośladki boczne',desc:'Siedź na maszynie abdukcji. Rozpychaj nogi na zewnątrz ściskając pośladki.'},
+    {name:'Step-up z hantlami',sets:3,reps:12,weight:16,tags:['hantle','lawka'],muscles:'pośladki, nogi',desc:'Wejdź na ławkę krokiem, pchając przez piętę. Naprzemiennie zmieniaj nogi.'},
   ],
 };
 
@@ -927,17 +1118,56 @@ const PLAN_TEMPLATES = {
   }
 };
 
-function generateMealsForDay(mealsCount, exclusions) {
-  const types = ['śniadanie','przekąska','obiad','przekąska','kolacja','przekąska','kolacja','obiad'];
+function generateMealsForDay(mealsCount, exclusions, profile) {
+  // Meal type sequence adapted to number of meals
+  const mealSequences = {
+    2: ['śniadanie','kolacja'],
+    3: ['śniadanie','obiad','kolacja'],
+    4: ['śniadanie','przekąska','obiad','kolacja'],
+    5: ['śniadanie','przekąska','obiad','przekąska','kolacja'],
+    6: ['śniadanie','przekąska','obiad','przekąska','kolacja','przekąska'],
+    7: ['śniadanie','przekąska','obiad','przekąska','kolacja','przekąska','kolacja'],
+  };
+  const types = mealSequences[Math.min(Math.max(mealsCount,2),7)] || mealSequences[5];
   const used = new Set();
   const result = [];
-  for (let i = 0; i < mealsCount && i < types.length; i++) {
+
+  // Determine diet preferences from profile
+  const dietType = (profile && profile.dietType) || 'standard';
+  const goal = ((profile && profile.goal) || '').toLowerCase();
+  const isHighProtein = dietType === 'highprotein' || goal.includes('masa') || goal.includes('musku') || goal.includes('siła');
+  const isVegan = dietType === 'vegan';
+  const isKeto = dietType === 'keto';
+  const isReduction = goal.includes('redukcj') || goal.includes('odchudzani') || goal.includes('schud');
+
+  // Tag exclusions based on diet
+  const dietTagExclusions = [];
+  if (isVegan) dietTagExclusions.push('kurczak','jajka','nabiał','ryby');
+  if (isKeto) dietTagExclusions.push('ryż','owies','gluten');
+
+  const allExclusions = [...(exclusions||[]), ...dietTagExclusions];
+
+  // Score meals based on profile goals
+  const scoreMeal = (m) => {
+    let score = Math.random(); // base randomness
+    if (isHighProtein && m.protein >= 25) score += 1.5;
+    if (isHighProtein && m.protein >= 35) score += 1.0;
+    if (isReduction && m.kcal < 300) score += 1.0;
+    if (isReduction && m.kcal > 450) score -= 0.5;
+    if (isKeto && m.fat > 15 && m.carbs < 10) score += 1.5;
+    if (isVegan && !m.tags.some(t => ['kurczak','jajka','nabiał','ryby'].includes(t))) score += 1.0;
+    return score;
+  };
+
+  for (let i = 0; i < types.length; i++) {
     const type = types[i];
-    const pool = (MEAL_DB[type] || MEAL_DB.przekąska).filter(m => {
-      const hidden = (exclusions||[]).some(ex => (m.tags||[]).some(t => t.includes(ex) || ex.includes(t)));
-      return !hidden && !used.has(m.name);
-    });
-    const meal = pool[Math.floor(Math.random() * pool.length)] || pool[0];
+    const pool = (MEAL_DB[type] || MEAL_DB.przekąska)
+      .filter(m => {
+        const hidden = allExclusions.some(ex => (m.tags||[]).some(t => t.includes(ex) || ex.includes(t)));
+        return !hidden && !used.has(m.name);
+      })
+      .sort((a, b) => scoreMeal(b) - scoreMeal(a));
+    const meal = pool[0] || (MEAL_DB[type]||[])[0]; // fallback ignoring diet filters
     if (meal) { used.add(meal.name); result.push({...meal, id: 'm'+i, type}); }
   }
   return result;
@@ -947,20 +1177,51 @@ function generateExercisesForDay(muscleGroups, equipmentAvailable, exclusions, c
   if (!muscleGroups || muscleGroups.length === 0) return [];
   const result = [];
   const used = new Set();
-  for (const group of muscleGroups) {
-    const pool = (EXERCISE_DB[group] || []).filter(e => {
-      const hidden = (exclusions||[]).some(ex => (e.tags||[]).some(t => t.includes(ex)));
-      const equipOk = e.tags.length === 0 || e.tags.every(t => {
-        if (t === 'mata' || t === 'lawka') return true;
-        return (equipmentAvailable||[]).some(eq => eq === t || t.includes(eq) || eq.includes(t));
-      });
-      return !hidden && equipOk && !used.has(e.name);
+
+  const filterPool = (group) => (EXERCISE_DB[group] || []).filter(e => {
+    const hidden = (exclusions||[]).some(ex => (e.tags||[]).some(t => t.includes(ex)));
+    const equipOk = e.tags.length === 0 || e.tags.every(t => {
+      if (t === 'mata' || t === 'lawka') return true;
+      return (equipmentAvailable||[]).some(eq => eq === t || t.includes(eq) || eq.includes(t));
     });
-    const pick = Math.min(Math.ceil(count / muscleGroups.length), pool.length);
-    for (let i = 0; i < pick; i++) {
-      if (pool[i]) { used.add(pool[i].name); result.push({...pool[i], id: 'e'+result.length}); }
+    return !hidden && equipOk;
+  });
+
+  // Build filtered pools for requested groups + fallback all groups
+  const pools = {};
+  for (const group of Object.keys(EXERCISE_DB)) {
+    pools[group] = filterPool(group);
+  }
+
+  // Pass 1+2: round-robin requested muscle groups
+  for (let pass = 0; pass < 3 && result.length < count; pass++) {
+    for (const group of muscleGroups) {
+      if (result.length >= count) break;
+      const candidate = (pools[group]||[]).find(e => !used.has(e.name));
+      if (candidate) { used.add(candidate.name); result.push({...candidate, id:'e'+result.length}); }
     }
   }
+
+  // Pass 3+: fall back to ANY remaining group to fill up to count
+  if (result.length < count) {
+    const fallbackGroups = Object.keys(EXERCISE_DB).filter(g => !muscleGroups.includes(g));
+    for (const group of fallbackGroups) {
+      if (result.length >= count) break;
+      const candidate = (pools[group]||[]).find(e => !used.has(e.name));
+      if (candidate) { used.add(candidate.name); result.push({...candidate, id:'e'+result.length}); }
+    }
+    // Final pass: allow repeats from primary groups if still short
+    let safetyPass = 0;
+    while (result.length < count && safetyPass < 5) {
+      for (const group of muscleGroups) {
+        if (result.length >= count) break;
+        const candidate = (pools[group]||[]).find(e => !used.has(e.name));
+        if (candidate) { used.add(candidate.name); result.push({...candidate, id:'e'+result.length}); }
+      }
+      safetyPass++;
+    }
+  }
+
   return result.slice(0, count);
 }
 
@@ -970,32 +1231,71 @@ function generateFullPlanForProfile(profile) {
   const mealsN = profile.mealsPerDay || 5;
   const goals = profile.goals || [];
   const sports = profile.sports || [];
-  
-  // Pick template
+  const goal = (profile.goal || '').toLowerCase();
+  const muscleFocus = profile.muscleFocus || [];
+
+  // ---- TRAINING TEMPLATE SELECTION ----
+  // Priority: sports > goals > goal text > default
   let templateKey = 'default';
   if (sports.includes('basketball')) templateKey = 'basketball';
   else if (sports.includes('running')) templateKey = 'running';
+  else if (sports.includes('swimming')) templateKey = 'cardio';
+  else if (sports.includes('cycling')) templateKey = 'cardio';
   else if (goals.includes('cardio')) templateKey = 'cardio';
+  else if (goals.includes('mobility')) templateKey = 'cardio'; // mobility → more cardio + core
   else if (goals.includes('strength') || goals.includes('mass')) templateKey = 'strength';
+  else if (goal.includes('redukcj') || goal.includes('odchudzani')) templateKey = 'cardio';
+  else if (goal.includes('masa') || goal.includes('siła')) templateKey = 'strength';
 
-  // Override muscle groups with user's focus areas if set
-  const muscleFocus = profile.muscleFocus || [];
+  // ---- TRAINING FREQUENCY ADAPTATION ----
+  // Adjust rest days based on user's frequency preference
+  const freq = profile.frequency || '3-4';
   const template = JSON.parse(JSON.stringify(PLAN_TEMPLATES[templateKey]));
+
+  if (freq === 'sedentaryczny' || freq === '1-2') {
+    // Only 2 training days (Mon, Thu), rest stays empty
+    const activeDays = ['Pon','Czw'];
+    for (const d of ['Wt','Śr','Pt','Sob','Niedz']) template[d] = [];
+    if (!template['Pon'] || template['Pon'].length === 0) template['Pon'] = ['klatka','plecy'];
+    if (!template['Czw'] || template['Czw'].length === 0) template['Czw'] = ['nogi','core'];
+  } else if (freq === '5-6' || freq === 'codziennie') {
+    // Fill in rest days with light sessions
+    const restDays = Object.keys(template).filter(d => template[d].length === 0);
+    const lightOptions = [['core','kardio'],['ramiona','core'],['kardio'],['core'],['brzuch','kardio']];
+    restDays.slice(0, freq === 'codziennie' ? restDays.length : restDays.length - 1).forEach((d, i) => {
+      template[d] = lightOptions[i % lightOptions.length];
+    });
+  }
+
+  // ---- MUSCLE FOCUS INJECTION ----
   if (muscleFocus.length > 0) {
-    // Inject priority muscles into training days (Mon, Wed, Fri)
-    ['Pon','Śr','Pt'].forEach(d => {
-      if (template[d] && template[d].length > 0) {
-        // Prepend focus muscles so they get more exercises
-        template[d] = [...muscleFocus.filter(m => EXERCISE_DB[m]), ...template[d]].slice(0, 3);
+    // Prioritize focus muscles on main training days
+    const trainingDays = Object.keys(template).filter(d => template[d].length > 0);
+    trainingDays.forEach((d, idx) => {
+      const focusForDay = muscleFocus.filter(m => EXERCISE_DB[m]);
+      if (focusForDay.length > 0) {
+        // Rotate focus muscles across days so each day gets coverage
+        const primaryFocus = focusForDay[idx % focusForDay.length];
+        template[d] = [...new Set([primaryFocus, ...template[d]])].slice(0, 3);
       }
     });
   }
-  
+
+  // ---- EXERCISE COUNT FROM FREQUENCY ----
+  const freqExerciseCount = {
+    'sedentaryczny': Math.min(state.exerciseCount, 3),
+    '1-2': Math.min(state.exerciseCount, 4),
+    '3-4': state.exerciseCount,
+    '5-6': state.exerciseCount,
+    'codziennie': state.exerciseCount,
+  }[freq] || state.exerciseCount;
+
+  // ---- PLAN GENERATION ----
   const dietPlan = {}, trainingPlan = {};
   for (const day of ['Pon','Wt','Śr','Czw','Pt','Sob','Niedz']) {
-    dietPlan[day] = generateMealsForDay(mealsN, excl);
+    dietPlan[day] = generateMealsForDay(mealsN, excl, profile);
     const muscles = template[day] || [];
-    trainingPlan[day] = generateExercisesForDay(muscles, equip, excl, state.exerciseCount);
+    trainingPlan[day] = generateExercisesForDay(muscles, equip, excl, freqExerciseCount);
   }
   return { dietPlan, trainingPlan };
 }
@@ -1316,6 +1616,10 @@ function showTab(tabId) {
       const slider = document.getElementById('exerciseCountSlider');
       if (slider) slider.value = state.exerciseCount;
       updateExerciseSlider(state.exerciseCount);
+    } else {
+      const p = getCurrentProfile();
+      const mSlider = document.getElementById('mealCountSlider');
+      if (mSlider) { mSlider.value = p.mealsPerDay || 5; updateMealSlider(p.mealsPerDay || 5, false); }
     }
   }
   if (tabId==='profile') renderProfileTabs();
@@ -1334,6 +1638,7 @@ function switchPlanSubtab(sub) {
   document.getElementById('planDietPanel').classList.toggle('hidden', sub!=='diet');
   document.getElementById('planTrainingPanel').classList.toggle('hidden', sub!=='training');
   document.getElementById('exerciseSliderRow').classList.toggle('hidden', sub!=='training');
+  document.getElementById('mealSliderRow').classList.toggle('hidden', sub!=='diet');
 
   if (sub === 'training') {
     // Sync slider to current count and init pip dots
@@ -1341,6 +1646,9 @@ function switchPlanSubtab(sub) {
     if (slider) slider.value = state.exerciseCount;
     updateExerciseSlider(state.exerciseCount);
   } else {
+    const p = getCurrentProfile();
+    const mSlider = document.getElementById('mealCountSlider');
+    if (mSlider) { mSlider.value = p.mealsPerDay || 5; updateMealSlider(p.mealsPerDay || 5, false); }
     loadPlanForDay();
   }
 }
@@ -1378,6 +1686,40 @@ function updateExerciseSlider(val) {
 
   // Immediately regenerate exercises for this day with new count
   refreshExercisesForSlider(count);
+}
+
+function updateMealSlider(val, regenerate=true) {
+  const count = parseInt(val);
+  const p = getCurrentProfile();
+  p.mealsPerDay = count;
+
+  document.getElementById('mealCountLabel').textContent = count;
+
+  // Update pip dots
+  for (let i = 1; i <= 6; i++) {
+    const pip = document.getElementById('mpip' + i);
+    if (pip) {
+      const active = (i <= count - 1); // offset by min=2
+      pip.style.background = active ? '#00e5ff' : 'rgba(255,255,255,0.15)';
+      pip.style.boxShadow = active ? '0 0 6px rgba(0,229,255,0.6)' : 'none';
+    }
+  }
+
+  const infoEl = document.getElementById('mealSliderInfo');
+  if (infoEl) {
+    const labels = {2:'Minimalny (2)', 3:'Standardowy (3)', 4:'Optymalny (4)', 5:'Klasyczny (5)', 6:'Zaawansowany (6)', 7:'Intensywny (7)'};
+    infoEl.textContent = labels[count] || '';
+    infoEl.style.color = count >= 6 ? '#00e5ff' : count <= 3 ? '#64748b' : '#00e5ff';
+  }
+
+  if (regenerate) {
+    // Regenerate meals for current day
+    const day = state.days[state.currentDay];
+    const excl = p.exclusions || [];
+    p.dietPlan[day] = generateMealsForDay(count, excl, p);
+    saveState();
+    loadPlanForDay();
+  }
 }
 
 function refreshExercisesForSlider(count) {
@@ -1538,13 +1880,26 @@ function renderGoalsGrid() {
 
   // Muscle focus
   if (document.getElementById('muscleGrid')) {
+    const MUSCLE_COLORS = {
+      brzuch:'#00e5ff', klatka:'#06b6d4', biceps:'#10b981', triceps:'#6366f1',
+      plecy:'#7c3aed', nogi:'#f59e0b', ramiona:'#10b981', core:'#8b5cf6', 'posladki':'#f472b6'
+    };
     document.getElementById('muscleGrid').innerHTML = MUSCLE_FOCUS.map(m => {
       const active = (p.muscleFocus||[]).includes(m.id);
-      return `<div class="muscle-tile glass rounded-xl p-3 cursor-pointer flex flex-col items-center gap-1 text-center transition-all ${active ? 'border-cyan-400/60 bg-cyan-500/10' : 'hover:border-cyan-500/30'}" onclick="toggleMuscleTile('${m.id}',this)" data-id="${m.id}">
-        <span class="text-2xl">${m.emoji}</span>
-        <span class="text-xs font-medium ${active?'text-cyan-400':'text-white'}">${m.label}</span>
+      const col = MUSCLE_COLORS[m.id] || '#64748b';
+      return `<div class="muscle-tile glass rounded-xl p-3 cursor-pointer flex items-center gap-3 transition-all border ${active ? '' : 'border-white/5 hover:border-white/20'}"
+        style="${active ? `border-color:${col}55;background:${col}11;box-shadow:0 0 18px ${col}22` : ''}"
+        onclick="toggleMuscleTile('${m.id}',this)" data-id="${m.id}">
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-lg" style="${active ? `background:${col}22` : 'background:rgba(255,255,255,0.04)'}">
+          ${m.emoji}
+        </div>
+        <div class="min-w-0">
+          <p class="text-sm font-semibold leading-tight" style="color:${active ? col : '#e2e8f0'}">${m.label}</p>
+          ${active ? `<p class="text-[10px] font-bold mt-0.5" style="color:${col}">\u2713 Aktywny</p>` : '<p class="text-[10px] text-gray-600 mt-0.5">Kliknij</p>'}
+        </div>
       </div>`;
     }).join('');
+    syncBodyMap(p.muscleFocus || []);
   }
 }
 
@@ -1553,6 +1908,7 @@ function toggleGoalTile(id, el) {
   if (!p.goals) p.goals = [];
   if (p.goals.includes(id)) p.goals = p.goals.filter(g => g !== id);
   else p.goals.push(id);
+  saveState();
   renderGoalsGrid();
 }
 
@@ -1561,6 +1917,7 @@ function toggleSportTile(id, el) {
   if (!p.sports) p.sports = [];
   if (p.sports.includes(id)) p.sports = p.sports.filter(s => s !== id);
   else p.sports.push(id);
+  saveState();
   renderGoalsGrid();
 }
 
@@ -1569,7 +1926,62 @@ function toggleMuscleTile(id, el) {
   if (!p.muscleFocus) p.muscleFocus = [];
   if (p.muscleFocus.includes(id)) p.muscleFocus = p.muscleFocus.filter(m => m !== id);
   else p.muscleFocus.push(id);
+  saveState();
   renderGoalsGrid();
+}
+
+function syncBodyMap(muscleFocus) {
+  const MUSCLE_COLORS = {
+    brzuch:'#00e5ff', klatka:'#06b6d4', biceps:'#10b981', triceps:'#6366f1',
+    plecy:'#7c3aed', nogi:'#f59e0b', ramiona:'#10b981', core:'#8b5cf6', 'posladki':'#f472b6'
+  };
+  document.querySelectorAll('.body-part').forEach(el => {
+    el.style.fill = '#1e293b';
+    el.style.stroke = '#334155';
+    el.style.filter = '';
+  });
+  (muscleFocus||[]).forEach(id => {
+    const normId = id === 'posladki' ? 'posladki' : id;
+    const color = MUSCLE_COLORS[normId] || '#00e5ff';
+    const selectors = {
+      klatka: ['#bm-klatka'],
+      brzuch: ['#bm-brzuch'],
+      core: ['#bm-core', '#bm-brzuch'],
+      plecy: ['#bm-plecy'],
+      ramiona: ['#bm-ramiona-l', '#bm-ramiona-r'],
+      biceps: ['#bm-biceps-l', '#bm-biceps-r'],
+      triceps: ['#bm-triceps-l', '#bm-triceps-r'],
+      nogi: ['#bm-nogi-ll', '#bm-nogi-rl'],
+      posladki: ['#bm-posladki'],
+    }[normId] || [];
+    selectors.forEach(sel => {
+      const el = document.querySelector(sel);
+      if (el) {
+        el.style.fill = color + '44';
+        el.style.stroke = color;
+        el.style.filter = 'drop-shadow(0 0 6px ' + color + '88)';
+      }
+    });
+  });
+}
+
+function toggleMuscleOnMap(id) {
+  const normId = id;
+  const p = getCurrentProfile();
+  if (!p.muscleFocus) p.muscleFocus = [];
+  if (p.muscleFocus.includes(normId)) p.muscleFocus = p.muscleFocus.filter(m => m !== normId);
+  else p.muscleFocus.push(normId);
+  saveState();
+  renderGoalsGrid();
+  const tip = document.getElementById('muscleMapTooltip');
+  if (tip) {
+    const active = p.muscleFocus.includes(normId);
+    const labels = {brzuch:'Brzuch',klatka:'Klatka',biceps:'Biceps',triceps:'Triceps',plecy:'Plecy',nogi:'Nogi',ramiona:'Ramiona',core:'Core'};
+    tip.textContent = active ? ('\u2713 ' + (labels[normId]||normId) + ' aktywny') : ((labels[normId]||normId) + ' usuni\u0119ty');
+    tip.classList.remove('hidden');
+    clearTimeout(tip._timer);
+    tip._timer = setTimeout(() => tip.classList.add('hidden'), 2000);
+  }
 }
 
 function saveGoals() {
@@ -1748,7 +2160,30 @@ function loadTodayPlanChecklist() {
   const k = `${p.id}_${day}`;
   const checked = state.dayChecked[k] || {};
   const meals = (p.dietPlan[day] || []).filter(m => !m.hidden);
-  const exercises = (p.trainingPlan[day] || []).filter(e => !e.hidden).slice(0, state.exerciseCount);
+
+  // If saved plan has fewer exercises than exerciseCount, generate fresh ones on the fly
+  const savedExercises = (p.trainingPlan[day] || []).filter(e => !e.hidden);
+  let exercises;
+  if (savedExercises.length >= state.exerciseCount) {
+    exercises = savedExercises.slice(0, state.exerciseCount);
+  } else {
+    // Generate fresh using profile preferences
+    const goals = p.goals || [];
+    const sports = p.sports || [];
+    let templateKey = 'default';
+    if (sports.includes('basketball')) templateKey = 'basketball';
+    else if (sports.includes('running')) templateKey = 'running';
+    else if (goals.includes('cardio')) templateKey = 'cardio';
+    else if (goals.includes('strength') || goals.includes('mass')) templateKey = 'strength';
+    const baseGroups = (PLAN_TEMPLATES[templateKey][day] || []);
+    const muscleFocus = p.muscleFocus || [];
+    const muscleGroups = [...new Set([...muscleFocus, ...baseGroups])];
+    const fallbackGroups = muscleGroups.length > 0 ? muscleGroups : ['klatka','plecy'];
+    exercises = generateExercisesForDay(fallbackGroups, p.equipment || [], p.exclusions || [], state.exerciseCount);
+    // Save back so checklist is consistent
+    if (exercises.length > 0) { p.trainingPlan[day] = exercises; saveState(); }
+  }
+
   const container = document.getElementById('planChecklistContainer');
   
   // Update day label
