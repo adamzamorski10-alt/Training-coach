@@ -1,3 +1,10 @@
+"""
+fitai_utils.py — Backward-compatible helpers.
+
+JSON-based load_db/save_db are kept for the Discord bot and legacy scripts.
+New code should use SQLModel sessions directly via fitai_api.engine.
+"""
+
 import json
 import os
 from pathlib import Path
@@ -6,6 +13,9 @@ from datetime import datetime
 
 DATA_FILE = Path("fitai_users.json")
 DB_LOCK = FileLock(f"{DATA_FILE}.lock")
+
+
+# ─── JSON DB helpers (legacy / Discord bot) ───────────────────────────────────
 
 def _load_db_unlocked() -> dict:
     if DATA_FILE.exists():
@@ -16,23 +26,28 @@ def _load_db_unlocked() -> dict:
                 return {}
     return {}
 
+
 def _save_db_unlocked(db: dict):
     temp_file = DATA_FILE.with_suffix(DATA_FILE.suffix + ".tmp")
     with open(temp_file, "w", encoding="utf-8") as f:
         json.dump(db, f, ensure_ascii=False, indent=2)
     os.replace(temp_file, DATA_FILE)
 
+
 def load_db() -> dict:
     with DB_LOCK:
         return _load_db_unlocked()
+
 
 def save_db(db: dict):
     with DB_LOCK:
         _save_db_unlocked(db)
 
+
 def get_user(user_id: str) -> dict | None:
     db = load_db()
     return db.get(str(user_id))
+
 
 def save_user(user_id: str, data: dict):
     with DB_LOCK:
@@ -40,8 +55,11 @@ def save_user(user_id: str, data: dict):
         db[str(user_id)] = data
         _save_db_unlocked(db)
 
+
+# ─── Nutrition calculations ───────────────────────────────────────────────────
+
 def calc_calories(profile: dict) -> int:
-    """Oblicza zapotrzebowanie kaloryczne (Mifflin-St Jeor / Harris-Benedict)."""
+    """Mifflin-St Jeor + TDEE multiplier + goal adjustment."""
     w = profile.get("weight", 75)
     h = profile.get("height", 175)
     a = profile.get("age", 25)
@@ -60,7 +78,6 @@ def calc_calories(profile: dict) -> int:
         "5-6": 1.725,
         "codziennie": 1.9,
     }
-    
     mult = 1.2
     for key, val in multipliers.items():
         if key in freq:
@@ -74,6 +91,7 @@ def calc_calories(profile: dict) -> int:
     elif any(x in goal for x in ["masa", "budow", "przyty"]):
         tdee += 300
     return tdee
+
 
 def calc_protein(profile: dict) -> int:
     w = profile.get("weight", 75)

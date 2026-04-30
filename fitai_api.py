@@ -1,38 +1,207 @@
 """
-FitAI Backend API — FastAPI
-============================
-Wymagania: pip install fastapi uvicorn anthropic python-dotenv pydantic
+FitAI Backend API — FastAPI v2.0
+=================================
+Nowe w v2.0:
+  - Migracja na SQLite / SQLModel (zamiast JSON)
+  - System progresji RPE + Progressive Overload
+  - Dynamiczne makroskładniki (Carb Cycling)
 
 Uruchomienie: uvicorn fitai_api:app --reload --port 8000
-
-Endpointy:
-  POST /users/           - Utwórz/zaktualizuj profil
-  GET  /users/{id}       - Pobierz profil
-  POST /users/{id}/logs  - Dodaj dzienny raport
-  GET  /users/{id}/logs  - Pobierz historię
-  POST /ai/diet          - AI plan diety
-  POST /ai/workout       - AI plan treningowy
-  POST /ai/analyze-log   - AI analiza raportu
-  POST /ai/weekly        - AI podsumowanie tygodnia
 """
 
+from __future__ import annotations
+
+import json
+import os
+from datetime import date, datetime
+from typing import Any, Dict, List, Optional
+
+import anthropic
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional, List
-from datetime import date, datetime
-import json
-import anthropic
-import os
-from dotenv import load_dotenv
-from fitai_utils import load_db, save_db, calc_calories, calc_protein, _load_db_unlocked, _save_db_unlocked, DB_LOCK
+from sqlmodel import Field, Relationship, Session, SQLModel, create_engine, select
 
 load_dotenv()
 
-app = FastAPI(title="FitAI API", version="1.01")
+# ─── Database setup ───────────────────────────────────────────────────────────
+
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///fitai.db")
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {},
+)
+
+
+def get_session():
+    with Session(engine) as session:
+        yield session
+
+
+# ─── SQLModel ORM models ──────────────────────────────────────────────────────
+
+class UserDB(SQLModel, table=True):
+    __tablename__ = "users"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_key: str = Field(unique=True, index=True)          # "web:<identity_id>" lub legacy user_id
+    identity_id: Optional[str] = None
+    email: Optional[str] = None
+    name: str
+    age: int
+    height: float
+    weight: float
+    start_weight: float
+    target_weight: float
+    gender: str = "mężczyzna"
+    goal: str
+    frequency: str
+    diet: str
+    allergies: str = ""
+    meals_per_day: int = 4
+    notes: str = ""
+    plan: str = "free"          # "free" | "pro"
+    role: str = "free_user"
+    calories_target: int = 0
+    protein_target: int = 0
+    streak_days: int = 0
+    linked_discord_id: Optional[str] = None
+    # JSON-encoded lists/dicts – SQLite nie ma ARRAY
+    sports_json: str = "[]"
+    training_focus_json: str = "[]"
+    improvement_areas_json: str = "[]"
+    preferred_foods_json: str = "[]"
+    avoid_foods_json: str = "[]"
+    available_equipment_json: str = "[]"
+    avoid_exercises_json: str = "[]"
+    reminders_json: str = '{"email_enabled":true,"discord_enabled":false,"discord_channel_id":null}'
+    weekly_plan_json: Optional[str] = None
+    substitutes_history_json: str = "{}"
+    created_at: str = Field(default_factory=lambda: datetime.now().isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now().isoformat())
+
+    logs: List["DailyLogDB"] = Relationship(back_populates="user")
+    exercise_results: List["ExerciseResultDB"] = Relationship(back_populates="user")
+
+    # Helpers
+    def get_list(self, field: str) -> list:
+        return json.loads(getattr(self, field, "[]") or "[]")
+
+    def set_list(self, field: str, value: list):
+        setattr(self, field, json.dumps(value, ensure_ascii=False))
+
+    def get_dict(self, field: str) -> dict:
+        return json.loads(getattr(self, field, "{}") or "{}")
+
+    def set_dict(self, field: str, value: dict):
+        setattr(self, field, json.dumps(value, ensure_ascii=False))
+
+    def to_profile_dict(self) -> dict:
+        """Serializes user row to the legacy profile dict format for backward compat."""
+        return {
+            "user_key": self.user_key,
+            "identity_id": self.identity_id,
+            "email": self.email,
+            "name": self.name,
+            "age": self.age,
+            "height": self.height,
+            "weight": self.weight,
+            "start_weight": self.start_weight,
+            "target_weight": self.target_weight,
+            "gender": self.gender,
+            "goal": self.goal,
+            "frequency": self.frequency,
+            "diet": self.diet,
+            "allergies": self.allergies,
+            "meals_per_day": self.meals_per_day,
+            "notes": self.notes,
+            "plan": self.plan,
+            "role": self.role,
+            "calories_target": self.calories_target,
+            "protein_target": self.protein_target,
+            "streak_days": self.streak_days,
+            "linked_discord_id": self.linked_discord_id,
+            "sports": self.get_list("sports_json"),
+            "training_focus": self.get_list("training_focus_json"),
+            "improvement_areas": self.get_list("improvement_areas_json"),
+            "preferred_foods": self.get_list("preferred_foods_json"),
+            "avoid_foods": self.get_list("avoid_foods_json"),
+            "available_equipment": self.get_list("available_equipment_json"),
+            "avoid_exercises": self.get_list("avoid_exercises_json"),
+            "reminders": self.get_dict("reminders_json"),
+            "weekly_plan": self.get_dict("weekly_plan_json") if self.weekly_plan_json else None,
+            "substitutes_history": self.get_dict("substitutes_history_json"),
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
+
+
+class DailyLogDB(SQLModel, table=True):
+    __tablename__ = "daily_logs"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id", index=True)
+    log_date: str = Field(index=True)           # ISO date string
+    food: str = ""
+    workout: str = ""
+    mood: str = ""
+    weight: Optional[float] = None
+    logged_at: str = Field(default_factory=lambda: datetime.now().isoformat())
+
+    user: Optional[UserDB] = Relationship(back_populates="logs")
+
+    def to_dict(self) -> dict:
+        return {
+            "date": self.log_date,
+            "food": self.food,
+            "workout": self.workout,
+            "mood": self.mood,
+            "weight": self.weight,
+            "logged_at": self.logged_at,
+        }
+
+
+class ExerciseResultDB(SQLModel, table=True):
+    """Historyczne wyniki ćwiczeń – serce systemu progresji."""
+    __tablename__ = "exercise_results"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id", index=True)
+    exercise_name: str = Field(index=True)
+    session_date: str = Field(index=True)       # ISO date
+    sets: int
+    reps: int
+    weight_kg: float
+    rpe: int = Field(ge=1, le=10)               # 1 = bardzo lekko, 10 = maksymalny wysiłek
+    notes: str = ""
+    logged_at: str = Field(default_factory=lambda: datetime.now().isoformat())
+
+    user: Optional[UserDB] = Relationship(back_populates="exercise_results")
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "exercise_name": self.exercise_name,
+            "session_date": self.session_date,
+            "sets": self.sets,
+            "reps": self.reps,
+            "weight_kg": self.weight_kg,
+            "rpe": self.rpe,
+            "notes": self.notes,
+            "logged_at": self.logged_at,
+        }
+
+
+def create_db_and_tables():
+    SQLModel.metadata.create_all(engine)
+
+
+# ─── App setup ────────────────────────────────────────────────────────────────
+
+app = FastAPI(title="FitAI API", version="2.0")
 ai_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
-# Permisywny CORS dla development i Netlify production
 CORS_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -41,7 +210,6 @@ CORS_ORIGINS = [
     "https://training-coach-app.netlify.app",
     "https://training-coach-api.onrender.com",
 ]
-# Dodaj custom origins z .env jeśli są dostępne
 custom_origins = os.getenv("CORS_ORIGINS", "").strip()
 if custom_origins:
     CORS_ORIGINS.extend([o.strip() for o in custom_origins.split(",") if o.strip()])
@@ -55,27 +223,107 @@ app.add_middleware(
 )
 
 
-# ─── Modele danych ────────────────────────────────────────────────────────────
+@app.on_event("startup")
+def on_startup():
+    create_db_and_tables()
+    _migrate_json_to_sqlite()
+
+
+# ─── JSON → SQLite migration helper ──────────────────────────────────────────
+
+def _migrate_json_to_sqlite():
+    """One-time migration: imports fitai_users.json into SQLite if file exists."""
+    from pathlib import Path
+    json_path = Path("fitai_users.json")
+    done_flag = Path(".json_migrated")
+    if not json_path.exists() or done_flag.exists():
+        return
+    try:
+        with open(json_path, "r", encoding="utf-8") as f:
+            old_db: dict = json.load(f)
+    except Exception:
+        return
+
+    with Session(engine) as session:
+        for user_key, p in old_db.items():
+            if session.exec(select(UserDB).where(UserDB.user_key == user_key)).first():
+                continue
+            user = UserDB(
+                user_key=user_key,
+                identity_id=p.get("identity_id"),
+                email=p.get("email"),
+                name=p.get("name", ""),
+                age=p.get("age", 0),
+                height=p.get("height", 0),
+                weight=p.get("weight", 0),
+                start_weight=p.get("start_weight", p.get("weight", 0)),
+                target_weight=p.get("target_weight", p.get("weight", 0)),
+                gender=p.get("gender", "mężczyzna"),
+                goal=p.get("goal", ""),
+                frequency=p.get("frequency", ""),
+                diet=p.get("diet", ""),
+                allergies=p.get("allergies", ""),
+                meals_per_day=p.get("meals_per_day", 4),
+                notes=p.get("notes", ""),
+                plan=p.get("plan", "free"),
+                role=p.get("role", "free_user"),
+                calories_target=p.get("calories_target", 0),
+                protein_target=p.get("protein_target", 0),
+                streak_days=p.get("streak_days", 0),
+                linked_discord_id=p.get("linked_discord_id"),
+            )
+            for field, key in [
+                ("sports_json", "sports"), ("training_focus_json", "training_focus"),
+                ("improvement_areas_json", "improvement_areas"), ("preferred_foods_json", "preferred_foods"),
+                ("avoid_foods_json", "avoid_foods"), ("available_equipment_json", "available_equipment"),
+                ("avoid_exercises_json", "avoid_exercises"),
+            ]:
+                user.set_list(field, p.get(key, []))
+            if "reminders" in p:
+                user.set_dict("reminders_json", p["reminders"])
+            if p.get("weekly_plan"):
+                user.set_dict("weekly_plan_json", p["weekly_plan"])
+            if p.get("substitutes_history"):
+                user.set_dict("substitutes_history_json", p["substitutes_history"])
+            session.add(user)
+            session.flush()  # get user.id
+
+            for log in p.get("logs", []):
+                session.add(DailyLogDB(
+                    user_id=user.id,
+                    log_date=log.get("date", ""),
+                    food=log.get("food", ""),
+                    workout=log.get("workout", ""),
+                    mood=log.get("mood", ""),
+                    weight=log.get("weight"),
+                    logged_at=log.get("logged_at", datetime.now().isoformat()),
+                ))
+        session.commit()
+    done_flag.touch()
+    print("[FitAI] Migration from JSON completed.")
+
+
+# ─── Pydantic request/response models ────────────────────────────────────────
 
 class UserProfile(BaseModel):
     name: str
     age: int
-    height: float  # cm
-    weight: float  # kg
+    height: float
+    weight: float
     target_weight: float
-    gender: str  # mężczyzna / kobieta / inna
+    gender: str = "mężczyzna"
     goal: str
-    frequency: str  # jak często trenuje
+    frequency: str
     training_focus: List[str] = []
     improvement_areas: List[str] = []
     sports: List[str] = []
-    diet: str  # rodzaj diety
+    diet: str
     allergies: str = ""
     preferred_foods: List[str] = []
     avoid_foods: List[str] = []
-    available_equipment: List[str] = []  # dostępny sprzęt
-    avoid_exercises: List[str] = []  # rzeczy do unikania w treningu
-    substitutes_history: dict = {} # Trwałe zamienniki użytkownika
+    available_equipment: List[str] = []
+    avoid_exercises: List[str] = []
+    substitutes_history: dict = {}
     meals_per_day: int = 4
     notes: str = ""
 
@@ -149,96 +397,230 @@ class PlanSwapRequest(BaseModel):
     alternative_index: int
 
 
-def _web_user_id(identity_id: str) -> str:
+class ExerciseResultRequest(BaseModel):
+    """Wpis wyniku ćwiczenia z oceną RPE."""
+    exercise_name: str
+    sets: int
+    reps: int
+    weight_kg: float
+    rpe: int = Field(ge=1, le=10, description="Rate of Perceived Exertion 1-10")
+    notes: str = ""
+    session_date: Optional[str] = None  # ISO date; jeśli brak → today
+
+
+# ─── Pure-logic helpers ────────────────────────────────────────────────────────
+
+def _web_user_key(identity_id: str) -> str:
     return f"web:{identity_id}"
 
 
 def _normalize_plan(plan_raw: str) -> str:
-    plan = (plan_raw or "").strip().lower()
-    if plan in {"pro", "premium", "paid"}:
-        return "pro"
-    return "free"
+    return "pro" if (plan_raw or "").strip().lower() in {"pro", "premium", "paid"} else "free"
 
 
 def _role_for_plan(plan: str) -> str:
     return "pro_user" if plan == "pro" else "free_user"
 
 
-def _compute_streak_days(logs: List[dict]) -> int:
+def calc_calories(p: dict | UserDB) -> int:
+    """Mifflin-St Jeor + TDEE. Accepts both dict and ORM object."""
+    if isinstance(p, UserDB):
+        p = p.to_profile_dict()
+    w, h, a = p.get("weight", 75), p.get("height", 175), p.get("age", 25)
+    gender = str(p.get("gender", "")).lower()
+    bmr = 10 * w + 6.25 * h - 5 * a + (-161 if "kobieta" in gender or "female" in gender else 5)
+    freq = str(p.get("frequency", "")).lower()
+    for key, mult in [("codziennie", 1.9), ("5-6", 1.725), ("3-4", 1.55), ("1-2", 1.375)]:
+        if key in freq:
+            break
+    else:
+        mult = 1.2
+    tdee = int(bmr * mult)
+    goal = str(p.get("goal", "")).lower()
+    if any(x in goal for x in ["redukcj", "odchudzani", "schud"]):
+        tdee -= 400
+    elif any(x in goal for x in ["masa", "budow", "przyty"]):
+        tdee += 300
+    return tdee
+
+
+def calc_protein(p: dict | UserDB) -> int:
+    if isinstance(p, UserDB):
+        p = p.to_profile_dict()
+    w = p.get("weight", 75)
+    goal = str(p.get("goal", "")).lower()
+    if "masa" in goal:
+        return int(w * 2.0)
+    if "redukcj" in goal:
+        return int(w * 2.2)
+    return int(w * 1.6)
+
+
+# ─── Carb Cycling macros ──────────────────────────────────────────────────────
+
+_HEAVY_MUSCLE_GROUPS = {"nogi", "plecy", "full body", "cardio"}
+_REST_KEYWORDS = {"odpoczynek", "rest", "regeneracja"}
+
+
+def _day_type(day_name: str, focus: str) -> str:
+    """Returns 'heavy', 'moderate', or 'rest' for carb cycling logic."""
+    lower = day_name.lower()
+    if any(k in lower for k in _REST_KEYWORDS):
+        return "rest"
+    if focus in _HEAVY_MUSCLE_GROUPS:
+        return "heavy"
+    return "moderate"
+
+
+def calc_daily_macros(base_calories: int, day_type: str) -> dict:
+    """
+    Carb Cycling:
+      heavy  → +200 kcal, 50% carbs / 30% protein / 20% fat
+      moderate → base, 40% / 30% / 30%
+      rest   → -200 kcal, 20% carbs / 35% protein / 45% fat (higher fat)
+    """
+    adjustments = {"heavy": 200, "moderate": 0, "rest": -200}
+    macros_pct = {
+        "heavy":    {"carbs": 0.50, "protein": 0.30, "fat": 0.20},
+        "moderate": {"carbs": 0.40, "protein": 0.30, "fat": 0.30},
+        "rest":     {"carbs": 0.20, "protein": 0.35, "fat": 0.45},
+    }
+    kcal = base_calories + adjustments.get(day_type, 0)
+    pct = macros_pct.get(day_type, macros_pct["moderate"])
+    return {
+        "kcal": kcal,
+        "carbs_g": round(kcal * pct["carbs"] / 4),
+        "protein_g": round(kcal * pct["protein"] / 4),
+        "fat_g": round(kcal * pct["fat"] / 9),
+        "day_type": day_type,
+    }
+
+
+# ─── Progressive Overload / RPE helpers ───────────────────────────────────────
+
+_RPE_LOW_THRESHOLD = 6    # ≤6 → too easy → increase load
+_RPE_HIGH_THRESHOLD = 9   # ≥9 → too hard → decrease or keep
+
+_WEIGHT_INCREMENT_KG = 2.5
+_REPS_INCREMENT = 1
+
+
+def _suggest_progression(
+    exercise_name: str,
+    recent_results: List[ExerciseResultDB],
+) -> dict:
+    """
+    Analyzes last 3 sessions for a given exercise and returns a progression suggestion.
+    Returns: {"suggested_weight_kg": float, "suggested_reps": int, "reason": str}
+    """
+    if not recent_results:
+        return {"suggested_weight_kg": None, "suggested_reps": None, "reason": "brak historii"}
+
+    last = recent_results[0]
+    avg_rpe = sum(r.rpe for r in recent_results[:3]) / min(len(recent_results), 3)
+
+    if avg_rpe <= _RPE_LOW_THRESHOLD:
+        # Zbyt łatwo – zwiększamy ciężar
+        suggested_weight = round(last.weight_kg + _WEIGHT_INCREMENT_KG, 1)
+        suggested_reps = last.reps
+        reason = f"Średnie RPE={avg_rpe:.1f} (≤{_RPE_LOW_THRESHOLD}) → sugerowane +{_WEIGHT_INCREMENT_KG}kg"
+    elif avg_rpe >= _RPE_HIGH_THRESHOLD:
+        # Na granicy możliwości – utrzymaj lub zredukuj, dodaj powtórzenie zamiast ciężaru
+        suggested_weight = last.weight_kg
+        suggested_reps = last.reps + _REPS_INCREMENT
+        reason = f"Średnie RPE={avg_rpe:.1f} (≥{_RPE_HIGH_THRESHOLD}) → utrzymaj ciężar, dodaj powtórzenie"
+    else:
+        # Dobry zakres RPE 7-8 – stopniowo zwiększaj powtórzenia
+        suggested_weight = last.weight_kg
+        suggested_reps = last.reps + _REPS_INCREMENT
+        reason = f"Średnie RPE={avg_rpe:.1f} (7-8) → dodaj powtórzenie, ciężar bez zmiany"
+
+    return {
+        "suggested_weight_kg": suggested_weight,
+        "suggested_reps": suggested_reps,
+        "reason": reason,
+        "last_session": last.to_dict(),
+        "sessions_analyzed": len(recent_results[:3]),
+    }
+
+
+def _enrich_exercises_with_progression(
+    exercises: list,
+    user: UserDB,
+    session: Session,
+) -> list:
+    """Adds progression hints to each exercise in a plan day."""
+    enriched = []
+    for ex in exercises:
+        name = ex.get("name", "")
+        results = session.exec(
+            select(ExerciseResultDB)
+            .where(ExerciseResultDB.user_id == user.id)
+            .where(ExerciseResultDB.exercise_name == name)
+            .order_by(ExerciseResultDB.session_date.desc())
+        ).all()
+        progression = _suggest_progression(name, list(results))
+        enriched.append({**ex, "progression": progression})
+    return enriched
+
+
+# ─── Streak helper ────────────────────────────────────────────────────────────
+
+def _compute_streak_days_from_logs(logs: List[DailyLogDB]) -> int:
     if not logs:
         return 0
-
-    unique_days = sorted(
-        {
-            l.get("date")
-            for l in logs
-            if l.get("date")
-        },
-        reverse=True,
-    )
-    if not unique_days:
-        return 0
-
+    unique_days = sorted({l.log_date for l in logs if l.log_date}, reverse=True)
     streak = 0
-    expected_day = date.today()
+    expected = date.today()
     for day_str in unique_days:
         try:
-            day_obj = date.fromisoformat(day_str)
+            d = date.fromisoformat(day_str)
         except ValueError:
             continue
-
-        if day_obj == expected_day:
+        if d == expected:
             streak += 1
-            expected_day = expected_day.fromordinal(expected_day.toordinal() - 1)
-        elif day_obj < expected_day:
+            expected = date.fromordinal(expected.toordinal() - 1)
+        elif d < expected:
             break
     return streak
 
 
-def _build_dashboard(profile: dict) -> dict:
-    logs = sorted(profile.get("logs", []), key=lambda x: x.get("date", ""))
-    calories_target = profile.get("calories_target", calc_calories(profile))
-    protein_target = profile.get("protein_target", calc_protein(profile))
+# ─── Dashboard builder ────────────────────────────────────────────────────────
+
+def _build_dashboard(user: UserDB, logs: List[DailyLogDB]) -> dict:
+    sorted_logs = sorted(logs, key=lambda l: l.log_date)
+    calories_target = user.calories_target or calc_calories(user)
+    protein_target = user.protein_target or calc_protein(user)
 
     weight_points = [
-        {"date": l.get("date"), "weight": l.get("weight")}
-        for l in logs
-        if l.get("weight") is not None
+        {"date": l.log_date, "weight": l.weight}
+        for l in sorted_logs if l.weight is not None
     ][-30:]
 
-    last_7 = logs[-7:]
-    workout_days = sum(1 for l in last_7 if l.get("workout"))
+    last_7 = sorted_logs[-7:]
+    workout_days = sum(1 for l in last_7 if l.workout)
     consistency = round((workout_days / 7) * 100) if last_7 else 0
 
-    # Prosty estimate realizacji na podstawie opisu jedzenia.
-    calorie_hit = 0
-    protein_hit = 0
-    for l in last_7:
-        food_text = (l.get("food") or "").lower()
-        if any(k in food_text for k in ["kurczak", "jaj", "twar", "protein", "ryba", "indyk"]):
-            protein_hit += 1
-        if food_text:
-            calorie_hit += 1
-
-    calorie_adherence = round((calorie_hit / len(last_7)) * 100) if last_7 else 0
-    protein_adherence = round((protein_hit / len(last_7)) * 100) if last_7 else 0
+    calorie_hit = sum(1 for l in last_7 if l.food)
+    protein_hit = sum(
+        1 for l in last_7
+        if l.food and any(k in l.food.lower() for k in ["kurczak", "jaj", "twar", "protein", "ryba", "indyk"])
+    )
 
     return {
         "weight_series": weight_points,
         "workout_consistency_pct": consistency,
-        "calorie_adherence_pct": calorie_adherence,
-        "protein_adherence_pct": protein_adherence,
-        "streak_days": _compute_streak_days(logs),
-        "targets": {
-            "calories": calories_target,
-            "protein": protein_target,
-        },
+        "calorie_adherence_pct": round((calorie_hit / len(last_7)) * 100) if last_7 else 0,
+        "protein_adherence_pct": round((protein_hit / len(last_7)) * 100) if last_7 else 0,
+        "streak_days": _compute_streak_days_from_logs(logs),
+        "targets": {"calories": calories_target, "protein": protein_target},
     }
 
 
-def _is_profile_ready_for_plan(profile: dict) -> bool:
-    required = [profile.get("name"), profile.get("goal"), profile.get("frequency"), profile.get("diet"), profile.get("weight"), profile.get("target_weight")]
-    return all(v not in (None, "") for v in required)
+# ─── Plan builder ─────────────────────────────────────────────────────────────
+
+def _is_profile_ready_for_plan(user: UserDB) -> bool:
+    return all([user.name, user.goal, user.frequency, user.diet, user.weight, user.target_weight])
 
 
 def _default_meal_catalog(diet: str) -> dict:
@@ -290,79 +672,88 @@ def _exercise_pool() -> dict:
     }
 
 
-def _build_weekly_plan(profile: dict) -> dict:
-    meal_catalog = _default_meal_catalog(profile.get("diet", "Brak preferencji"))
+def _build_weekly_plan(user: UserDB) -> dict:
+    """Builds weekly plan with Carb Cycling macro targets per day."""
+    profile = user.to_profile_dict()
+    meal_catalog = _default_meal_catalog(profile.get("diet", ""))
     pool = _exercise_pool()
-    
-    # Preferowane partie treningowe
-    focus = [x.lower() for x in profile.get("training_focus", []) if isinstance(x, str)]
-    improve = [x.lower() for x in profile.get("improvement_areas", []) if isinstance(x, str)]
+
+    base_calories = user.calories_target or calc_calories(user)
+
+    focus = [x.lower() for x in user.get_list("training_focus_json") if isinstance(x, str)]
+    improve = [x.lower() for x in user.get_list("improvement_areas_json") if isinstance(x, str)]
     preferred = focus + [x for x in improve if x not in focus]
     if not preferred:
         preferred = ["klatka", "plecy", "nogi", "brzuch", "barki"]
 
-    # Personalizacja: ulubione produkty i sprzęt dostępny
-    preferred_foods = [x.lower() for x in profile.get("preferred_foods", []) if isinstance(x, str)]
-    avoid_foods = [x.lower() for x in profile.get("avoid_foods", []) if isinstance(x, str)]
-    available_equipment = [x.lower() for x in profile.get("available_equipment", []) if isinstance(x, str)]
-    avoid_exercises = [x.lower() for x in profile.get("avoid_exercises", []) if isinstance(x, str)]
+    preferred_foods = [x.lower() for x in user.get_list("preferred_foods_json")]
+    avoid_foods = [x.lower() for x in user.get_list("avoid_foods_json")]
+    avoid_exercises = [x.lower() for x in user.get_list("avoid_exercises_json")]
 
-    week_days = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"]
+    # Niedziela = dzień odpoczynku
+    week_schedule = [
+        ("Poniedziałek", False), ("Wtorek", False), ("Środa", False),
+        ("Czwartek", False), ("Piątek", False), ("Sobota", False),
+        ("Niedziela", True),   # rest day
+    ]
     meal_slots = ["Śniadanie", "Przekąska 1", "Obiad", "Przekąska 2", "Kolacja"]
     days = []
 
-    for i, day_name in enumerate(week_days):
-        focus_key = preferred[i % len(preferred)]
-        if focus_key not in pool:
+    for i, (day_name, is_rest) in enumerate(week_schedule):
+        focus_key = "odpoczynek" if is_rest else preferred[i % len(preferred)]
+        if focus_key not in pool and not is_rest:
             focus_key = "klatka"
 
-        # Filtruj ćwiczenia: usuń te, które są w avoid_exercises
-        available_exercises = [
-            ex for ex in pool[focus_key] 
-            if not any(avoid.lower() in ex["name"].lower() for avoid in avoid_exercises)
-        ]
-        if not available_exercises:
-            available_exercises = pool[focus_key]
+        # Carb Cycling: wyznacz typ dnia i makroskładniki
+        day_type = "rest" if is_rest else _day_type(day_name, focus_key)
+        macros = calc_daily_macros(base_calories, day_type)
 
-        workout_items = []
-        for idx, ex in enumerate(available_exercises[:4]):  # Max 4 ćwiczenia
-            alternatives = [
-                alt for alt in available_exercises 
-                if alt["name"] != ex["name"]
-            ]
-            other_key = preferred[(i + idx + 1) % len(preferred)]
-            if other_key in pool:
-                alternatives.extend(pool[other_key][:1])
-            workout_items.append({**ex, "alternatives": alternatives[:3]})
+        # Ćwiczenia (lub pusty workout w dzień odpoczynku)
+        if is_rest:
+            workout_items = []
+            workout_title = "Odpoczynek / Aktywna regeneracja"
+        else:
+            available_ex = [
+                ex for ex in pool[focus_key]
+                if not any(a in ex["name"].lower() for a in avoid_exercises)
+            ] or pool[focus_key]
+            workout_items = []
+            for idx, ex in enumerate(available_ex[:4]):
+                alts = [a for a in available_ex if a["name"] != ex["name"]]
+                other_key = preferred[(i + idx + 1) % len(preferred)]
+                if other_key in pool:
+                    alts.extend(pool[other_key][:1])
+                workout_items.append({**ex, "alternatives": alts[:3]})
+            workout_title = f"Sesja {focus_key.title()}"
 
-        # Filtruj posiłki: preferuj ulubione produkty, unikaj avoid_foods
+        # Posiłki
         meals = []
         for slot in meal_slots:
             candidates = meal_catalog.get(slot, [])
-            
-            # Jeśli mamy preferowane produkty, spróbuj ich użyć
             if preferred_foods:
-                preferred_candidates = [c for c in candidates if any(p in c[0].lower() for p in preferred_foods)]
-                if preferred_candidates:
-                    candidates = preferred_candidates
-            
-            # Filtruj rzeczy do unikania
+                pref_c = [c for c in candidates if any(p in c[0].lower() for p in preferred_foods)]
+                if pref_c:
+                    candidates = pref_c
             if avoid_foods:
-                candidates = [c for c in candidates if not any(avoid.lower() in c[0].lower() for avoid in avoid_foods)]
-                if not candidates:
-                    candidates = meal_catalog.get(slot, [])  # Jeśli wszystko odfiltrowane, przywróć
-            
+                filtered = [c for c in candidates if not any(av in c[0].lower() for av in avoid_foods)]
+                candidates = filtered or meal_catalog.get(slot, [])
             main = candidates[i % len(candidates)] if candidates else ("Posiłek", 500)
             alt = [{"name": c[0], "kcal": c[1]} for c in candidates if c[0] != main[0]][:3]
             meals.append({"slot": slot, "name": main[0], "kcal": main[1], "alternatives": alt})
 
         days.append({
             "day": day_name,
-            "workout": {"title": f"Sesja {focus_key.title()}", "focus": focus_key, "exercises": workout_items},
+            "day_type": day_type,
+            "macros": macros,
+            "workout": {"title": workout_title, "focus": focus_key, "exercises": workout_items},
             "meals": meals,
         })
 
-    return {"generated_at": datetime.now().isoformat(), "weekly_goal": profile.get("goal", "Poprawa formy"), "days": days}
+    return {
+        "generated_at": datetime.now().isoformat(),
+        "weekly_goal": user.goal,
+        "days": days,
+    }
 
 
 # ─── AI helper ────────────────────────────────────────────────────────────────
@@ -370,594 +761,624 @@ def _build_weekly_plan(profile: dict) -> dict:
 def ask_claude(system: str, user_msg: str, max_tokens: int = 800) -> str:
     try:
         message = ai_client.messages.create(
-            model="claude-3-5-sonnet-20240620",
+            model="claude-sonnet-4-20250514",
             max_tokens=max_tokens,
             system=system,
             messages=[{"role": "user", "content": user_msg}],
         )
         return message.content[0].text
     except Exception as exc:
-        raise HTTPException(status_code=503, detail=f"AI temporarily unavailable: {exc}") from exc
+        raise HTTPException(status_code=503, detail=f"AI tymczasowo niedostępne: {exc}") from exc
 
 
-# ─── Endpointy użytkowników ───────────────────────────────────────────────────
+# ─── DB helpers ───────────────────────────────────────────────────────────────
+
+def _get_user_or_404(user_key: str, session: Session) -> UserDB:
+    user = session.exec(select(UserDB).where(UserDB.user_key == user_key)).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Użytkownik nie istnieje")
+    return user
+
+
+def _get_user_logs(user: UserDB, session: Session) -> List[DailyLogDB]:
+    return list(session.exec(
+        select(DailyLogDB).where(DailyLogDB.user_id == user.id).order_by(DailyLogDB.log_date)
+    ).all())
+
+
+def _upsert_user_from_profile(
+    user_key: str,
+    payload: dict,
+    session: Session,
+    *,
+    identity_id: Optional[str] = None,
+    email: Optional[str] = None,
+) -> UserDB:
+    user = session.exec(select(UserDB).where(UserDB.user_key == user_key)).first()
+    if not user:
+        user = UserDB(
+            user_key=user_key,
+            name=payload.get("name", ""),
+            age=payload.get("age", 0),
+            height=payload.get("height", 0),
+            weight=payload.get("weight", 0),
+            start_weight=payload.get("weight", 0),
+            target_weight=payload.get("target_weight", 0),
+            goal=payload.get("goal", ""),
+            frequency=payload.get("frequency", ""),
+            diet=payload.get("diet", ""),
+        )
+        session.add(user)
+
+    for field in ["name", "age", "height", "weight", "target_weight", "gender", "goal",
+                  "frequency", "diet", "allergies", "meals_per_day", "notes"]:
+        if field in payload:
+            setattr(user, field, payload[field])
+
+    if identity_id:
+        user.identity_id = identity_id
+    if email:
+        user.email = email
+    if not user.start_weight:
+        user.start_weight = user.weight
+
+    for list_field, key in [
+        ("sports_json", "sports"), ("training_focus_json", "training_focus"),
+        ("improvement_areas_json", "improvement_areas"), ("preferred_foods_json", "preferred_foods"),
+        ("avoid_foods_json", "avoid_foods"), ("available_equipment_json", "available_equipment"),
+        ("avoid_exercises_json", "avoid_exercises"),
+    ]:
+        if key in payload:
+            user.set_list(list_field, payload[key])
+
+    user.calories_target = calc_calories(user)
+    user.protein_target = calc_protein(user)
+    user.updated_at = datetime.now().isoformat()
+    session.commit()
+    session.refresh(user)
+    return user
+
+
+# ─── /users/ endpoints (legacy + Discord bot compat) ─────────────────────────
 
 @app.post("/users/{user_id}")
 def create_or_update_user(user_id: str, profile: UserProfile):
-    with DB_LOCK:
-        db = _load_db_unlocked()
-        existing = db.get(user_id, {})
-        updated = {
-            **existing,
-            **profile.model_dump(),
-            "start_weight": existing.get("start_weight", profile.weight),
-            "created_at": existing.get("created_at", datetime.now().isoformat()),
-            "updated_at": datetime.now().isoformat(),
-            "logs": existing.get("logs", []),
-        }
-        updated["calories_target"] = calc_calories(updated)
-        updated["protein_target"] = calc_protein(updated)
-        db[user_id] = updated
-        _save_db_unlocked(db)
-    return {"status": "ok", "user_id": user_id, "calories_target": updated["calories_target"]}
+    with Session(engine) as session:
+        user = _upsert_user_from_profile(user_id, profile.model_dump(), session)
+        return {"status": "ok", "user_id": user_id, "calories_target": user.calories_target}
 
 
 @app.get("/users/{user_id}")
 def get_user(user_id: str):
-    db = load_db()
-    if user_id not in db:
-        raise HTTPException(status_code=404, detail="Użytkownik nie istnieje")
-    return db[user_id]
+    with Session(engine) as session:
+        user = _get_user_or_404(user_id, session)
+        return user.to_profile_dict()
 
 
 @app.post("/users/{user_id}/logs")
 def add_log(user_id: str, log: DailyLog):
-    with DB_LOCK:
-        db = _load_db_unlocked()
-        if user_id not in db:
-            raise HTTPException(status_code=404, detail="Użytkownik nie istnieje")
-
-        profile = db[user_id]
-        log_entry = {
-            "date": date.today().isoformat(),
-            "food": log.food,
-            "workout": log.workout,
-            "mood": log.mood,
-            "weight": log.weight,
-            "logged_at": datetime.now().isoformat(),
-        }
-
-        if "logs" not in profile:
-            profile["logs"] = []
-
-        # Zamień jeśli już jest log na dziś
+    with Session(engine) as session:
+        user = _get_user_or_404(user_id, session)
         today = date.today().isoformat()
-        profile["logs"] = [l for l in profile["logs"] if l.get("date") != today]
-        profile["logs"].append(log_entry)
-
+        existing = session.exec(
+            select(DailyLogDB)
+            .where(DailyLogDB.user_id == user.id)
+            .where(DailyLogDB.log_date == today)
+        ).first()
+        if existing:
+            session.delete(existing)
+            session.flush()
+        entry = DailyLogDB(
+            user_id=user.id, log_date=today,
+            food=log.food, workout=log.workout, mood=log.mood, weight=log.weight,
+        )
+        session.add(entry)
         if log.weight is not None:
-            profile["weight"] = log.weight
-            profile["calories_target"] = calc_calories(profile)
-            profile["protein_target"] = calc_protein(profile)
-
-        db[user_id] = profile
-        _save_db_unlocked(db)
-    return {"status": "ok", "log": log_entry}
+            user.weight = log.weight
+            user.calories_target = calc_calories(user)
+            user.protein_target = calc_protein(user)
+        user.updated_at = datetime.now().isoformat()
+        session.commit()
+        return {"status": "ok", "log": entry.to_dict()}
 
 
 @app.get("/users/{user_id}/logs")
 def get_logs(user_id: str, limit: int = 30):
-    db = load_db()
-    if user_id not in db:
-        raise HTTPException(status_code=404, detail="Użytkownik nie istnieje")
-    logs = db[user_id].get("logs", [])
-    return {"logs": sorted(logs, key=lambda x: x["date"], reverse=True)[:limit]}
+    with Session(engine) as session:
+        user = _get_user_or_404(user_id, session)
+        logs = list(session.exec(
+            select(DailyLogDB)
+            .where(DailyLogDB.user_id == user.id)
+            .order_by(DailyLogDB.log_date.desc())
+        ).all())
+        return {"logs": [l.to_dict() for l in logs[:limit]]}
 
+
+# ─── Exercise Results & Progression endpoints ─────────────────────────────────
+
+@app.post("/app/exercise-result/{identity_id}")
+def log_exercise_result(identity_id: str, payload: ExerciseResultRequest):
+    """
+    Rejestruje wynik ćwiczenia z oceną RPE.
+    Na podstawie historii RPE sugeruje progresję na kolejną sesję.
+    """
+    user_key = _web_user_key(identity_id)
+    with Session(engine) as session:
+        user = _get_user_or_404(user_key, session)
+        session_date = payload.session_date or date.today().isoformat()
+        result = ExerciseResultDB(
+            user_id=user.id,
+            exercise_name=payload.exercise_name,
+            session_date=session_date,
+            sets=payload.sets,
+            reps=payload.reps,
+            weight_kg=payload.weight_kg,
+            rpe=payload.rpe,
+            notes=payload.notes,
+        )
+        session.add(result)
+        session.commit()
+        session.refresh(result)
+
+        # Wylicz sugestię progresji na podstawie ostatnich sesji
+        history = list(session.exec(
+            select(ExerciseResultDB)
+            .where(ExerciseResultDB.user_id == user.id)
+            .where(ExerciseResultDB.exercise_name == payload.exercise_name)
+            .order_by(ExerciseResultDB.session_date.desc())
+        ).all())
+        progression = _suggest_progression(payload.exercise_name, history)
+
+        return {
+            "status": "ok",
+            "result": result.to_dict(),
+            "progression": progression,
+        }
+
+
+@app.get("/app/exercise-history/{identity_id}")
+def get_exercise_history(identity_id: str, exercise_name: Optional[str] = None, limit: int = 20):
+    """Zwraca historię wyników ćwiczeń z sugestią progresji."""
+    user_key = _web_user_key(identity_id)
+    with Session(engine) as session:
+        user = _get_user_or_404(user_key, session)
+        query = select(ExerciseResultDB).where(ExerciseResultDB.user_id == user.id)
+        if exercise_name:
+            query = query.where(ExerciseResultDB.exercise_name == exercise_name)
+        results = list(session.exec(query.order_by(ExerciseResultDB.session_date.desc())).all())[:limit]
+
+        data = [r.to_dict() for r in results]
+        progression = None
+        if exercise_name and results:
+            progression = _suggest_progression(exercise_name, results)
+
+        return {"results": data, "progression": progression}
+
+
+@app.get("/app/progression-summary/{identity_id}")
+def get_progression_summary(identity_id: str):
+    """Zwraca podsumowanie progresji dla wszystkich ćwiczeń użytkownika."""
+    user_key = _web_user_key(identity_id)
+    with Session(engine) as session:
+        user = _get_user_or_404(user_key, session)
+        # Pobierz unikalne nazwy ćwiczeń
+        all_results = list(session.exec(
+            select(ExerciseResultDB)
+            .where(ExerciseResultDB.user_id == user.id)
+            .order_by(ExerciseResultDB.session_date.desc())
+        ).all())
+
+        by_exercise: Dict[str, List[ExerciseResultDB]] = {}
+        for r in all_results:
+            by_exercise.setdefault(r.exercise_name, []).append(r)
+
+        summary = []
+        for name, hist in by_exercise.items():
+            prog = _suggest_progression(name, hist)
+            summary.append({
+                "exercise_name": name,
+                "total_sessions": len(hist),
+                "last_session": hist[0].to_dict(),
+                "progression": prog,
+            })
+
+        return {"exercises": summary, "total_exercises_tracked": len(summary)}
+
+
+# ─── /app/ endpoints ──────────────────────────────────────────────────────────
 
 @app.post("/app/onboarding")
 def app_onboarding(payload: AppOnboardingRequest):
-    user_id = _web_user_id(payload.identity_id)
-    with DB_LOCK:
-        db = _load_db_unlocked()
-        existing = db.get(user_id, {})
-        logs = existing.get("logs", [])
-        plan = _normalize_plan(existing.get("plan", "free"))
-
-        updated = {
-            **existing,
-            **payload.model_dump(),
-            "email": payload.email,
-            "identity_id": payload.identity_id,
-            "name": payload.name,
-            "start_weight": existing.get("start_weight", payload.weight),
-            "created_at": existing.get("created_at", datetime.now().isoformat()),
-            "updated_at": datetime.now().isoformat(),
-            "plan": plan,
-            "role": _role_for_plan(plan),
-            "logs": logs,
-            "linked_discord_id": existing.get("linked_discord_id"),
-            "reminders": existing.get(
-                "reminders",
-                {
-                    "email_enabled": True,
-                    "discord_enabled": False,
-                    "discord_channel_id": None,
-                },
-            ),
+    user_key = _web_user_key(payload.identity_id)
+    with Session(engine) as session:
+        user = _upsert_user_from_profile(
+            user_key,
+            payload.model_dump(),
+            session,
+            identity_id=payload.identity_id,
+            email=payload.email,
+        )
+        return {
+            "status": "ok",
+            "user_id": user_key,
+            "plan": user.plan,
+            "role": user.role,
         }
-        updated["calories_target"] = calc_calories(updated)
-        updated["protein_target"] = calc_protein(updated)
-        updated["streak_days"] = _compute_streak_days(updated["logs"])
-        db[user_id] = updated
-        _save_db_unlocked(db)
-    return {
-        "status": "ok",
-        "user_id": user_id,
-        "plan": updated["plan"],
-        "role": updated["role"],
-    }
 
 
 @app.get("/app/profile/{identity_id}")
 def app_get_profile(identity_id: str):
-    user_id = _web_user_id(identity_id)
-    db = load_db()
-    profile = db.get(user_id)
-    if not profile:
-        # Zwróć default profil zamiast 404, aby frontend mógł go wczytać
-        return {
-            "name": "",
-            "age": "",
-            "height": "",
-            "weight": "",
-            "target_weight": "",
-            "gender": "mężczyzna",
-            "goal": "Redukcja tkanki tłuszczowej",
-            "frequency": "3-4 razy w tygodniu",
-            "sports": [],
-            "training_focus": [],
-            "improvement_areas": [],
-            "diet": "Brak preferencji",
-            "allergies": "",
-            "preferred_foods": [],
-            "avoid_foods": [],
-            "available_equipment": [],
-            "avoid_exercises": [],
-            "meals_per_day": 5,
-            "notes": "",
-            "plan": "free",
-            "role": "free_user",
-        }
-    return profile
+    user_key = _web_user_key(identity_id)
+    with Session(engine) as session:
+        user = session.exec(select(UserDB).where(UserDB.user_key == user_key)).first()
+        if not user:
+            return {
+                "name": "", "age": "", "height": "", "weight": "", "target_weight": "",
+                "gender": "mężczyzna", "goal": "Redukcja tkanki tłuszczowej",
+                "frequency": "3-4 razy w tygodniu", "sports": [], "training_focus": [],
+                "improvement_areas": [], "diet": "Brak preferencji", "allergies": "",
+                "preferred_foods": [], "avoid_foods": [], "available_equipment": [],
+                "avoid_exercises": [], "meals_per_day": 5, "notes": "",
+                "plan": "free", "role": "free_user",
+            }
+        return user.to_profile_dict()
 
 
 @app.get("/app/dashboard/{identity_id}")
 def app_dashboard(identity_id: str):
-    user_id = _web_user_id(identity_id)
-    db = load_db()
-    profile = db.get(user_id)
-    if not profile:
-        # Zwróć default dashboard zamiast 404
-        return {
-            "streak_days": 0,
-            "workout_consistency_pct": 0,
-            "targets": {"calories": "-", "protein": "-"},
-            "weight_series": [],
-        }
-    return _build_dashboard(profile)
+    user_key = _web_user_key(identity_id)
+    with Session(engine) as session:
+        user = session.exec(select(UserDB).where(UserDB.user_key == user_key)).first()
+        if not user:
+            return {"streak_days": 0, "workout_consistency_pct": 0, "targets": {"calories": "-", "protein": "-"}, "weight_series": []}
+        logs = _get_user_logs(user, session)
+        return _build_dashboard(user, logs)
 
 
 @app.post("/app/checkin/{identity_id}")
 def app_daily_checkin(identity_id: str, log: AppDailyCheckinRequest):
-    user_id = _web_user_id(identity_id)
-    with DB_LOCK:
-        db = _load_db_unlocked()
-        profile = db.get(user_id)
-        if not profile:
-            raise HTTPException(status_code=404, detail="Profil onboarding nie istnieje")
-
+    user_key = _web_user_key(identity_id)
+    with Session(engine) as session:
+        user = _get_user_or_404(user_key, session)
         today = date.today().isoformat()
-        log_entry = {
-            "date": today,
-            "food": log.food,
-            "workout": log.workout,
-            "mood": log.mood,
-            "weight": log.weight,
-            "logged_at": datetime.now().isoformat(),
-        }
-
-        profile_logs = profile.get("logs", [])
-        profile_logs = [l for l in profile_logs if l.get("date") != today]
-        profile_logs.append(log_entry)
-        profile["logs"] = profile_logs
-
+        existing = session.exec(
+            select(DailyLogDB)
+            .where(DailyLogDB.user_id == user.id)
+            .where(DailyLogDB.log_date == today)
+        ).first()
+        if existing:
+            session.delete(existing)
+            session.flush()
+        entry = DailyLogDB(
+            user_id=user.id, log_date=today,
+            food=log.food, workout=log.workout, mood=log.mood, weight=log.weight,
+        )
+        session.add(entry)
         if log.weight is not None:
-            profile["weight"] = log.weight
-            profile["calories_target"] = calc_calories(profile)
-            profile["protein_target"] = calc_protein(profile)
-
-        profile["updated_at"] = datetime.now().isoformat()
-        profile["streak_days"] = _compute_streak_days(profile_logs)
-        db[user_id] = profile
-        _save_db_unlocked(db)
-
-    return {
-        "status": "ok",
-        "log": log_entry,
-        "streak_days": profile["streak_days"],
-    }
+            user.weight = log.weight
+            user.calories_target = calc_calories(user)
+            user.protein_target = calc_protein(user)
+        logs = list(session.exec(select(DailyLogDB).where(DailyLogDB.user_id == user.id)).all())
+        logs.append(entry)
+        user.streak_days = _compute_streak_days_from_logs(logs)
+        user.updated_at = datetime.now().isoformat()
+        session.commit()
+        return {"status": "ok", "log": entry.to_dict(), "streak_days": user.streak_days}
 
 
 @app.post("/app/link-discord")
 def app_link_discord(payload: DiscordLinkRequest):
-    user_id = _web_user_id(payload.identity_id)
-    with DB_LOCK:
-        db = _load_db_unlocked()
-        profile = db.get(user_id)
-        if not profile:
-            raise HTTPException(status_code=404, detail="Profil onboarding nie istnieje")
-
-        profile["linked_discord_id"] = payload.discord_user_id
-        profile["updated_at"] = datetime.now().isoformat()
-        db[user_id] = profile
-        _save_db_unlocked(db)
-
-    return {
-        "status": "ok",
-        "linked_discord_id": payload.discord_user_id,
-    }
+    user_key = _web_user_key(payload.identity_id)
+    with Session(engine) as session:
+        user = _get_user_or_404(user_key, session)
+        user.linked_discord_id = payload.discord_user_id
+        user.updated_at = datetime.now().isoformat()
+        session.commit()
+        return {"status": "ok", "linked_discord_id": payload.discord_user_id}
 
 
 @app.get("/app/reminders/{identity_id}")
 def app_get_reminders(identity_id: str):
-    user_id = _web_user_id(identity_id)
-    db = load_db()
-    profile = db.get(user_id)
-    if not profile:
-        raise HTTPException(status_code=404, detail="Profil onboarding nie istnieje")
-    return profile.get(
-        "reminders",
-        {
-            "email_enabled": True,
-            "discord_enabled": False,
-            "discord_channel_id": None,
-        },
-    )
+    user_key = _web_user_key(identity_id)
+    with Session(engine) as session:
+        user = _get_user_or_404(user_key, session)
+        return user.get_dict("reminders_json")
 
 
 @app.post("/app/reminders/{identity_id}")
 def app_set_reminders(identity_id: str, prefs: ReminderPrefsRequest):
-    user_id = _web_user_id(identity_id)
-    with DB_LOCK:
-        db = _load_db_unlocked()
-        profile = db.get(user_id)
-        if not profile:
-            raise HTTPException(status_code=404, detail="Profil onboarding nie istnieje")
-
-        profile["reminders"] = prefs.model_dump()
-        profile["updated_at"] = datetime.now().isoformat()
-        db[user_id] = profile
-        _save_db_unlocked(db)
-
-    return {"status": "ok", "reminders": prefs.model_dump()}
-
-
-@app.post("/billing/plan/{identity_id}")
-def billing_set_plan(identity_id: str, payload: PlanUpdateRequest):
-    user_id = _web_user_id(identity_id)
-    with DB_LOCK:
-        db = _load_db_unlocked()
-        profile = db.get(user_id)
-        if not profile:
-            raise HTTPException(status_code=404, detail="Profil onboarding nie istnieje")
-
-        plan = _normalize_plan(payload.plan)
-        profile["plan"] = plan
-        profile["role"] = _role_for_plan(plan)
-        profile["updated_at"] = datetime.now().isoformat()
-        db[user_id] = profile
-        _save_db_unlocked(db)
-
-    return {"status": "ok", "plan": plan, "role": profile["role"]}
-
-
-@app.post("/billing/stripe/webhook")
-async def stripe_webhook(request: Request):
-    # Uproszczony webhook: expects JSON payload with identity_id and plan.
-    # Verification should be handled at edge function level before forwarding.
-    payload = await request.json()
-    identity_id = payload.get("identity_id")
-    if not identity_id:
-        raise HTTPException(status_code=400, detail="Brak identity_id")
-
-    plan = _normalize_plan(payload.get("plan", "free"))
-    user_id = _web_user_id(identity_id)
-
-    with DB_LOCK:
-        db = _load_db_unlocked()
-        profile = db.get(user_id)
-        if not profile:
-            raise HTTPException(status_code=404, detail="Profil onboarding nie istnieje")
-        profile["plan"] = plan
-        profile["role"] = _role_for_plan(plan)
-        profile["updated_at"] = datetime.now().isoformat()
-        db[user_id] = profile
-        _save_db_unlocked(db)
-
-    return {"status": "ok", "plan": plan, "role": profile["role"]}
+    user_key = _web_user_key(identity_id)
+    with Session(engine) as session:
+        user = _get_user_or_404(user_key, session)
+        user.set_dict("reminders_json", prefs.model_dump())
+        user.updated_at = datetime.now().isoformat()
+        session.commit()
+        return {"status": "ok", "reminders": prefs.model_dump()}
 
 
 @app.get("/app/reminders-due")
 def app_reminders_due():
-    db = load_db()
     today = date.today().isoformat()
-    due = []
-    for user_id, profile in db.items():
-        if not user_id.startswith("web:"):
-            continue
-        reminders = profile.get("reminders", {})
-        if not reminders.get("email_enabled") and not reminders.get("discord_enabled"):
-            continue
-
-        logs = profile.get("logs", [])
-        has_today_log = any(l.get("date") == today for l in logs)
-        if has_today_log:
-            continue
-
-        due.append(
-            {
-                "user_id": user_id,
-                "email": profile.get("email"),
-                "linked_discord_id": profile.get("linked_discord_id"),
+    with Session(engine) as session:
+        users = list(session.exec(select(UserDB).where(UserDB.user_key.startswith("web:"))).all())
+        due = []
+        for user in users:
+            reminders = user.get_dict("reminders_json")
+            if not reminders.get("email_enabled") and not reminders.get("discord_enabled"):
+                continue
+            has_today = session.exec(
+                select(DailyLogDB)
+                .where(DailyLogDB.user_id == user.id)
+                .where(DailyLogDB.log_date == today)
+            ).first()
+            if has_today:
+                continue
+            due.append({
+                "user_id": user.user_key,
+                "email": user.email,
+                "linked_discord_id": user.linked_discord_id,
                 "reminders": reminders,
-                "streak_days": profile.get("streak_days", 0),
-            }
-        )
-
-    return {"due": due, "count": len(due)}
+                "streak_days": user.streak_days,
+            })
+        return {"due": due, "count": len(due)}
 
 
 @app.get("/app/plan/{identity_id}")
 def app_get_plan(identity_id: str):
-    user_id = _web_user_id(identity_id)
-    db = load_db()
-    profile = db.get(user_id)
-    if not profile:
-        # Zwróć pusty plan zamiast 404
-        return {"days": [], "generated_at": None, "weekly_goal": None}
-    plan = profile.get("weekly_plan")
-    if not plan:
-        # Zwróć pusty plan zamiast 404
-        return {"days": [], "generated_at": None, "weekly_goal": None}
-    return plan
+    user_key = _web_user_key(identity_id)
+    with Session(engine) as session:
+        user = session.exec(select(UserDB).where(UserDB.user_key == user_key)).first()
+        if not user or not user.weekly_plan_json:
+            return {"days": [], "generated_at": None, "weekly_goal": None}
+        return user.get_dict("weekly_plan_json")
 
 
 @app.post("/app/plan/{identity_id}/generate")
 def app_generate_plan(identity_id: str, payload: PlanGenerateRequest):
-    user_id = _web_user_id(identity_id)
-    with DB_LOCK:
-        db = _load_db_unlocked()
-        profile = db.get(user_id)
-        if not profile:
-            raise HTTPException(status_code=404, detail="Profil onboarding nie istnieje")
-        if not _is_profile_ready_for_plan(profile):
+    user_key = _web_user_key(identity_id)
+    with Session(engine) as session:
+        user = _get_user_or_404(user_key, session)
+        if not _is_profile_ready_for_plan(user):
             raise HTTPException(status_code=400, detail="Najpierw uzupełnij pełny onboarding")
-        if payload.force or not profile.get("weekly_plan"):
-            profile["weekly_plan"] = _build_weekly_plan(profile)
-            profile["updated_at"] = datetime.now().isoformat()
-            db[user_id] = profile
-            _save_db_unlocked(db)
-    return {"status": "ok", "plan": profile.get("weekly_plan")}
+        if payload.force or not user.weekly_plan_json:
+            plan = _build_weekly_plan(user)
+            user.set_dict("weekly_plan_json", plan)
+            # Wzbogać plan o sugestie progresji
+            for day in plan.get("days", []):
+                exercises = day.get("workout", {}).get("exercises", [])
+                if exercises:
+                    day["workout"]["exercises"] = _enrich_exercises_with_progression(exercises, user, session)
+            user.set_dict("weekly_plan_json", plan)
+            user.updated_at = datetime.now().isoformat()
+            session.commit()
+        return {"status": "ok", "plan": user.get_dict("weekly_plan_json")}
 
 
 @app.post("/app/plan/{identity_id}/swap")
 def app_swap_plan_item(identity_id: str, payload: PlanSwapRequest):
-    user_id = _web_user_id(identity_id)
-    with DB_LOCK:
-        db = _load_db_unlocked()
-        profile = db.get(user_id)
-        if not profile:
-            raise HTTPException(status_code=404, detail="Profil onboarding nie istnieje")
-        plan = profile.get("weekly_plan")
-        if not plan:
+    user_key = _web_user_key(identity_id)
+    with Session(engine) as session:
+        user = _get_user_or_404(user_key, session)
+        if not user.weekly_plan_json:
             raise HTTPException(status_code=404, detail="Plan nie został jeszcze wygenerowany")
-
+        plan = user.get_dict("weekly_plan_json")
         days = plan.get("days", [])
-        if payload.day_index < 0 or payload.day_index >= len(days):
+        if not (0 <= payload.day_index < len(days)):
             raise HTTPException(status_code=400, detail="Niepoprawny day_index")
         day = days[payload.day_index]
         section = (payload.section or "").strip().lower()
 
         if section == "meal":
-            meals = day.get("meals", [])
-            if payload.item_index < 0 or payload.item_index >= len(meals):
+            items = day.get("meals", [])
+            if not (0 <= payload.item_index < len(items)):
                 raise HTTPException(status_code=400, detail="Niepoprawny item_index dla meal")
-            item = meals[payload.item_index]
-            alternatives = item.get("alternatives", [])
-            if payload.alternative_index < 0 or payload.alternative_index >= len(alternatives):
+            item = items[payload.item_index]
+            alts = item.get("alternatives", [])
+            if not (0 <= payload.alternative_index < len(alts)):
                 raise HTTPException(status_code=400, detail="Niepoprawny alternative_index")
-            current = {"name": item.get("name"), "kcal": item.get("kcal")}
-            selected = alternatives[payload.alternative_index]
-            item["name"] = selected.get("name")
-            item["kcal"] = selected.get("kcal")
-            new_alt = [a for i, a in enumerate(alternatives) if i != payload.alternative_index]
-            new_alt.append(current)
-            item["alternatives"] = new_alt
+            current = {"name": item["name"], "kcal": item["kcal"]}
+            selected = alts[payload.alternative_index]
+            item.update({"name": selected["name"], "kcal": selected["kcal"]})
+            item["alternatives"] = [a for i, a in enumerate(alts) if i != payload.alternative_index] + [current]
+
         elif section == "exercise":
             exercises = day.get("workout", {}).get("exercises", [])
-            if payload.item_index < 0 or payload.item_index >= len(exercises):
+            if not (0 <= payload.item_index < len(exercises)):
                 raise HTTPException(status_code=400, detail="Niepoprawny item_index dla exercise")
             item = exercises[payload.item_index]
-            alternatives = item.get("alternatives", [])
-            if payload.alternative_index < 0 or payload.alternative_index >= len(alternatives):
+            alts = item.get("alternatives", [])
+            if not (0 <= payload.alternative_index < len(alts)):
                 raise HTTPException(status_code=400, detail="Niepoprawny alternative_index")
-            selected = alternatives[payload.alternative_index]
-            current = {"name": item.get("name"), "sets": item.get("sets"), "reps": item.get("reps"), "notes": item.get("notes"), "how_to": item.get("how_to")}
-            item["name"] = selected.get("name")
-            item["sets"] = selected.get("sets")
-            item["reps"] = selected.get("reps")
-            item["notes"] = selected.get("notes")
-            item["how_to"] = selected.get("how_to")
-            new_alt = [a for i, a in enumerate(alternatives) if i != payload.alternative_index]
-            new_alt.append(current)
-            item["alternatives"] = new_alt
+            current = {k: item.get(k) for k in ["name", "sets", "reps", "notes", "how_to"]}
+            selected = alts[payload.alternative_index]
+            item.update({k: selected.get(k) for k in ["name", "sets", "reps", "notes", "how_to"]})
+            item["alternatives"] = [a for i, a in enumerate(alts) if i != payload.alternative_index] + [current]
         else:
             raise HTTPException(status_code=400, detail="section musi być meal albo exercise")
-        profile["weekly_plan"] = plan
-        profile["updated_at"] = datetime.now().isoformat()
-        db[user_id] = profile
-        _save_db_unlocked(db)
-    return {"status": "ok", "plan": profile.get("weekly_plan")}
+
+        user.set_dict("weekly_plan_json", plan)
+        user.updated_at = datetime.now().isoformat()
+        session.commit()
+        return {"status": "ok", "plan": plan}
 
 
-# ─── AI endpointy ─────────────────────────────────────────────────────────────
+# ─── Billing endpoints ────────────────────────────────────────────────────────
+
+@app.post("/billing/plan/{identity_id}")
+def billing_set_plan(identity_id: str, payload: PlanUpdateRequest):
+    user_key = _web_user_key(identity_id)
+    with Session(engine) as session:
+        user = _get_user_or_404(user_key, session)
+        plan = _normalize_plan(payload.plan)
+        user.plan = plan
+        user.role = _role_for_plan(plan)
+        user.updated_at = datetime.now().isoformat()
+        session.commit()
+        return {"status": "ok", "plan": plan, "role": user.role}
+
+
+@app.post("/billing/stripe/webhook")
+async def stripe_webhook(request: Request):
+    payload = await request.json()
+    identity_id = payload.get("identity_id")
+    if not identity_id:
+        raise HTTPException(status_code=400, detail="Brak identity_id")
+    plan = _normalize_plan(payload.get("plan", "free"))
+    user_key = _web_user_key(identity_id)
+    with Session(engine) as session:
+        user = _get_user_or_404(user_key, session)
+        user.plan = plan
+        user.role = _role_for_plan(plan)
+        user.updated_at = datetime.now().isoformat()
+        session.commit()
+        return {"status": "ok", "plan": plan, "role": user.role}
+
+
+# ─── AI endpoints ─────────────────────────────────────────────────────────────
 
 @app.post("/ai/diet")
 def ai_diet_plan(req: AIRequest):
-    db = load_db()
-    if req.user_id not in db:
-        raise HTTPException(status_code=404, detail="Użytkownik nie istnieje")
-    profile = db[req.user_id]
-    kcal = calc_calories(profile)
-    protein = calc_protein(profile)
+    with Session(engine) as session:
+        user = _get_user_or_404(req.user_id, session)
+        kcal = user.calories_target or calc_calories(user)
+        protein = user.protein_target or calc_protein(user)
+        day_of_week = datetime.now().strftime("%A")
 
-    system = (
-        "Jesteś dietetykiem sportowym. Piszesz po polsku. "
-        "Tworzysz konkretne, zróżnicowane i zdrowe plany posiłków z dokładną gramaturą."
-    )
-    day = datetime.now().strftime("%A")
-    user_msg = (
-        f"Profil: {json.dumps(profile, ensure_ascii=False)}\n"
-        f"Docelowe kalorie: {kcal} kcal, białko: {protein}g, "
-        f"tłuszcze: {int(kcal*0.25/9)}g, węglowodany: {int(kcal*0.45/4)}g\n"
-        f"Dzień: {day}\n"
-        f"Dieta: {profile.get('diet', 'brak preferencji')}, "
-        f"alergie: {profile.get('allergies', 'brak')}\n"
-        f"Posiłków dziennie: {profile.get('meals_per_day', 4)}\n\n"
-        f"Kontekst dodatkowy: {req.extra_context or 'brak'}\n\n"
-        "Utwórz szczegółowy plan diety na DZIŚ z godzinami, pełnymi nazwami produktów, "
-        "gramaturą i kaloriami każdego posiłku. Na końcu łączne makroskładniki."
-    )
-    response = ask_claude(system, user_msg, max_tokens=1000)
-    return {"plan": response, "calories_target": kcal, "protein_target": protein}
+        # Wyznacz typ dnia i makro carb cycling
+        focus = user.get_list("training_focus_json")
+        day_type = _day_type(day_of_week, focus[0].lower() if focus else "klatka")
+        macros = calc_daily_macros(kcal, day_type)
+
+        system = (
+            "Jesteś dietetykiem sportowym. Piszesz po polsku. "
+            "Tworzysz konkretne, zróżnicowane i zdrowe plany posiłków z dokładną gramaturą."
+        )
+        user_msg = (
+            f"Profil: {json.dumps(user.to_profile_dict(), ensure_ascii=False)}\n"
+            f"Typ dnia (carb cycling): {day_type}\n"
+            f"Makroskładniki DZIŚ: {macros['kcal']} kcal, "
+            f"białko {macros['protein_g']}g, węgle {macros['carbs_g']}g, tłuszcze {macros['fat_g']}g\n"
+            f"Dzień: {day_of_week}\n"
+            f"Dieta: {user.diet}, alergie: {user.allergies or 'brak'}\n"
+            f"Posiłków dziennie: {user.meals_per_day}\n\n"
+            f"Kontekst: {req.extra_context or 'brak'}\n\n"
+            "Utwórz szczegółowy plan diety na DZIŚ z godzinami, pełnymi nazwami produktów, "
+            "gramaturą i kaloriami każdego posiłku. Na końcu łączne makroskładniki."
+        )
+        return {"plan": ask_claude(system, user_msg, 1000), "calories_target": kcal, "protein_target": protein, "macros": macros}
 
 
 @app.post("/ai/workout")
 def ai_workout_plan(req: AIRequest):
-    db = load_db()
-    if req.user_id not in db:
-        raise HTTPException(status_code=404, detail="Użytkownik nie istnieje")
-    profile = db[req.user_id]
+    with Session(engine) as session:
+        user = _get_user_or_404(req.user_id, session)
+        logs = list(session.exec(
+            select(DailyLogDB).where(DailyLogDB.user_id == user.id).order_by(DailyLogDB.log_date.desc())
+        ).all())[:7]
+        recent_workouts = [l.workout for l in logs if l.workout]
 
-    recent_workouts = [
-        l.get("workout", "")
-        for l in profile.get("logs", [])[-7:]
-        if l.get("workout")
-    ]
-    day = datetime.now().strftime("%A")
-    system = (
-        "Jesteś doświadczonym trenerem personalnym. Piszesz po polsku. "
-        "Tworzysz efektywne i bezpieczne plany treningowe."
-    )
-    user_msg = (
-        f"Profil: {json.dumps(profile, ensure_ascii=False)}\n"
-        f"Dzień tygodnia: {day}\n"
-        f"Ostatnie treningi (7 dni): {chr(10).join(recent_workouts) or 'brak danych'}\n"
-        f"Kontekst: {req.extra_context or 'brak'}\n\n"
-        "Utwórz plan treningowy na DZIŚ — nazwa sesji, 5-6 ćwiczeń z seriami, "
-        "powtórzeniami, obciążeniem (% 1RM lub konkretne) i wskazówkami technicznymi. "
-        "Unikaj partii zmęczonych z ostatnich dni. "
-        f"Cel: {profile.get('goal', '?')}, sporty: {', '.join(profile.get('sports', []))}"
-    )
-    response = ask_claude(system, user_msg, max_tokens=900)
-    return {"plan": response}
+        # Pobierz dane progresji dla AI
+        progression_summary = []
+        ex_results = list(session.exec(
+            select(ExerciseResultDB)
+            .where(ExerciseResultDB.user_id == user.id)
+            .order_by(ExerciseResultDB.session_date.desc())
+        ).all())[:30]
+        by_name: Dict[str, list] = {}
+        for r in ex_results:
+            by_name.setdefault(r.exercise_name, []).append(r)
+        for name, hist in by_name.items():
+            p = _suggest_progression(name, hist)
+            progression_summary.append(f"{name}: sugerowany ciężar {p.get('suggested_weight_kg')} kg "
+                                       f"x {p.get('suggested_reps')} powtórzeń ({p.get('reason')})")
+
+        day = datetime.now().strftime("%A")
+        system = (
+            "Jesteś doświadczonym trenerem personalnym. Piszesz po polsku. "
+            "Tworzysz efektywne i bezpieczne plany treningowe z progresją obciążenia."
+        )
+        user_msg = (
+            f"Profil: {json.dumps(user.to_profile_dict(), ensure_ascii=False)}\n"
+            f"Dzień tygodnia: {day}\n"
+            f"Ostatnie treningi (7 dni): {chr(10).join(recent_workouts) or 'brak danych'}\n"
+            f"Historia progresji (RPE-based):\n{chr(10).join(progression_summary) or 'brak historii'}\n"
+            f"Kontekst: {req.extra_context or 'brak'}\n\n"
+            "Utwórz plan treningowy na DZIŚ — nazwa sesji, 5-6 ćwiczeń z seriami, "
+            "powtórzeniami, konkretnym obciążeniem (uwzględnij sugestie progresji powyżej) "
+            "i wskazówkami technicznymi. Unikaj partii zmęczonych z ostatnich dni.\n"
+            f"Cel: {user.goal}, sporty: {', '.join(user.get_list('sports_json'))}"
+        )
+        return {"plan": ask_claude(system, user_msg, 900)}
 
 
 @app.post("/ai/analyze-log")
 def ai_analyze_log(req: AIRequest):
-    db = load_db()
-    if req.user_id not in db:
-        raise HTTPException(status_code=404, detail="Użytkownik nie istnieje")
-    profile = db[req.user_id]
-    logs = profile.get("logs", [])
-    today_log = next((l for l in reversed(logs) if l.get("date") == date.today().isoformat()), None)
-
-    if not today_log:
-        raise HTTPException(status_code=400, detail="Brak raportu na dziś")
-
-    kcal = calc_calories(profile)
-    system = (
-        "Jesteś osobistym asystentem fitness. Piszesz po polsku. "
-        "Analizujesz raporty i tworzysz konkretne plany na kolejny dzień."
-    )
-    user_msg = (
-        f"Profil: {json.dumps(profile, ensure_ascii=False)}\n"
-        f"Docelowe kalorie: {kcal} kcal\n\n"
-        f"Raport z dziś:\n"
-        f"- Co jadłem: {today_log.get('food', 'nie podano')}\n"
-        f"- Trening: {today_log.get('workout', 'nie podano')}\n"
-        f"- Samopoczucie: {today_log.get('mood', 'nie podano')}\n"
-        f"- Waga: {today_log.get('weight', 'nie podano')} kg\n\n"
-        "Oceń dzień (kalorie, jakość treningu, postęp do celu) i podaj KONKRETNY plan na jutro: "
-        "lista 4 posiłków z kaloriami + opis treningu. Uwzględnij zmęczenie/ból z raportu. Max 400 słów."
-    )
-    response = ask_claude(system, user_msg, max_tokens=1000)
-    return {"analysis": response}
+    with Session(engine) as session:
+        user = _get_user_or_404(req.user_id, session)
+        today = date.today().isoformat()
+        today_log = session.exec(
+            select(DailyLogDB)
+            .where(DailyLogDB.user_id == user.id)
+            .where(DailyLogDB.log_date == today)
+        ).first()
+        if not today_log:
+            raise HTTPException(status_code=400, detail="Brak raportu na dziś")
+        kcal = user.calories_target or calc_calories(user)
+        focus = user.get_list("training_focus_json")
+        day_type = _day_type(datetime.now().strftime("%A"), focus[0].lower() if focus else "klatka")
+        macros = calc_daily_macros(kcal, day_type)
+        system = (
+            "Jesteś osobistym asystentem fitness. Piszesz po polsku. "
+            "Analizujesz raporty i tworzysz konkretne plany na kolejny dzień."
+        )
+        user_msg = (
+            f"Profil: {json.dumps(user.to_profile_dict(), ensure_ascii=False)}\n"
+            f"Makro na dziś ({day_type}): {macros}\n\n"
+            f"Raport z dziś:\n"
+            f"- Co jadłem: {today_log.food or 'nie podano'}\n"
+            f"- Trening: {today_log.workout or 'nie podano'}\n"
+            f"- Samopoczucie: {today_log.mood or 'nie podano'}\n"
+            f"- Waga: {today_log.weight or 'nie podano'} kg\n\n"
+            "Oceń dzień i podaj KONKRETNY plan na jutro z makroskładnikami. Max 400 słów."
+        )
+        return {"analysis": ask_claude(system, user_msg, 1000)}
 
 
 @app.post("/ai/weekly")
 def ai_weekly_summary(req: AIRequest):
-    db = load_db()
-    if req.user_id not in db:
-        raise HTTPException(status_code=404, detail="Użytkownik nie istnieje")
-    profile = db[req.user_id]
-    week_logs = profile.get("logs", [])[-7:]
+    with Session(engine) as session:
+        user = _get_user_or_404(req.user_id, session)
+        logs = list(session.exec(
+            select(DailyLogDB).where(DailyLogDB.user_id == user.id).order_by(DailyLogDB.log_date.desc())
+        ).all())[:7]
+        system = (
+            "Jesteś analitykiem fitness. Piszesz po polsku. "
+            "Tworzysz motywujące ale realistyczne podsumowania tygodniowe."
+        )
+        user_msg = (
+            f"Profil: {json.dumps(user.to_profile_dict(), ensure_ascii=False)}\n"
+            f"Logi z ostatnich 7 dni: {json.dumps([l.to_dict() for l in logs], ensure_ascii=False)}\n\n"
+            "Podaj tygodniowe podsumowanie: ocena tygodnia, postęp do celu, "
+            "top 3 rekomendacje na kolejny tydzień (dieta + trening). Max 300 słów."
+        )
+        return {"summary": ask_claude(system, user_msg, 800)}
 
-    system = (
-        "Jesteś analitykiem fitness. Piszesz po polsku. "
-        "Tworzysz motywujące ale realistyczne podsumowania tygodniowe."
-    )
-    user_msg = (
-        f"Profil: {json.dumps(profile, ensure_ascii=False)}\n"
-        f"Logi z ostatnich 7 dni: {json.dumps(week_logs, ensure_ascii=False)}\n\n"
-        "Podaj tygodniowe podsumowanie: "
-        "1) Krótka ocena tygodnia (co szło dobrze, co źle), "
-        "2) Postęp do celu, "
-        "3) Top 3 konkretne rekomendacje na następny tydzień (dieta + trening). "
-        "Max 300 słów. Bądź motywujący."
-    )
-    response = ask_claude(system, user_msg, max_tokens=800)
-    return {"summary": response}
 
+# ─── Version & root ───────────────────────────────────────────────────────────
 
 @app.get("/")
 def root():
-    return {
-        "name": "FitAI API",
-        "version": "1.0.0",
-        "docs": "/docs",
-        "status": "running",
-    }
+    return {"name": "FitAI API", "version": "2.0.0", "docs": "/docs", "status": "running"}
 
 
 @app.get("/app/version")
 def get_version():
-    """Zwraca wersję i datę ostatniego updateu"""
-    import json
-    from datetime import datetime
-    
     try:
         with open("package.json", "r") as f:
-            pkg = json.load(f)
-        version = pkg.get("version", "1.0.0")
-    except:
-        version = "1.0.0"
-    
-    return {
-        "version": version,
-        "build_date": datetime.now().strftime("%Y-%m-%d"),
-        "api_version": "1.02",
-    }
+            version = json.load(f).get("version", "2.0.0")
+    except Exception:
+        version = "2.0.0"
+    return {"version": version, "build_date": datetime.now().strftime("%Y-%m-%d"), "api_version": "2.0.0"}
 
 
 if __name__ == "__main__":
