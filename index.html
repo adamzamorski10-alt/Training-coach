@@ -1309,6 +1309,31 @@ function switchPlanSubtab(sub) {
 function updateExerciseSlider(val) {
   state.exerciseCount = parseInt(val);
   document.getElementById('exerciseCountLabel').textContent = val;
+  // Immediately re-render training plan
+  const p = getCurrentProfile();
+  const day = state.days[state.currentDay];
+  const excl = p.exclusions || [];
+  const rawExercises = p.trainingPlan[day] || [];
+  const exercises = planFilter(rawExercises, excl).slice(0, state.exerciseCount);
+  const trainingContainer = document.getElementById('planTrainingContainer');
+  if (!trainingContainer) return;
+  const k = `${p.id}_${day}`;
+  const checked = state.dayChecked[k] || {};
+  trainingContainer.innerHTML = exercises.length ? exercises.map((e,idx) => {
+    if (e.hidden) return '<div class="p-3 rounded-xl text-xs text-gray-600 bg-white/2 border border-white/5 italic flex items-center gap-2"><span>🚫</span> ' + e.name + ' — ukryto (wykluczenie)</div>';
+    const isDone = !!checked['ex_'+idx];
+    const exDataAttr = 'data-item="' + encodeURIComponent(JSON.stringify(e)) + '" data-index="' + idx + '"';
+    return '<div class="glass rounded-xl p-4 cursor-pointer hover:border-cyan-500/30 transition-all ' + (isDone?'opacity-60':'') + '" ' + exDataAttr + ' onclick="openExpandModalFromEl(this,\'training\')" >' +
+      '<div class="flex items-start gap-2 mb-2">' +
+        '<div class="check-circle ' + (isDone?'checked':'') + '" onclick="event.stopPropagation();togglePlanCheck(\'ex_' + idx + '\',\'' + p.id + '\',\'' + day + '\')"></div>' +
+        '<div class="flex-1">' +
+          '<p class="font-medium text-white text-sm ' + (isDone?'line-through text-gray-500':'') + '">' + e.name + '</p>' +
+          '<div class="flex gap-3 text-xs text-gray-500 mt-1">' + (e.sets>0?'<span>'+e.sets+' sety</span>':'') + (e.reps>1?'<span>'+e.reps+' powt.</span>':'') + (e.weight>0?'<span>'+e.weight+'kg</span>':'') + '</div>' +
+        '</div>' +
+        '<div class="flex gap-1 flex-wrap justify-end">' + (e.tags||[]).map(t=>'<span class="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-gray-500">#'+t+'</span>').join('') + '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('') : '<div class="text-sm text-gray-600 italic text-center py-8">Dzień odpoczynku 🧘</div>';
 }
 
 // ========== PROFILE TABS ==========
@@ -1502,7 +1527,7 @@ function loadPlanForDay() {
     dietContainer.innerHTML = meals.length ? meals.map((m,idx) => {
       if (m.hidden) return `<div class="p-3 rounded-xl text-xs text-gray-600 bg-white/2 border border-white/5 italic flex items-center gap-2"><span>🚫</span> ${m.name} — ukryto (wykluczenie)</div>`;
       const isDone = !!checked['meal_'+idx];
-      const mealDataAttr = 'data-item="' + encodeURIComponent(JSON.stringify(m)) + '"';
+      const mealDataAttr = 'data-item="' + encodeURIComponent(JSON.stringify(m)) + '" data-index="' + idx + '"';
       return '<div class="glass rounded-xl p-4 cursor-pointer hover:border-cyan-500/30 transition-all ' + (isDone?'opacity-60':'') + '" ' + mealDataAttr + ' onclick="openExpandModalFromEl(this,\'diet\')" >' +
         '<div class="flex justify-between items-start mb-2">' +
           '<div class="flex items-center gap-2">' +
@@ -1523,7 +1548,7 @@ function loadPlanForDay() {
     trainingContainer.innerHTML = exercises.length ? exercises.map((e,idx) => {
       if (e.hidden) return `<div class="p-3 rounded-xl text-xs text-gray-600 bg-white/2 border border-white/5 italic flex items-center gap-2"><span>🚫</span> ${e.name} — ukryto (wykluczenie)</div>`;
       const isDone = !!checked['ex_'+idx];
-      const exDataAttr = 'data-item="' + encodeURIComponent(JSON.stringify(e)) + '"';
+      const exDataAttr = 'data-item="' + encodeURIComponent(JSON.stringify(e)) + '" data-index="' + idx + '"';
       return '<div class="glass rounded-xl p-4 cursor-pointer hover:border-cyan-500/30 transition-all ' + (isDone?'opacity-60':'') + '" ' + exDataAttr + ' onclick="openExpandModalFromEl(this,\'training\')" >' +
         '<div class="flex items-start gap-2 mb-2">' +
           '<div class="check-circle ' + (isDone?'checked':'') + '" onclick="event.stopPropagation();togglePlanCheck(\'ex_' + idx + '\',\'' + p.id + '\',\'' + day + '\')"></div>' +
@@ -1630,7 +1655,8 @@ function loadTodayPlanChecklist() {
 function openExpandModalFromEl(el, type) {
   try {
     const data = JSON.parse(decodeURIComponent(el.getAttribute('data-item')));
-    openExpandModal(type, data.id || data.name, data.name, data);
+    const idx = parseInt(el.getAttribute('data-index') || '0');
+    openExpandModal(type, idx, data.name, data);
   } catch(e) { console.error('openExpandModalFromEl error', e); }
 }
 
@@ -1692,15 +1718,16 @@ function swapItem() {
       <div class="p-3 rounded-xl" style="background:rgba(0,229,255,0.05);border:1px solid var(--border-cyan);">
         <p class="text-xs font-bold text-cyan-400 mb-3">🔄 Alternatywy dla: ${name}</p>
         <div class="space-y-2">
-          ${alternatives.length ? alternatives.map(a => `
-            <div class="alt-item" onclick="confirmSwapMeal('${a.name}')">
+          ${alternatives.length ? alternatives.map(a => {
+            const encoded = encodeURIComponent(JSON.stringify(a));
+            return `<div class="alt-item" onclick="confirmSwapMeal(JSON.parse(decodeURIComponent('${encoded}')))">
               <div class="flex justify-between items-center">
                 <span class="text-sm text-white font-medium">${a.name}</span>
                 <span class="text-xs text-cyan-400 font-bold">Zamień →</span>
               </div>
               <div class="flex gap-3 text-xs text-gray-500 mt-1"><span>P:${a.protein}g</span><span>W:${a.carbs}g</span><span>T:${a.fat}g</span><span>${a.kcal}kcal</span></div>
-            </div>
-          `).join('') : '<p class="text-xs text-gray-500">Brak alternatyw</p>'}
+            </div>`;
+          }).join('') : '<p class="text-xs text-gray-500">Brak alternatyw</p>'}
         </div>
       </div>
     `;
@@ -1709,29 +1736,45 @@ function swapItem() {
       <div class="p-3 rounded-xl" style="background:rgba(0,229,255,0.05);border:1px solid var(--border-cyan);">
         <p class="text-xs font-bold text-cyan-400 mb-3">🔄 Alternatywy ćwiczenia</p>
         <div class="space-y-2">
-          ${alternatives.length ? alternatives.map(a => `
-            <div class="alt-item" onclick="confirmSwapExercise(${JSON.stringify(a).replace(/"/g,'&quot;')})">
+          ${alternatives.length ? alternatives.map(a => {
+            const encoded = encodeURIComponent(JSON.stringify(a));
+            return `<div class="alt-item" onclick="confirmSwapExercise(JSON.parse(decodeURIComponent('${encoded}')))">
               <div class="flex justify-between items-center">
                 <span class="text-sm text-white font-medium">${a.name}</span>
                 <span class="text-xs text-cyan-400 font-bold">Zamień →</span>
               </div>
               <div class="flex gap-2 text-xs text-gray-500 mt-1"><span>${a.sets||4}×${a.reps||10}</span><span>${a.muscles||''}</span></div>
-            </div>
-          `).join('') : '<p class="text-xs text-gray-500">Brak alternatyw</p>'}
+            </div>`;
+          }).join('') : '<p class="text-xs text-gray-500">Brak alternatyw</p>'}
         </div>
       </div>
     `;
   }
 }
 
-function confirmSwapMeal(mealName) {
-  showToast(`✅ Zamieniono na: ${mealName}`);
+function confirmSwapMeal(newMealData) {
+  const p = getCurrentProfile();
+  const day = state.days[state.currentDay];
+  const idx = state.expandedItem?.itemId;
+  if (!p.dietPlan[day] || idx === undefined) { closeExpandModal(); return; }
+  // Replace the meal at idx with the new one
+  p.dietPlan[day][idx] = Object.assign({}, p.dietPlan[day][idx], newMealData);
+  saveState();
   closeExpandModal();
+  loadPlanForDay();
+  showToast('✅ Zamieniono na: ' + newMealData.name);
 }
 
-function confirmSwapExercise(ex) {
-  showToast(`✅ Zamieniono na: ${ex.name}`);
+function confirmSwapExercise(newExData) {
+  const p = getCurrentProfile();
+  const day = state.days[state.currentDay];
+  const idx = state.expandedItem?.itemId;
+  if (!p.trainingPlan[day] || idx === undefined) { closeExpandModal(); return; }
+  p.trainingPlan[day][idx] = Object.assign({}, p.trainingPlan[day][idx], newExData);
+  saveState();
   closeExpandModal();
+  loadPlanForDay();
+  showToast('✅ Zamieniono na: ' + newExData.name);
 }
 
 function addExpandedToDay() {
