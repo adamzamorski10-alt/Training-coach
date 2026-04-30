@@ -100,8 +100,12 @@
     .shop-category{border-left:3px solid var(--cyan);padding-left:12px;margin-bottom:16px;}
     /* Range slider */
     input[type=range]{padding:0!important;background:transparent!important;border:none!important;}
-    input[type=range]::-webkit-slider-track{height:4px;background:rgba(255,255,255,0.1);border-radius:4px;}
-    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--cyan);cursor:pointer;box-shadow:0 0 8px rgba(0,229,255,0.5);}
+    input[type=range]::-webkit-slider-track{height:6px;background:rgba(255,255,255,0.08);border-radius:6px;}
+    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--violet));cursor:pointer;box-shadow:0 0 12px rgba(0,229,255,0.6);transition:transform 0.15s ease;}
+    input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15);}
+    input[type=range]::-webkit-slider-thumb:active{transform:scale(0.95);}
+    input[type=range]::-moz-range-track{height:6px;background:rgba(255,255,255,0.08);border-radius:6px;}
+    input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--violet));cursor:pointer;border:none;box-shadow:0 0 12px rgba(0,229,255,0.6);}
     /* Alternatives grid */
     .alt-item{background:rgba(0,229,255,0.04);border:1px solid rgba(0,229,255,0.12);border-radius:12px;padding:10px 14px;cursor:pointer;transition:all 0.2s;}
     .alt-item:hover{background:rgba(0,229,255,0.1);border-color:var(--cyan);}
@@ -279,7 +283,7 @@
 <!-- END LANDING -->
 
 <!-- ======= DASHBOARD PAGE ======= -->
-<div id="dashboardPage" class="pt-16 min-h-screen" style="display:none;">
+<div id="dashboardPage" class="hidden pt-16 min-h-screen" style="display:none;">
 
   <!-- SIDEBAR -->
   <aside id="sidebar" class="hidden md:flex w-64 glass-sidebar p-6 border-r fixed top-16 h-[calc(100vh-64px)] flex-col gap-6 overflow-y-auto z-40" style="border-color:var(--border);">
@@ -400,65 +404,36 @@
 
     <!-- ====== TAB: MY DAY ====== -->
     <section id="tab-my-day" class="hidden space-y-6">
-      <div class="flex justify-between items-center">
-        <h3 class="text-3xl font-bold" style="font-family:'Syne',sans-serif;">Mój Dzień</h3>
-        <div class="text-right">
-          <p class="text-xs text-gray-500">Postęp dnia</p>
-          <p class="text-sm font-bold text-cyan-400" id="dayProgressLabel">0 / 0 ukończone</p>
+      <div class="flex justify-between items-start flex-wrap gap-3">
+        <div>
+          <h3 class="text-3xl font-bold" style="font-family:'Syne',sans-serif;">Mój Dzień</h3>
+          <p class="text-sm text-gray-500 mt-1" id="todayDayLabel">—</p>
+        </div>
+        <div class="glass rounded-2xl px-5 py-3 text-right" style="min-width:170px;">
+          <p class="text-xs text-gray-500 mb-1">Postęp dnia</p>
+          <p class="text-2xl font-bold text-cyan-400" style="font-family:'Syne',sans-serif;" id="dayProgressLabel">0%</p>
+          <div class="progress-bar mt-1"><div id="dayProgressBar" class="progress-fill bg-gradient-to-r from-cyan-500 to-violet-500" style="width:0%"></div></div>
+          <p class="text-xs text-gray-600 mt-1" id="dayProgressCount">0 / 0 zadań</p>
         </div>
       </div>
       <div id="macroAlertBanner" class="hidden alert-warn"><p id="macroAlertText" class="text-sm font-medium"></p></div>
-      
-      <!-- Plan Checklist -->
+      <div class="grid grid-cols-3 gap-3">
+        <div class="glass p-4 text-center"><p class="text-xs text-gray-500 mb-1">Kalorie</p><p class="text-lg font-bold text-cyan-400" style="font-family:'Syne',sans-serif;"><span id="daySumKcal">0</span> kcal</p></div>
+        <div class="glass p-4 text-center"><p class="text-xs text-gray-500 mb-1">Białko</p><p class="text-lg font-bold text-violet-400" style="font-family:'Syne',sans-serif;"><span id="daySumProt">0</span>g</p></div>
+        <div class="glass p-4 text-center"><p class="text-xs text-gray-500 mb-1">Aktywności</p><p class="text-lg font-bold text-yellow-400" style="font-family:'Syne',sans-serif;" id="dayTrainCount">0</p></div>
+      </div>
       <div class="glass p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h4 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">📌 Dzisiejszy Plan (z planu)</h4>
-          <button onclick="loadTodayPlanChecklist()" class="btn-outline-cyan px-3 py-1.5 rounded-xl text-xs font-bold">Odśwież plan</button>
+        <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+          <h4 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">📋 Plan dnia — checklista</h4>
+          <div class="flex gap-2">
+            <button onclick="openAddOtherModal('diet')" class="btn-outline-cyan px-3 py-1.5 rounded-xl text-xs font-bold">+ Posiłek</button>
+            <button onclick="openAddOtherModal('training')" class="btn-ghost px-3 py-1.5 rounded-xl text-xs font-bold">+ Trening</button>
+          </div>
         </div>
         <div id="planChecklistContainer" class="space-y-2">
-          <p class="text-sm text-gray-500 italic text-center py-4">Kliknij "Odśwież plan" aby załadować dzisiejszy plan</p>
+          <p class="text-sm text-gray-500 italic text-center py-8">Ładowanie...</p>
         </div>
-      </div>
-
-      <!-- Hidden counters for dashboard compatibility -->
-      <span id="dayCalEaten" class="hidden">0</span>
-      <span id="dayTrainCount" class="hidden">0</span>
-      <div id="dietLogContainer" class="hidden"></div>
-      <div id="trainingLogContainer" class="hidden"></div>
-
-      <!-- Inline "Inny" form (diet) -->
-      <div id="innyDietForm" class="hidden glass p-5 border border-cyan-500/20">
-        <h4 class="text-sm font-bold text-white mb-3">✏️ Dodaj inny posiłek</h4>
-        <div class="space-y-3">
-          <div><label class="block text-xs font-medium text-gray-400 mb-1">Nazwa</label><input type="text" id="innyDietName" placeholder="np. Kurczak z ryżem" class="w-full text-sm"></div>
-          <div class="grid grid-cols-4 gap-2">
-            <div><label class="block text-xs font-medium text-gray-400 mb-1">Białko (g)</label><input type="number" id="innyDietProtein" placeholder="0" class="w-full text-sm"></div>
-            <div><label class="block text-xs font-medium text-gray-400 mb-1">Węgle (g)</label><input type="number" id="innyDietCarbs" placeholder="0" class="w-full text-sm"></div>
-            <div><label class="block text-xs font-medium text-gray-400 mb-1">Tłuszcz (g)</label><input type="number" id="innyDietFat" placeholder="0" class="w-full text-sm"></div>
-            <div><label class="block text-xs font-medium text-gray-400 mb-1">Kcal</label><input type="number" id="innyDietKcal" placeholder="0" class="w-full text-sm"></div>
-          </div>
-          <div class="flex gap-2">
-            <button onclick="submitInnyForm('diet')" class="flex-1 btn-neon py-2 rounded-xl font-bold text-sm">Dodaj</button>
-            <button onclick="closeInnyForm('diet')" class="flex-1 btn-ghost py-2 rounded-xl text-sm">Anuluj</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Inline "Inny" form (training) -->
-      <div id="innyTrainingForm" class="hidden glass p-5 border border-violet-500/20">
-        <h4 class="text-sm font-bold text-white mb-3">✏️ Dodaj inne ćwiczenie</h4>
-        <div class="space-y-3">
-          <div><label class="block text-xs font-medium text-gray-400 mb-1">Nazwa ćwiczenia</label><input type="text" id="innyTrainingName" placeholder="np. Bieganie 5km" class="w-full text-sm"></div>
-          <div class="grid grid-cols-3 gap-2">
-            <div><label class="block text-xs font-medium text-gray-400 mb-1">Serie</label><input type="number" id="innyTrainingSets" placeholder="0" class="w-full text-sm"></div>
-            <div><label class="block text-xs font-medium text-gray-400 mb-1">Powtórzenia</label><input type="number" id="innyTrainingReps" placeholder="0" class="w-full text-sm"></div>
-            <div><label class="block text-xs font-medium text-gray-400 mb-1">Ciężar (kg)</label><input type="number" id="innyTrainingWeight" placeholder="0" class="w-full text-sm"></div>
-          </div>
-          <div class="flex gap-2">
-            <button onclick="submitInnyForm('training')" class="flex-1 btn-neon py-2 rounded-xl font-bold text-sm">Dodaj</button>
-            <button onclick="closeInnyForm('training')" class="flex-1 btn-ghost py-2 rounded-xl text-sm">Anuluj</button>
-          </div>
-        </div>
+        <div id="extraItemsContainer" class="space-y-2 mt-2"></div>
       </div>
     </section>
 
@@ -487,10 +462,34 @@
       </div>
 
       <!-- Exercises Slider (only in training mode) -->
-      <div id="exerciseSliderRow" class="hidden glass p-4 flex items-center gap-4">
-        <label class="text-sm text-gray-400 whitespace-nowrap">Liczba ćwiczeń w sesji:</label>
-        <input type="range" id="exerciseCountSlider" min="1" max="8" value="4" class="flex-1" oninput="updateExerciseSlider(this.value)">
-        <span class="text-sm font-bold text-cyan-400 w-8" id="exerciseCountLabel">4</span>
+      <div id="exerciseSliderRow" class="hidden glass p-5">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-base">💪</span>
+            <span class="text-sm font-bold text-white">Liczba ćwiczeń w sesji</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-2xl font-bold text-cyan-400" style="font-family:'Syne',sans-serif;" id="exerciseCountLabel">4</span>
+            <span class="text-xs text-gray-500">ćwiczenia</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-4 mb-3">
+          <span class="text-xs text-gray-600 w-4 text-center">1</span>
+          <input type="range" id="exerciseCountSlider" min="1" max="8" value="4" class="flex-1" oninput="updateExerciseSlider(this.value)">
+          <span class="text-xs text-gray-600 w-4 text-center">8</span>
+        </div>
+        <!-- Pip dots under slider -->
+        <div class="flex justify-between px-4 mb-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-white/20" id="pip1"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-white/20" id="pip2"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-white/20" id="pip3"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-white/20" id="pip4"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-white/20" id="pip5"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-white/20" id="pip6"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-white/20" id="pip7"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-white/20" id="pip8"></span>
+        </div>
+        <div id="exerciseSliderInfo" class="text-xs text-gray-500 text-center mt-2">Zmień liczbę i lista zaktualizuje się automatycznie</div>
       </div>
 
       <!-- Diet Plan -->
@@ -579,9 +578,11 @@
         <div class="glass p-6">
           <h4 class="text-lg font-bold text-white mb-4" style="font-family:'Syne',sans-serif;">🎯 Cele treningowe</h4>
           <div id="goalsGrid" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4"></div>
-          <!-- Sport goals -->
           <h4 class="text-lg font-bold text-white mb-3 mt-6" style="font-family:'Syne',sans-serif;">🏅 Sporty dedykowane</h4>
           <div id="sportGrid" class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4"></div>
+          <h4 class="text-lg font-bold text-white mb-3 mt-6" style="font-family:'Syne',sans-serif;">💪 Priorytet partii mięśniowych</h4>
+          <p class="text-xs text-gray-500 mb-3">Wybrane partie będą miały więcej ćwiczeń w planie tygodniowym.</p>
+          <div id="muscleGrid" class="grid grid-cols-3 md:grid-cols-6 gap-3 mb-4"></div>
           <button onclick="saveGoals()" class="btn-neon px-6 py-2 rounded-xl font-bold text-sm">Zapisz cele</button>
         </div>
       </div>
@@ -748,22 +749,34 @@ const state = {
   manualFormType: null,
   dayLogs: { diet: [], training: [] },
   dayChecked: {}, // tracks checked state by profileId + day
+  extraItems: {}, // manually added items {profileId: [{type,name,kcal,protein,...}]}
   aiOpen: false,
   planSubtab: 'diet',
   exerciseCount: 4,
+  addOtherType: 'diet',
 };
 
 const FOOD_EXCLUSIONS = [
-  { id:'nabiał', label:'🥛 Nabiał' }, { id:'gluten', label:'🌾 Gluten' },
-  { id:'orzechy', label:'🥜 Orzechy' }, { id:'wieprzowina', label:'🐷 Wieprzowina' },
-  { id:'ryby', label:'🐟 Ryby/Owoce morza' }, { id:'jajka', label:'🥚 Jajka' },
-  { id:'soja', label:'🫘 Soja' }, { id:'kurczak', label:'🍗 Kurczak' },
-  { id:'ryż', label:'🍚 Ryż' }, { id:'cukier', label:'🍬 Cukier' },
+  { id:'nabiał', label:'🥛 Nabiał/Laktoza' }, { id:'gluten', label:'🌾 Gluten' },
+  { id:'orzechy', label:'🥜 Orzechy' }, { id:'orzechy_ziemne', label:'🥜 Orzechy ziemne' },
+  { id:'orzechy_nerkowca', label:'🌰 Orzechy nerkowca' }, { id:'wieprzowina', label:'🐷 Wieprzowina' },
+  { id:'jagnięcina', label:'🐑 Jagnięcina' }, { id:'ryby', label:'🐟 Ryby' },
+  { id:'owoce_morza', label:'🦐 Owoce morza' }, { id:'jajka', label:'🥚 Jajka' },
+  { id:'soja', label:'🫘 Soja' }, { id:'tofu', label:'🧊 Tofu' },
+  { id:'kurczak', label:'🍗 Kurczak' }, { id:'ryż', label:'🍚 Ryż' },
+  { id:'cukier', label:'🍬 Cukier' }, { id:'fruktoza', label:'🍯 Fruktoza' },
+  { id:'kolendra', label:'🌿 Kolendra' }, { id:'seler', label:'🌱 Seler' },
+  { id:'papryka', label:'🫑 Papryka' }, { id:'pomidory', label:'🍅 Pomidory' },
+  { id:'sezam', label:'🌾 Sezam' }, { id:'gorczyca', label:'🌼 Gorczyca' },
+  { id:'łubin', label:'🫘 Łubin' }, { id:'dwutlenek_siarki', label:'⚗️ Dwutlenek siarki' },
+  { id:'awokado', label:'🥑 Awokado' }, { id:'nabiał_kozi', label:'🐐 Nabiał kozi' },
 ];
 const EXERCISE_EXCLUSIONS = [
   { id:'bieganie', label:'🏃 Bieganie' }, { id:'skakanie', label:'🦘 Skakanie' },
   { id:'ciężary', label:'🏋️ Ciężary' }, { id:'pływanie', label:'🏊 Pływanie' },
   { id:'HIIT', label:'⚡ HIIT' }, { id:'rozciąganie', label:'🧘 Rozciąganie' },
+  { id:'kettlebell', label:'🔔 Kettlebell' }, { id:'tasmy', label:'🎗️ Taśmy oporowe' },
+  { id:'TRX', label:'🪢 TRX' }, { id:'wspinaczka', label:'🧗 Wspinaczka' },
 ];
 const MOCK_GOALS = [
   { id:'strength', emoji:'🏋️', label:'Siłownia' }, { id:'cardio', emoji:'🏃', label:'Kardio' },
@@ -782,6 +795,18 @@ const MOCK_EQUIPMENT = [
   { id:'kable', emoji:'⚙️', label:'Kable/Maszyny' }, { id:'mata', emoji:'🧵', label:'Mata' },
   { id:'kettlebell', emoji:'🔔', label:'Kettlebell' }, { id:'drabinka', emoji:'🪜', label:'Drabinka' },
   { id:'lawka', emoji:'🛋️', label:'Ławka' }, { id:'drążek', emoji:'🔩', label:'Drążek' },
+  { id:'tasmy', emoji:'🎗️', label:'Taśmy oporowe' }, { id:'TRX', emoji:'🪢', label:'TRX' },
+];
+const MUSCLE_FOCUS = [
+  { id:'brzuch', emoji:'🎯', label:'Brzuch' },
+  { id:'klatka', emoji:'💪', label:'Klata' },
+  { id:'biceps', emoji:'💪', label:'Biceps' },
+  { id:'triceps', emoji:'🦾', label:'Triceps' },
+  { id:'plecy', emoji:'🔙', label:'Plecy' },
+  { id:'nogi', emoji:'🦵', label:'Nogi' },
+  { id:'ramiona', emoji:'🏋️', label:'Ramiona' },
+  { id:'core', emoji:'⚡', label:'Core' },
+  { id:'pośladki', emoji:'🍑', label:'Pośladki' },
 ];
 
 // ========== MEAL DATABASE ==========
@@ -952,7 +977,19 @@ function generateFullPlanForProfile(profile) {
   else if (sports.includes('running')) templateKey = 'running';
   else if (goals.includes('cardio')) templateKey = 'cardio';
   else if (goals.includes('strength') || goals.includes('mass')) templateKey = 'strength';
-  const template = PLAN_TEMPLATES[templateKey];
+
+  // Override muscle groups with user's focus areas if set
+  const muscleFocus = profile.muscleFocus || [];
+  const template = JSON.parse(JSON.stringify(PLAN_TEMPLATES[templateKey]));
+  if (muscleFocus.length > 0) {
+    // Inject priority muscles into training days (Mon, Wed, Fri)
+    ['Pon','Śr','Pt'].forEach(d => {
+      if (template[d] && template[d].length > 0) {
+        // Prepend focus muscles so they get more exercises
+        template[d] = [...muscleFocus.filter(m => EXERCISE_DB[m]), ...template[d]].slice(0, 3);
+      }
+    });
+  }
   
   const dietPlan = {}, trainingPlan = {};
   for (const day of ['Pon','Wt','Śr','Czw','Pt','Sob','Niedz']) {
@@ -982,20 +1019,13 @@ function createDefaultProfile(id, name, age=28, height=182, weight=84.5, gender=
 
 // ========== INIT ==========
 function initApp() {
-  let saved = null, savedLogs = null, savedChecked = null;
-  try { saved = localStorage.getItem('fitai_profiles_v3'); } catch(e) {}
-  try { savedLogs = localStorage.getItem('fitai_logs_v3'); } catch(e) {}
-  try { savedChecked = localStorage.getItem('fitai_checked_v3'); } catch(e) {}
-
+  const saved = localStorage.getItem('fitai_profiles_v3');
+  const savedLogs = localStorage.getItem('fitai_logs_v3');
+  const savedChecked = localStorage.getItem('fitai_checked_v3');
   if (saved) {
-    try {
-      state.profiles = JSON.parse(saved);
-      state.currentProfile = state.profiles[0]?.id || null;
-    } catch(e) {
-      saved = null;
-    }
-  }
-  if (!saved) {
+    state.profiles = JSON.parse(saved);
+    state.currentProfile = state.profiles[0]?.id || null;
+  } else {
     const p1 = createDefaultProfile('user1','Marek');
     const {tdee, protein} = calculateNutrition(p1);
     p1.caloriesTarget = tdee; p1.proteinTarget = protein;
@@ -1003,8 +1033,10 @@ function initApp() {
     state.currentProfile = 'user1';
     saveState();
   }
-  if (savedLogs) { try { state.dayLogs = JSON.parse(savedLogs); } catch(e) {} }
-  if (savedChecked) { try { state.dayChecked = JSON.parse(savedChecked); } catch(e) {} }
+  if (savedLogs) state.dayLogs = JSON.parse(savedLogs);
+  if (savedChecked) state.dayChecked = JSON.parse(savedChecked);
+  const savedExtras = localStorage.getItem('fitai_extras_v3');
+  if (savedExtras) state.extraItems = JSON.parse(savedExtras);
   
   document.getElementById('todayDate').textContent = new Date().toLocaleDateString('pl-PL',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   
@@ -1032,24 +1064,14 @@ function getCurrentProfile() {
 
 // ========== LANDING / DASHBOARD SWITCH ==========
 function enterDashboard() {
-  try {
-    state.view = 'dashboard';
-    document.getElementById('landingPage').style.display = 'none';
-    document.getElementById('dashboardPage').style.display = 'flex';
-    const landingLinks = document.getElementById('landingLinks');
-    if (landingLinks) landingLinks.classList.add('hidden');
-    const userSwitcher = document.getElementById('userSwitcher');
-    if (userSwitcher) userSwitcher.classList.remove('hidden');
-    const aiFloatBtn = document.getElementById('aiFloatBtn');
-    if (aiFloatBtn) aiFloatBtn.classList.remove('hidden');
-    showTab('home');
-    updateDashboard();
-  } catch(e) {
-    console.error('enterDashboard error:', e);
-    // Force show dashboard even if something else fails
-    document.getElementById('landingPage').style.display = 'none';
-    document.getElementById('dashboardPage').style.display = 'flex';
-  }
+  state.view = 'dashboard';
+  document.getElementById('landingPage').style.display = 'none';
+  document.getElementById('dashboardPage').style.display = 'flex';
+  document.getElementById('landingLinks').classList.add('hidden');
+  document.getElementById('userSwitcher').classList.remove('hidden');
+  document.getElementById('aiFloatBtn').classList.remove('hidden');
+  showTab('home');
+  updateDashboard();
 }
 
 function exitDashboard() {
@@ -1286,10 +1308,19 @@ function showTab(tabId) {
   document.querySelectorAll('.nav-item').forEach(n => { n.classList.remove('active','text-cyan-400'); n.classList.add('text-gray-400'); });
   const active = document.querySelector(`.nav-item[data-tab="${tabId}"]`);
   if (active) { active.classList.add('active','text-cyan-400'); active.classList.remove('text-gray-400'); }
-  if (tabId==='plan') { renderDayCarousel(); loadPlanForDay(); }
+  if (tabId==='plan') {
+    renderDayCarousel();
+    loadPlanForDay();
+    // Sync slider value if we're on training subtab
+    if (state.planSubtab === 'training') {
+      const slider = document.getElementById('exerciseCountSlider');
+      if (slider) slider.value = state.exerciseCount;
+      updateExerciseSlider(state.exerciseCount);
+    }
+  }
   if (tabId==='profile') renderProfileTabs();
   if (tabId==='home') updateDashboard();
-  if (tabId==='my-day') loadTodayPlanChecklist();
+  if (tabId==='my-day') { loadTodayPlanChecklist(); renderExtraItems(); }
   document.getElementById('mainContent').scrollTop = 0;
 }
 
@@ -1303,37 +1334,128 @@ function switchPlanSubtab(sub) {
   document.getElementById('planDietPanel').classList.toggle('hidden', sub!=='diet');
   document.getElementById('planTrainingPanel').classList.toggle('hidden', sub!=='training');
   document.getElementById('exerciseSliderRow').classList.toggle('hidden', sub!=='training');
-  loadPlanForDay();
+
+  if (sub === 'training') {
+    // Sync slider to current count and init pip dots
+    const slider = document.getElementById('exerciseCountSlider');
+    if (slider) slider.value = state.exerciseCount;
+    updateExerciseSlider(state.exerciseCount);
+  } else {
+    loadPlanForDay();
+  }
 }
 
 function updateExerciseSlider(val) {
-  state.exerciseCount = parseInt(val);
-  document.getElementById('exerciseCountLabel').textContent = val;
-  // Immediately re-render training plan
+  const count = parseInt(val);
+  state.exerciseCount = count;
+
+  // Update label
+  document.getElementById('exerciseCountLabel').textContent = count;
+
+  // Update pip dots (visual indicator)
+  for (let i = 1; i <= 8; i++) {
+    const pip = document.getElementById('pip' + i);
+    if (pip) {
+      if (i <= count) {
+        pip.style.background = '#00e5ff';
+        pip.style.boxShadow = '0 0 6px rgba(0,229,255,0.6)';
+      } else {
+        pip.style.background = 'rgba(255,255,255,0.15)';
+        pip.style.boxShadow = 'none';
+      }
+    }
+  }
+
+  // Update info text
+  const infoEl = document.getElementById('exerciseSliderInfo');
+  if (infoEl) {
+    const labels = ['', 'Bardzo krótki (1)', 'Ekspresowy (2)', 'Krótki (3)',
+                    'Optymalny (4)', 'Solidny (5)', 'Intensywny (6)',
+                    'Zaawansowany (7)', 'Hardcore (8)'];
+    infoEl.textContent = labels[count] || '';
+    infoEl.style.color = count >= 6 ? '#f87171' : count >= 4 ? '#00e5ff' : '#64748b';
+  }
+
+  // Immediately regenerate exercises for this day with new count
+  refreshExercisesForSlider(count);
+}
+
+function refreshExercisesForSlider(count) {
   const p = getCurrentProfile();
   const day = state.days[state.currentDay];
   const excl = p.exclusions || [];
-  const rawExercises = p.trainingPlan[day] || [];
-  const exercises = planFilter(rawExercises, excl).slice(0, state.exerciseCount);
+  const equip = p.equipment || [];
+  const checkedKey = p.id + '_' + day;
+  const checked = state.dayChecked[checkedKey] || {};
+
+  // Determine muscle groups for this day from profile template
+  const goals = p.goals || [];
+  const sports = p.sports || [];
+  let templateKey = 'default';
+  if (sports.includes('basketball')) templateKey = 'basketball';
+  else if (sports.includes('running')) templateKey = 'running';
+  else if (goals.includes('cardio')) templateKey = 'cardio';
+  else if (goals.includes('strength') || goals.includes('mass')) templateKey = 'strength';
+
+  const baseTemplate = PLAN_TEMPLATES[templateKey];
+  const muscleFocus = p.muscleFocus || [];
+  const dayGroups = (baseTemplate[day] || []).slice();
+
+  // Add muscle focus groups to the front for priority
+  const priorityGroups = [...muscleFocus.filter(m => EXERCISE_DB[m] && !dayGroups.includes(m)), ...dayGroups];
+  const muscleGroups = priorityGroups.length > 0 ? priorityGroups : dayGroups;
+
+  // Generate fresh exercises directly from DB (not from saved plan)
+  const freshExercises = generateExercisesForDay(muscleGroups, equip, excl, count);
+
+  // Also merge in any exercises from saved plan that aren't already present
+  const savedExercises = p.trainingPlan[day] || [];
+  const savedNames = new Set(freshExercises.map(e => e.name));
+  const extra = savedExercises.filter(e => !savedNames.has(e.name) && !e.hidden);
+  const merged = [...freshExercises, ...extra].slice(0, count);
+
+  // Use merged if we got more exercises that way
+  const exercises = merged.length >= freshExercises.length ? merged : freshExercises;
+
+  // Store for modal
+  state._planExercises = exercises;
+
   const trainingContainer = document.getElementById('planTrainingContainer');
   if (!trainingContainer) return;
-  const k = `${p.id}_${day}`;
-  const checked = state.dayChecked[k] || {};
-  trainingContainer.innerHTML = exercises.length ? exercises.map((e,idx) => {
-    if (e.hidden) return '<div class="p-3 rounded-xl text-xs text-gray-600 bg-white/2 border border-white/5 italic flex items-center gap-2"><span>🚫</span> ' + e.name + ' — ukryto (wykluczenie)</div>';
+
+  if (exercises.length === 0) {
+    trainingContainer.innerHTML = '<div class="text-sm text-gray-600 italic text-center py-8">Dzień odpoczynku 🧘<br><span class="text-xs text-gray-700 mt-1 block">Wybierz inny dzień lub zwiększ liczbę ćwiczeń</span></div>';
+    return;
+  }
+
+  // Animate the transition
+  trainingContainer.style.opacity = '0';
+  trainingContainer.style.transform = 'translateY(8px)';
+
+  trainingContainer.innerHTML = exercises.map((e, idx) => {
+    if (e.hidden) return '<div class="p-3 rounded-xl text-xs text-gray-600 italic">🚫 ' + e.name + ' — ukryto</div>';
     const isDone = !!checked['ex_'+idx];
-    const exDataAttr = 'data-item="' + encodeURIComponent(JSON.stringify(e)) + '" data-index="' + idx + '"';
-    return '<div class="glass rounded-xl p-4 cursor-pointer hover:border-cyan-500/30 transition-all ' + (isDone?'opacity-60':'') + '" ' + exDataAttr + ' onclick="openExpandModalFromEl(this,\'training\')" >' +
-      '<div class="flex items-start gap-2 mb-2">' +
-        '<div class="check-circle ' + (isDone?'checked':'') + '" onclick="event.stopPropagation();togglePlanCheck(\'ex_' + idx + '\',\'' + p.id + '\',\'' + day + '\')"></div>' +
-        '<div class="flex-1">' +
-          '<p class="font-medium text-white text-sm ' + (isDone?'line-through text-gray-500':'') + '">' + e.name + '</p>' +
-          '<div class="flex gap-3 text-xs text-gray-500 mt-1">' + (e.sets>0?'<span>'+e.sets+' sety</span>':'') + (e.reps>1?'<span>'+e.reps+' powt.</span>':'') + (e.weight>0?'<span>'+e.weight+'kg</span>':'') + '</div>' +
-        '</div>' +
-        '<div class="flex gap-1 flex-wrap justify-end">' + (e.tags||[]).map(t=>'<span class="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-gray-500">#'+t+'</span>').join('') + '</div>' +
-      '</div>' +
-    '</div>';
-  }).join('') : '<div class="text-sm text-gray-600 italic text-center py-8">Dzień odpoczynku 🧘</div>';
+    const meta = [e.sets > 0 ? e.sets + ' serii' : '', e.reps > 1 ? e.reps + ' powt.' : '', e.weight > 0 ? e.weight + 'kg' : 'BW'].filter(Boolean).join(' · ');
+    const muscleColor = {klatka:'#00e5ff', plecy:'#7c3aed', nogi:'#f59e0b', ramiona:'#10b981', kardio:'#ef4444', core:'#8b5cf6', brzuch:'#8b5cf6', biceps:'#06b6d4', triceps:'#6366f1'}[e.muscles?.split(',')[0]?.trim()] || '#64748b';
+    return '<div class="glass rounded-xl p-4 cursor-pointer hover:border-cyan-500/30 transition-all ' + (isDone ? 'opacity-50' : '') + '" style="animation:slideUp 0.3s ease both;animation-delay:' + (idx * 0.05) + 's" onclick="openExpandByIndex(&quot;training&quot;,' + idx + ')">'
+      + '<div class="flex items-start gap-3">'
+      + '<div class="check-circle flex-shrink-0 mt-0.5 ' + (isDone ? 'checked' : '') + '" onclick="event.stopPropagation();togglePlanCheck(&#39;ex_' + idx + '&#39;,&#39;' + p.id + '&#39;,&#39;' + day + '&#39;)"></div>'
+      + '<div class="flex-1 min-w-0">'
+      + '<div class="flex items-start justify-between gap-2 mb-1">'
+      + '<p class="font-semibold text-white text-sm leading-tight ' + (isDone ? 'line-through text-gray-500' : '') + '">' + (idx + 1) + '. ' + e.name + '</p>'
+      + '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style="background:' + muscleColor + '22;color:' + muscleColor + ';border:1px solid ' + muscleColor + '44;">' + (e.muscles?.split(',')[0] || '—') + '</span>'
+      + '</div>'
+      + '<p class="text-xs text-gray-500">' + meta + '</p>'
+      + (e.tags?.length ? '<div class="flex gap-1 mt-1.5">' + e.tags.map(t => '<span class="text-[9px] bg-white/5 px-1.5 py-0.5 rounded text-gray-600">#' + t + '</span>').join('') + '</div>' : '')
+      + '</div></div></div>';
+  }).join('');
+
+  // Fade in
+  requestAnimationFrame(() => {
+    trainingContainer.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+    trainingContainer.style.opacity = '1';
+    trainingContainer.style.transform = 'translateY(0)';
+  });
 }
 
 // ========== PROFILE TABS ==========
@@ -1393,27 +1515,66 @@ function saveProfileData() {
 
 function renderGoalsGrid() {
   const p = getCurrentProfile();
-  document.getElementById('goalsGrid').innerHTML = MOCK_GOALS.map(g => `
-    <label class="glass rounded-xl p-4 cursor-pointer hover:border-cyan-500/30 flex flex-col items-center gap-2 text-center transition-all ${(p.goals||[]).includes(g.id)?'border-cyan-500/40 bg-cyan-500/5':''}">
-      <input type="checkbox" class="goal-cb sr-only" value="${g.id}" ${(p.goals||[]).includes(g.id)?'checked':''}>
+
+  // Main goals - clickable tiles with active class
+  document.getElementById('goalsGrid').innerHTML = MOCK_GOALS.map(g => {
+    const active = (p.goals||[]).includes(g.id);
+    return `<div class="goal-tile glass rounded-xl p-4 cursor-pointer flex flex-col items-center gap-2 text-center transition-all ${active ? 'border-cyan-400/60 bg-cyan-500/10 shadow-[0_0_16px_rgba(0,229,255,0.15)]' : 'hover:border-cyan-500/30'}" onclick="toggleGoalTile('${g.id}',this)" data-id="${g.id}">
       <span class="text-3xl">${g.emoji}</span>
-      <span class="text-sm font-medium text-white">${g.label}</span>
-    </label>
-  `).join('');
-  
-  document.getElementById('sportGrid').innerHTML = SPORT_GOALS.map(g => `
-    <label class="glass rounded-xl p-3 cursor-pointer hover:border-cyan-500/30 flex items-center gap-2 transition-all ${(p.sports||[]).includes(g.id)?'border-cyan-500/40 bg-cyan-500/5':''}">
-      <input type="checkbox" class="sport-cb sr-only" value="${g.id}" ${(p.sports||[]).includes(g.id)?'checked':''}>
+      <span class="text-sm font-medium ${active?'text-cyan-400':'text-white'}">${g.label}</span>
+      ${active ? '<span class="text-[10px] text-cyan-400 font-bold">✓ Aktywny</span>' : ''}
+    </div>`;
+  }).join('');
+
+  // Sport goals
+  document.getElementById('sportGrid').innerHTML = SPORT_GOALS.map(g => {
+    const active = (p.sports||[]).includes(g.id);
+    return `<div class="sport-tile glass rounded-xl p-3 cursor-pointer flex items-center gap-2 transition-all ${active ? 'border-cyan-400/60 bg-cyan-500/10 shadow-[0_0_12px_rgba(0,229,255,0.12)]' : 'hover:border-cyan-500/30'}" onclick="toggleSportTile('${g.id}',this)" data-id="${g.id}">
       <span class="text-2xl">${g.emoji}</span>
-      <div><p class="text-sm font-medium text-white">${g.label}</p><p class="text-xs text-gray-500">${g.focus}</p></div>
-    </label>
-  `).join('');
+      <div><p class="text-sm font-medium ${active?'text-cyan-400':'text-white'}">${g.label}</p><p class="text-xs text-gray-500">${g.focus}</p></div>
+      ${active ? '<span class="ml-auto text-cyan-400 text-sm">✓</span>' : ''}
+    </div>`;
+  }).join('');
+
+  // Muscle focus
+  if (document.getElementById('muscleGrid')) {
+    document.getElementById('muscleGrid').innerHTML = MUSCLE_FOCUS.map(m => {
+      const active = (p.muscleFocus||[]).includes(m.id);
+      return `<div class="muscle-tile glass rounded-xl p-3 cursor-pointer flex flex-col items-center gap-1 text-center transition-all ${active ? 'border-cyan-400/60 bg-cyan-500/10' : 'hover:border-cyan-500/30'}" onclick="toggleMuscleTile('${m.id}',this)" data-id="${m.id}">
+        <span class="text-2xl">${m.emoji}</span>
+        <span class="text-xs font-medium ${active?'text-cyan-400':'text-white'}">${m.label}</span>
+      </div>`;
+    }).join('');
+  }
+}
+
+function toggleGoalTile(id, el) {
+  const p = getCurrentProfile();
+  if (!p.goals) p.goals = [];
+  if (p.goals.includes(id)) p.goals = p.goals.filter(g => g !== id);
+  else p.goals.push(id);
+  renderGoalsGrid();
+}
+
+function toggleSportTile(id, el) {
+  const p = getCurrentProfile();
+  if (!p.sports) p.sports = [];
+  if (p.sports.includes(id)) p.sports = p.sports.filter(s => s !== id);
+  else p.sports.push(id);
+  renderGoalsGrid();
+}
+
+function toggleMuscleTile(id, el) {
+  const p = getCurrentProfile();
+  if (!p.muscleFocus) p.muscleFocus = [];
+  if (p.muscleFocus.includes(id)) p.muscleFocus = p.muscleFocus.filter(m => m !== id);
+  else p.muscleFocus.push(id);
+  renderGoalsGrid();
 }
 
 function saveGoals() {
   const p = getCurrentProfile();
-  p.goals = Array.from(document.querySelectorAll('.goal-cb:checked')).map(cb=>cb.value);
-  p.sports = Array.from(document.querySelectorAll('.sport-cb:checked')).map(cb=>cb.value);
+  // Goals already saved via toggles - just rebuild plan
   const { dietPlan, trainingPlan } = generateFullPlanForProfile(p);
   p.dietPlan = dietPlan; p.trainingPlan = trainingPlan;
   saveState();
@@ -1513,6 +1674,10 @@ function selectDay(i) {
 function prevDay() { selectDay((state.currentDay-1+7)%7); }
 function nextDay() { selectDay((state.currentDay+1)%7); }
 
+// Store current plan items for modal access
+state._planMeals = [];
+state._planExercises = [];
+
 function loadPlanForDay() {
   const p = getCurrentProfile();
   const day = state.days[state.currentDay];
@@ -1523,44 +1688,34 @@ function loadPlanForDay() {
   if (state.planSubtab === 'diet' || !state.planSubtab) {
     const rawMeals = p.dietPlan[day] || [];
     const meals = planFilter(rawMeals, excl);
+    state._planMeals = meals;
     const dietContainer = document.getElementById('planDietContainer');
-    dietContainer.innerHTML = meals.length ? meals.map((m,idx) => {
+    dietContainer.innerHTML = meals.length ? meals.map((m, idx) => {
       if (m.hidden) return `<div class="p-3 rounded-xl text-xs text-gray-600 bg-white/2 border border-white/5 italic flex items-center gap-2"><span>🚫</span> ${m.name} — ukryto (wykluczenie)</div>`;
       const isDone = !!checked['meal_'+idx];
-      const mealDataAttr = 'data-item="' + encodeURIComponent(JSON.stringify(m)) + '" data-index="' + idx + '"';
-      return '<div class="glass rounded-xl p-4 cursor-pointer hover:border-cyan-500/30 transition-all ' + (isDone?'opacity-60':'') + '" ' + mealDataAttr + ' onclick="openExpandModalFromEl(this,\'diet\')" >' +
-        '<div class="flex justify-between items-start mb-2">' +
-          '<div class="flex items-center gap-2">' +
-            '<div class="check-circle ' + (isDone?'checked':'') + '" onclick="event.stopPropagation();togglePlanCheck(\'meal_' + idx + '\',\'' + p.id + '\',\'' + day + '\')"></div>' +
-            '<p class="font-medium text-white text-sm ' + (isDone?'line-through text-gray-500':'') + '">' + m.name + '</p>' +
-          '</div>' +
-          '<span class="text-xs bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded">' + m.kcal + ' kcal</span>' +
-        '</div>' +
-        '<div class="flex gap-3 text-xs text-gray-500 pl-7"><span>P: ' + m.protein + 'g</span><span>W: ' + m.carbs + 'g</span><span>T: ' + m.fat + 'g</span></div>' +
-      '</div>';
+      return `<div class="glass rounded-xl p-4 cursor-pointer hover:border-cyan-500/30 transition-all ${isDone?'opacity-60':''}" onclick="openExpandByIndex('diet',${idx})">
+        <div class="flex justify-between items-start mb-2">
+          <div class="flex items-center gap-2">
+            <div class="check-circle ${isDone?'checked':''}" onclick="event.stopPropagation();togglePlanCheck('meal_${idx}','${p.id}','${day}')"></div>
+            <p class="font-medium text-white text-sm ${isDone?'line-through text-gray-500':''}">${m.name}</p>
+          </div>
+          <span class="text-xs bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded">${m.kcal} kcal</span>
+        </div>
+        <div class="flex gap-3 text-xs text-gray-500 pl-7"><span>P: ${m.protein}g</span><span>W: ${m.carbs}g</span><span>T: ${m.fat}g</span></div>
+      </div>`;
     }).join('') : '<p class="text-sm text-gray-600 italic text-center py-4">Brak zaplanowanych posiłków</p>';
   }
 
   if (state.planSubtab === 'training') {
-    const rawExercises = p.trainingPlan[day] || [];
-    const exercises = planFilter(rawExercises, excl).slice(0, state.exerciseCount);
-    const trainingContainer = document.getElementById('planTrainingContainer');
-    trainingContainer.innerHTML = exercises.length ? exercises.map((e,idx) => {
-      if (e.hidden) return `<div class="p-3 rounded-xl text-xs text-gray-600 bg-white/2 border border-white/5 italic flex items-center gap-2"><span>🚫</span> ${e.name} — ukryto (wykluczenie)</div>`;
-      const isDone = !!checked['ex_'+idx];
-      const exDataAttr = 'data-item="' + encodeURIComponent(JSON.stringify(e)) + '" data-index="' + idx + '"';
-      return '<div class="glass rounded-xl p-4 cursor-pointer hover:border-cyan-500/30 transition-all ' + (isDone?'opacity-60':'') + '" ' + exDataAttr + ' onclick="openExpandModalFromEl(this,\'training\')" >' +
-        '<div class="flex items-start gap-2 mb-2">' +
-          '<div class="check-circle ' + (isDone?'checked':'') + '" onclick="event.stopPropagation();togglePlanCheck(\'ex_' + idx + '\',\'' + p.id + '\',\'' + day + '\')"></div>' +
-          '<div class="flex-1">' +
-            '<p class="font-medium text-white text-sm ' + (isDone?'line-through text-gray-500':'') + '">' + e.name + '</p>' +
-            '<div class="flex gap-3 text-xs text-gray-500 mt-1">' + (e.sets>0?'<span>'+e.sets+' sety</span>':'') + (e.reps>1?'<span>'+e.reps+' powt.</span>':'') + (e.weight>0?'<span>'+e.weight+'kg</span>':'') + '</div>' +
-          '</div>' +
-          '<div class="flex gap-1 flex-wrap justify-end">' + (e.tags||[]).map(t=>'<span class="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-gray-500">#'+t+'</span>').join('') + '</div>' +
-        '</div>' +
-      '</div>';
-    }).join('') : '<div class="text-sm text-gray-600 italic text-center py-8">Dzień odpoczynku 🧘</div>';
+    // Delegate entirely to refreshExercisesForSlider so slider always works correctly
+    refreshExercisesForSlider(state.exerciseCount);
   }
+}
+
+function openExpandByIndex(type, idx) {
+  const data = type === 'diet' ? state._planMeals[idx] : state._planExercises[idx];
+  if (!data) return;
+  openExpandModal(type, idx, data.name, data);
 }
 
 // ========== CHECK PLAN ITEMS ==========
@@ -1592,74 +1747,118 @@ function loadTodayPlanChecklist() {
   const day = state.days[todayIdx];
   const k = `${p.id}_${day}`;
   const checked = state.dayChecked[k] || {};
-  const meals = p.dietPlan[day] || [];
-  const exercises = p.trainingPlan[day] || [];
+  const meals = (p.dietPlan[day] || []).filter(m => !m.hidden);
+  const exercises = (p.trainingPlan[day] || []).filter(e => !e.hidden).slice(0, state.exerciseCount);
   const container = document.getElementById('planChecklistContainer');
   
+  // Update day label
+  const dayLabel = document.getElementById('todayDayLabel');
+  if (dayLabel) dayLabel.textContent = new Date().toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long'});
+
   if (meals.length === 0 && exercises.length === 0) {
-    container.innerHTML = '<p class="text-sm text-gray-500 italic text-center py-4">Brak planu na dziś. Wygeneruj plan w Profilu.</p>';
+    container.innerHTML = '<p class="text-sm text-gray-500 italic text-center py-8">Brak planu na dziś. Uzupełnij profil i zapisz go.</p>';
+    updateDayProgress();
     return;
   }
-  
-  const customDiet = (state.dayLogs[p.id]?.diet || []);
-  const customTraining = (state.dayLogs[p.id]?.training || []);
 
   let html = '';
-  if (meals.length || customDiet.length) {
-    html += `<p class="text-xs font-bold text-gray-500 uppercase mb-2">🍽️ Posiłki — ${day}</p>`;
-    html += meals.map((m,i) => {
-      const isDone = !!checked[`meal_${i}`];
-      return `<div class="checklist-item flex items-center gap-3 glass rounded-xl p-3 mb-2 ${isDone?'done':''}">
-        <div class="check-circle ${isDone?'checked':''}" onclick="togglePlanCheck('meal_${i}','${p.id}','${day}');loadTodayPlanChecklist();"></div>
-        <div class="flex-1"><p class="text-sm font-medium text-white item-name">${m.name}</p><p class="text-xs text-gray-500">${m.kcal} kcal · P:${m.protein}g W:${m.carbs}g T:${m.fat}g</p></div>
-      </div>`;
+  if (meals.length) {
+    html += '<p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">🍽️ Posiłki</p>';
+    html += meals.map((m, i) => {
+      const isDone = !!checked['meal_'+i];
+      return '<div class="checklist-item flex items-center gap-3 glass rounded-xl p-3 mb-2 transition-all ' + (isDone?'done':'') + '">'
+        + '<div class="check-circle flex-shrink-0 ' + (isDone?'checked':'') + '" onclick="toggleCheckAndRefresh(\u0027meal_' + i + '\u0027,\u0027' + p.id + '\u0027,\u0027' + day + '\u0027)"></div>'
+        + '<div class="flex-1 min-w-0"><p class="text-sm font-medium text-white item-name truncate">' + m.name + '</p>'
+        + '<p class="text-xs text-gray-500 mt-0.5">' + m.kcal + ' kcal · P:' + m.protein + 'g · W:' + m.carbs + 'g · T:' + m.fat + 'g</p></div>'
+        + (isDone ? '<span class="text-xs text-cyan-400 font-bold flex-shrink-0">✓</span>' : '')
+        + '</div>';
     }).join('');
-    // Custom diet entries
-    html += customDiet.map((m,i) => {
-      const isDone = !!checked[`custom_diet_${i}`];
-      return `<div class="checklist-item flex items-center gap-3 rounded-xl p-3 mb-2 ${isDone?'done':''}" style="background:rgba(0,229,255,0.04);border:1px solid rgba(0,229,255,0.15);">
-        <div class="check-circle ${isDone?'checked':''}" onclick="togglePlanCheck('custom_diet_${i}','${p.id}','${day}');loadTodayPlanChecklist();"></div>
-        <div class="flex-1"><p class="text-sm font-medium text-white item-name">${m.name} <span class="text-[10px] text-cyan-500 ml-1">+inny</span></p><p class="text-xs text-gray-500">${m.kcal||0} kcal · P:${m.protein||0}g W:${m.carbs||0}g T:${m.fat||0}g</p></div>
-        <button onclick="removeCustomEntry('diet',${i})" class="text-gray-600 hover:text-red-400 text-xs px-2 transition-colors">✕</button>
-      </div>`;
-    }).join('');
-    html += `<button onclick="openInnyForm('diet')" class="w-full mt-2 py-2 rounded-xl text-sm font-medium border border-dashed border-cyan-500/30 text-cyan-500 hover:bg-cyan-500/08 transition-colors">+ Inny posiłek</button>`;
   }
-
-  if (exercises.length || customTraining.length) {
-    html += `<p class="text-xs font-bold text-gray-500 uppercase mb-2 mt-5">💪 Trening — ${day}</p>`;
-    html += exercises.map((e,i) => {
-      const isDone = !!checked[`ex_${i}`];
-      return `<div class="checklist-item flex items-center gap-3 glass rounded-xl p-3 mb-2 ${isDone?'done':''}">
-        <div class="check-circle ${isDone?'checked':''}" onclick="togglePlanCheck('ex_${i}','${p.id}','${day}');loadTodayPlanChecklist();"></div>
-        <div class="flex-1"><p class="text-sm font-medium text-white item-name">${e.name}</p><p class="text-xs text-gray-500">${e.sets?e.sets+' sety · ':''} ${e.reps>1?e.reps+' powt.':''}</p></div>
-      </div>`;
+  if (exercises.length) {
+    html += '<p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 mt-5">💪 Trening</p>';
+    html += exercises.map((e, i) => {
+      const isDone = !!checked['ex_'+i];
+      const meta = [e.sets?e.sets+' sety':'', e.reps>1?e.reps+' powt.':'', e.weight>0?e.weight+'kg':''].filter(Boolean).join(' · ');
+      return '<div class="checklist-item flex items-center gap-3 glass rounded-xl p-3 mb-2 transition-all ' + (isDone?'done':'') + '">'
+        + '<div class="check-circle flex-shrink-0 ' + (isDone?'checked':'') + '" onclick="toggleCheckAndRefresh(\u0027ex_' + i + '\u0027,\u0027' + p.id + '\u0027,\u0027' + day + '\u0027)"></div>'
+        + '<div class="flex-1 min-w-0"><p class="text-sm font-medium text-white item-name">' + e.name + '</p>'
+        + '<p class="text-xs text-gray-500 mt-0.5">' + (meta||'Własne tempo') + '</p></div>'
+        + (isDone ? '<span class="text-xs text-cyan-400 font-bold flex-shrink-0">✓</span>' : '')
+        + '</div>';
     }).join('');
-    // Custom training entries
-    html += customTraining.map((e,i) => {
-      const isDone = !!checked[`custom_ex_${i}`];
-      return `<div class="checklist-item flex items-center gap-3 rounded-xl p-3 mb-2 ${isDone?'done':''}" style="background:rgba(124,58,237,0.05);border:1px solid rgba(124,58,237,0.2);">
-        <div class="check-circle ${isDone?'checked':''}" onclick="togglePlanCheck('custom_ex_${i}','${p.id}','${day}');loadTodayPlanChecklist();"></div>
-        <div class="flex-1"><p class="text-sm font-medium text-white item-name">${e.name} <span class="text-[10px] text-violet-400 ml-1">+inny</span></p><p class="text-xs text-gray-500">${e.sets?e.sets+' sety':''} ${e.reps?'· '+e.reps+' powt.':''} ${e.weight?'· '+e.weight+'kg':''}</p></div>
-        <button onclick="removeCustomEntry('training',${i})" class="text-gray-600 hover:text-red-400 text-xs px-2 transition-colors">✕</button>
-      </div>`;
-    }).join('');
-    html += `<button onclick="openInnyForm('training')" class="w-full mt-2 py-2 rounded-xl text-sm font-medium border border-dashed border-violet-500/30 text-violet-400 hover:bg-violet-500/05 transition-colors">+ Inne ćwiczenie</button>`;
   }
-
   container.innerHTML = html;
   updateDayProgress();
+  updateDaySummaryCounters();
+}
+
+function toggleCheckAndRefresh(key, profileId, day) {
+  const k = profileId + '_' + day;
+  if (!state.dayChecked[k]) state.dayChecked[k] = {};
+  state.dayChecked[k][key] = !state.dayChecked[k][key];
+  saveChecked();
+  loadTodayPlanChecklist();  // refresh checklist
+  updateDashboard();         // refresh rings + chart
+}
+
+function updateDayProgress() {
+  const p = getCurrentProfile();
+  const todayIdx = (new Date().getDay() + 6) % 7;
+  const day = state.days[todayIdx];
+  const k = p.id + '_' + day;
+  const checked = state.dayChecked[k] || {};
+  const meals = (p.dietPlan[day] || []).filter(m => !m.hidden);
+  const exercises = (p.trainingPlan[day] || []).filter(e => !e.hidden).slice(0, state.exerciseCount);
+  const extras = state.extraItems[p.id] || [];
+  const total = meals.length + exercises.length + extras.length;
+  const done = Object.keys(checked).filter(k2 => checked[k2]).length;
+  const pct = total > 0 ? Math.round(done / total * 100) : 0;
+
+  const labelEl = document.getElementById('dayProgressLabel');
+  const barEl = document.getElementById('dayProgressBar');
+  const countEl = document.getElementById('dayProgressCount');
+  if (labelEl) labelEl.textContent = pct + '%';
+  if (barEl) barEl.style.width = pct + '%';
+  if (countEl) countEl.textContent = done + ' / ' + total + ' zadań';
+}
+
+function updateDaySummaryCounters() {
+  const p = getCurrentProfile();
+  const todayIdx = (new Date().getDay() + 6) % 7;
+  const day = state.days[todayIdx];
+  const k = p.id + '_' + day;
+  const checked = state.dayChecked[k] || {};
+  const meals = (p.dietPlan[day] || []).filter(m => !m.hidden);
+  const exercises = (p.trainingPlan[day] || []).filter(e => !e.hidden).slice(0, state.exerciseCount);
+  const extras = state.extraItems[p.id] || [];
+
+  let totalKcal = 0, totalProt = 0, totalTrain = 0;
+  meals.forEach((m, i) => { if (checked['meal_'+i]) { totalKcal += m.kcal||0; totalProt += m.protein||0; } });
+  exercises.forEach((e, i) => { if (checked['ex_'+i]) totalTrain++; });
+  extras.forEach((ex, i) => {
+    if (ex.type === 'diet') { totalKcal += ex.kcal||0; totalProt += ex.protein||0; }
+    else totalTrain++;
+  });
+
+  const kcalEl = document.getElementById('daySumKcal');
+  const protEl = document.getElementById('daySumProt');
+  const trainEl = document.getElementById('dayTrainCount');
+  if (kcalEl) kcalEl.textContent = totalKcal;
+  if (protEl) protEl.textContent = totalProt;
+  if (trainEl) trainEl.textContent = totalTrain;
+
+  // Macro alert
+  const {protein} = calculateNutrition(p);
+  const alertBanner = document.getElementById('macroAlertBanner');
+  if (totalProt < protein * 0.4 && (totalKcal > 0)) {
+    document.getElementById('macroAlertText').textContent = '⚠️ Brakuje białka! Spożyto: ' + totalProt + 'g / ' + protein + 'g celu.';
+    alertBanner.classList.remove('hidden');
+  } else {
+    alertBanner.classList.add('hidden');
+  }
 }
 
 // ========== EXPAND MODAL ==========
-function openExpandModalFromEl(el, type) {
-  try {
-    const data = JSON.parse(decodeURIComponent(el.getAttribute('data-item')));
-    const idx = parseInt(el.getAttribute('data-index') || '0');
-    openExpandModal(type, idx, data.name, data);
-  } catch(e) { console.error('openExpandModalFromEl error', e); }
-}
-
 function openExpandModal(type, itemId, name, data) {
   const modal = document.getElementById('expandModal');
   document.getElementById('expandTitle').textContent = name;
@@ -1706,75 +1905,76 @@ function getAlternatives(type, data) {
 
 function closeExpandModal() { document.getElementById('expandModal').classList.add('hidden'); }
 
+// Store alternatives for safe access without inline JSON
+state._currentAlternatives = [];
+
 function swapItem() {
   if (!state.expandedItem) return;
   const {type, name, data} = state.expandedItem;
   const alternatives = getAlternatives(type, data);
+  state._currentAlternatives = alternatives;
   const altSection = document.getElementById('alternativesSection');
   if (!altSection) return;
-  
-  if (type === 'diet') {
-    altSection.innerHTML = `
-      <div class="p-3 rounded-xl" style="background:rgba(0,229,255,0.05);border:1px solid var(--border-cyan);">
-        <p class="text-xs font-bold text-cyan-400 mb-3">🔄 Alternatywy dla: ${name}</p>
-        <div class="space-y-2">
-          ${alternatives.length ? alternatives.map(a => {
-            const encoded = encodeURIComponent(JSON.stringify(a));
-            return `<div class="alt-item" onclick="confirmSwapMeal(JSON.parse(decodeURIComponent('${encoded}')))">
-              <div class="flex justify-between items-center">
-                <span class="text-sm text-white font-medium">${a.name}</span>
-                <span class="text-xs text-cyan-400 font-bold">Zamień →</span>
-              </div>
-              <div class="flex gap-3 text-xs text-gray-500 mt-1"><span>P:${a.protein}g</span><span>W:${a.carbs}g</span><span>T:${a.fat}g</span><span>${a.kcal}kcal</span></div>
-            </div>`;
-          }).join('') : '<p class="text-xs text-gray-500">Brak alternatyw</p>'}
-        </div>
-      </div>
-    `;
+
+  let html = '<div class="p-3 rounded-xl" style="background:rgba(0,229,255,0.05);border:1px solid var(--border-cyan);">'
+    + '<p class="text-xs font-bold text-cyan-400 mb-3">🔄 Alternatywy ' + (type==='diet'?'posiłku':'ćwiczenia') + ': ' + name + '</p>'
+    + '<div class="space-y-2">';
+
+  if (alternatives.length) {
+    alternatives.forEach((a, i) => {
+      if (type === 'diet') {
+        html += '<div class="alt-item" onclick="confirmSwapMeal(state._currentAlternatives[' + i + '])">'
+          + '<div class="flex justify-between items-center"><span class="text-sm text-white font-medium">' + a.name + '</span><span class="text-xs text-cyan-400 font-bold">Zamień →</span></div>'
+          + '<div class="flex gap-3 text-xs text-gray-500 mt-1"><span>P:' + a.protein + 'g</span><span>W:' + a.carbs + 'g</span><span>T:' + a.fat + 'g</span><span>' + a.kcal + 'kcal</span></div>'
+          + '</div>';
+      } else {
+        html += '<div class="alt-item" onclick="confirmSwapExercise(state._currentAlternatives[' + i + '])">'
+          + '<div class="flex justify-between items-center"><span class="text-sm text-white font-medium">' + a.name + '</span><span class="text-xs text-cyan-400 font-bold">Zamień →</span></div>'
+          + '<div class="flex gap-2 text-xs text-gray-500 mt-1"><span>' + (a.sets||4) + '×' + (a.reps||10) + '</span><span>' + (a.muscles||'') + '</span></div>'
+          + '</div>';
+      }
+    });
   } else {
-    altSection.innerHTML = `
-      <div class="p-3 rounded-xl" style="background:rgba(0,229,255,0.05);border:1px solid var(--border-cyan);">
-        <p class="text-xs font-bold text-cyan-400 mb-3">🔄 Alternatywy ćwiczenia</p>
-        <div class="space-y-2">
-          ${alternatives.length ? alternatives.map(a => {
-            const encoded = encodeURIComponent(JSON.stringify(a));
-            return `<div class="alt-item" onclick="confirmSwapExercise(JSON.parse(decodeURIComponent('${encoded}')))">
-              <div class="flex justify-between items-center">
-                <span class="text-sm text-white font-medium">${a.name}</span>
-                <span class="text-xs text-cyan-400 font-bold">Zamień →</span>
-              </div>
-              <div class="flex gap-2 text-xs text-gray-500 mt-1"><span>${a.sets||4}×${a.reps||10}</span><span>${a.muscles||''}</span></div>
-            </div>`;
-          }).join('') : '<p class="text-xs text-gray-500">Brak alternatyw</p>'}
-        </div>
-      </div>
-    `;
+    html += '<p class="text-xs text-gray-500">Brak alternatyw w bazie</p>';
+  }
+  html += '</div></div>';
+  altSection.innerHTML = html;
+}
+
+function confirmSwapMeal(altObj) {
+  const p = getCurrentProfile();
+  const day = state.days[state.currentDay];
+  const { itemId } = state.expandedItem;
+  const idx = parseInt(itemId);
+  if (!isNaN(idx) && p.dietPlan[day] && p.dietPlan[day][idx]) {
+    p.dietPlan[day][idx] = Object.assign({}, altObj, {id: p.dietPlan[day][idx].id});
+    saveState();
+    showToast('✅ Zamieniono na: ' + altObj.name);
+    closeExpandModal();
+    loadPlanForDay();
+    loadTodayPlanChecklist();
+  } else {
+    showToast('✅ Zamiana zaznaczona!');
+    closeExpandModal();
   }
 }
 
-function confirmSwapMeal(newMealData) {
+function confirmSwapExercise(altObj) {
   const p = getCurrentProfile();
   const day = state.days[state.currentDay];
-  const idx = state.expandedItem?.itemId;
-  if (!p.dietPlan[day] || idx === undefined) { closeExpandModal(); return; }
-  // Replace the meal at idx with the new one
-  p.dietPlan[day][idx] = Object.assign({}, p.dietPlan[day][idx], newMealData);
-  saveState();
-  closeExpandModal();
-  loadPlanForDay();
-  showToast('✅ Zamieniono na: ' + newMealData.name);
-}
-
-function confirmSwapExercise(newExData) {
-  const p = getCurrentProfile();
-  const day = state.days[state.currentDay];
-  const idx = state.expandedItem?.itemId;
-  if (!p.trainingPlan[day] || idx === undefined) { closeExpandModal(); return; }
-  p.trainingPlan[day][idx] = Object.assign({}, p.trainingPlan[day][idx], newExData);
-  saveState();
-  closeExpandModal();
-  loadPlanForDay();
-  showToast('✅ Zamieniono na: ' + newExData.name);
+  const { itemId } = state.expandedItem;
+  const idx = parseInt(itemId);
+  if (!isNaN(idx) && p.trainingPlan[day] && p.trainingPlan[day][idx]) {
+    p.trainingPlan[day][idx] = Object.assign({}, altObj, {id: p.trainingPlan[day][idx].id});
+    saveState();
+    showToast('✅ Zamieniono na: ' + altObj.name);
+    closeExpandModal();
+    loadPlanForDay();
+    loadTodayPlanChecklist();
+  } else {
+    showToast('✅ Zamiana zaznaczona!');
+    closeExpandModal();
+  }
 }
 
 function addExpandedToDay() {
@@ -1790,85 +1990,83 @@ function addExpandedToDay() {
 }
 
 // ========== MY DAY ==========
-function openInnyForm(type) {
-  // Hide both first
-  document.getElementById('innyDietForm').classList.add('hidden');
-  document.getElementById('innyTrainingForm').classList.add('hidden');
-  // Clear fields
-  if (type === 'diet') {
-    ['innyDietName','innyDietProtein','innyDietCarbs','innyDietFat','innyDietKcal'].forEach(id => { document.getElementById(id).value = ''; });
-    document.getElementById('innyDietForm').classList.remove('hidden');
-    document.getElementById('innyDietName').focus();
-  } else {
-    ['innyTrainingName','innyTrainingSets','innyTrainingReps','innyTrainingWeight'].forEach(id => { document.getElementById(id).value = ''; });
-    document.getElementById('innyTrainingForm').classList.remove('hidden');
-    document.getElementById('innyTrainingName').focus();
-  }
-  // Scroll form into view
-  setTimeout(() => {
-    document.getElementById(type==='diet' ? 'innyDietForm' : 'innyTrainingForm').scrollIntoView({behavior:'smooth', block:'center'});
-  }, 50);
-}
-
-function closeInnyForm(type) {
-  document.getElementById(type==='diet' ? 'innyDietForm' : 'innyTrainingForm').classList.add('hidden');
-}
-
-function submitInnyForm(type) {
+function addFromPlan(type) {
   const p = getCurrentProfile();
-  if (!state.dayLogs[p.id]) state.dayLogs[p.id] = {diet:[], training:[]};
-
+  const day = state.days[state.currentDay];
   if (type === 'diet') {
-    const name = document.getElementById('innyDietName').value.trim();
-    if (!name) { showToast('Podaj nazwę posiłku'); return; }
-    const protein = parseInt(document.getElementById('innyDietProtein').value)||0;
-    const carbs = parseInt(document.getElementById('innyDietCarbs').value)||0;
-    const fat = parseInt(document.getElementById('innyDietFat').value)||0;
-    const kcalInput = parseInt(document.getElementById('innyDietKcal').value)||0;
-    const kcal = kcalInput || Math.round(protein*4 + carbs*4 + fat*9);
-    state.dayLogs[p.id].diet.push({name, protein, carbs, fat, kcal, ts: Date.now()});
+    const meals = p.dietPlan[day] || [];
+    if (!meals.length) { showToast('Brak zaplanowanych posiłków na dziś'); return; }
+    const meal = meals[0];
+    addDayLogItem('diet', meal.name, `P:${meal.protein}g W:${meal.carbs}g T:${meal.fat}g`, meal.kcal, meal.protein, meal.carbs, meal.fat);
   } else {
-    const name = document.getElementById('innyTrainingName').value.trim();
-    if (!name) { showToast('Podaj nazwę ćwiczenia'); return; }
-    const sets = parseInt(document.getElementById('innyTrainingSets').value)||0;
-    const reps = parseInt(document.getElementById('innyTrainingReps').value)||0;
-    const weight = parseInt(document.getElementById('innyTrainingWeight').value)||0;
-    state.dayLogs[p.id].training.push({name, sets, reps, weight, ts: Date.now()});
+    const exercises = p.trainingPlan[day] || [];
+    if (!exercises.length) { showToast('Brak zaplanowanych ćwiczeń na dziś'); return; }
+    const ex = exercises[0];
+    addDayLogItem('training', ex.name, `${ex.sets}×${ex.reps}`, 0);
   }
-  saveLogs();
-  closeInnyForm(type);
-  loadTodayPlanChecklist();
-  updateDashboard();
-  showToast('✅ Dodano!');
 }
 
-function removeCustomEntry(type, idx) {
-  const p = getCurrentProfile();
-  if (!state.dayLogs[p.id]) return;
-  state.dayLogs[p.id][type].splice(idx, 1);
-  saveLogs();
-  loadTodayPlanChecklist();
-  updateDashboard();
+function showManualForm(type) {
+  state.manualFormType = type;
+  document.getElementById('manualFormTitle').textContent = type==='diet'?'Dodaj Posiłek':'Dodaj Ćwiczenie';
+  document.getElementById('macroFields').classList.toggle('hidden', type==='training');
+  document.getElementById('manualFormContainer').classList.remove('hidden');
+  ['entryName','entryProtein','entryCarbs','entryFat'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+}
+
+function closeManualForm() { document.getElementById('manualFormContainer').classList.add('hidden'); }
+
+function submitManualEntry() {
+  const name = document.getElementById('entryName').value.trim();
+  if (!name) return;
+  if (state.manualFormType === 'diet') {
+    const prot = parseInt(document.getElementById('entryProtein').value)||0;
+    const carbs = parseInt(document.getElementById('entryCarbs').value)||0;
+    const fat = parseInt(document.getElementById('entryFat').value)||0;
+    const kcal = Math.round(prot*4+carbs*4+fat*9);
+    addDayLogItem('diet', name, `P:${prot}g W:${carbs}g T:${fat}g`, kcal, prot, carbs, fat);
+  } else {
+    addDayLogItem('training', name, 'Ręczny wpis', 0);
+  }
+  closeManualForm();
 }
 
 function addDayLogItem(type, name, meta, kcal, protein=0, carbs=0, fat=0) {
   const p = getCurrentProfile();
   if (!state.dayLogs[p.id]) state.dayLogs[p.id] = {diet:[], training:[]};
-  state.dayLogs[p.id][type].push({name, kcal, protein, carbs, fat, ts: Date.now()});
+  const item = {name, meta, kcal, protein, carbs, fat, ts: Date.now()};
+  state.dayLogs[p.id][type].push(item);
   saveLogs();
-  loadTodayPlanChecklist();
+  
+  const container = document.getElementById(type==='diet'?'dietLogContainer':'trainingLogContainer');
+  if (container.querySelector('.italic')) container.innerHTML = '';
+  const id = 'log_'+Date.now();
+  const html = `<div id="${id}" class="glass rounded-xl p-3 flex justify-between items-start tab-anim">
+    <div><p class="text-sm font-medium text-white">${name}</p><p class="text-xs text-gray-500 mt-0.5">${meta}</p></div>
+    <div class="flex items-center gap-2">${kcal?`<span class="text-xs font-bold text-cyan-400">${kcal} kcal</span>`:''}<button onclick="removeDayLog('${id}','${type}','${p.id}','${name}')" class="text-red-400 hover:text-red-300 text-sm">✕</button></div>
+  </div>`;
+  container.insertAdjacentHTML('beforeend', html);
+  updateDayCounters();
+  updateDashboard();
+}
+
+function removeDayLog(elId, type, profileId, name) {
+  document.getElementById(elId)?.remove();
+  if (state.dayLogs[profileId]) {
+    state.dayLogs[profileId][type] = state.dayLogs[profileId][type].filter(i=>i.name!==name);
+    saveLogs();
+  }
+  updateDayCounters();
   updateDashboard();
 }
 
 function updateDayCounters() {
   const p = getCurrentProfile();
   const diet = state.dayLogs[p.id]?.diet || [];
-  const training = state.dayLogs[p.id]?.training || [];
   const totalKcal = diet.reduce((s,i)=>s+(i.kcal||0),0);
-  const el = document.getElementById('dayCalEaten');
-  if (el) el.textContent = totalKcal;
-  const telEl = document.getElementById('dayTrainCount');
-  if (telEl) telEl.textContent = training.length;
+  document.getElementById('dayCalEaten').textContent = totalKcal;
+  const trainCount = document.querySelectorAll('#trainingLogContainer .glass').length;
+  document.getElementById('dayTrainCount').textContent = trainCount;
   
   // Macro alerts
   const {tdee, protein} = calculateNutrition(p);
@@ -1885,78 +2083,181 @@ function updateDayCounters() {
 // ========== SHOPPING LIST ==========
 function generateShoppingList() {
   const p = getCurrentProfile();
-  const categories = {
-    'Mięso i ryby': [],
-    'Nabiał': [],
-    'Warzywa i owoce': [],
-    'Zboża i kasze': [],
-    'Inne': [],
-  };
-  
+
+  // Category buckets: 0=Warzywa/Owoce, 1=Mięso/Ryby, 2=Nabiał, 3=Sypkie/Inne
+  const catNames = ['Warzywa i Owoce','Mięso i Ryby','Nabiał','Sypkie / Inne'];
+  const catIcons = ['🥦','🥩','🥛','🌾'];
   const catMap = {
-    'kurczak':0,'indyk':0,'łosoś':1,'tuńczyk':1,'dorsz':1,'mintaj':1,'ryba':1,
-    'jajka':2,'jogurt':2,'mleko':2,'twarożek':2,'ser':2,
-    'pomidor':3,'brokuły':3,'szpinak':3,'papryka':3,'cebula':3,'awokado':3,'bataty':3,'cukinia':3,'jabłko':3,'owoce':3,'jagody':3,'banan':3,'rzodkiewka':3,
-    'ryż':4,'kasza':4,'makaron':4,'płatki':4,'quinoa':4,'chleb':4,'mąka':4,'granola':4,
+    // vegetables & fruits
+    'brokuły':0,'szpinak':0,'papryka':0,'cebula':0,'pomidory':0,'sałata':0,
+    'bataty':0,'cukinia':0,'jarmuż':0,'marchew':0,'czosnek':0,'rzodkiewka':0,
+    'jabłko':0,'banan':0,'jagody':0,'cytryna':0,'awokado':0,'owoce':0,'warzywa':0,
+    // meat & fish
+    'kurczak':1,'indyk':1,'pierś':1,'wołowina':1,'wieprzowina':1,
+    'łosoś':1,'tuńczyk':1,'dorsz':1,'mintaj':1,'ryba':1,'owoce morza':1,
+    // dairy
+    'jajka':2,'jogurt':2,'mleko':2,'twarożek':2,'ser':2,'masło':2,'śmietana':2,
+    'odżywka':2,'shake':2,
   };
-  const catNames = Object.keys(categories);
-  
+
   const ingredientsMap = new Map();
-  
+
   for (const day of state.days) {
     const meals = p.dietPlan[day] || [];
     for (const meal of meals) {
-      for (const ing of (meal.ingredients||[])) {
+      for (const ing of (meal.ingredients || [])) {
         const key = ing.item.toLowerCase();
-        if (!ingredientsMap.has(ing.item)) {
-          // Find category
-          let catIdx = 4;
-          for (const [kw, ci] of Object.entries(catMap)) {
-            if (key.includes(kw)) { catIdx = ci; break; }
-          }
-          ingredientsMap.set(ing.item, {amount: ing.amount, catIdx, count: 1});
-        } else {
+        let catIdx = 3; // default: sypkie/inne
+        for (const [kw, ci] of Object.entries(catMap)) {
+          if (key.includes(kw)) { catIdx = ci; break; }
+        }
+        if (ingredientsMap.has(ing.item)) {
           ingredientsMap.get(ing.item).count++;
+        } else {
+          ingredientsMap.set(ing.item, { amount: ing.amount, catIdx, count: 1 });
         }
       }
     }
   }
-  
-  const catArrays = catNames.map(()=>[]);
+
+  // Fallback if plan has no ingredients data
+  if (ingredientsMap.size === 0) {
+    [['Pierś kurczaka','~1.2kg',1],['Jajka','12 szt',2],['Łosoś','~500g',1],
+     ['Brokuły','~700g',0],['Szpinak','~400g',0],['Ryż biały','~500g',3],
+     ['Płatki owsiane','~400g',3],['Jogurt grecki','~600g',2],['Mleko','~1l',2],
+     ['Kasza gryczana','~300g',3]].forEach(([item,amount,ci]) => ingredientsMap.set(item,{amount,catIdx:ci,count:1}));
+  }
+
+  const catArrays = catNames.map(() => []);
   for (const [item, {amount, catIdx, count}] of ingredientsMap) {
-    catArrays[catIdx].push({item, amount, count});
+    catArrays[catIdx].push({ item, amount, count });
   }
-  
-  // Add some defaults if empty
-  if (catArrays.every(a=>a.length===0)) {
-    catArrays[0].push({item:'Pierś kurczaka',amount:'1.2kg',count:5});
-    catArrays[0].push({item:'Jajka',amount:'12 szt',count:7});
-    catArrays[3].push({item:'Brokuły',amount:'700g',count:3});
-    catArrays[4].push({item:'Ryż biały',amount:'560g',count:7});
-    catArrays[1].push({item:'Mleko',amount:'1.4l',count:7});
-  }
-  
-  let html = '';
+
+  let html = '<p class="text-xs text-gray-500 mb-4">Wygenerowano na podstawie ' + state.days.length + ' dni planu · ' + ingredientsMap.size + ' pozycji</p>';
   catNames.forEach((cat, i) => {
     if (!catArrays[i].length) return;
-    html += `<div class="shop-category">
-      <h6 class="text-sm font-bold text-white mb-2">${['🥩','🥛','🥦','🌾','📦'][i]} ${cat}</h6>
-      <div class="space-y-1">
-        ${catArrays[i].map(item => `<div class="flex justify-between text-sm py-1 border-b border-white/5"><span class="text-gray-300">${item.item}</span><span class="text-cyan-400 font-medium">${item.amount}${item.count>1?` ×${item.count}`:''}</span></div>`).join('')}
-      </div>
-    </div>`;
+    html += '<div class="shop-category mb-4">'
+      + '<h6 class="text-sm font-bold text-white mb-2">' + catIcons[i] + ' ' + cat + '</h6>'
+      + '<div class="space-y-1">'
+      + catArrays[i].map(it =>
+          '<div class="flex justify-between text-sm py-1.5 border-b border-white/5">'
+          + '<span class="text-gray-300">' + it.item + '</span>'
+          + '<span class="text-cyan-400 font-medium">' + it.amount + (it.count > 1 ? ' ×' + it.count : '') + '</span>'
+          + '</div>'
+        ).join('')
+      + '</div></div>';
   });
-  
-  document.getElementById('shoppingContent').innerHTML = html || '<p class="text-gray-400 text-sm">Brak składników w planie.</p>';
+
+  document.getElementById('shoppingContent').innerHTML = html;
   document.getElementById('shoppingModal').classList.remove('hidden');
 }
 
 function printShoppingList() {
   const content = document.getElementById('shoppingContent').innerHTML;
   const win = window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html><head><title>Lista Zakupów FitAI</title><style>body{font-family:sans-serif;max-width:600px;margin:40px auto;}h1{color:#00e5ff;margin-bottom:20px;}h6{font-weight:bold;margin:16px 0 8px;}div{margin-bottom:4px;}span{display:inline-block;}span:last-child{float:right;color:#00e5ff;}</style></head><body><h1>🛒 Lista Zakupów FitAI — Tygodniowa</h1>${content}</body></html>`);
+  win.document.write(`<!DOCTYPE html><html><head><title>Lista Zakupów FitAI</title><style>body{font-family:sans-serif;max-width:600px;margin:40px auto;}h1{color:#00e5ff;margin-bottom:20px;}h6{font-weight:bold;margin:16px 0 8px;}div{margin-bottom:4px;}span{display:inline-block;}span:last-child{float:right;color:#00e5ff;}</style></head><body><h1>🛒 Lista Zakupów FitAI — Tygodniowa</h1>${content}
+<!-- ====== ADD OTHER MODAL ====== -->
+<div id="addOtherModal" class="hidden fixed inset-0 z-[110] flex items-center justify-center p-4 modal-backdrop">
+  <div class="glass rounded-3xl w-full max-w-sm p-6" style="border-color:var(--border-cyan)!important;">
+    <div class="flex justify-between items-center mb-5">
+      <h5 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;" id="addOtherTitle">Dodaj własne</h5>
+      <button onclick="closeAddOtherModal()" class="text-gray-500 hover:text-white text-xl">✕</button>
+    </div>
+    <div class="space-y-3">
+      <div><label class="block text-xs text-gray-400 mb-1">Nazwa *</label><input type="text" id="otherName" placeholder="np. Koktajl warzywny" class="w-full"></div>
+      <div id="otherDietFields" class="space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-xs text-gray-400 mb-1">Kalorie (kcal)</label><input type="number" id="otherKcal" placeholder="200" class="w-full"></div>
+          <div><label class="block text-xs text-gray-400 mb-1">Białko (g)</label><input type="number" id="otherProtein" placeholder="0" class="w-full"></div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-xs text-gray-400 mb-1">Węgle (g)</label><input type="number" id="otherCarbs" placeholder="0" class="w-full"></div>
+          <div><label class="block text-xs text-gray-400 mb-1">Tłuszcz (g)</label><input type="number" id="otherFat" placeholder="0" class="w-full"></div>
+        </div>
+      </div>
+      <div id="otherTrainingFields" class="hidden">
+        <label class="block text-xs text-gray-400 mb-1">Czas / opis</label>
+        <input type="text" id="otherDuration" placeholder="np. 30 min, 3×10 powt." class="w-full">
+      </div>
+    </div>
+    <div class="flex gap-3 mt-5">
+      <button onclick="submitAddOther()" class="flex-1 btn-neon py-2 rounded-xl font-bold text-sm">Dodaj</button>
+      <button onclick="closeAddOtherModal()" class="flex-1 btn-ghost py-2 rounded-xl text-sm">Anuluj</button>
+    </div>
+  </div>
+</div>
+
+</body></html>`);
   win.document.close();
   win.print();
+}
+
+// ========== ADD OTHER ITEM ==========
+function openAddOtherModal(type) {
+  state.addOtherType = type;
+  document.getElementById('addOtherTitle').textContent = type === 'diet' ? '🍽️ Dodaj własny posiłek' : '💪 Dodaj własny trening';
+  document.getElementById('otherDietFields').classList.toggle('hidden', type !== 'diet');
+  document.getElementById('otherTrainingFields').classList.toggle('hidden', type !== 'training');
+  ['otherName','otherKcal','otherProtein','otherCarbs','otherFat','otherDuration'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('addOtherModal').classList.remove('hidden');
+}
+
+function closeAddOtherModal() {
+  document.getElementById('addOtherModal').classList.add('hidden');
+}
+
+function submitAddOther() {
+  const name = document.getElementById('otherName').value.trim();
+  if (!name) { showToast('⚠️ Podaj nazwę!'); return; }
+  const p = getCurrentProfile();
+  if (!state.extraItems[p.id]) state.extraItems[p.id] = [];
+  const type = state.addOtherType;
+  const item = { type, name, ts: Date.now() };
+  if (type === 'diet') {
+    item.kcal = parseInt(document.getElementById('otherKcal').value) || 0;
+    item.protein = parseInt(document.getElementById('otherProtein').value) || 0;
+    item.carbs = parseInt(document.getElementById('otherCarbs').value) || 0;
+    item.fat = parseInt(document.getElementById('otherFat').value) || 0;
+  } else {
+    item.duration = document.getElementById('otherDuration').value || '';
+    item.kcal = 0; item.protein = 0;
+  }
+  state.extraItems[p.id].push(item);
+  localStorage.setItem('fitai_extras_v3', JSON.stringify(state.extraItems));
+  closeAddOtherModal();
+  renderExtraItems();
+  updateDaySummaryCounters();
+  updateDayProgress();
+  showToast('✅ Dodano: ' + name);
+}
+
+function renderExtraItems() {
+  const p = getCurrentProfile();
+  const extras = state.extraItems[p.id] || [];
+  const container = document.getElementById('extraItemsContainer');
+  if (!container) return;
+  if (!extras.length) { container.innerHTML = ''; return; }
+  container.innerHTML = '<p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 mt-2">➕ Własne wpisy</p>'
+    + extras.map((ex, i) =>
+      '<div class="flex items-center gap-3 glass rounded-xl p-3 mb-2">'
+      + '<span class="text-lg">' + (ex.type==='diet'?'🍽️':'💪') + '</span>'
+      + '<div class="flex-1"><p class="text-sm font-medium text-white">' + ex.name + '</p>'
+      + '<p class="text-xs text-gray-500">' + (ex.type==='diet' ? (ex.kcal+' kcal · P:'+ex.protein+'g') : (ex.duration||'—')) + '</p></div>'
+      + '<button onclick="removeExtraItem(' + i + ')" class="text-red-400 hover:text-red-300 text-sm font-bold">✕</button>'
+      + '</div>'
+    ).join('');
+}
+
+function removeExtraItem(idx) {
+  const p = getCurrentProfile();
+  if (!state.extraItems[p.id]) return;
+  state.extraItems[p.id].splice(idx, 1);
+  localStorage.setItem('fitai_extras_v3', JSON.stringify(state.extraItems));
+  renderExtraItems();
+  updateDaySummaryCounters();
+  updateDayProgress();
 }
 
 // ========== AI COACH (uses Anthropic API) ==========
@@ -2017,7 +2318,7 @@ function escapeHTML(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// aiInput keydown handled via onkeydown attribute in HTML
+document.getElementById('aiInput').addEventListener('keydown', e => { if(e.key==='Enter') sendAIMessage(); });
 
 // ========== UTILITIES ==========
 function copyToClipboard(text) {
@@ -2058,5 +2359,37 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(()=>{});
 }
 </script>
+
+<!-- ====== ADD OTHER MODAL ====== -->
+<div id="addOtherModal" class="hidden fixed inset-0 z-[110] flex items-center justify-center p-4 modal-backdrop">
+  <div class="glass rounded-3xl w-full max-w-sm p-6" style="border-color:var(--border-cyan)!important;">
+    <div class="flex justify-between items-center mb-5">
+      <h5 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;" id="addOtherTitle">Dodaj własne</h5>
+      <button onclick="closeAddOtherModal()" class="text-gray-500 hover:text-white text-xl">✕</button>
+    </div>
+    <div class="space-y-3">
+      <div><label class="block text-xs text-gray-400 mb-1">Nazwa *</label><input type="text" id="otherName" placeholder="np. Koktajl warzywny" class="w-full"></div>
+      <div id="otherDietFields" class="space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-xs text-gray-400 mb-1">Kalorie (kcal)</label><input type="number" id="otherKcal" placeholder="200" class="w-full"></div>
+          <div><label class="block text-xs text-gray-400 mb-1">Białko (g)</label><input type="number" id="otherProtein" placeholder="0" class="w-full"></div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-xs text-gray-400 mb-1">Węgle (g)</label><input type="number" id="otherCarbs" placeholder="0" class="w-full"></div>
+          <div><label class="block text-xs text-gray-400 mb-1">Tłuszcz (g)</label><input type="number" id="otherFat" placeholder="0" class="w-full"></div>
+        </div>
+      </div>
+      <div id="otherTrainingFields" class="hidden">
+        <label class="block text-xs text-gray-400 mb-1">Czas / opis</label>
+        <input type="text" id="otherDuration" placeholder="np. 30 min, 3×10 powt." class="w-full">
+      </div>
+    </div>
+    <div class="flex gap-3 mt-5">
+      <button onclick="submitAddOther()" class="flex-1 btn-neon py-2 rounded-xl font-bold text-sm">Dodaj</button>
+      <button onclick="closeAddOtherModal()" class="flex-1 btn-ghost py-2 rounded-xl text-sm">Anuluj</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
