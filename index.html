@@ -420,45 +420,43 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Diet Log -->
-        <div class="glass p-6">
-          <div class="flex justify-between items-center mb-4">
-            <h4 class="text-xl font-bold text-white" style="font-family:'Syne',sans-serif;">🍽️ Dieta</h4>
-            <div class="text-right"><p class="text-xs text-gray-500">Dzisiaj</p><p class="text-sm font-bold text-cyan-400"><span id="dayCalEaten">0</span> kcal</p></div>
+      <!-- Hidden counters for dashboard compatibility -->
+      <span id="dayCalEaten" class="hidden">0</span>
+      <span id="dayTrainCount" class="hidden">0</span>
+      <div id="dietLogContainer" class="hidden"></div>
+      <div id="trainingLogContainer" class="hidden"></div>
+
+      <!-- Inline "Inny" form (diet) -->
+      <div id="innyDietForm" class="hidden glass p-5 border border-cyan-500/20">
+        <h4 class="text-sm font-bold text-white mb-3">✏️ Dodaj inny posiłek</h4>
+        <div class="space-y-3">
+          <div><label class="block text-xs font-medium text-gray-400 mb-1">Nazwa</label><input type="text" id="innyDietName" placeholder="np. Kurczak z ryżem" class="w-full text-sm"></div>
+          <div class="grid grid-cols-4 gap-2">
+            <div><label class="block text-xs font-medium text-gray-400 mb-1">Białko (g)</label><input type="number" id="innyDietProtein" placeholder="0" class="w-full text-sm"></div>
+            <div><label class="block text-xs font-medium text-gray-400 mb-1">Węgle (g)</label><input type="number" id="innyDietCarbs" placeholder="0" class="w-full text-sm"></div>
+            <div><label class="block text-xs font-medium text-gray-400 mb-1">Tłuszcz (g)</label><input type="number" id="innyDietFat" placeholder="0" class="w-full text-sm"></div>
+            <div><label class="block text-xs font-medium text-gray-400 mb-1">Kcal</label><input type="number" id="innyDietKcal" placeholder="0" class="w-full text-sm"></div>
           </div>
-          <div id="dietLogContainer" class="space-y-2 mb-4 max-h-64 overflow-y-auto pr-1"><p class="text-gray-500 text-sm italic text-center py-4">Brak wpisów</p></div>
           <div class="flex gap-2">
-            <button onclick="addFromPlan('diet')" class="flex-1 btn-ghost py-2 rounded-xl text-sm font-medium">📌 Z Planu</button>
-            <button onclick="showManualForm('diet')" class="flex-1 btn-ghost py-2 rounded-xl text-sm font-medium">✏️ Ręcznie</button>
-          </div>
-        </div>
-        <!-- Training Log -->
-        <div class="glass p-6">
-          <div class="flex justify-between items-center mb-4">
-            <h4 class="text-xl font-bold text-white" style="font-family:'Syne',sans-serif;">💪 Trening</h4>
-            <div class="text-right"><p class="text-xs text-gray-500">Serie</p><p class="text-sm font-bold text-violet-400"><span id="dayTrainCount">0</span> aktywności</p></div>
-          </div>
-          <div id="trainingLogContainer" class="space-y-2 mb-4 max-h-64 overflow-y-auto pr-1"><p class="text-gray-500 text-sm italic text-center py-4">Brak wpisów</p></div>
-          <div class="flex gap-2">
-            <button onclick="addFromPlan('training')" class="flex-1 btn-ghost py-2 rounded-xl text-sm font-medium">📌 Z Planu</button>
-            <button onclick="showManualForm('training')" class="flex-1 btn-ghost py-2 rounded-xl text-sm font-medium">✏️ Ręcznie</button>
+            <button onclick="submitInnyForm('diet')" class="flex-1 btn-neon py-2 rounded-xl font-bold text-sm">Dodaj</button>
+            <button onclick="closeInnyForm('diet')" class="flex-1 btn-ghost py-2 rounded-xl text-sm">Anuluj</button>
           </div>
         </div>
       </div>
-      <!-- Manual Form -->
-      <div id="manualFormContainer" class="hidden glass p-6">
-        <h4 class="text-lg font-bold text-white mb-4" id="manualFormTitle">Dodaj pozycję</h4>
-        <div class="space-y-4">
-          <div><label class="block text-sm font-medium text-gray-300 mb-2">Nazwa</label><input type="text" id="entryName" placeholder="np. Kurczak z ryżem" class="w-full"></div>
-          <div class="grid grid-cols-3 gap-3" id="macroFields">
-            <div><label class="block text-xs font-medium text-gray-400 mb-2">Białko (g)</label><input type="number" id="entryProtein" placeholder="0" class="w-full"></div>
-            <div><label class="block text-xs font-medium text-gray-400 mb-2">Węgle (g)</label><input type="number" id="entryCarbs" placeholder="0" class="w-full"></div>
-            <div><label class="block text-xs font-medium text-gray-400 mb-2">Tłuszcz (g)</label><input type="number" id="entryFat" placeholder="0" class="w-full"></div>
+
+      <!-- Inline "Inny" form (training) -->
+      <div id="innyTrainingForm" class="hidden glass p-5 border border-violet-500/20">
+        <h4 class="text-sm font-bold text-white mb-3">✏️ Dodaj inne ćwiczenie</h4>
+        <div class="space-y-3">
+          <div><label class="block text-xs font-medium text-gray-400 mb-1">Nazwa ćwiczenia</label><input type="text" id="innyTrainingName" placeholder="np. Bieganie 5km" class="w-full text-sm"></div>
+          <div class="grid grid-cols-3 gap-2">
+            <div><label class="block text-xs font-medium text-gray-400 mb-1">Serie</label><input type="number" id="innyTrainingSets" placeholder="0" class="w-full text-sm"></div>
+            <div><label class="block text-xs font-medium text-gray-400 mb-1">Powtórzenia</label><input type="number" id="innyTrainingReps" placeholder="0" class="w-full text-sm"></div>
+            <div><label class="block text-xs font-medium text-gray-400 mb-1">Ciężar (kg)</label><input type="number" id="innyTrainingWeight" placeholder="0" class="w-full text-sm"></div>
           </div>
-          <div class="flex gap-3">
-            <button onclick="submitManualEntry()" class="flex-1 btn-neon py-2 rounded-xl font-bold text-sm">Dodaj</button>
-            <button onclick="closeManualForm()" class="flex-1 btn-ghost py-2 rounded-xl font-medium text-sm">Anuluj</button>
+          <div class="flex gap-2">
+            <button onclick="submitInnyForm('training')" class="flex-1 btn-neon py-2 rounded-xl font-bold text-sm">Dodaj</button>
+            <button onclick="closeInnyForm('training')" class="flex-1 btn-ghost py-2 rounded-xl text-sm">Anuluj</button>
           </div>
         </div>
       </div>
@@ -984,13 +982,20 @@ function createDefaultProfile(id, name, age=28, height=182, weight=84.5, gender=
 
 // ========== INIT ==========
 function initApp() {
-  const saved = localStorage.getItem('fitai_profiles_v3');
-  const savedLogs = localStorage.getItem('fitai_logs_v3');
-  const savedChecked = localStorage.getItem('fitai_checked_v3');
+  let saved = null, savedLogs = null, savedChecked = null;
+  try { saved = localStorage.getItem('fitai_profiles_v3'); } catch(e) {}
+  try { savedLogs = localStorage.getItem('fitai_logs_v3'); } catch(e) {}
+  try { savedChecked = localStorage.getItem('fitai_checked_v3'); } catch(e) {}
+
   if (saved) {
-    state.profiles = JSON.parse(saved);
-    state.currentProfile = state.profiles[0]?.id || null;
-  } else {
+    try {
+      state.profiles = JSON.parse(saved);
+      state.currentProfile = state.profiles[0]?.id || null;
+    } catch(e) {
+      saved = null;
+    }
+  }
+  if (!saved) {
     const p1 = createDefaultProfile('user1','Marek');
     const {tdee, protein} = calculateNutrition(p1);
     p1.caloriesTarget = tdee; p1.proteinTarget = protein;
@@ -998,8 +1003,8 @@ function initApp() {
     state.currentProfile = 'user1';
     saveState();
   }
-  if (savedLogs) state.dayLogs = JSON.parse(savedLogs);
-  if (savedChecked) state.dayChecked = JSON.parse(savedChecked);
+  if (savedLogs) { try { state.dayLogs = JSON.parse(savedLogs); } catch(e) {} }
+  if (savedChecked) { try { state.dayChecked = JSON.parse(savedChecked); } catch(e) {} }
   
   document.getElementById('todayDate').textContent = new Date().toLocaleDateString('pl-PL',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   
@@ -1027,14 +1032,24 @@ function getCurrentProfile() {
 
 // ========== LANDING / DASHBOARD SWITCH ==========
 function enterDashboard() {
-  state.view = 'dashboard';
-  document.getElementById('landingPage').style.display = 'none';
-  document.getElementById('dashboardPage').style.display = 'flex';
-  document.getElementById('landingLinks').classList.add('hidden');
-  document.getElementById('userSwitcher').classList.remove('hidden');
-  document.getElementById('aiFloatBtn').classList.remove('hidden');
-  showTab('home');
-  updateDashboard();
+  try {
+    state.view = 'dashboard';
+    document.getElementById('landingPage').style.display = 'none';
+    document.getElementById('dashboardPage').style.display = 'flex';
+    const landingLinks = document.getElementById('landingLinks');
+    if (landingLinks) landingLinks.classList.add('hidden');
+    const userSwitcher = document.getElementById('userSwitcher');
+    if (userSwitcher) userSwitcher.classList.remove('hidden');
+    const aiFloatBtn = document.getElementById('aiFloatBtn');
+    if (aiFloatBtn) aiFloatBtn.classList.remove('hidden');
+    showTab('home');
+    updateDashboard();
+  } catch(e) {
+    console.error('enterDashboard error:', e);
+    // Force show dashboard even if something else fails
+    document.getElementById('landingPage').style.display = 'none';
+    document.getElementById('dashboardPage').style.display = 'flex';
+  }
 }
 
 function exitDashboard() {
@@ -1487,16 +1502,17 @@ function loadPlanForDay() {
     dietContainer.innerHTML = meals.length ? meals.map((m,idx) => {
       if (m.hidden) return `<div class="p-3 rounded-xl text-xs text-gray-600 bg-white/2 border border-white/5 italic flex items-center gap-2"><span>🚫</span> ${m.name} — ukryto (wykluczenie)</div>`;
       const isDone = !!checked['meal_'+idx];
-      return `<div class="glass rounded-xl p-4 cursor-pointer hover:border-cyan-500/30 transition-all ${isDone?'opacity-60':''}" onclick="openExpandModal('diet','${m.id||idx}','${m.name.replace(/'/g,'')}',${'JSON.stringify(m).replace(/\\/g,"\\\\").replace(/'/g,"\\'")})" >
-        <div class="flex justify-between items-start mb-2">
-          <div class="flex items-center gap-2">
-            <div class="check-circle ${isDone?'checked':''}" onclick="event.stopPropagation();togglePlanCheck('meal_${idx}','${p.id}','${day}')"></div>
-            <p class="font-medium text-white text-sm ${isDone?'line-through text-gray-500':''}">${m.name}</p>
-          </div>
-          <span class="text-xs bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded">${m.kcal} kcal</span>
-        </div>
-        <div class="flex gap-3 text-xs text-gray-500 pl-7"><span>P: ${m.protein}g</span><span>W: ${m.carbs}g</span><span>T: ${m.fat}g</span></div>
-      </div>`;
+      const mealDataAttr = 'data-item="' + encodeURIComponent(JSON.stringify(m)) + '"';
+      return '<div class="glass rounded-xl p-4 cursor-pointer hover:border-cyan-500/30 transition-all ' + (isDone?'opacity-60':'') + '" ' + mealDataAttr + ' onclick="openExpandModalFromEl(this,\'diet\')" >' +
+        '<div class="flex justify-between items-start mb-2">' +
+          '<div class="flex items-center gap-2">' +
+            '<div class="check-circle ' + (isDone?'checked':'') + '" onclick="event.stopPropagation();togglePlanCheck(\'meal_' + idx + '\',\'' + p.id + '\',\'' + day + '\')"></div>' +
+            '<p class="font-medium text-white text-sm ' + (isDone?'line-through text-gray-500':'') + '">' + m.name + '</p>' +
+          '</div>' +
+          '<span class="text-xs bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded">' + m.kcal + ' kcal</span>' +
+        '</div>' +
+        '<div class="flex gap-3 text-xs text-gray-500 pl-7"><span>P: ' + m.protein + 'g</span><span>W: ' + m.carbs + 'g</span><span>T: ' + m.fat + 'g</span></div>' +
+      '</div>';
     }).join('') : '<p class="text-sm text-gray-600 italic text-center py-4">Brak zaplanowanych posiłków</p>';
   }
 
@@ -1507,16 +1523,17 @@ function loadPlanForDay() {
     trainingContainer.innerHTML = exercises.length ? exercises.map((e,idx) => {
       if (e.hidden) return `<div class="p-3 rounded-xl text-xs text-gray-600 bg-white/2 border border-white/5 italic flex items-center gap-2"><span>🚫</span> ${e.name} — ukryto (wykluczenie)</div>`;
       const isDone = !!checked['ex_'+idx];
-      return `<div class="glass rounded-xl p-4 cursor-pointer hover:border-cyan-500/30 transition-all ${isDone?'opacity-60':''}" onclick="openExpandModal('training','${e.id||idx}','${e.name.replace(/'/g,'')}',${'JSON.stringify(e).replace(/\\/g,"\\\\").replace(/'/g,"\\'")})" >
-        <div class="flex items-start gap-2 mb-2">
-          <div class="check-circle ${isDone?'checked':''}" onclick="event.stopPropagation();togglePlanCheck('ex_${idx}','${p.id}','${day}')"></div>
-          <div class="flex-1">
-            <p class="font-medium text-white text-sm ${isDone?'line-through text-gray-500':''}">${e.name}</p>
-            <div class="flex gap-3 text-xs text-gray-500 mt-1">${e.sets>0?`<span>${e.sets} sety</span>`:''}${e.reps>1?`<span>${e.reps} powt.</span>`:''}${e.weight>0?`<span>${e.weight}kg</span>`:''}</div>
-          </div>
-          <div class="flex gap-1 flex-wrap justify-end">${(e.tags||[]).map(t=>`<span class="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-gray-500">#${t}</span>`).join('')}</div>
-        </div>
-      </div>`;
+      const exDataAttr = 'data-item="' + encodeURIComponent(JSON.stringify(e)) + '"';
+      return '<div class="glass rounded-xl p-4 cursor-pointer hover:border-cyan-500/30 transition-all ' + (isDone?'opacity-60':'') + '" ' + exDataAttr + ' onclick="openExpandModalFromEl(this,\'training\')" >' +
+        '<div class="flex items-start gap-2 mb-2">' +
+          '<div class="check-circle ' + (isDone?'checked':'') + '" onclick="event.stopPropagation();togglePlanCheck(\'ex_' + idx + '\',\'' + p.id + '\',\'' + day + '\')"></div>' +
+          '<div class="flex-1">' +
+            '<p class="font-medium text-white text-sm ' + (isDone?'line-through text-gray-500':'') + '">' + e.name + '</p>' +
+            '<div class="flex gap-3 text-xs text-gray-500 mt-1">' + (e.sets>0?'<span>'+e.sets+' sety</span>':'') + (e.reps>1?'<span>'+e.reps+' powt.</span>':'') + (e.weight>0?'<span>'+e.weight+'kg</span>':'') + '</div>' +
+          '</div>' +
+          '<div class="flex gap-1 flex-wrap justify-end">' + (e.tags||[]).map(t=>'<span class="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-gray-500">#'+t+'</span>').join('') + '</div>' +
+        '</div>' +
+      '</div>';
     }).join('') : '<div class="text-sm text-gray-600 italic text-center py-8">Dzień odpoczynku 🧘</div>';
   }
 }
@@ -1559,8 +1576,11 @@ function loadTodayPlanChecklist() {
     return;
   }
   
+  const customDiet = (state.dayLogs[p.id]?.diet || []);
+  const customTraining = (state.dayLogs[p.id]?.training || []);
+
   let html = '';
-  if (meals.length) {
+  if (meals.length || customDiet.length) {
     html += `<p class="text-xs font-bold text-gray-500 uppercase mb-2">🍽️ Posiłki — ${day}</p>`;
     html += meals.map((m,i) => {
       const isDone = !!checked[`meal_${i}`];
@@ -1569,9 +1589,20 @@ function loadTodayPlanChecklist() {
         <div class="flex-1"><p class="text-sm font-medium text-white item-name">${m.name}</p><p class="text-xs text-gray-500">${m.kcal} kcal · P:${m.protein}g W:${m.carbs}g T:${m.fat}g</p></div>
       </div>`;
     }).join('');
+    // Custom diet entries
+    html += customDiet.map((m,i) => {
+      const isDone = !!checked[`custom_diet_${i}`];
+      return `<div class="checklist-item flex items-center gap-3 rounded-xl p-3 mb-2 ${isDone?'done':''}" style="background:rgba(0,229,255,0.04);border:1px solid rgba(0,229,255,0.15);">
+        <div class="check-circle ${isDone?'checked':''}" onclick="togglePlanCheck('custom_diet_${i}','${p.id}','${day}');loadTodayPlanChecklist();"></div>
+        <div class="flex-1"><p class="text-sm font-medium text-white item-name">${m.name} <span class="text-[10px] text-cyan-500 ml-1">+inny</span></p><p class="text-xs text-gray-500">${m.kcal||0} kcal · P:${m.protein||0}g W:${m.carbs||0}g T:${m.fat||0}g</p></div>
+        <button onclick="removeCustomEntry('diet',${i})" class="text-gray-600 hover:text-red-400 text-xs px-2 transition-colors">✕</button>
+      </div>`;
+    }).join('');
+    html += `<button onclick="openInnyForm('diet')" class="w-full mt-2 py-2 rounded-xl text-sm font-medium border border-dashed border-cyan-500/30 text-cyan-500 hover:bg-cyan-500/08 transition-colors">+ Inny posiłek</button>`;
   }
-  if (exercises.length) {
-    html += `<p class="text-xs font-bold text-gray-500 uppercase mb-2 mt-4">💪 Trening — ${day}</p>`;
+
+  if (exercises.length || customTraining.length) {
+    html += `<p class="text-xs font-bold text-gray-500 uppercase mb-2 mt-5">💪 Trening — ${day}</p>`;
     html += exercises.map((e,i) => {
       const isDone = !!checked[`ex_${i}`];
       return `<div class="checklist-item flex items-center gap-3 glass rounded-xl p-3 mb-2 ${isDone?'done':''}">
@@ -1579,12 +1610,30 @@ function loadTodayPlanChecklist() {
         <div class="flex-1"><p class="text-sm font-medium text-white item-name">${e.name}</p><p class="text-xs text-gray-500">${e.sets?e.sets+' sety · ':''} ${e.reps>1?e.reps+' powt.':''}</p></div>
       </div>`;
     }).join('');
+    // Custom training entries
+    html += customTraining.map((e,i) => {
+      const isDone = !!checked[`custom_ex_${i}`];
+      return `<div class="checklist-item flex items-center gap-3 rounded-xl p-3 mb-2 ${isDone?'done':''}" style="background:rgba(124,58,237,0.05);border:1px solid rgba(124,58,237,0.2);">
+        <div class="check-circle ${isDone?'checked':''}" onclick="togglePlanCheck('custom_ex_${i}','${p.id}','${day}');loadTodayPlanChecklist();"></div>
+        <div class="flex-1"><p class="text-sm font-medium text-white item-name">${e.name} <span class="text-[10px] text-violet-400 ml-1">+inny</span></p><p class="text-xs text-gray-500">${e.sets?e.sets+' sety':''} ${e.reps?'· '+e.reps+' powt.':''} ${e.weight?'· '+e.weight+'kg':''}</p></div>
+        <button onclick="removeCustomEntry('training',${i})" class="text-gray-600 hover:text-red-400 text-xs px-2 transition-colors">✕</button>
+      </div>`;
+    }).join('');
+    html += `<button onclick="openInnyForm('training')" class="w-full mt-2 py-2 rounded-xl text-sm font-medium border border-dashed border-violet-500/30 text-violet-400 hover:bg-violet-500/05 transition-colors">+ Inne ćwiczenie</button>`;
   }
+
   container.innerHTML = html;
   updateDayProgress();
 }
 
 // ========== EXPAND MODAL ==========
+function openExpandModalFromEl(el, type) {
+  try {
+    const data = JSON.parse(decodeURIComponent(el.getAttribute('data-item')));
+    openExpandModal(type, data.id || data.name, data.name, data);
+  } catch(e) { console.error('openExpandModalFromEl error', e); }
+}
+
 function openExpandModal(type, itemId, name, data) {
   const modal = document.getElementById('expandModal');
   document.getElementById('expandTitle').textContent = name;
@@ -1698,83 +1747,85 @@ function addExpandedToDay() {
 }
 
 // ========== MY DAY ==========
-function addFromPlan(type) {
-  const p = getCurrentProfile();
-  const day = state.days[state.currentDay];
+function openInnyForm(type) {
+  // Hide both first
+  document.getElementById('innyDietForm').classList.add('hidden');
+  document.getElementById('innyTrainingForm').classList.add('hidden');
+  // Clear fields
   if (type === 'diet') {
-    const meals = p.dietPlan[day] || [];
-    if (!meals.length) { showToast('Brak zaplanowanych posiłków na dziś'); return; }
-    const meal = meals[0];
-    addDayLogItem('diet', meal.name, `P:${meal.protein}g W:${meal.carbs}g T:${meal.fat}g`, meal.kcal, meal.protein, meal.carbs, meal.fat);
+    ['innyDietName','innyDietProtein','innyDietCarbs','innyDietFat','innyDietKcal'].forEach(id => { document.getElementById(id).value = ''; });
+    document.getElementById('innyDietForm').classList.remove('hidden');
+    document.getElementById('innyDietName').focus();
   } else {
-    const exercises = p.trainingPlan[day] || [];
-    if (!exercises.length) { showToast('Brak zaplanowanych ćwiczeń na dziś'); return; }
-    const ex = exercises[0];
-    addDayLogItem('training', ex.name, `${ex.sets}×${ex.reps}`, 0);
+    ['innyTrainingName','innyTrainingSets','innyTrainingReps','innyTrainingWeight'].forEach(id => { document.getElementById(id).value = ''; });
+    document.getElementById('innyTrainingForm').classList.remove('hidden');
+    document.getElementById('innyTrainingName').focus();
   }
+  // Scroll form into view
+  setTimeout(() => {
+    document.getElementById(type==='diet' ? 'innyDietForm' : 'innyTrainingForm').scrollIntoView({behavior:'smooth', block:'center'});
+  }, 50);
 }
 
-function showManualForm(type) {
-  state.manualFormType = type;
-  document.getElementById('manualFormTitle').textContent = type==='diet'?'Dodaj Posiłek':'Dodaj Ćwiczenie';
-  document.getElementById('macroFields').classList.toggle('hidden', type==='training');
-  document.getElementById('manualFormContainer').classList.remove('hidden');
-  ['entryName','entryProtein','entryCarbs','entryFat'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+function closeInnyForm(type) {
+  document.getElementById(type==='diet' ? 'innyDietForm' : 'innyTrainingForm').classList.add('hidden');
 }
 
-function closeManualForm() { document.getElementById('manualFormContainer').classList.add('hidden'); }
+function submitInnyForm(type) {
+  const p = getCurrentProfile();
+  if (!state.dayLogs[p.id]) state.dayLogs[p.id] = {diet:[], training:[]};
 
-function submitManualEntry() {
-  const name = document.getElementById('entryName').value.trim();
-  if (!name) return;
-  if (state.manualFormType === 'diet') {
-    const prot = parseInt(document.getElementById('entryProtein').value)||0;
-    const carbs = parseInt(document.getElementById('entryCarbs').value)||0;
-    const fat = parseInt(document.getElementById('entryFat').value)||0;
-    const kcal = Math.round(prot*4+carbs*4+fat*9);
-    addDayLogItem('diet', name, `P:${prot}g W:${carbs}g T:${fat}g`, kcal, prot, carbs, fat);
+  if (type === 'diet') {
+    const name = document.getElementById('innyDietName').value.trim();
+    if (!name) { showToast('Podaj nazwę posiłku'); return; }
+    const protein = parseInt(document.getElementById('innyDietProtein').value)||0;
+    const carbs = parseInt(document.getElementById('innyDietCarbs').value)||0;
+    const fat = parseInt(document.getElementById('innyDietFat').value)||0;
+    const kcalInput = parseInt(document.getElementById('innyDietKcal').value)||0;
+    const kcal = kcalInput || Math.round(protein*4 + carbs*4 + fat*9);
+    state.dayLogs[p.id].diet.push({name, protein, carbs, fat, kcal, ts: Date.now()});
   } else {
-    addDayLogItem('training', name, 'Ręczny wpis', 0);
+    const name = document.getElementById('innyTrainingName').value.trim();
+    if (!name) { showToast('Podaj nazwę ćwiczenia'); return; }
+    const sets = parseInt(document.getElementById('innyTrainingSets').value)||0;
+    const reps = parseInt(document.getElementById('innyTrainingReps').value)||0;
+    const weight = parseInt(document.getElementById('innyTrainingWeight').value)||0;
+    state.dayLogs[p.id].training.push({name, sets, reps, weight, ts: Date.now()});
   }
-  closeManualForm();
+  saveLogs();
+  closeInnyForm(type);
+  loadTodayPlanChecklist();
+  updateDashboard();
+  showToast('✅ Dodano!');
+}
+
+function removeCustomEntry(type, idx) {
+  const p = getCurrentProfile();
+  if (!state.dayLogs[p.id]) return;
+  state.dayLogs[p.id][type].splice(idx, 1);
+  saveLogs();
+  loadTodayPlanChecklist();
+  updateDashboard();
 }
 
 function addDayLogItem(type, name, meta, kcal, protein=0, carbs=0, fat=0) {
   const p = getCurrentProfile();
   if (!state.dayLogs[p.id]) state.dayLogs[p.id] = {diet:[], training:[]};
-  const item = {name, meta, kcal, protein, carbs, fat, ts: Date.now()};
-  state.dayLogs[p.id][type].push(item);
+  state.dayLogs[p.id][type].push({name, kcal, protein, carbs, fat, ts: Date.now()});
   saveLogs();
-  
-  const container = document.getElementById(type==='diet'?'dietLogContainer':'trainingLogContainer');
-  if (container.querySelector('.italic')) container.innerHTML = '';
-  const id = 'log_'+Date.now();
-  const html = `<div id="${id}" class="glass rounded-xl p-3 flex justify-between items-start tab-anim">
-    <div><p class="text-sm font-medium text-white">${name}</p><p class="text-xs text-gray-500 mt-0.5">${meta}</p></div>
-    <div class="flex items-center gap-2">${kcal?`<span class="text-xs font-bold text-cyan-400">${kcal} kcal</span>`:''}<button onclick="removeDayLog('${id}','${type}','${p.id}','${name}')" class="text-red-400 hover:text-red-300 text-sm">✕</button></div>
-  </div>`;
-  container.insertAdjacentHTML('beforeend', html);
-  updateDayCounters();
-  updateDashboard();
-}
-
-function removeDayLog(elId, type, profileId, name) {
-  document.getElementById(elId)?.remove();
-  if (state.dayLogs[profileId]) {
-    state.dayLogs[profileId][type] = state.dayLogs[profileId][type].filter(i=>i.name!==name);
-    saveLogs();
-  }
-  updateDayCounters();
+  loadTodayPlanChecklist();
   updateDashboard();
 }
 
 function updateDayCounters() {
   const p = getCurrentProfile();
   const diet = state.dayLogs[p.id]?.diet || [];
+  const training = state.dayLogs[p.id]?.training || [];
   const totalKcal = diet.reduce((s,i)=>s+(i.kcal||0),0);
-  document.getElementById('dayCalEaten').textContent = totalKcal;
-  const trainCount = document.querySelectorAll('#trainingLogContainer .glass').length;
-  document.getElementById('dayTrainCount').textContent = trainCount;
+  const el = document.getElementById('dayCalEaten');
+  if (el) el.textContent = totalKcal;
+  const telEl = document.getElementById('dayTrainCount');
+  if (telEl) telEl.textContent = training.length;
   
   // Macro alerts
   const {tdee, protein} = calculateNutrition(p);
@@ -1923,7 +1974,7 @@ function escapeHTML(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-document.getElementById('aiInput').addEventListener('keydown', e => { if(e.key==='Enter') sendAIMessage(); });
+// aiInput keydown handled via onkeydown attribute in HTML
 
 // ========== UTILITIES ==========
 function copyToClipboard(text) {
