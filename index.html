@@ -293,6 +293,7 @@
       <a href="#" onclick="showTab('my-day');return false;" data-tab="my-day" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>📋</span><span>Mój Dzień</span></a>
       <a href="#" onclick="showTab('plan');return false;" data-tab="plan" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>📅</span><span>Plan</span></a>
       <a href="#" onclick="showTab('profile');return false;" data-tab="profile" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>👤</span><span>Profil</span></a>
+      <a href="#" onclick="showTab('sport');return false;" data-tab="sport" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>🏀</span><span>Sport</span></a>
       <a href="#" onclick="showTab('contact');return false;" data-tab="contact" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>💬</span><span>Kontakt</span></a>
     </nav>
     <div class="glass rounded-2xl p-4">
@@ -731,6 +732,186 @@
             <div class="glass rounded-2xl p-5 plan-card featured" style="border-color:var(--border-cyan)!important;"><p class="text-sm font-bold text-cyan-400 mb-1">Pro — 49 zł/mies.</p><p class="text-xs text-gray-400 mb-3">Odblokuj 3 profile, AI bez limitu i więcej.</p><button class="btn-neon px-4 py-2 rounded-xl text-xs font-bold w-full">Wybierz Pro (wkrótce)</button></div>
             <div class="glass rounded-2xl p-5 plan-card"><p class="text-sm font-bold text-violet-400 mb-1">Elite — 129 zł/mies.</p><p class="text-xs text-gray-400 mb-3">Trener personalny AI, Discord, eksport PDF.</p><button class="btn-outline-cyan px-4 py-2 rounded-xl text-xs font-bold w-full">Wybierz Elite (wkrótce)</button></div>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== TAB: SPORT ====== -->
+    <section id="tab-sport" class="hidden space-y-6">
+      <div class="flex justify-between items-start flex-wrap gap-3">
+        <div>
+          <h3 class="text-3xl font-bold" style="font-family:'Syne',sans-serif;">🏀 Sport</h3>
+          <p class="text-sm text-gray-500 mt-1">Drille sportowe z progresją i śledzeniem skuteczności</p>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="showSportSubtab('drills')" id="sporttab-drills" class="plan-subtab active px-4 py-2 rounded-xl text-sm font-bold border border-transparent transition-all">🎯 Drille</button>
+          <button onclick="showSportSubtab('log')" id="sporttab-log" class="plan-subtab px-4 py-2 rounded-xl text-sm font-bold border border-transparent transition-all text-gray-400">📝 Loguj wynik</button>
+          <button onclick="showSportSubtab('history')" id="sporttab-history" class="plan-subtab px-4 py-2 rounded-xl text-sm font-bold border border-transparent transition-all text-gray-400">📊 Historia</button>
+          <button onclick="showSportSubtab('config')" id="sporttab-config" class="plan-subtab px-4 py-2 rounded-xl text-sm font-bold border border-transparent transition-all text-gray-400">⚙️ Konfiguracja</button>
+        </div>
+      </div>
+
+      <!-- Sport Config Banner -->
+      <div id="sportConfigBanner" class="alert-neon hidden">
+        <p class="text-sm">⚙️ Skonfiguruj swój sport aby zobaczyć spersonalizowane drille. <button onclick="showSportSubtab('config')" class="text-cyan-400 underline font-bold">Skonfiguruj teraz →</button></p>
+      </div>
+
+      <!-- ---- DRILLES SUB-TAB ---- -->
+      <div id="sport-drills" class="space-y-5">
+        <!-- Sport & Specialization selectors -->
+        <div class="glass p-5">
+          <div class="flex flex-wrap items-center gap-4">
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">Sport</label>
+              <select id="drillSportSelect" onchange="loadDrills()" class="text-sm" style="min-width:160px;">
+                <option value="koszykówka">🏀 Koszykówka</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">Specjalizacja</label>
+              <select id="drillSpecSelect" onchange="filterDrillsBySpec()" class="text-sm" style="min-width:180px;">
+                <option value="">Wszystkie</option>
+                <option value="rzuty">🎯 Rzuty</option>
+                <option value="drybling">🏃 Drybling</option>
+                <option value="obrona">🛡️ Obrona</option>
+              </select>
+            </div>
+            <div class="ml-auto">
+              <p class="text-xs text-gray-500 mb-1">Twój sport</p>
+              <p class="text-sm font-bold text-cyan-400" id="userSportLabel">Nie skonfigurowano</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Drill Cards -->
+        <div id="drillCardsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="glass p-6 text-center text-gray-500 md:col-span-2 italic">Ładowanie drilli…</div>
+        </div>
+      </div>
+
+      <!-- ---- LOG RESULT SUB-TAB ---- -->
+      <div id="sport-log" class="hidden space-y-5">
+        <div class="glass p-6">
+          <h4 class="text-lg font-bold text-white mb-5" style="font-family:'Syne',sans-serif;">📝 Zaloguj wynik drilla</h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Drill *</label>
+              <select id="logDrillName" class="w-full text-sm">
+                <option value="">Wybierz drill…</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Data sesji</label>
+              <input type="date" id="logDrillDate" class="w-full text-sm">
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Trafienia (sukcesy)</label>
+              <input type="number" id="logSuccessCount" placeholder="np. 15" min="0" class="w-full text-sm">
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Łączna liczba prób</label>
+              <input type="number" id="logTotalAttempts" placeholder="np. 20" min="1" class="w-full text-sm">
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-xs text-gray-400 mb-2">RPE — Ocena wysiłku (1 = bardzo lekko, 10 = maksymalny wysiłek)</label>
+              <div class="flex items-center gap-4">
+                <span class="text-xs text-gray-600 w-4">1</span>
+                <input type="range" id="logRPE" min="1" max="10" value="6" oninput="updateRPELabel(this.value)" class="flex-1">
+                <span class="text-xs text-gray-600 w-4">10</span>
+                <span id="rpeLabel" class="text-cyan-400 font-bold text-lg w-8 text-right" style="font-family:'Syne',sans-serif;">6</span>
+              </div>
+              <div id="rpeDesc" class="text-xs text-gray-500 mt-1">Umiarkowany wysiłek</div>
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-xs text-gray-400 mb-1">Notatki (opcjonalnie)</label>
+              <textarea id="logDrillNotes" placeholder="np. Słaba forma w rzutach z lewej strony..." class="w-full text-sm" rows="2"></textarea>
+            </div>
+          </div>
+          <div class="flex gap-3 mt-5">
+            <button onclick="submitDrillResult()" class="btn-neon px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2">
+              <span>✅</span> Zapisz wynik
+            </button>
+            <button onclick="showSportSubtab('drills')" class="btn-ghost px-6 py-2.5 rounded-xl text-sm">Anuluj</button>
+          </div>
+        </div>
+
+        <!-- Live Accuracy Preview -->
+        <div id="accuracyPreview" class="glass p-5 hidden">
+          <h5 class="text-sm font-bold text-white mb-3">Podgląd skuteczności</h5>
+          <div class="flex items-center gap-6">
+            <div class="text-center">
+              <div class="text-4xl font-bold text-cyan-400" style="font-family:'Syne',sans-serif;" id="previewAccuracy">—</div>
+              <div class="text-xs text-gray-500 mt-1">Skuteczność</div>
+            </div>
+            <div class="flex-1">
+              <div class="progress-bar" style="height:10px;"><div id="previewBar" class="progress-fill bg-gradient-to-r from-cyan-500 to-violet-500" style="width:0%"></div></div>
+              <div class="flex justify-between text-xs text-gray-600 mt-1"><span>0%</span><span id="previewTarget" class="text-cyan-400">Cel: 70%</span><span>100%</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---- HISTORY SUB-TAB ---- -->
+      <div id="sport-history" class="hidden space-y-5">
+        <div class="flex justify-between items-center">
+          <h4 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">📊 Historia drilli</h4>
+          <button onclick="clearDrillHistory()" class="btn-danger px-4 py-1.5 rounded-xl text-xs font-bold">🗑️ Wyczyść historię</button>
+        </div>
+
+        <!-- Summary Cards -->
+        <div id="drillSummaryCards" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
+
+        <!-- Per-drill progression -->
+        <div id="drillHistoryList" class="space-y-4">
+          <p class="text-sm text-gray-500 italic text-center py-8">Brak historii. Zaloguj pierwszy wynik →</p>
+        </div>
+      </div>
+
+      <!-- ---- CONFIG SUB-TAB ---- -->
+      <div id="sport-config" class="hidden space-y-5">
+        <div class="glass p-6">
+          <h4 class="text-lg font-bold text-white mb-5" style="font-family:'Syne',sans-serif;">⚙️ Konfiguracja modułu sportowego</h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Główny sport</label>
+              <select id="configSportFocus" class="w-full text-sm">
+                <option value="koszykówka">🏀 Koszykówka</option>
+                <option value="piłka nożna">⚽ Piłka nożna</option>
+                <option value="tenis">🎾 Tenis</option>
+                <option value="inne">🏅 Inne</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Specjalizacja / obszar do poprawy</label>
+              <select id="configSpecialization" class="w-full text-sm">
+                <option value="rzuty">🎯 Rzuty</option>
+                <option value="drybling">🏃 Drybling</option>
+                <option value="obrona">🛡️ Obrona</option>
+                <option value="">Ogólnie</option>
+              </select>
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-xs text-gray-400 mb-2">Dni treningowe sportu</label>
+              <div class="flex flex-wrap gap-2" id="sportDayChips">
+                <span class="chip" onclick="toggleSportDay(this,'Poniedziałek')">Pon</span>
+                <span class="chip" onclick="toggleSportDay(this,'Wtorek')">Wt</span>
+                <span class="chip" onclick="toggleSportDay(this,'Środa')">Śr</span>
+                <span class="chip" onclick="toggleSportDay(this,'Czwartek')">Czw</span>
+                <span class="chip" onclick="toggleSportDay(this,'Piątek')">Pt</span>
+                <span class="chip" onclick="toggleSportDay(this,'Sobota')">Sob</span>
+                <span class="chip" onclick="toggleSportDay(this,'Niedziela')">Niedz</span>
+              </div>
+            </div>
+          </div>
+          <div class="flex gap-3 mt-5">
+            <button onclick="saveSportConfig()" class="btn-neon px-6 py-2.5 rounded-xl font-bold text-sm">💾 Zapisz konfigurację</button>
+          </div>
+        </div>
+
+        <!-- Current config display -->
+        <div class="glass p-5" id="currentSportConfigDisplay">
+          <h5 class="text-sm font-bold text-gray-400 uppercase mb-3">Aktualna konfiguracja</h5>
+          <div id="currentSportConfigContent" class="text-sm text-gray-400 italic">Nie skonfigurowano</div>
         </div>
       </div>
     </section>
@@ -1625,6 +1806,12 @@ function showTab(tabId) {
   if (tabId==='profile') renderProfileTabs();
   if (tabId==='home') updateDashboard();
   if (tabId==='my-day') { loadTodayPlanChecklist(); renderExtraItems(); }
+  if (tabId==='sport') {
+    const st = loadSportState();
+    if (!st.sport_focus) document.getElementById('sportConfigBanner')?.classList.remove('hidden');
+    else document.getElementById('sportConfigBanner')?.classList.add('hidden');
+    showSportSubtab('drills');
+  }
   document.getElementById('mainContent').scrollTop = 0;
 }
 
@@ -2753,6 +2940,387 @@ function escapeHTML(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// ========== SPORT MODULE ==========
+
+// Embedded drill database (mirrors backend SPORT_DRILLS_DB)
+const SPORT_DRILLS = {
+  'koszykówka': {
+    'rzuty': [
+      { name:'Rzuty osobiste', total_attempts:20, description:'Standardowe rzuty wolne z linii rzutów osobistych.', progression_tip:'Cel: ≥15/20 (75%) przez 2 sesje z rzędu → zwiększ do 25 prób.', target_pct:75 },
+      { name:'Rzuty za 3 punkty', total_attempts:20, description:'5 rzutów z 4 różnych pozycji za łukiem (corners, wings, top).', progression_tip:'Cel: ≥10/20 (50%) → dodaj 5 prób lub utrudnij pozycje.', target_pct:50 },
+      { name:'Rzuty z odchylenia', total_attempts:15, description:'Mid-range pull-up jump shot po jednym lub dwóch krokach.', progression_tip:'Cel: ≥10/15 (67%) → dodaj obrońcę lub skróć czas wykonania.', target_pct:67 },
+      { name:'Mikan Drill', total_attempts:40, description:'Naprzemienne layupy z obu stron tablicy (20 z lewej + 20 z prawej).', progression_tip:'Cel: ≥34/40 (85%) → przejdź do Power Mikan (po zbiórce).', target_pct:85 },
+    ],
+    'drybling': [
+      { name:'Figure-8 Dribbling', total_attempts:10, description:'Ósemka między nogami – 10 pełnych okrążeń bez zgubienia piłki.', progression_tip:'Cel: 10/10 bez błędu → przyspiesz tempo lub zamknij oczy.', target_pct:100 },
+      { name:'Stationary Crossover', total_attempts:20, description:'Crossover przed ciałem – 20 powtórzeń na stronę.', progression_tip:'Cel: 20/20 → wprowadź krok do przodu (live dribble).', target_pct:100 },
+    ],
+    'obrona': [
+      { name:'Defensive Slides', total_attempts:10, description:'10 powtórzeń ślizgów obronnych w obie strony (bez krzyżowania nóg).', progression_tip:'Cel: 10/10 ze stabilną pozycją → dodaj zmianę kierunku.', target_pct:100 },
+    ],
+  }
+};
+
+// Sport state stored in localStorage under key 'fitai_sport_v1'
+function loadSportState() {
+  try { return JSON.parse(localStorage.getItem('fitai_sport_v1') || '{}'); } catch { return {}; }
+}
+function saveSportState(data) {
+  localStorage.setItem('fitai_sport_v1', JSON.stringify(data));
+}
+
+function showSportSubtab(tab) {
+  ['drills','log','history','config'].forEach(t => {
+    document.getElementById('sport-'+t).classList.toggle('hidden', t !== tab);
+    const btn = document.getElementById('sporttab-'+t);
+    if (btn) {
+      btn.classList.toggle('active', t === tab);
+      btn.classList.toggle('text-gray-400', t !== tab);
+    }
+  });
+  if (tab === 'drills') loadDrills();
+  if (tab === 'log') prepareLogForm();
+  if (tab === 'history') renderDrillHistory();
+  if (tab === 'config') renderCurrentSportConfig();
+}
+
+function loadDrills() {
+  const sport = document.getElementById('drillSportSelect')?.value || 'koszykówka';
+  const spec = document.getElementById('drillSpecSelect')?.value || '';
+  const sportData = SPORT_DRILLS[sport] || {};
+  const st = loadSportState();
+
+  // Update user sport label
+  const label = document.getElementById('userSportLabel');
+  if (label) label.textContent = st.sport_focus
+    ? `${st.sport_focus}${st.sport_specialization ? ' – ' + st.sport_specialization : ''}`
+    : 'Nie skonfigurowano';
+
+  let drills = [];
+  if (spec && sportData[spec]) {
+    drills = sportData[spec].map(d => ({...d, spec}));
+  } else {
+    for (const [s, list] of Object.entries(sportData)) {
+      drills.push(...list.map(d => ({...d, spec: s})));
+    }
+  }
+
+  const container = document.getElementById('drillCardsContainer');
+  if (!container) return;
+  if (drills.length === 0) {
+    container.innerHTML = '<div class="glass p-6 text-center text-gray-500 md:col-span-2 italic">Brak drilli dla wybranego sportu/specjalizacji.</div>';
+    return;
+  }
+
+  container.innerHTML = drills.map(drill => {
+    const history = (st.drill_history || []).filter(r => r.drill_name === drill.name);
+    const lastResult = history[0];
+    const lastAccPct = lastResult
+      ? Math.round(lastResult.success_count / lastResult.total_attempts * 100)
+      : null;
+    const targetMet = lastAccPct !== null && lastAccPct >= (drill.target_pct || 70);
+    const specLabel = { rzuty:'🎯', drybling:'🏃', obrona:'🛡️' }[drill.spec] || '🏅';
+
+    return `
+    <div class="glass p-5 space-y-3" style="${targetMet ? 'border-color:rgba(0,229,255,0.4)!important;box-shadow:0 0 20px rgba(0,229,255,0.06);' : ''}">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-xs font-bold px-2 py-0.5 rounded-full" style="background:rgba(0,229,255,0.08);color:var(--cyan);">${specLabel} ${drill.spec}</span>
+            ${targetMet ? '<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">✅ Cel osiągnięty</span>' : ''}
+          </div>
+          <h5 class="text-white font-bold text-base" style="font-family:'Syne',sans-serif;">${drill.name}</h5>
+        </div>
+        <div class="text-right shrink-0">
+          <p class="text-2xl font-bold ${lastAccPct === null ? 'text-gray-600' : lastAccPct >= (drill.target_pct||70) ? 'text-cyan-400' : 'text-yellow-400'}" style="font-family:'Syne',sans-serif;">
+            ${lastAccPct !== null ? lastAccPct+'%' : '—'}
+          </p>
+          <p class="text-xs text-gray-500">${lastResult ? 'ostatnio' : 'brak danych'}</p>
+        </div>
+      </div>
+      <p class="text-sm text-gray-400 leading-relaxed">${drill.description}</p>
+      ${lastResult ? `
+      <div class="progress-bar" style="height:6px;">
+        <div class="progress-fill ${lastAccPct >= (drill.target_pct||70) ? 'bg-gradient-to-r from-cyan-500 to-green-400' : 'bg-gradient-to-r from-yellow-500 to-cyan-500'}" style="width:${Math.min(lastAccPct,100)}%"></div>
+      </div>
+      <p class="text-xs text-gray-500">Cel: ${drill.target_pct||70}% | Ostatnio: ${lastResult.success_count}/${lastResult.total_attempts} | RPE ${lastResult.rpe}</p>
+      ` : `<div class="progress-bar" style="height:6px;"><div class="progress-fill bg-gray-700" style="width:0%"></div></div>`}
+      <div class="alert-neon text-xs py-2 px-3 leading-snug">💡 ${drill.progression_tip}</div>
+      <div class="flex gap-2 pt-1">
+        <button onclick="quickLogDrill(${JSON.stringify(drill.name)}, ${drill.total_attempts})"
+          class="flex-1 btn-outline-cyan py-2 rounded-xl text-xs font-bold">📝 Zaloguj wynik</button>
+        ${history.length > 0 ? `<button onclick="showDrillDetail(${JSON.stringify(drill.name)})" class="btn-ghost py-2 px-3 rounded-xl text-xs">📊 Historia</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterDrillsBySpec() { loadDrills(); }
+
+function quickLogDrill(drillName, defaultAttempts) {
+  showSportSubtab('log');
+  setTimeout(() => {
+    const sel = document.getElementById('logDrillName');
+    if (sel) {
+      for (const opt of sel.options) {
+        if (opt.value === drillName) { sel.value = drillName; break; }
+      }
+    }
+    const att = document.getElementById('logTotalAttempts');
+    if (att && defaultAttempts) att.value = defaultAttempts;
+    updateAccuracyPreview();
+  }, 80);
+}
+
+function prepareLogForm() {
+  // Populate drill select
+  const sel = document.getElementById('logDrillName');
+  if (!sel) return;
+  const sport = document.getElementById('drillSportSelect')?.value || 'koszykówka';
+  const sportData = SPORT_DRILLS[sport] || {};
+  const allDrills = [];
+  for (const [spec, list] of Object.entries(sportData)) {
+    for (const d of list) allDrills.push({name: d.name, spec});
+  }
+  sel.innerHTML = '<option value="">Wybierz drill…</option>' + allDrills.map(d =>
+    `<option value="${d.name}">${{ rzuty:'🎯', drybling:'🏃', obrona:'🛡️' }[d.spec]||'🏅'} ${d.name}</option>`
+  ).join('');
+
+  // Set today's date
+  const dateEl = document.getElementById('logDrillDate');
+  if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
+
+  // Bind live accuracy preview
+  ['logSuccessCount','logTotalAttempts'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', updateAccuracyPreview);
+  });
+}
+
+function updateAccuracyPreview() {
+  const s = parseInt(document.getElementById('logSuccessCount')?.value) || 0;
+  const t = parseInt(document.getElementById('logTotalAttempts')?.value) || 0;
+  const preview = document.getElementById('accuracyPreview');
+  if (!preview) return;
+  if (t > 0) {
+    preview.classList.remove('hidden');
+    const pct = Math.round(s / t * 100);
+    document.getElementById('previewAccuracy').textContent = pct + '%';
+    document.getElementById('previewBar').style.width = Math.min(pct, 100) + '%';
+  } else {
+    preview.classList.add('hidden');
+  }
+}
+
+function updateRPELabel(val) {
+  const descriptions = {
+    1:'Bardzo lekko — spacer', 2:'Lekko', 3:'Umiarkowanie lekko', 4:'Dosyć lekko',
+    5:'Umiarkowany wysiłek', 6:'Nieco ciężko', 7:'Ciężko', 8:'Bardzo ciężko',
+    9:'Ekstremalnie ciężko', 10:'Absolutne maksimum'
+  };
+  const label = document.getElementById('rpeLabel');
+  const desc = document.getElementById('rpeDesc');
+  if (label) label.textContent = val;
+  if (desc) desc.textContent = descriptions[val] || '';
+}
+
+function submitDrillResult() {
+  const drillName = document.getElementById('logDrillName')?.value;
+  const successCount = parseInt(document.getElementById('logSuccessCount')?.value);
+  const totalAttempts = parseInt(document.getElementById('logTotalAttempts')?.value);
+  const rpe = parseInt(document.getElementById('logRPE')?.value) || 6;
+  const notes = document.getElementById('logDrillNotes')?.value || '';
+  const sessionDate = document.getElementById('logDrillDate')?.value || new Date().toISOString().split('T')[0];
+
+  if (!drillName) { showToast('⚠️ Wybierz drill!'); return; }
+  if (isNaN(successCount) || isNaN(totalAttempts) || totalAttempts < 1) { showToast('⚠️ Uzupełnij liczbę prób!'); return; }
+  if (successCount > totalAttempts) { showToast('⚠️ Trafienia nie mogą przekraczać liczby prób!'); return; }
+
+  const st = loadSportState();
+  if (!st.drill_history) st.drill_history = [];
+
+  const result = { drill_name: drillName, session_date: sessionDate, success_count: successCount, total_attempts: totalAttempts, rpe, notes, logged_at: new Date().toISOString() };
+  // Newest first
+  st.drill_history.unshift(result);
+  saveSportState(st);
+
+  // Show progression suggestion
+  const accPct = Math.round(successCount / totalAttempts * 100);
+  const drillObj = getDrillByName(drillName);
+  let progression = '';
+  if (drillObj) {
+    const history = st.drill_history.filter(r => r.drill_name === drillName);
+    progression = suggestDrillProgression(drillName, history, drillObj);
+  }
+
+  showToast(`✅ Zapisano! Skuteczność: ${accPct}%`);
+
+  // Reset form
+  ['logSuccessCount','logTotalAttempts','logDrillNotes'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  document.getElementById('accuracyPreview')?.classList.add('hidden');
+  document.getElementById('logRPE').value = 6; updateRPELabel(6);
+
+  // Show result summary, then navigate to history
+  if (progression) {
+    setTimeout(() => { showToast('💡 ' + progression.substring(0, 80) + '…'); }, 1500);
+  }
+  setTimeout(() => { showSportSubtab('history'); }, 800);
+}
+
+function getDrillByName(name) {
+  for (const specs of Object.values(SPORT_DRILLS)) {
+    for (const list of Object.values(specs)) {
+      const found = list.find(d => d.name === name);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function suggestDrillProgression(drillName, history, drillObj) {
+  if (!history || history.length === 0) return 'brak historii – zacznij od bazowej liczby prób';
+  const analyzed = history.slice(0, 3);
+  const avgAcc = analyzed.reduce((s, r) => s + (r.success_count / r.total_attempts), 0) / analyzed.length;
+  const avgRpe = analyzed.reduce((s, r) => s + r.rpe, 0) / analyzed.length;
+  const current = history[0].total_attempts;
+  const threshold = (drillObj.target_pct || 70) / 100;
+  if (avgAcc >= threshold && avgRpe <= 5) {
+    return `Skuteczność ${Math.round(avgAcc*100)}% przy RPE=${avgRpe.toFixed(1)} – wyraźnie za łatwe. Zwiększ do ${current+5} prób lub utrudnij warunki.`;
+  } else if (avgAcc >= threshold) {
+    return `Skuteczność ${Math.round(avgAcc*100)}% – dobry moment na progresję. Sugerowane: ${current+5} prób lub zmiana wariantu drilla.`;
+  } else {
+    return `Skuteczność ${Math.round(avgAcc*100)}% – kontynuuj na ${current} próbach aż osiągniesz ≥${drillObj.target_pct||70}% przez 2 sesje z rzędu.`;
+  }
+}
+
+function renderDrillHistory() {
+  const st = loadSportState();
+  const history = st.drill_history || [];
+  const listEl = document.getElementById('drillHistoryList');
+  const summaryEl = document.getElementById('drillSummaryCards');
+
+  if (history.length === 0) {
+    if (listEl) listEl.innerHTML = '<p class="text-sm text-gray-500 italic text-center py-8">Brak historii. Zaloguj pierwszy wynik →</p>';
+    if (summaryEl) summaryEl.innerHTML = '';
+    return;
+  }
+
+  // Summary stats
+  const totalSessions = history.length;
+  const totalHits = history.reduce((s,r) => s+r.success_count, 0);
+  const totalAttempts = history.reduce((s,r) => s+r.total_attempts, 0);
+  const avgAccAll = totalAttempts > 0 ? Math.round(totalHits/totalAttempts*100) : 0;
+  const avgRpeAll = Math.round(history.reduce((s,r) => s+r.rpe, 0) / history.length * 10) / 10;
+  const uniqueDrills = new Set(history.map(r => r.drill_name)).size;
+
+  if (summaryEl) summaryEl.innerHTML = [
+    { label:'Sesje', value: totalSessions, color:'text-cyan-400', icon:'📋' },
+    { label:'Łączna skuteczność', value: avgAccAll+'%', color: avgAccAll>=70?'text-green-400':'text-yellow-400', icon:'🎯' },
+    { label:'Śr. RPE', value: avgRpeAll, color:'text-violet-400', icon:'💪' },
+    { label:'Drille', value: uniqueDrills, color:'text-white', icon:'🏅' },
+  ].map(c => `<div class="glass p-4 text-center"><p class="text-xs text-gray-500 mb-1">${c.icon} ${c.label}</p><p class="text-2xl font-bold ${c.color}" style="font-family:'Syne',sans-serif;">${c.value}</p></div>`).join('');
+
+  // Group by drill name
+  const byName = {};
+  for (const r of history) {
+    if (!byName[r.drill_name]) byName[r.drill_name] = [];
+    byName[r.drill_name].push(r);
+  }
+
+  if (listEl) listEl.innerHTML = Object.entries(byName).map(([name, results]) => {
+    const drillObj = getDrillByName(name);
+    const progression = drillObj ? suggestDrillProgression(name, results, drillObj) : '';
+    const recentRows = results.slice(0, 5).map(r => {
+      const acc = Math.round(r.success_count / r.total_attempts * 100);
+      return `<div class="flex items-center gap-3 py-2 border-b" style="border-color:var(--border);">
+        <span class="text-xs text-gray-500 w-24 shrink-0">${r.session_date}</span>
+        <span class="text-sm font-bold ${acc>=(drillObj?.target_pct||70)?'text-cyan-400':'text-yellow-400'}">${acc}%</span>
+        <div class="flex-1 progress-bar" style="height:4px;"><div class="progress-fill ${acc>=(drillObj?.target_pct||70)?'bg-cyan-400':'bg-yellow-500'}" style="width:${acc}%"></div></div>
+        <span class="text-xs text-gray-500">${r.success_count}/${r.total_attempts}</span>
+        <span class="text-xs px-2 py-0.5 rounded-full" style="background:rgba(124,58,237,0.15);color:#a78bfa;">RPE ${r.rpe}</span>
+      </div>`;
+    }).join('');
+
+    return `<div class="glass p-5 space-y-3">
+      <div class="flex items-center justify-between">
+        <h5 class="text-white font-bold" style="font-family:'Syne',sans-serif;">${name}</h5>
+        <button onclick="quickLogDrill(${JSON.stringify(name)}, ${results[0].total_attempts})" class="btn-outline-cyan text-xs px-3 py-1 rounded-xl font-bold">+ Nowy wynik</button>
+      </div>
+      ${recentRows}
+      ${progression ? `<div class="alert-neon text-xs py-2 px-3">💡 ${progression}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function showDrillDetail(drillName) {
+  showSportSubtab('history');
+  setTimeout(() => {
+    const el = document.getElementById('drillHistoryList');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 200);
+}
+
+function clearDrillHistory() {
+  if (!confirm('Wyczyścić całą historię drilli?')) return;
+  const st = loadSportState();
+  st.drill_history = [];
+  saveSportState(st);
+  renderDrillHistory();
+  showToast('🗑️ Historia wyczyszczona');
+}
+
+function toggleSportDay(el, day) {
+  el.classList.toggle('selected');
+}
+
+function saveSportConfig() {
+  const sport = document.getElementById('configSportFocus')?.value || 'koszykówka';
+  const spec = document.getElementById('configSpecialization')?.value || '';
+  const days = [...document.querySelectorAll('#sportDayChips .chip.selected')].map(el => el.dataset.day || el.textContent.trim());
+  const st = loadSportState();
+  st.sport_focus = sport;
+  st.sport_specialization = spec;
+  st.sport_training_days = days;
+  saveSportState(st);
+  showToast('✅ Konfiguracja sportu zapisana!');
+  renderCurrentSportConfig();
+  // Update drill sport select to match
+  const sel = document.getElementById('drillSportSelect');
+  if (sel) sel.value = sport;
+  // Hide config banner
+  document.getElementById('sportConfigBanner')?.classList.add('hidden');
+}
+
+function renderCurrentSportConfig() {
+  const st = loadSportState();
+  const el = document.getElementById('currentSportConfigContent');
+  if (!el) return;
+  if (!st.sport_focus) {
+    el.innerHTML = '<span class="italic">Nie skonfigurowano</span>';
+    return;
+  }
+  el.innerHTML = `
+    <div class="grid grid-cols-2 gap-3 text-sm">
+      <div><span class="text-gray-500">Sport:</span> <span class="text-white font-bold">${st.sport_focus}</span></div>
+      <div><span class="text-gray-500">Specjalizacja:</span> <span class="text-white font-bold">${st.sport_specialization || 'Ogólnie'}</span></div>
+      <div class="col-span-2"><span class="text-gray-500">Dni treningowe:</span> <span class="text-white font-bold">${(st.sport_training_days||[]).join(', ') || 'Nie wybrano'}</span></div>
+    </div>
+  `;
+  // Restore form values
+  const sportSel = document.getElementById('configSportFocus');
+  const specSel = document.getElementById('configSpecialization');
+  if (sportSel) sportSel.value = st.sport_focus || 'koszykówka';
+  if (specSel) specSel.value = st.sport_specialization || '';
+}
+
+// Inject day data attribute for sport day chips
+document.addEventListener('DOMContentLoaded', () => {
+  const days = { 'Pon':'Poniedziałek','Wt':'Wtorek','Śr':'Środa','Czw':'Czwartek','Pt':'Piątek','Sob':'Sobota','Niedz':'Niedziela' };
+  document.querySelectorAll('#sportDayChips .chip').forEach(chip => {
+    const short = chip.textContent.trim();
+    chip.dataset.day = days[short] || short;
+  });
+});
+
 document.getElementById('aiInput').addEventListener('keydown', e => { if(e.key==='Enter') sendAIMessage(); });
 
 // ========== UTILITIES ==========
@@ -2827,4 +3395,4 @@ if ('serviceWorker' in navigator) {
 </div>
 
 </body>
-</html>                 
+</html>
