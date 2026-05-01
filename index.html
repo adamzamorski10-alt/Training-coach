@@ -2603,12 +2603,14 @@ function addExpandedToDay() {
   if (!state.expandedItem) return;
   const {type, name, data} = state.expandedItem;
   if (type === 'diet') {
-    addDayLogItem('diet', name, `P:${data.protein}g W:${data.carbs}g T:${data.fat}g`, data.kcal, data.protein, data.carbs, data.fat);
+    addDayLogItem('diet', name, `P:${data.protein||0}g W:${data.carbs||0}g T:${data.fat||0}g`, data.kcal||0, data.protein||0, data.carbs||0, data.fat||0);
   } else {
     addDayLogItem('training', name, `${data.sets||'?'}×${data.reps||'?'}`, 0);
   }
   closeExpandModal();
-  showToast(`✅ Dodano do Mojego Dnia`);
+  showToast(`✅ Dodano "${name}" do Mojego Dnia`);
+  // Switch to My Day so user sees the added item
+  showTab('my-day');
 }
 
 // ========== MY DAY ==========
@@ -2654,21 +2656,25 @@ function submitManualEntry() {
 }
 
 function addDayLogItem(type, name, meta, kcal, protein=0, carbs=0, fat=0) {
+  // Uses the extraItems system (state.extraItems + localStorage) which is the
+  // active storage used by Mój Dzień checklista in this version.
   const p = getCurrentProfile();
-  if (!state.dayLogs[p.id]) state.dayLogs[p.id] = {diet:[], training:[]};
-  const item = {name, meta, kcal, protein, carbs, fat, ts: Date.now()};
-  state.dayLogs[p.id][type].push(item);
-  saveLogs();
-  
-  const container = document.getElementById(type==='diet'?'dietLogContainer':'trainingLogContainer');
-  if (container.querySelector('.italic')) container.innerHTML = '';
-  const id = 'log_'+Date.now();
-  const html = `<div id="${id}" class="glass rounded-xl p-3 flex justify-between items-start tab-anim">
-    <div><p class="text-sm font-medium text-white">${name}</p><p class="text-xs text-gray-500 mt-0.5">${meta}</p></div>
-    <div class="flex items-center gap-2">${kcal?`<span class="text-xs font-bold text-cyan-400">${kcal} kcal</span>`:''}<button onclick="removeDayLog('${id}','${type}','${p.id}','${name}')" class="text-red-400 hover:text-red-300 text-sm">✕</button></div>
-  </div>`;
-  container.insertAdjacentHTML('beforeend', html);
-  updateDayCounters();
+  if (!state.extraItems[p.id]) state.extraItems[p.id] = [];
+  const item = { type, name, ts: Date.now() };
+  if (type === 'diet') {
+    item.kcal    = kcal    || 0;
+    item.protein = protein || 0;
+    item.carbs   = carbs   || 0;
+    item.fat     = fat     || 0;
+  } else {
+    item.duration = meta || '';
+    item.kcal = 0; item.protein = 0;
+  }
+  state.extraItems[p.id].push(item);
+  localStorage.setItem('fitai_extras_v3', JSON.stringify(state.extraItems));
+  renderExtraItems();
+  updateDaySummaryCounters();
+  updateDayProgress();
   updateDashboard();
 }
 
@@ -2683,23 +2689,8 @@ function removeDayLog(elId, type, profileId, name) {
 }
 
 function updateDayCounters() {
-  const p = getCurrentProfile();
-  const diet = state.dayLogs[p.id]?.diet || [];
-  const totalKcal = diet.reduce((s,i)=>s+(i.kcal||0),0);
-  document.getElementById('dayCalEaten').textContent = totalKcal;
-  const trainCount = document.querySelectorAll('#trainingLogContainer .glass').length;
-  document.getElementById('dayTrainCount').textContent = trainCount;
-  
-  // Macro alerts
-  const {tdee, protein} = calculateNutrition(p);
-  const protEaten = diet.reduce((s,i)=>s+(i.protein||0),0);
-  const alertBanner = document.getElementById('macroAlertBanner');
-  if (protEaten < protein * 0.4 && diet.length > 0) {
-    document.getElementById('macroAlertText').textContent = `⚠️ Brakuje białka! Spożyto: ${protEaten}g / ${protein}g. Dodaj więcej produktów bogatych w białko.`;
-    alertBanner.classList.remove('hidden');
-  } else {
-    alertBanner.classList.add('hidden');
-  }
+  // Legacy wrapper — delegates to the active counter system
+  updateDaySummaryCounters();
 }
 
 // ========== SHOPPING LIST ==========
