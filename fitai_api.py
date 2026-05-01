@@ -78,6 +78,10 @@ class UserDB(SQLModel, table=True):
     reminders_json: str = '{"email_enabled":true,"discord_enabled":false,"discord_channel_id":null}'
     weekly_plan_json: Optional[str] = None
     substitutes_history_json: str = "{}"
+    # ─── Sports module ───────────────────────────────────────────────────────
+    sport_focus: Optional[str] = None                  # np. "koszykówka"
+    sport_specialization: Optional[str] = None         # np. "rzuty"
+    sport_training_days_json: str = "[]"               # np. ["Środa", "Sobota"]
     created_at: str = Field(default_factory=lambda: datetime.now().isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now().isoformat())
 
@@ -132,6 +136,9 @@ class UserDB(SQLModel, table=True):
             "reminders": self.get_dict("reminders_json"),
             "weekly_plan": self.get_dict("weekly_plan_json") if self.weekly_plan_json else None,
             "substitutes_history": self.get_dict("substitutes_history_json"),
+            "sport_focus": self.sport_focus,
+            "sport_specialization": self.sport_specialization,
+            "sport_training_days": self.get_list("sport_training_days_json"),
             "created_at": self.created_at,
             "updated_at": self.updated_at,
         }
@@ -187,6 +194,34 @@ class ExerciseResultDB(SQLModel, table=True):
             "sets": self.sets,
             "reps": self.reps,
             "weight_kg": self.weight_kg,
+            "rpe": self.rpe,
+            "notes": self.notes,
+            "logged_at": self.logged_at,
+        }
+
+
+class DrillResultDB(SQLModel, table=True):
+    """Wyniki sesji drilli sportowych – serce systemu progresji sportowej."""
+    __tablename__ = "drill_results"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id", index=True)
+    drill_name: str = Field(index=True)
+    session_date: str = Field(index=True)       # ISO date
+    success_count: int                          # trafienia / powtórzenia
+    total_attempts: int                         # łączna liczba prób
+    rpe: int = Field(ge=1, le=10)              # 1 = bardzo lekko, 10 = maksymalny wysiłek
+    notes: str = ""
+    logged_at: str = Field(default_factory=lambda: datetime.now().isoformat())
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "drill_name": self.drill_name,
+            "session_date": self.session_date,
+            "success_count": self.success_count,
+            "total_attempts": self.total_attempts,
+            "accuracy_pct": round(self.success_count / self.total_attempts * 100) if self.total_attempts else 0,
             "rpe": self.rpe,
             "notes": self.notes,
             "logged_at": self.logged_at,
@@ -397,6 +432,23 @@ class PlanSwapRequest(BaseModel):
     alternative_index: int
 
 
+class DrillResultRequest(BaseModel):
+    """Wynik sesji drilla sportowego z oceną RPE."""
+    drill_name: str
+    success_count: int
+    total_attempts: int
+    rpe: int = Field(ge=1, le=10, description="Rate of Perceived Exertion 1-10")
+    notes: str = ""
+    session_date: Optional[str] = None  # ISO date; jeśli brak → today
+
+
+class SportConfigRequest(BaseModel):
+    """Konfiguracja modułu sportowego użytkownika."""
+    sport_focus: str                            # np. "koszykówka"
+    sport_specialization: str = ""             # np. "rzuty"
+    sport_training_days: List[str] = []        # np. ["Środa", "Sobota"]
+
+
 class ExerciseResultRequest(BaseModel):
     """Wpis wyniku ćwiczenia z oceną RPE."""
     exercise_name: str
@@ -564,7 +616,119 @@ def _enrich_exercises_with_progression(
     return enriched
 
 
-# ─── Streak helper ────────────────────────────────────────────────────────────
+# ─── Sports Drills Database ───────────────────────────────────────────────────
+
+SPORT_DRILLS_DB: Dict[str, Dict[str, List[dict]]] = {
+    "koszykówka": {
+        "rzuty": [
+            {
+                "name": "Rzuty osobiste",
+                "total_attempts": 20,
+                "description": "Standardowe rzuty wolne z linii rzutów osobistych.",
+                "progression_tip": "Cel: ≥15/20 (75%) przez 2 sesje z rzędu → zwiększ do 25 prób.",
+            },
+            {
+                "name": "Rzuty za 3 punkty",
+                "total_attempts": 20,
+                "description": "5 rzutów z 4 różnych pozycji za łukiem (corners, wings, top).",
+                "progression_tip": "Cel: ≥10/20 (50%) → dodaj 5 prób lub utrudnij pozycje.",
+            },
+            {
+                "name": "Rzuty z odchylenia",
+                "total_attempts": 15,
+                "description": "Mid-range pull-up jump shot po jednym lub dwóch krokach.",
+                "progression_tip": "Cel: ≥10/15 (67%) → dodaj obrońcę lub skróć czas wykonania.",
+            },
+            {
+                "name": "Mikan Drill",
+                "total_attempts": 40,
+                "description": "Naprzemienne layupy z obu stron tablicy (20 z lewej + 20 z prawej).",
+                "progression_tip": "Cel: ≥34/40 (85%) → przejdź do Power Mikan (po zbiórce).",
+            },
+        ],
+        "drybling": [
+            {
+                "name": "Figure-8 Dribbling",
+                "total_attempts": 10,
+                "description": "Ósemka między nogami – 10 pełnych okrążeń bez zgubienia piłki.",
+                "progression_tip": "Cel: 10/10 bez błędu → przyspiesz tempo lub zamknij oczy.",
+            },
+            {
+                "name": "Stationary Crossover",
+                "total_attempts": 20,
+                "description": "Crossover przed ciałem – 20 powtórzeń na stronę.",
+                "progression_tip": "Cel: 20/20 → wprowadź krok do przodu (live dribble).",
+            },
+        ],
+        "obrona": [
+            {
+                "name": "Defensive Slides",
+                "total_attempts": 10,
+                "description": "10 powtórzeń ślizgów obronnych w obie strony (bez krzyżowania nóg).",
+                "progression_tip": "Cel: 10/10 ze stabilną pozycją → dodaj zmianę kierunku.",
+            },
+        ],
+    },
+}
+
+_DRILL_ACCURACY_HIGH = 0.70   # ≥70% trafień → łatwe → progresja w górę
+_DRILL_RPE_LOW = 5            # RPE ≤5 przy wysokiej skuteczności → zdecydowanie za łatwe
+_DRILL_ATTEMPTS_INCREMENT = 5  # Ile prób dodajemy przy progresji
+
+
+def _suggest_drill_progression(
+    drill_name: str,
+    recent_results: List[DrillResultDB],
+) -> dict:
+    """
+    Analizuje historię drilli i sugeruje progresję.
+    Zwraca: {suggested_attempts, reason, last_accuracy_pct, sessions_analyzed}
+    """
+    if not recent_results:
+        return {
+            "suggested_attempts": None,
+            "reason": "brak historii – zacznij od bazowej liczby prób",
+            "last_accuracy_pct": None,
+            "sessions_analyzed": 0,
+        }
+
+    last = recent_results[0]
+    analyzed = recent_results[:3]
+    avg_accuracy = sum(
+        (r.success_count / r.total_attempts) if r.total_attempts else 0
+        for r in analyzed
+    ) / len(analyzed)
+    avg_rpe = sum(r.rpe for r in analyzed) / len(analyzed)
+
+    current_attempts = last.total_attempts
+
+    if avg_accuracy >= _DRILL_ACCURACY_HIGH and avg_rpe <= _DRILL_RPE_LOW:
+        suggested = current_attempts + _DRILL_ATTEMPTS_INCREMENT
+        reason = (
+            f"Skuteczność {avg_accuracy:.0%} przy RPE={avg_rpe:.1f} – wyraźnie za łatwe. "
+            f"Zwiększ do {suggested} prób lub utrudnij warunki (bliższy obrońca, szybsze tempo)."
+        )
+    elif avg_accuracy >= _DRILL_ACCURACY_HIGH:
+        suggested = current_attempts + _DRILL_ATTEMPTS_INCREMENT
+        reason = (
+            f"Skuteczność {avg_accuracy:.0%} (≥{_DRILL_ACCURACY_HIGH:.0%}) – dobry moment na progresję. "
+            f"Sugerowane: {suggested} prób lub zmiana wariantu drilla."
+        )
+    else:
+        suggested = current_attempts
+        reason = (
+            f"Skuteczność {avg_accuracy:.0%} – kontynuuj na {current_attempts} próbach "
+            f"aż osiągniesz ≥{_DRILL_ACCURACY_HIGH:.0%} przez 2 sesje z rzędu."
+        )
+
+    return {
+        "suggested_attempts": suggested,
+        "reason": reason,
+        "last_accuracy_pct": round(avg_accuracy * 100),
+        "sessions_analyzed": len(analyzed),
+    }
+
+
 
 def _compute_streak_days_from_logs(logs: List[DailyLogDB]) -> int:
     if not logs:
@@ -673,7 +837,9 @@ def _exercise_pool() -> dict:
 
 
 def _build_weekly_plan(user: UserDB) -> dict:
-    """Builds weekly plan with Carb Cycling macro targets per day."""
+    """Builds weekly plan with Carb Cycling macro targets per day.
+    On days listed in sport_training_days, a sport drill session replaces the gym workout.
+    """
     profile = user.to_profile_dict()
     meal_catalog = _default_meal_catalog(profile.get("diet", ""))
     pool = _exercise_pool()
@@ -690,6 +856,21 @@ def _build_weekly_plan(user: UserDB) -> dict:
     avoid_foods = [x.lower() for x in user.get_list("avoid_foods_json")]
     avoid_exercises = [x.lower() for x in user.get_list("avoid_exercises_json")]
 
+    # ─── Sport module configuration ───────────────────────────────────────────
+    sport_focus = (user.sport_focus or "").lower().strip()           # e.g. "koszykówka"
+    sport_spec = (user.sport_specialization or "").lower().strip()   # e.g. "rzuty"
+    sport_days = {d.strip() for d in user.get_list("sport_training_days_json")}  # e.g. {"Środa"}
+
+    # Resolve drill list for this user's sport+spec combination
+    _sport_drills: List[dict] = []
+    if sport_focus and sport_focus in SPORT_DRILLS_DB:
+        spec_map = SPORT_DRILLS_DB[sport_focus]
+        if sport_spec in spec_map:
+            _sport_drills = spec_map[sport_spec]
+        elif spec_map:
+            # Fallback: first available specialization
+            _sport_drills = next(iter(spec_map.values()))
+
     # Niedziela = dzień odpoczynku
     week_schedule = [
         ("Poniedziałek", False), ("Wtorek", False), ("Środa", False),
@@ -700,6 +881,7 @@ def _build_weekly_plan(user: UserDB) -> dict:
     days = []
 
     for i, (day_name, is_rest) in enumerate(week_schedule):
+        is_sport_day = bool(_sport_drills) and (day_name in sport_days)
         focus_key = "odpoczynek" if is_rest else preferred[i % len(preferred)]
         if focus_key not in pool and not is_rest:
             focus_key = "klatka"
@@ -708,10 +890,30 @@ def _build_weekly_plan(user: UserDB) -> dict:
         day_type = "rest" if is_rest else _day_type(day_name, focus_key)
         macros = calc_daily_macros(base_calories, day_type)
 
-        # Ćwiczenia (lub pusty workout w dzień odpoczynku)
+        # ─── Ćwiczenia ────────────────────────────────────────────────────────
         if is_rest:
             workout_items = []
             workout_title = "Odpoczynek / Aktywna regeneracja"
+            is_sport_session = False
+        elif is_sport_day:
+            # Zamień siłownię na sesję drilli sportowych
+            workout_items = [
+                {
+                    "name": drill["name"],
+                    "total_attempts": drill["total_attempts"],
+                    "description": drill["description"],
+                    "progression_tip": drill["progression_tip"],
+                    "sets": "—",
+                    "reps": f"{drill['total_attempts']} prób",
+                    "notes": drill["description"],
+                    "how_to": drill["progression_tip"],
+                    "alternatives": [],
+                }
+                for drill in _sport_drills
+            ]
+            spec_label = sport_spec.title() if sport_spec else "Specjalistyczna"
+            workout_title = f"Sesja Sportowa – {sport_focus.title()} ({spec_label})"
+            is_sport_session = True
         else:
             available_ex = [
                 ex for ex in pool[focus_key]
@@ -725,6 +927,7 @@ def _build_weekly_plan(user: UserDB) -> dict:
                     alts.extend(pool[other_key][:1])
                 workout_items.append({**ex, "alternatives": alts[:3]})
             workout_title = f"Sesja {focus_key.title()}"
+            is_sport_session = False
 
         # Posiłki
         meals = []
@@ -745,7 +948,15 @@ def _build_weekly_plan(user: UserDB) -> dict:
             "day": day_name,
             "day_type": day_type,
             "macros": macros,
-            "workout": {"title": workout_title, "focus": focus_key, "exercises": workout_items},
+            "is_sport_session": is_sport_session,
+            "workout": {
+                "title": workout_title,
+                "focus": sport_focus if is_sport_session else focus_key,
+                "is_sport_session": is_sport_session,
+                "sport": sport_focus if is_sport_session else None,
+                "specialization": sport_spec if is_sport_session else None,
+                "exercises": workout_items,
+            },
             "meals": meals,
         })
 
@@ -754,6 +965,7 @@ def _build_weekly_plan(user: UserDB) -> dict:
         "weekly_goal": user.goal,
         "days": days,
     }
+
 
 
 # ─── AI helper ────────────────────────────────────────────────────────────────
@@ -830,6 +1042,14 @@ def _upsert_user_from_profile(
     ]:
         if key in payload:
             user.set_list(list_field, payload[key])
+
+    # Sport module fields (optional – passed only from sport-config endpoint)
+    if "sport_focus" in payload:
+        user.sport_focus = payload["sport_focus"] or None
+    if "sport_specialization" in payload:
+        user.sport_specialization = payload["sport_specialization"] or None
+    if "sport_training_days" in payload:
+        user.set_list("sport_training_days_json", payload["sport_training_days"])
 
     user.calories_target = calc_calories(user)
     user.protein_target = calc_protein(user)
@@ -1200,6 +1420,111 @@ def app_swap_plan_item(identity_id: str, payload: PlanSwapRequest):
         user.updated_at = datetime.now().isoformat()
         session.commit()
         return {"status": "ok", "plan": plan}
+
+
+# ─── Sports Module endpoints ──────────────────────────────────────────────────
+
+@app.post("/app/sport-config/{identity_id}")
+def set_sport_config(identity_id: str, payload: SportConfigRequest):
+    """Konfiguruje moduł sportowy: sport, specjalizacja i dni treningowe."""
+    user_key = _web_user_key(identity_id)
+    with Session(engine) as session:
+        user = _get_user_or_404(user_key, session)
+        user.sport_focus = payload.sport_focus.strip() or None
+        user.sport_specialization = payload.sport_specialization.strip() or None
+        user.set_list("sport_training_days_json", payload.sport_training_days)
+        user.weekly_plan_json = None  # Unieważnij stary plan – zostanie wygenerowany na nowo
+        user.updated_at = datetime.now().isoformat()
+        session.commit()
+        return {
+            "status": "ok",
+            "sport_focus": user.sport_focus,
+            "sport_specialization": user.sport_specialization,
+            "sport_training_days": payload.sport_training_days,
+        }
+
+
+@app.get("/app/sport-drills")
+def list_sport_drills(sport: str = "koszykówka", specialization: str = ""):
+    """Zwraca dostępne drille dla danego sportu i specjalizacji."""
+    sport_lower = sport.lower().strip()
+    if sport_lower not in SPORT_DRILLS_DB:
+        raise HTTPException(status_code=404, detail=f"Brak drilli dla sportu: {sport}")
+    spec_map = SPORT_DRILLS_DB[sport_lower]
+    if specialization:
+        spec_lower = specialization.lower().strip()
+        drills = spec_map.get(spec_lower)
+        if drills is None:
+            raise HTTPException(status_code=404, detail=f"Brak specjalizacji: {specialization}")
+        return {"sport": sport, "specialization": specialization, "drills": drills}
+    return {"sport": sport, "specializations": list(spec_map.keys()), "all_drills": spec_map}
+
+
+@app.post("/app/drill-result/{identity_id}")
+def log_drill_result(identity_id: str, payload: DrillResultRequest):
+    """Zapisuje wynik drilla sportowego i zwraca sugestię progresji."""
+    user_key = _web_user_key(identity_id)
+    session_date = payload.session_date or date.today().isoformat()
+
+    with Session(engine) as session:
+        user = _get_user_or_404(user_key, session)
+
+        result = DrillResultDB(
+            user_id=user.id,
+            drill_name=payload.drill_name,
+            session_date=session_date,
+            success_count=payload.success_count,
+            total_attempts=payload.total_attempts,
+            rpe=payload.rpe,
+            notes=payload.notes,
+        )
+        session.add(result)
+        session.commit()
+        session.refresh(result)
+
+        # Pobierz historię dla tej nazwy drilla i oblicz progresję
+        history = list(session.exec(
+            select(DrillResultDB)
+            .where(DrillResultDB.user_id == user.id)
+            .where(DrillResultDB.drill_name == payload.drill_name)
+            .order_by(DrillResultDB.session_date.desc())
+        ).all())
+
+        progression = _suggest_drill_progression(payload.drill_name, history)
+
+        return {
+            "status": "ok",
+            "result": result.to_dict(),
+            "progression": progression,
+        }
+
+
+@app.get("/app/drill-history/{identity_id}")
+def get_drill_history(identity_id: str, drill_name: Optional[str] = None, limit: int = 20):
+    """Pobiera historię wyników drilli dla użytkownika."""
+    user_key = _web_user_key(identity_id)
+    with Session(engine) as session:
+        user = _get_user_or_404(user_key, session)
+        query = select(DrillResultDB).where(DrillResultDB.user_id == user.id)
+        if drill_name:
+            query = query.where(DrillResultDB.drill_name == drill_name)
+        query = query.order_by(DrillResultDB.session_date.desc())
+        results = list(session.exec(query).all())[:limit]
+
+        # Dołącz progresję dla każdego unikalnego drilla
+        by_name: Dict[str, list] = {}
+        for r in results:
+            by_name.setdefault(r.drill_name, []).append(r)
+
+        progressions = {
+            name: _suggest_drill_progression(name, hist)
+            for name, hist in by_name.items()
+        }
+
+        return {
+            "results": [r.to_dict() for r in results],
+            "progressions": progressions,
+        }
 
 
 # ─── Billing endpoints ────────────────────────────────────────────────────────
