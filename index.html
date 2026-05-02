@@ -131,20 +131,42 @@
     .day-pick-btn{padding:10px 14px;border-radius:12px;border:1px solid var(--border);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;background:transparent;color:var(--text);}
     .day-pick-btn:hover,.day-pick-btn.active{border-color:var(--cyan);background:rgba(0,229,255,0.1);color:var(--cyan);}
   
-    /* ─── Edit Plan Modal: fix number input sizing ─── */
-    #editPlanList input[type=number] {
-      width: 48px !important;
-      padding: 4px 2px !important;
-      font-size: 13px !important;
-      font-weight: 700 !important;
-      text-align: center !important;
-      box-shadow: none !important;
-      -moz-appearance: textfield !important;
+    /* ─── Edit Plan Modal v2 ─── */
+    .ep-catalog-row { user-select:none; }
+    .ep-chip { transition: all .15s ease; }
+    #epCatalogList::-webkit-scrollbar { width:4px; }
+    #epCatalogList::-webkit-scrollbar-thumb { background:rgba(0,229,255,0.15);border-radius:2px; }
+    #editPlanList::-webkit-scrollbar { width:4px; }
+    #editPlanList::-webkit-scrollbar-thumb { background:rgba(124,58,237,0.2);border-radius:2px; }
+    #epCategoryChips { overflow-x:auto; flex-wrap:nowrap!important; scrollbar-width:none; }
+    #epCategoryChips::-webkit-scrollbar { display:none; }
+
+    /* Force override global input !important rules for edit-plan inputs */
+    .edit-plan-row input[type=number] {
+      width:40px!important;
+      padding:4px 0!important;
+      font-size:12px!important;
+      font-weight:700!important;
+      text-align:center!important;
+      box-shadow:none!important;
+      -moz-appearance:textfield!important;
     }
-    #editPlanList input[type=number]::-webkit-outer-spin-button,
-    #editPlanList input[type=number]::-webkit-inner-spin-button {
-      -webkit-appearance: none !important;
-      margin: 0 !important;
+    .edit-plan-row input[type=number]::-webkit-outer-spin-button,
+    .edit-plan-row input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none!important; margin:0!important; }
+
+    /* Edit Plan Modal search input override */
+    #editPlanSearch {
+      padding-left: 30px!important;
+      font-size: 13px!important;
+      box-shadow: none!important;
+    }
+
+    /* Hover state for edit-plan-row */
+    .edit-plan-row:hover { border-color:rgba(255,255,255,0.14)!important; background:rgba(255,255,255,0.04)!important; }
+
+    @media(max-width:640px) {
+      #editPlanModal > div > div > div { flex-direction:column; }
+      #editPlanModal .w-\[48\%\] { width:100%;border-right:none!important;border-bottom:1px solid rgba(255,255,255,0.05); max-height:35vh; }
     }
 </style>
 </head>
@@ -558,7 +580,12 @@
       <!-- Diet Plan -->
       <div id="planDietPanel" class="space-y-4">
         <div class="glass p-6">
-          <h4 class="text-xl font-bold text-white mb-4" style="font-family:'Syne',sans-serif;">🍽️ Zaplanowana Dieta</h4>
+          <div class="flex items-center justify-between mb-4">
+            <h4 class="text-xl font-bold text-white" style="font-family:'Syne',sans-serif;">🍽️ Zaplanowana Dieta</h4>
+            <button id="editDietBtn" onclick="openEditDietModal()" class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all" style="background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.25);color:#00e5ff;">
+              ✏️ Edytuj dietę
+            </button>
+          </div>
           <div id="planDietContainer" class="space-y-3"></div>
         </div>
       </div>
@@ -1847,7 +1874,7 @@ function updateExerciseSlider(val) {
     infoEl.style.color = count >= 6 ? '#f87171' : count >= 4 ? '#00e5ff' : '#64748b';
   }
 
-  // Immediately regenerate exercises for this day with new count
+  // Regenerate exercises for this day with new count
   refreshExercisesForSlider(count);
 }
 
@@ -1896,13 +1923,17 @@ function refreshExercisesForSlider(count) {
   // Sprawdź czy użytkownik dodał ćwiczenia sportowe dla tego dnia
   const allSaved = p.trainingPlan[day] || [];
   const sportExercises = allSaved.filter(e => e._sport && !e.hidden);
+  const manualExercises = allSaved.filter(e => !e._sport && !e.hidden);
 
   let exercises;
   if (sportExercises.length > 0) {
     // Dzień sportowy — pokazuj TYLKO ćwiczenia sportowe (bez siłowych z generatora)
     exercises = sportExercises;
+  } else if (manualExercises.length > 0) {
+    // Ćwiczenia ręcznie zapisane przez użytkownika — zawsze je pokazuj
+    exercises = manualExercises.slice(0, count);
   } else {
-    // Brak ćwiczeń sportowych — generuj z szablonu siłowego
+    // Brak zapisanych ćwiczeń — generuj z szablonu siłowego
     const goals = p.goals || [];
     const sports = p.sports || [];
     let templateKey = 'default';
@@ -2231,6 +2262,23 @@ function renderDayCarousel() {
 function selectDay(i) {
   state.currentDay = i;
   renderDayCarousel();
+  // Sync exercise slider to actual saved count for this day
+  const p = getCurrentProfile();
+  const day = state.days[i];
+  const savedEx = (p.trainingPlan[day] || []).filter(e => !e.hidden);
+  if (savedEx.length > 0) {
+    const exCount = Math.min(Math.max(savedEx.length, 1), 8);
+    state.exerciseCount = exCount;
+    const exSlider = document.getElementById('exerciseCountSlider');
+    if (exSlider) { exSlider.value = exCount; updateExerciseSlider(exCount); return; }
+  }
+  const savedMeals = (p.dietPlan[day] || []).filter(m => !m.hidden);
+  if (savedMeals.length > 0) {
+    const mCount = Math.min(Math.max(savedMeals.length, 2), 7);
+    p.mealsPerDay = mCount;
+    const mSlider = document.getElementById('mealCountSlider');
+    if (mSlider) { mSlider.value = mCount; updateMealSlider(mCount, false); }
+  }
   loadPlanForDay();
 }
 function prevDay() { selectDay((state.currentDay-1+7)%7); }
@@ -3567,7 +3615,7 @@ let _dragIdx = null;       // drag-and-drop source index
 function getAllDBExercises() {
   const all = [];
   Object.entries(EXERCISE_DB).forEach(([group, list]) => {
-    list.forEach(ex => all.push({ ...ex, muscles: ex.muscles || group }));
+    list.forEach(ex => all.push({ ...ex, _group: group, muscles: ex.muscles || group }));
   });
   return all;
 }
@@ -3575,19 +3623,23 @@ function getAllDBExercises() {
 function openEditPlanModal() {
   const p = getCurrentProfile();
   const day = state.days[state.currentDay];
-  const sportEx = (p.trainingPlan[day] || []).filter(e => e._sport && !e.hidden);
-  const usesSport = sportEx.length > 0;
-  const source = usesSport ? sportEx : (state._planExercises || []);
+
+  // Always load from the saved trainingPlan — never from the stale display cache
+  const saved = (p.trainingPlan[day] || []).filter(e => !e.hidden);
+  const source = saved.length > 0 ? saved : (state._planExercises || []);
 
   // Deep copy so cancel truly reverts
   _editPlanDraft = source.map(e => ({ ...e }));
 
-  document.getElementById('editPlanDayLabel').textContent =
-    `${day} — ${_editPlanDraft.length} ćwiczeń`;
+  document.getElementById('editPlanDayLabel').textContent = `${day} — edycja sesji`;
   document.getElementById('editPlanSearch').value = '';
-  document.getElementById('editPlanDropdown').classList.add('hidden');
   document.getElementById('editPlanModal').classList.remove('hidden');
+
+  // Reset & init catalog
+  _epActiveCategory = 'all';
   renderEditPlanList();
+  epRenderCategoryChips();
+  epRenderCatalog();
 }
 
 function closeEditPlanModal() {
@@ -3599,94 +3651,116 @@ function closeEditPlanModal() {
 function renderEditPlanList() {
   const container = document.getElementById('editPlanList');
   const day = state.days[state.currentDay];
-  document.getElementById('editPlanDayLabel').textContent = day + ' \u2014 ' + _editPlanDraft.length + ' \u0107wicze\u0144';
+    // Update count badge
+  const badge = document.getElementById('epExCount');
+  if (badge) badge.textContent = _editPlanDraft.length + ' ćw.';
 
   container.innerHTML = '';
 
   if (_editPlanDraft.length === 0) {
-    container.innerHTML = '<p class="text-sm text-gray-600 italic text-center py-8">Brak \u0107wicze\u0144. Dodaj pierwsze z listy poni\u017cej.</p>';
+    container.innerHTML = '<div class="flex flex-col items-center justify-center gap-3" style="min-height:120px;opacity:0.5;"><span style="font-size:28px;">📋</span><p class="text-xs text-center" style="color:#6b7280;">Brak ćwiczeń.<br>Dodaj z katalogu →</p></div>';
     return;
   }
 
   const muscleColors = {klatka:'#00e5ff',plecy:'#7c3aed',nogi:'#f59e0b',ramiona:'#10b981',kardio:'#ef4444',core:'#8b5cf6',brzuch:'#8b5cf6',biceps:'#06b6d4',triceps:'#6366f1'};
 
   _editPlanDraft.forEach((e, idx) => {
-    const color = muscleColors[e.muscles?.split(',')[0]?.trim()] || '#64748b';
+    const muscleKey = e.muscles?.split(',')[0]?.trim()?.toLowerCase();
+    const color = muscleColors[muscleKey] || (e._sport ? '#ff6b35' : '#64748b');
     const isSport = !!e._sport;
 
     const row = document.createElement('div');
-    row.className = 'edit-plan-row flex items-center gap-3 rounded-xl px-3 py-3 transition-all';
-    row.style.cssText = 'background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);';
+    row.className = 'edit-plan-row';
+    row.style.cssText = 'background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:10px 12px;transition:all .2s;';
     row.setAttribute('draggable', 'true');
     row.dataset.idx = idx;
 
-    // Drag handle
+    // ── Top line: drag + number + name ──
+    const topLine = document.createElement('div');
+    topLine.style.cssText = 'display:flex;align-items:center;gap:8px;';
+
     const handle = document.createElement('div');
-    handle.className = 'flex-shrink-0 cursor-grab text-gray-600 hover:text-gray-400 px-1 select-none';
-    handle.title = 'Przeci\u0105gnij aby zmieni\u0107 kolejno\u015b\u0107';
-    handle.textContent = '\u2803\u2803';
-    row.appendChild(handle);
+    handle.style.cssText = 'flex-shrink:0;cursor:grab;color:#374151;font-size:12px;user-select:none;line-height:1;';
+    handle.title = 'Przeciągnij aby zmienić kolejność';
+    handle.innerHTML = '⠿';
+    topLine.appendChild(handle);
 
-    // Number badge
+    // Accent dot
+    const dot = document.createElement('div');
+    dot.style.cssText = `flex-shrink:0;width:6px;height:24px;border-radius:3px;background:${color};opacity:0.7;`;
+    topLine.appendChild(dot);
+
     const num = document.createElement('span');
-    num.className = 'text-xs font-bold w-5 text-center flex-shrink-0';
-    num.style.color = color;
+    num.style.cssText = `font-size:11px;font-weight:800;flex-shrink:0;width:16px;text-align:center;color:${color};`;
     num.textContent = idx + 1;
-    row.appendChild(num);
+    topLine.appendChild(num);
 
-    // Name + muscle
     const nameDiv = document.createElement('div');
-    nameDiv.className = 'flex-1 min-w-0';
-    nameDiv.innerHTML = '<p class="text-sm font-semibold text-white truncate">' + e.name + '</p>' +
-      (isSport
-        ? '<span class="text-[10px] text-violet-400">\u26bd sport</span>'
-        : '<span class="text-[10px] text-gray-600">' + (e.muscles?.split(',')[0] || '') + '</span>');
-    row.appendChild(nameDiv);
+    nameDiv.style.cssText = 'flex:1;min-width:0;';
+    const namePara = document.createElement('p');
+    namePara.style.cssText = 'font-size:13px;font-weight:700;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;';
+    namePara.textContent = e.name;
+    const musclePara = document.createElement('p');
+    musclePara.style.cssText = 'font-size:10px;color:' + (isSport ? '#a78bfa' : '#4b5563') + ';line-height:1;margin-top:3px;';
+    musclePara.textContent = isSport ? '⚽ sport' : (e.muscles?.split(',')[0] || '');
+    nameDiv.appendChild(namePara);
+    nameDiv.appendChild(musclePara);
+    topLine.appendChild(nameDiv);
 
-    // Inputs wrapper
-    const inputs = document.createElement('div');
-    inputs.className = 'flex items-center gap-1 flex-shrink-0';
+    // Delete button
+    const del = document.createElement('button');
+    del.style.cssText = 'flex-shrink:0;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:transparent;border:1px solid transparent;color:#374151;font-size:13px;cursor:pointer;transition:all .15s;';
+    del.title = 'Usuń';
+    del.textContent = '✕';
+    del.addEventListener('mouseenter', () => { del.style.background='rgba(239,68,68,0.12)'; del.style.borderColor='rgba(239,68,68,0.3)'; del.style.color='#f87171'; });
+    del.addEventListener('mouseleave', () => { del.style.background='transparent'; del.style.borderColor='transparent'; del.style.color='#374151'; });
+    del.addEventListener('click', () => epRemove(idx));
+    topLine.appendChild(del);
 
-    function makeInput(label, field, value, minVal, maxVal, widthClass) {
+    row.appendChild(topLine);
+
+    // ── Bottom line: inputs ──
+    const bottomLine = document.createElement('div');
+    bottomLine.style.cssText = 'display:flex;align-items:center;gap:6px;margin-top:8px;padding-left:26px;';
+
+    function makeInput(label, field, value, minVal, maxVal) {
       const wrap = document.createElement('div');
       wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:2px;';
       const lbl = document.createElement('span');
-      lbl.style.cssText = 'font-size:9px;color:#9ca3af;line-height:1;display:block;text-align:center;';
+      lbl.style.cssText = 'font-size:9px;color:#4b5563;line-height:1;display:block;text-align:center;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;';
       lbl.textContent = label;
       const inp = document.createElement('input');
       inp.type = 'number';
       inp.min = minVal; inp.max = maxVal;
       inp.value = value;
-      // Force all styles inline to override global input !important rules
-      const bg = field === 'weight' ? 'rgba(255,255,255,0.06)' : 'rgba(0,229,255,0.09)';
-      const bd = field === 'weight' ? 'rgba(255,255,255,0.18)' : 'rgba(0,229,255,0.35)';
-      inp.style.cssText = 'width:48px!important;padding:4px 2px!important;text-align:center!important;' +
-        'font-size:13px!important;font-weight:700!important;color:#e2e8f0!important;' +
+      const bg = field === 'weight' ? 'rgba(255,255,255,0.06)' : 'rgba(0,229,255,0.08)';
+      const bd = field === 'weight' ? 'rgba(255,255,255,0.12)' : 'rgba(0,229,255,0.25)';
+      const tc = field === 'weight' ? '#9ca3af' : '#00e5ff';
+      inp.setAttribute('style',
+        'width:44px!important;padding:5px 0!important;text-align:center!important;' +
+        'font-size:13px!important;font-weight:700!important;color:' + tc + '!important;' +
         'background:' + bg + '!important;border:1px solid ' + bd + '!important;' +
         'border-radius:8px!important;outline:none!important;display:block!important;' +
-        '-moz-appearance:textfield;box-shadow:none!important;';
+        '-moz-appearance:textfield!important;box-shadow:none!important;'
+      );
       inp.addEventListener('change', () => epUpdateField(idx, field, +inp.value));
       wrap.appendChild(lbl);
       wrap.appendChild(inp);
       return wrap;
     }
 
-    inputs.appendChild(makeInput('Serie', 'sets', e.sets || 3, 1, 20, 'w-12'));
-    const sep = document.createElement('span');
-    sep.className = 'text-gray-700 text-xs mt-3';
-    sep.textContent = '\u00d7';
-    inputs.appendChild(sep);
-    inputs.appendChild(makeInput('Powt.', 'reps', e.reps || 10, 1, 200, 'w-12'));
-    inputs.appendChild(makeInput('Kg', 'weight', e.weight || 0, 0, 999, 'w-14'));
-    row.appendChild(inputs);
-
-    // Delete button
-    const del = document.createElement('button');
-    del.className = 'flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all';
-    del.title = 'Usu\u0144';
-    del.textContent = '\u2715';
-    del.addEventListener('click', () => epRemove(idx));
-    row.appendChild(del);
+    bottomLine.appendChild(makeInput('Serie', 'sets', e.sets || 3, 1, 20));
+    const sep1 = document.createElement('span');
+    sep1.style.cssText = 'color:#374151;font-size:12px;font-weight:700;flex-shrink:0;margin-top:12px;';
+    sep1.textContent = '×';
+    bottomLine.appendChild(sep1);
+    bottomLine.appendChild(makeInput('Powt.', 'reps', e.reps || 10, 1, 200));
+    const sep2 = document.createElement('span');
+    sep2.style.cssText = 'color:#374151;font-size:12px;font-weight:700;flex-shrink:0;margin-top:12px;';
+    sep2.textContent = '·';
+    bottomLine.appendChild(sep2);
+    bottomLine.appendChild(makeInput('Kg', 'weight', e.weight || 0, 0, 999));
+    row.appendChild(bottomLine);
 
     // Drag events
     row.addEventListener('dragstart', ev => epDragStart(ev, idx));
@@ -3706,6 +3780,7 @@ function epUpdateField(idx, field, value) {
 function epRemove(idx) {
   _editPlanDraft.splice(idx, 1);
   renderEditPlanList();
+  epRenderCatalog();  // refresh "✓ W planie" badges
 }
 
 // --- Drag and drop ---
@@ -3732,58 +3807,193 @@ function epDragEnd() {
   document.querySelectorAll('.edit-plan-row').forEach(r => r.style.opacity = '1');
 }
 
-// --- Search & add from DB ---
-function renderEditPlanSearch(query) {
-  const dropdown = document.getElementById('editPlanDropdown');
-  const q = query.trim().toLowerCase();
-  const all = getAllDBExercises();
-  const matches = q
-    ? all.filter(e => e.name.toLowerCase().includes(q)).slice(0, 12)
-    : all.slice(0, 12);
+// ─── Catalog state ────────────────────────────────────────────────────────────
+const EP_CATEGORIES = [
+  { key: 'all',       label: 'Wszystkie', emoji: '⭐' },
+  { key: 'klatka',    label: 'Klatka',    emoji: '🫀' },
+  { key: 'plecy',     label: 'Plecy',     emoji: '🔙' },
+  { key: 'nogi',      label: 'Nogi',      emoji: '🦵' },
+  { key: 'ramiona',   label: 'Ramiona',   emoji: '💪' },
+  { key: 'biceps',    label: 'Biceps',    emoji: '🏋️' },
+  { key: 'triceps',   label: 'Triceps',   emoji: '🔱' },
+  { key: 'brzuch',    label: 'Brzuch',    emoji: '🎯' },
+  { key: 'core',      label: 'Core',      emoji: '⚡' },
+  { key: 'pośladki',  label: 'Pośladki',  emoji: '🍑' },
+  { key: 'kardio',    label: 'Kardio',    emoji: '🏃' },
+  { key: 'sport',     label: 'Sport',     emoji: '🏀' },
+];
+const CAT_COLORS = {
+  klatka:'#00e5ff', plecy:'#7c3aed', nogi:'#f59e0b', ramiona:'#10b981',
+  biceps:'#06b6d4', triceps:'#6366f1', brzuch:'#8b5cf6', core:'#a855f7',
+  pośladki:'#ec4899', kardio:'#ef4444', sport:'#ff6b35', all:'#64748b',
+};
 
-  if (matches.length === 0) {
-    dropdown.classList.add('hidden');
+let _epActiveCategory = 'all';
+
+function epGetSportExercises() {
+  const result = [];
+  if (typeof SPORT_DRILLS === 'undefined') return result;
+
+  for (const [sport, sportData] of Object.entries(SPORT_DRILLS)) {
+    for (const [catKey, catData] of Object.entries(sportData)) {
+      // Skip top-level emoji/label fields — only process category objects with drills array
+      if (!catData || typeof catData !== 'object' || !Array.isArray(catData.drills)) continue;
+      catData.drills.forEach(d => result.push({
+        name: d.name,
+        sets: 3, reps: d.total_attempts || 20, weight: 0,
+        tags: ['sport', sport, catKey],
+        muscles: (catData.label || catKey) + ', ' + sport,
+        desc: d.description || '',
+        _sport: true,
+        _group: 'sport',
+        _progression_tip: d.progression_tip || '',
+      }));
+    }
+  }
+  return result;
+}
+
+function epGetCatalogExercises(category, query) {
+  const q = (query || '').trim().toLowerCase();
+  let pool = [];
+
+  if (category === 'all' || category === '') {
+    pool = getAllDBExercises();
+    pool.push(...epGetSportExercises());
+  } else if (category === 'sport') {
+    pool = epGetSportExercises();
+  } else {
+    pool = (EXERCISE_DB[category] || []).map(e => ({ ...e, _group: category }));
+  }
+
+  // Deduplicate by name
+  const seen = new Set();
+  pool = pool.filter(e => { if (seen.has(e.name)) return false; seen.add(e.name); return true; });
+
+  if (q) {
+    pool = pool.filter(e =>
+      e.name.toLowerCase().includes(q) ||
+      (e.muscles || '').toLowerCase().includes(q) ||
+      (e.tags || []).some(t => t.toLowerCase().includes(q))
+    );
+  }
+
+  return pool;
+}
+
+function epRenderCategoryChips() {
+  const container = document.getElementById('epCategoryChips');
+  if (!container) return;
+  container.innerHTML = EP_CATEGORIES.map(cat => {
+    const active = _epActiveCategory === cat.key;
+    const col = CAT_COLORS[cat.key] || '#64748b';
+    return `<button onclick="epSelectCategory('${cat.key}')" id="epchip-${cat.key}"
+      class="ep-chip flex items-center gap-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap"
+      style="padding:6px 12px;${active
+        ? `background:${col}20;border:1.5px solid ${col}70;color:${col};box-shadow:0 0 12px ${col}15;`
+        : 'background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.07);color:#6b7280;'
+      }">
+      <span style="font-size:13px;">${cat.emoji}</span><span>${cat.label}</span>
+    </button>`;
+  }).join('');
+}
+
+function epSelectCategory(key) {
+  _epActiveCategory = key;
+  epRenderCategoryChips();
+  epRenderCatalog();
+}
+
+function epCatalogFilter() {
+  epRenderCatalog();
+}
+
+function epRenderCatalog() {
+  const container = document.getElementById('epCatalogList');
+  if (!container) return;
+  const q = document.getElementById('editPlanSearch')?.value || '';
+  const exercises = epGetCatalogExercises(_epActiveCategory, q);
+
+  // Update count label
+  const countEl = document.getElementById('epCatalogCountLabel');
+  if (countEl) countEl.textContent = exercises.length > 0 ? `${exercises.length} ćwiczeń` : 'Katalog ćwiczeń';
+
+  if (exercises.length === 0) {
+    container.innerHTML = '<div class="flex flex-col items-center justify-center py-12 gap-3"><span style="font-size:32px;opacity:0.4;">🔍</span><p class="text-sm font-medium text-center" style="color:#4b5563;">Brak wyników dla tego filtra.</p><p class="text-xs text-center" style="color:#374151;">Spróbuj innej kategorii lub wpisz inną nazwę</p></div>';
     return;
   }
 
-  // Build rows without serializing objects into HTML attributes
-  dropdown.innerHTML = '';
-  matches.forEach((ex, i) => {
-    const row = document.createElement('div');
-    row.className = 'px-4 py-2.5 cursor-pointer hover:bg-white/5 transition-colors flex items-center justify-between gap-3';
-    row.style.cssText = 'border-bottom:1px solid rgba(255,255,255,0.04)';
-    row.innerHTML =
-      '<div>' +
-        '<p class="text-sm text-white font-medium">' + ex.name + '</p>' +
-        '<p class="text-xs text-gray-500">' + (ex.muscles?.split(',')[0] || '') + ' · ' + ex.sets + '×' + ex.reps + (ex.weight ? ' · ' + ex.weight + 'kg' : '') + '</p>' +
-      '</div>' +
-      '<span class="text-cyan-500 text-lg flex-shrink-0">+</span>';
-    row.addEventListener('click', () => epAddFromDB(ex));
-    dropdown.appendChild(row);
-  });
+  container.innerHTML = '';
+  exercises.forEach(ex => {
+    const inPlan = _editPlanDraft.some(e => e.name === ex.name);
+    const col = CAT_COLORS[ex._group] || CAT_COLORS[_epActiveCategory] || '#64748b';
+    const isSport = !!ex._sport;
+    const muscleFirst = (ex.muscles || '').split(',')[0].trim();
 
-  dropdown.classList.remove('hidden');
+    const row = document.createElement('div');
+    row.className = 'ep-catalog-row flex items-center gap-3 px-4 py-3 rounded-2xl transition-all cursor-pointer';
+    row.style.cssText = inPlan
+      ? 'background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.18);opacity:0.55;cursor:default;'
+      : 'background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);';
+
+    // Color accent bar
+    const bar = document.createElement('div');
+    bar.style.cssText = `width:3px;height:36px;border-radius:2px;flex-shrink:0;background:${isSport ? '#ff6b35' : col};opacity:${inPlan ? '0.5' : '0.8'};`;
+    row.appendChild(bar);
+
+    // Name + muscles
+    const info = document.createElement('div');
+    info.className = 'flex-1 min-w-0';
+    const groupLabel = isSport ? `<span style="color:#ff6b35;font-size:10px;font-weight:700;background:rgba(255,107,53,0.12);padding:1px 6px;border-radius:4px;">SPORT</span>` 
+                               : `<span style="color:${col};font-size:10px;font-weight:700;background:${col}18;padding:1px 6px;border-radius:4px;text-transform:uppercase;">${muscleFirst}</span>`;
+    info.innerHTML = `<p class="text-sm font-semibold truncate mb-1" style="color:${inPlan ? '#6b7280' : '#f1f5f9'};line-height:1.2;">${ex.name}</p>
+      <div class="flex items-center gap-1.5 flex-wrap">${groupLabel}<span style="color:#374151;font-size:10px;">${ex.sets} serie × ${ex.reps} pow.${ex.weight ? ' · ' + ex.weight + ' kg' : ''}</span></div>`;
+    row.appendChild(info);
+
+    // Add / already-added badge
+    const btn = document.createElement('div');
+    btn.style.cssText = 'flex-shrink:0;';
+    if (inPlan) {
+      btn.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:rgba(0,229,255,0.15);border:1px solid rgba(0,229,255,0.3);display:flex;align-items:center;justify-content:center;"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="#00e5ff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>`;
+    } else {
+      btn.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:rgba(0,229,255,0.1);border:1px solid rgba(0,229,255,0.25);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#00e5ff;transition:all .15s;">+</div>`;
+      row.addEventListener('click', () => !inPlan && epAddFromDB(ex));
+      row.addEventListener('mouseenter', () => {
+        row.style.background = 'rgba(0,229,255,0.06)';
+        row.style.borderColor = 'rgba(0,229,255,0.25)';
+        btn.querySelector('div').style.background = 'rgba(0,229,255,0.2)';
+      });
+      row.addEventListener('mouseleave', () => {
+        row.style.background = 'rgba(255,255,255,0.03)';
+        row.style.borderColor = 'rgba(255,255,255,0.07)';
+        btn.querySelector('div').style.background = 'rgba(0,229,255,0.1)';
+      });
+    }
+    row.appendChild(btn);
+
+    container.appendChild(row);
+  });
 }
 
+function renderEditPlanSearch(query) { epCatalogFilter(); }  // legacy alias
+
 function epAddFromDB(ex) {
-  // Check for duplicate
   if (_editPlanDraft.some(e => e.name === ex.name)) {
     showToast('⚠️ Ćwiczenie już jest w planie');
     return;
   }
   _editPlanDraft.push({ ...ex, id: 'ep_' + Date.now() });
-  document.getElementById('editPlanSearch').value = '';
-  document.getElementById('editPlanDropdown').classList.add('hidden');
   renderEditPlanList();
-}
-
-// Close dropdown on outside click
-document.addEventListener('click', e => {
-  if (!e.target.closest('#editPlanSearch') && !e.target.closest('#editPlanDropdown')) {
-    const dd = document.getElementById('editPlanDropdown');
-    if (dd) dd.classList.add('hidden');
+  epRenderCatalog();   // refresh to show "✓ W planie"
+  // Bounce the count badge
+  const badge = document.getElementById('epExCount');
+  if (badge) {
+    badge.textContent = _editPlanDraft.length + ' ćw.';
+    badge.style.transform = 'scale(1.25)';
+    setTimeout(() => { badge.style.transform = 'scale(1)'; badge.style.transition = 'transform .2s'; }, 200);
   }
-});
+  showToast('✅ Dodano: ' + ex.name);
+}
 
 // --- Custom exercise modal ---
 function addCustomExercise() {
@@ -3818,10 +4028,293 @@ function saveEditedPlan() {
   const day = state.days[state.currentDay];
   if (!p.trainingPlan) p.trainingPlan = {};
   p.trainingPlan[day] = _editPlanDraft.map(e => ({ ...e }));
+  // Sync display cache so the view shows saved exercises immediately
+  state._planExercises = p.trainingPlan[day].filter(e => !e.hidden);
+  // Sync slider to actual saved count (without regenerating)
+  const actualCount = state._planExercises.length;
+  state.exerciseCount = actualCount;
+  const slider = document.getElementById('exerciseCountSlider');
+  if (slider) { slider.value = actualCount; updateExerciseSlider(actualCount); }
   saveState();
   closeEditPlanModal();
-  refreshExercisesForSlider(state.exerciseCount);
+  refreshExercisesForSlider(actualCount);
   showToast('✅ Plan zapisany!');
+}
+
+// ═══════════════════════════════════════════════════════
+// EDIT DIET MODAL
+// ═══════════════════════════════════════════════════════
+
+const ED_CATEGORIES = [
+  { key: 'all',       label: 'Wszystkie', emoji: '⭐', color: '#64748b' },
+  { key: 'śniadanie', label: 'Śniadanie', emoji: '🌅', color: '#f59e0b' },
+  { key: 'obiad',     label: 'Obiad',     emoji: '🍛', color: '#10b981' },
+  { key: 'kolacja',   label: 'Kolacja',   emoji: '🌙', color: '#7c3aed' },
+  { key: 'przekąska', label: 'Przekąska', emoji: '🥜', color: '#00e5ff' },
+];
+
+let _editDietDraft = [];   // working copy of meals
+let _edActiveCategory = 'all';
+let _edDietDragIdx = null;
+
+function openEditDietModal() {
+  const p = getCurrentProfile();
+  const day = state.days[state.currentDay];
+  const saved = (p.dietPlan[day] || []).filter(m => !m.hidden);
+  _editDietDraft = saved.map(m => ({ ...m }));
+
+  document.getElementById('editDietDayLabel').textContent = `${day} — edycja diety`;
+  document.getElementById('editDietSearch').value = '';
+  document.getElementById('editDietModal').classList.remove('hidden');
+
+  _edActiveCategory = 'all';
+  edRenderMealList();
+  edRenderCategoryChips();
+  edRenderCatalog();
+}
+
+function closeEditDietModal() {
+  document.getElementById('editDietModal').classList.add('hidden');
+  _editDietDraft = [];
+}
+
+function saveEditedDiet() {
+  const p = getCurrentProfile();
+  const day = state.days[state.currentDay];
+  if (!p.dietPlan) p.dietPlan = {};
+  p.dietPlan[day] = _editDietDraft.map(m => ({ ...m }));
+  state._planMeals = p.dietPlan[day].filter(m => !m.hidden);
+  // Sync slider to actual saved count (without regenerating)
+  const actualCount = Math.min(Math.max(state._planMeals.length, 2), 7);
+  p.mealsPerDay = actualCount;
+  const slider = document.getElementById('mealCountSlider');
+  if (slider) { slider.value = actualCount; updateMealSlider(actualCount, false); }
+  saveState();
+  closeEditDietModal();
+  loadPlanForDay();
+  showToast('✅ Dieta zapisana!');
+}
+
+// ── Render meal list (LEFT panel) ────────────────────────────────────────────
+function edRenderMealList() {
+  const container = document.getElementById('editDietList');
+  const badge = document.getElementById('edMealCount');
+  if (badge) badge.textContent = _editDietDraft.length + ' posiłków';
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (_editDietDraft.length === 0) {
+    container.innerHTML = '<div class="flex flex-col items-center justify-center gap-3" style="min-height:120px;opacity:0.5;"><span style="font-size:28px;">🍽️</span><p class="text-xs text-center" style="color:#6b7280;">Brak posiłków.<br>Dodaj z katalogu →</p></div>';
+    return;
+  }
+
+  const typeColors = { śniadanie:'#f59e0b', obiad:'#10b981', kolacja:'#7c3aed', przekąska:'#00e5ff' };
+
+  _editDietDraft.forEach((m, idx) => {
+    const col = typeColors[m.type] || '#64748b';
+    const typeLabel = m.type || 'posiłek';
+
+    const row = document.createElement('div');
+    row.className = 'ed-meal-row';
+    row.setAttribute('draggable', 'true');
+    row.dataset.idx = idx;
+    row.style.cssText = 'background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:10px 12px;transition:all .2s;cursor:grab;';
+
+    // Top: handle + accent + name + delete
+    const top = document.createElement('div');
+    top.style.cssText = 'display:flex;align-items:center;gap:8px;';
+
+    const handle = document.createElement('div');
+    handle.style.cssText = 'flex-shrink:0;color:#374151;font-size:12px;user-select:none;';
+    handle.textContent = '⠿';
+    top.appendChild(handle);
+
+    const bar = document.createElement('div');
+    bar.style.cssText = `flex-shrink:0;width:3px;height:32px;border-radius:2px;background:${col};opacity:0.7;`;
+    top.appendChild(bar);
+
+    const num = document.createElement('span');
+    num.style.cssText = `font-size:11px;font-weight:800;flex-shrink:0;width:16px;text-align:center;color:${col};`;
+    num.textContent = idx + 1;
+    top.appendChild(num);
+
+    const info = document.createElement('div');
+    info.style.cssText = 'flex:1;min-width:0;';
+    info.innerHTML = `<p style="font-size:13px;font-weight:700;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;">${m.name}</p>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
+        <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:${col}18;color:${col};text-transform:uppercase;">${typeLabel}</span>
+        <span style="font-size:10px;color:#4b5563;">${m.kcal} kcal · B:${m.protein}g W:${m.carbs}g T:${m.fat}g</span>
+      </div>`;
+    top.appendChild(info);
+
+    const del = document.createElement('button');
+    del.style.cssText = 'flex-shrink:0;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:transparent;border:1px solid transparent;color:#374151;font-size:13px;cursor:pointer;transition:all .15s;';
+    del.textContent = '✕';
+    del.addEventListener('mouseenter', () => { del.style.background='rgba(239,68,68,0.12)'; del.style.borderColor='rgba(239,68,68,0.3)'; del.style.color='#f87171'; });
+    del.addEventListener('mouseleave', () => { del.style.background='transparent'; del.style.borderColor='transparent'; del.style.color='#374151'; });
+    del.addEventListener('click', () => { _editDietDraft.splice(idx, 1); edRenderMealList(); edRenderCatalog(); });
+    top.appendChild(del);
+    row.appendChild(top);
+
+    // Type selector
+    const bottom = document.createElement('div');
+    bottom.style.cssText = 'display:flex;align-items:center;gap:6px;margin-top:8px;padding-left:26px;';
+    const typeLbl = document.createElement('span');
+    typeLbl.style.cssText = 'font-size:9px;color:#4b5563;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;';
+    typeLbl.textContent = 'Pora:';
+    bottom.appendChild(typeLbl);
+    const sel = document.createElement('select');
+    sel.setAttribute('style', 'font-size:11px!important;font-weight:700!important;padding:3px 8px!important;border-radius:8px!important;background:rgba(255,255,255,0.06)!important;border:1px solid rgba(255,255,255,0.12)!important;color:#e2e8f0!important;cursor:pointer;');
+    ['śniadanie','przekąska','obiad','kolacja'].forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t; opt.textContent = t.charAt(0).toUpperCase() + t.slice(1);
+      if (t === m.type) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener('change', () => { _editDietDraft[idx].type = sel.value; edRenderMealList(); });
+    bottom.appendChild(sel);
+    row.appendChild(bottom);
+
+    // Drag & drop
+    row.addEventListener('dragstart', ev => { _edDietDragIdx = idx; ev.dataTransfer.effectAllowed = 'move'; row.style.opacity='0.4'; });
+    row.addEventListener('dragover', ev => { ev.preventDefault(); if (_edDietDragIdx !== null && _edDietDragIdx !== idx) { const moved = _editDietDraft.splice(_edDietDragIdx,1)[0]; _editDietDraft.splice(idx,0,moved); _edDietDragIdx = idx; edRenderMealList(); } });
+    row.addEventListener('dragend', () => { _edDietDragIdx = null; edRenderMealList(); });
+
+    container.appendChild(row);
+  });
+}
+
+// ── Category chips ────────────────────────────────────────────────────────────
+function edRenderCategoryChips() {
+  const container = document.getElementById('edCategoryChips');
+  if (!container) return;
+  container.innerHTML = ED_CATEGORIES.map(cat => {
+    const active = _edActiveCategory === cat.key;
+    const col = cat.color;
+    return `<button onclick="edSelectCategory('${cat.key}')"
+      class="flex items-center gap-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap"
+      style="padding:6px 12px;${active
+        ? `background:${col}20;border:1.5px solid ${col}70;color:${col};box-shadow:0 0 12px ${col}15;`
+        : 'background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.07);color:#6b7280;'}">
+      <span style="font-size:13px;">${cat.emoji}</span><span>${cat.label}</span>
+    </button>`;
+  }).join('');
+}
+
+function edSelectCategory(key) {
+  _edActiveCategory = key;
+  edRenderCategoryChips();
+  edRenderCatalog();
+}
+
+function edCatalogFilter() { edRenderCatalog(); }
+
+// ── Meal catalog (RIGHT panel) ────────────────────────────────────────────────
+function edGetCatalogMeals(category, query) {
+  const q = (query || '').trim().toLowerCase();
+  let pool = [];
+
+  if (category === 'all' || !category) {
+    Object.entries(MEAL_DB).forEach(([type, meals]) => {
+      meals.forEach(m => pool.push({ ...m, _type: type }));
+    });
+  } else {
+    pool = (MEAL_DB[category] || []).map(m => ({ ...m, _type: category }));
+  }
+
+  // Deduplicate
+  const seen = new Set();
+  pool = pool.filter(m => { if (seen.has(m.name)) return false; seen.add(m.name); return true; });
+
+  if (q) pool = pool.filter(m => m.name.toLowerCase().includes(q) || (m.tags||[]).some(t => t.toLowerCase().includes(q)));
+  return pool;
+}
+
+function edRenderCatalog() {
+  const container = document.getElementById('editDietCatalogList');
+  if (!container) return;
+  const q = document.getElementById('editDietSearch')?.value || '';
+  const meals = edGetCatalogMeals(_edActiveCategory, q);
+
+  const countEl = document.getElementById('edCatalogCountLabel');
+  if (countEl) countEl.textContent = meals.length > 0 ? `${meals.length} posiłków` : 'Katalog posiłków';
+
+  if (meals.length === 0) {
+    container.innerHTML = '<div class="flex flex-col items-center justify-center py-12 gap-3"><span style="font-size:32px;opacity:0.4;">🔍</span><p class="text-sm font-medium" style="color:#4b5563;">Brak wyników</p></div>';
+    return;
+  }
+
+  const typeColors = { śniadanie:'#f59e0b', obiad:'#10b981', kolacja:'#7c3aed', przekąska:'#00e5ff' };
+  container.innerHTML = '';
+
+  meals.forEach(m => {
+    const inPlan = _editDietDraft.some(d => d.name === m.name);
+    const col = typeColors[m._type] || '#64748b';
+    const typeLabel = m._type || '';
+
+    const row = document.createElement('div');
+    row.style.cssText = inPlan
+      ? 'display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:16px;border:1px solid rgba(0,229,255,0.18);background:rgba(0,229,255,0.06);opacity:0.55;cursor:default;'
+      : 'display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:16px;border:1px solid rgba(255,255,255,0.07);background:rgba(255,255,255,0.03);cursor:pointer;transition:all .15s;';
+
+    // Accent bar
+    const bar = document.createElement('div');
+    bar.style.cssText = `width:3px;height:36px;border-radius:2px;flex-shrink:0;background:${col};opacity:${inPlan?'0.4':'0.75'};`;
+    row.appendChild(bar);
+
+    // Info
+    const info = document.createElement('div');
+    info.style.cssText = 'flex:1;min-width:0;';
+    info.innerHTML = `<p style="font-size:13px;font-weight:700;color:${inPlan?'#6b7280':'#f1f5f9'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;">${m.name}</p>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:${col}18;color:${col};text-transform:uppercase;">${typeLabel}</span>
+        <span style="font-size:10px;color:#374151;">${m.kcal} kcal · B:${m.protein}g W:${m.carbs}g T:${m.fat}g</span>
+      </div>`;
+    row.appendChild(info);
+
+    // Add button
+    const btn = document.createElement('div');
+    btn.style.cssText = 'flex-shrink:0;';
+    if (inPlan) {
+      btn.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:rgba(0,229,255,0.15);border:1px solid rgba(0,229,255,0.3);display:flex;align-items:center;justify-content:center;"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="#00e5ff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>`;
+    } else {
+      btn.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:rgba(0,229,255,0.1);border:1px solid rgba(0,229,255,0.25);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#00e5ff;transition:all .15s;">+</div>`;
+      row.addEventListener('click', () => edAddMeal(m));
+      row.addEventListener('mouseenter', () => {
+        row.style.background='rgba(0,229,255,0.06)';
+        row.style.borderColor='rgba(0,229,255,0.25)';
+        btn.querySelector('div').style.background='rgba(0,229,255,0.2)';
+      });
+      row.addEventListener('mouseleave', () => {
+        row.style.background='rgba(255,255,255,0.03)';
+        row.style.borderColor='rgba(255,255,255,0.07)';
+        btn.querySelector('div').style.background='rgba(0,229,255,0.1)';
+      });
+    }
+    row.appendChild(btn);
+    container.appendChild(row);
+  });
+}
+
+function edAddMeal(m) {
+  if (_editDietDraft.some(d => d.name === m.name)) { showToast('⚠️ Ten posiłek już jest w planie'); return; }
+  _editDietDraft.push({ ...m, type: m._type || m.type || 'przekąska', id: 'ed_' + Date.now() });
+  edRenderMealList();
+  edRenderCatalog();
+  const badge = document.getElementById('edMealCount');
+  if (badge) { badge.textContent = _editDietDraft.length + ' posiłków'; badge.style.transform='scale(1.25)'; setTimeout(()=>{ badge.style.transform='scale(1)'; badge.style.transition='transform .2s'; },200); }
+}
+
+function edAddCustomMeal() {
+  const name = prompt('Nazwa posiłku:');
+  if (!name || !name.trim()) return;
+  const kcal = parseInt(prompt('Kalorie (kcal):', '300')) || 300;
+  const protein = parseInt(prompt('Białko (g):', '20')) || 20;
+  const carbs = parseInt(prompt('Węglowodany (g):', '30')) || 30;
+  const fat = parseInt(prompt('Tłuszcze (g):', '10')) || 10;
+  _editDietDraft.push({ id:'custom_'+Date.now(), name:name.trim(), kcal, protein, carbs, fat, type:'przekąska', tags:['własne'], ingredients:[], recipe:'' });
+  edRenderMealList();
+  edRenderCatalog();
 }
 
 window.addEventListener('beforeunload', saveState);
@@ -3832,6 +4325,108 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(()=>{});
 }
 </script>
+
+<!-- ====== EDIT DIET MODAL ====== -->
+<div id="editDietModal" class="fixed inset-0 z-[200] flex items-center justify-center p-3 md:p-6 hidden">
+  <div class="absolute inset-0" style="background:rgba(0,0,0,0.88);backdrop-filter:blur(14px);" onclick="closeEditDietModal()"></div>
+  <div class="relative w-full max-w-4xl flex flex-col rounded-3xl overflow-hidden"
+       style="background:#0e1019;border:1px solid rgba(0,229,255,0.2);box-shadow:0 0 100px rgba(0,229,255,0.08),0 32px 80px rgba(0,0,0,0.6);height:min(90vh,680px);">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between px-6 py-5" style="border-bottom:1px solid rgba(255,255,255,0.07);background:linear-gradient(180deg,rgba(0,229,255,0.04) 0%,transparent 100%);">
+      <div class="flex items-center gap-4">
+        <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-xl flex-shrink-0"
+             style="background:linear-gradient(135deg,rgba(0,229,255,0.2),rgba(124,58,237,0.2));border:1px solid rgba(0,229,255,0.3);box-shadow:0 0 20px rgba(0,229,255,0.1);">🍽️</div>
+        <div>
+          <h3 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;letter-spacing:-0.02em;">Edytuj plan diety</h3>
+          <p id="editDietDayLabel" class="text-xs mt-0.5 font-medium" style="color:#6b7280;"></p>
+        </div>
+      </div>
+      <button onclick="closeEditDietModal()"
+              class="w-9 h-9 flex items-center justify-center rounded-xl font-bold transition-all"
+              style="background:rgba(255,255,255,0.06);color:#6b7280;font-size:16px;"
+              onmouseover="this.style.background='rgba(255,255,255,0.12)';this.style.color='#fff'"
+              onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='#6b7280'">✕</button>
+    </div>
+
+    <!-- Body: two-column -->
+    <div class="flex flex-1 min-h-0">
+
+      <!-- LEFT: current meal plan -->
+      <div class="flex flex-col" style="width:44%;border-right:1px solid rgba(255,255,255,0.07);">
+        <div class="px-5 pt-5 pb-3 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-widest" style="color:#4b5563;letter-spacing:0.1em;">Plan dnia</p>
+            <p class="text-xs mt-0.5" style="color:#6b7280;">Przeciągnij aby zmienić kolejność</p>
+          </div>
+          <span id="edMealCount" class="text-xs px-3 py-1 rounded-full font-bold" style="background:rgba(0,229,255,0.12);color:#00e5ff;border:1px solid rgba(0,229,255,0.25);">0 posiłków</span>
+        </div>
+        <div class="flex-1 overflow-y-auto px-4 pb-4 space-y-2" id="editDietList"
+             style="scrollbar-width:thin;scrollbar-color:rgba(0,229,255,0.15) transparent;">
+          <div class="flex flex-col items-center justify-center h-full gap-3" style="opacity:0.5;min-height:120px;">
+            <span style="font-size:28px;">🍽️</span>
+            <p class="text-xs text-center" style="color:#6b7280;">Brak posiłków.<br>Dodaj z katalogu →</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: meal catalog -->
+      <div class="flex flex-col flex-1 min-w-0">
+
+        <!-- Search -->
+        <div class="px-5 pt-5 pb-4" style="border-bottom:1px solid rgba(255,255,255,0.05);">
+          <div class="flex items-center gap-3 px-4 py-3 rounded-2xl" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);" id="edSearchWrapper">
+            <svg style="flex-shrink:0;width:15px;height:15px;color:#4b5563;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input id="editDietSearch" type="text" placeholder="Szukaj posiłku…" autocomplete="off"
+              style="flex:1;background:transparent!important;border:none!important;border-radius:0!important;padding:0!important;font-size:13px!important;color:#e2e8f0!important;outline:none!important;box-shadow:none!important;"
+              oninput="edCatalogFilter()"
+              onfocus="document.getElementById('edSearchWrapper').style.borderColor='rgba(0,229,255,0.4)'"
+              onblur="document.getElementById('edSearchWrapper').style.borderColor='rgba(255,255,255,0.08)'">
+          </div>
+        </div>
+
+        <!-- Category chips -->
+        <div class="px-5 py-3 flex gap-2" id="edCategoryChips"
+             style="overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;border-bottom:1px solid rgba(255,255,255,0.05);"></div>
+
+        <!-- Count label -->
+        <div class="px-5 py-2">
+          <p class="text-xs font-semibold" style="color:#4b5563;" id="edCatalogCountLabel">Katalog posiłków</p>
+        </div>
+
+        <!-- Meal catalog list -->
+        <div class="flex-1 overflow-y-auto px-4 pb-4 space-y-1.5" id="editDietCatalogList"
+             style="scrollbar-width:thin;scrollbar-color:rgba(0,229,255,0.12) transparent;"></div>
+
+        <!-- Custom meal button -->
+        <div class="px-5 py-4" style="border-top:1px solid rgba(255,255,255,0.05);">
+          <button onclick="edAddCustomMeal()"
+                  class="w-full py-3 rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-2"
+                  style="background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.25);color:#a78bfa;"
+                  onmouseover="this.style.background='rgba(124,58,237,0.18)'"
+                  onmouseout="this.style.background='rgba(124,58,237,0.1)'">
+            <span>✨</span> Dodaj własny posiłek
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="flex gap-3 px-6 py-4" style="border-top:1px solid rgba(255,255,255,0.07);background:rgba(0,0,0,0.2);">
+      <button onclick="saveEditedDiet()" class="flex-1 btn-neon py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Zapisz dietę
+      </button>
+      <button onclick="closeEditDietModal()"
+              class="px-6 py-3 rounded-2xl text-sm font-bold transition-colors"
+              style="background:rgba(255,255,255,0.05);color:#9ca3af;"
+              onmouseover="this.style.color='#fff'"
+              onmouseout="this.style.color='#9ca3af'">Anuluj</button>
+    </div>
+  </div>
+</div>
 
 <!-- ====== ADD OTHER MODAL ====== -->
 <div id="addOtherModal" class="hidden fixed inset-0 z-[110] flex items-center justify-center p-4 modal-backdrop">
@@ -3871,44 +4466,104 @@ if ('serviceWorker' in navigator) {
 
 
   <!-- ====== EDIT PLAN MODAL ====== -->
-  <div id="editPlanModal" class="fixed inset-0 z-[200] flex items-center justify-center p-4 hidden">
-    <div class="absolute inset-0" style="background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);" onclick="closeEditPlanModal()"></div>
-    <div class="relative w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl overflow-hidden" style="background:#0f1117;border:1px solid rgba(0,229,255,0.2);box-shadow:0 0 60px rgba(0,229,255,0.08);">
-      <!-- Header -->
-      <div class="flex items-center justify-between px-6 py-4 border-b" style="border-color:rgba(255,255,255,0.06);">
-        <div>
-          <h3 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">✏️ Edytuj plan treningowy</h3>
-          <p id="editPlanDayLabel" class="text-xs text-gray-500 mt-0.5"></p>
-        </div>
-        <button onclick="closeEditPlanModal()" class="w-8 h-8 flex items-center justify-center rounded-xl text-gray-400 hover:text-white transition-colors" style="background:rgba(255,255,255,0.05);">✕</button>
-      </div>
+  <div id="editPlanModal" class="fixed inset-0 z-[200] flex items-center justify-center p-3 md:p-6 hidden">
+    <div class="absolute inset-0" style="background:rgba(0,0,0,0.88);backdrop-filter:blur(14px);" onclick="closeEditPlanModal()"></div>
+    <div class="relative w-full max-w-4xl flex flex-col rounded-3xl overflow-hidden"
+         style="background:#0e1019;border:1px solid rgba(0,229,255,0.2);box-shadow:0 0 100px rgba(0,229,255,0.08),0 32px 80px rgba(0,0,0,0.6);height:min(90vh,680px);">
 
-      <!-- Exercise list (scrollable) -->
-      <div class="flex-1 overflow-y-auto px-6 py-4 space-y-2" id="editPlanList"></div>
-
-      <!-- Add exercise section -->
-      <div class="px-6 py-4 border-t" style="border-color:rgba(255,255,255,0.06);">
-        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Dodaj ćwiczenie</p>
-        <div class="flex gap-2">
-          <div class="relative flex-1">
-            <input id="editPlanSearch" type="text" placeholder="Szukaj ćwiczenia..." autocomplete="off"
-              class="w-full px-4 py-2.5 rounded-xl text-sm text-white placeholder-gray-600 outline-none"
-              style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);"
-              oninput="renderEditPlanSearch(this.value)"
-              onfocus="renderEditPlanSearch(this.value)">
-            <div id="editPlanDropdown" class="absolute bottom-full left-0 right-0 mb-1 rounded-xl overflow-hidden hidden max-h-52 overflow-y-auto"
-              style="background:#1a1d26;border:1px solid rgba(0,229,255,0.2);z-index:10;"></div>
+      <!-- ── Header ── -->
+      <div class="flex items-center justify-between px-6 py-5" style="border-bottom:1px solid rgba(255,255,255,0.07);background:linear-gradient(180deg,rgba(0,229,255,0.04) 0%,transparent 100%);">
+        <div class="flex items-center gap-4">
+          <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-xl flex-shrink-0"
+               style="background:linear-gradient(135deg,rgba(0,229,255,0.2),rgba(124,58,237,0.2));border:1px solid rgba(0,229,255,0.3);box-shadow:0 0 20px rgba(0,229,255,0.1);">✏️</div>
+          <div>
+            <h3 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;letter-spacing:-0.02em;">Edytuj plan treningowy</h3>
+            <p id="editPlanDayLabel" class="text-xs mt-0.5 font-medium" style="color:#6b7280;"></p>
           </div>
-          <button onclick="addCustomExercise()" class="px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap" style="background:rgba(0,229,255,0.12);border:1px solid rgba(0,229,255,0.3);color:#00e5ff;">
-            + Własne
-          </button>
+        </div>
+        <button onclick="closeEditPlanModal()"
+                class="w-9 h-9 flex items-center justify-center rounded-xl font-bold transition-all"
+                style="background:rgba(255,255,255,0.06);color:#6b7280;font-size:16px;"
+                onmouseover="this.style.background='rgba(255,255,255,0.12)';this.style.color='#fff'"
+                onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='#6b7280'">✕</button>
+      </div>
+
+      <!-- ── Body: two-column layout ── -->
+      <div class="flex flex-1 min-h-0">
+
+        <!-- LEFT: current plan list -->
+        <div class="flex flex-col" style="width:44%;border-right:1px solid rgba(255,255,255,0.07);">
+          <div class="px-5 pt-5 pb-3 flex items-center justify-between">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-widest" style="color:#4b5563;letter-spacing:0.1em;">Plan dnia</p>
+              <p class="text-xs mt-0.5" style="color:#6b7280;">Przeciągnij aby zmienić kolejność</p>
+            </div>
+            <span id="epExCount" class="text-xs px-3 py-1 rounded-full font-bold" style="background:rgba(0,229,255,0.12);color:#00e5ff;border:1px solid rgba(0,229,255,0.25);">0 ćw.</span>
+          </div>
+          <div class="flex-1 overflow-y-auto px-4 pb-4 space-y-2" id="editPlanList"
+               style="scrollbar-width:thin;scrollbar-color:rgba(0,229,255,0.15) transparent;">
+            <div class="flex flex-col items-center justify-center h-full gap-3" style="opacity:0.5;min-height:120px;">
+              <span style="font-size:28px;">📋</span>
+              <p class="text-xs text-center" style="color:#6b7280;">Brak ćwiczeń.<br>Dodaj z katalogu →</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: catalog panel -->
+        <div class="flex flex-col flex-1 min-w-0">
+
+          <!-- Search bar -->
+          <div class="px-5 pt-5 pb-4" style="border-bottom:1px solid rgba(255,255,255,0.05);">
+            <div class="flex items-center gap-3 px-4 py-3 rounded-2xl" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);"
+                 id="epSearchWrapper">
+              <svg style="flex-shrink:0;width:15px;height:15px;color:#4b5563;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/>
+              </svg>
+              <input id="editPlanSearch" type="text" placeholder="Szukaj ćwiczenia lub grupy mięśni…" autocomplete="off"
+                style="flex:1;background:transparent!important;border:none!important;border-radius:0!important;padding:0!important;font-size:13px!important;color:#e2e8f0!important;outline:none!important;box-shadow:none!important;"
+                oninput="epCatalogFilter()"
+                onfocus="document.getElementById('epSearchWrapper').style.borderColor='rgba(0,229,255,0.4)'"
+                onblur="document.getElementById('epSearchWrapper').style.borderColor='rgba(255,255,255,0.08)'">
+            </div>
+          </div>
+
+          <!-- Category chips - scrollable row -->
+          <div class="px-5 py-3 flex gap-2" id="epCategoryChips"
+               style="overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;border-bottom:1px solid rgba(255,255,255,0.05);"></div>
+
+          <!-- Count label -->
+          <div class="px-5 py-2 flex items-center justify-between">
+            <p class="text-xs font-semibold" style="color:#4b5563;" id="epCatalogCountLabel">Katalog ćwiczeń</p>
+          </div>
+
+          <!-- Exercise catalog list -->
+          <div class="flex-1 overflow-y-auto px-4 pb-4 space-y-1.5" id="epCatalogList"
+               style="scrollbar-width:thin;scrollbar-color:rgba(0,229,255,0.12) transparent;"></div>
+
+          <!-- Custom exercise button -->
+          <div class="px-5 py-4" style="border-top:1px solid rgba(255,255,255,0.05);">
+            <button onclick="addCustomExercise()"
+                    class="w-full py-3 rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-2"
+                    style="background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.25);color:#a78bfa;"
+                    onmouseover="this.style.background='rgba(124,58,237,0.18)'"
+                    onmouseout="this.style.background='rgba(124,58,237,0.1)'">
+              <span>✨</span> Stwórz własne ćwiczenie
+            </button>
+          </div>
         </div>
       </div>
 
-      <!-- Footer buttons -->
-      <div class="flex gap-3 px-6 py-4 border-t" style="border-color:rgba(255,255,255,0.06);">
-        <button onclick="saveEditedPlan()" class="flex-1 btn-neon py-3 rounded-xl font-bold text-sm">💾 Zapisz plan</button>
-        <button onclick="closeEditPlanModal()" class="px-6 py-3 rounded-xl text-sm font-bold text-gray-400 hover:text-white transition-colors" style="background:rgba(255,255,255,0.05);">Anuluj</button>
+      <!-- ── Footer ── -->
+      <div class="flex gap-3 px-6 py-4" style="border-top:1px solid rgba(255,255,255,0.07);background:rgba(0,0,0,0.2);">
+        <button onclick="saveEditedPlan()" class="flex-1 btn-neon py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2">
+          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Zapisz plan
+        </button>
+        <button onclick="closeEditPlanModal()"
+                class="px-6 py-3 rounded-2xl text-sm font-bold transition-colors"
+                style="background:rgba(255,255,255,0.05);color:#9ca3af;"
+                onmouseover="this.style.color='#fff'"
+                onmouseout="this.style.color='#9ca3af'">Anuluj</button>
       </div>
     </div>
   </div>
