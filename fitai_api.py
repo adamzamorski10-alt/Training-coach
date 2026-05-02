@@ -1689,6 +1689,123 @@ def ai_weekly_summary(req: AIRequest):
         return {"summary": ask_claude(system, user_msg, 800)}
 
 
+# ─── Stats / Progress endpoint ───────────────────────────────────────────────
+
+@app.get("/app/stats/{identity_id}")
+def app_get_stats(identity_id: str, days: int = 30):
+    """
+    Agreguje dane postępów użytkownika z DailyLogDB i ExerciseResultDB.
+    Zwraca:
+      - weight_entries: ostatnie 30 wpisów wagi (data + wartość + nastrój)
+      - training_volume: wolumen treningowy per dzień (serie × powtórzenia × ciężar)
+      - diet_compliance_pct: % dni z zalogowanymi posiłkami
+      - streak_days: aktualny streak (dni z rzędu z aktywnością)
+      - kpi: zmienność wagi, średnie RPE (7d), prognozowana data celu
+    """
+    user_key = _web_user_key(identity_id)
+    with Session(engine) as session:
+        user = session.exec(select(UserDB).where(UserDB.user_key == user_key)).first()
+        if not user:
+            return {
+                "weight_entries": [], "training_volume": [],
+                "diet_compliance_pct": 0, "streak_days": 0,
+                "kpi": {"weight_delta": 0, "avg_rpe_7d": None, "goal_date_estimate": None},
+                "target_weight": None,
+            }
+
+        # ── Daily logs ────────────────────────────────────────────────────────
+        all_logs = list(session.exec(
+            select(DailyLogDB)
+            .where(DailyLogDB.user_id == user.id)
+            .order_by(DailyLogDB.log_date)
+        ).all())
+
+        # Weight entries (last `days`, include mood for tooltip)
+        weight_entries = [
+            {"date": l.log_date, "weight": l.weight, "mood": l.mood}
+            for l in all_logs if l.weight is not None
+        ][-days:]
+
+        # Diet compliance: days with food logged / total days with any log
+        log_days_total = len({l.log_date for l in all_logs})
+        food_days = len({l.log_date for l in all_logs if l.food and l.food.strip()})
+        diet_compliance_pct = round((food_days / log_days_total) * 100) if log_days_total else 0
+
+        # Streak
+        streak_days = _compute_streak_days_from_logs(all_logs)
+
+        # ── Exercise results → training volume per day ────────────────────────
+        ex_results = list(session.exec(
+            select(ExerciseResultDB)
+            .where(ExerciseResultDB.user_id == user.id)
+            .order_by(ExerciseResultDB.session_date)
+        ).all())
+
+        volume_by_day: dict = {}
+        for r in ex_results:
+            vol = r.sets * r.reps * r.weight_kg
+            volume_by_day[r.session_date] = volume_by_day.get(r.session_date, 0) + vol
+
+        training_volume = [
+            {"date": d, "volume": round(v)}
+            for d, v in sorted(volume_by_day.items())
+        ][-days:]
+
+        # ── KPI calculations ──────────────────────────────────────────────────
+        # 1. Weight delta (start vs latest)
+        weight_delta = None
+        if weight_entries:
+            first_w = weight_entries[0]["weight"]
+            last_w = weight_entries[-1]["weight"]
+            if first_w and last_w:
+                weight_delta = round(last_w - first_w, 1)
+
+        # 2. Average RPE last 7 days
+        cutoff_7d = (date.today().toordinal() - 7)
+        recent_rpe = [
+            r.rpe for r in ex_results
+            if r.session_date and date.fromisoformat(r.session_date).toordinal() >= cutoff_7d
+        ]
+        avg_rpe_7d = round(sum(recent_rpe) / len(recent_rpe), 1) if recent_rpe else None
+
+        # 3. Projected goal date based on weight trend
+        goal_date_estimate = None
+        target_weight = user.target_weight
+        if len(weight_entries) >= 2 and target_weight:
+            # Use linear regression on last 14 entries
+            recent_w = weight_entries[-14:]
+            n = len(recent_w)
+            if n >= 2:
+                # Simple slope: (last - first) / days_between
+                try:
+                    d0 = date.fromisoformat(recent_w[0]["date"])
+                    d1 = date.fromisoformat(recent_w[-1]["date"])
+                    days_span = (d1 - d0).days or 1
+                    w0 = recent_w[0]["weight"]
+                    w1 = recent_w[-1]["weight"]
+                    daily_rate = (w1 - w0) / days_span  # kg/day; negative = losing
+                    remaining = target_weight - w1
+                    if daily_rate != 0 and (remaining / daily_rate) > 0:
+                        days_to_goal = int(remaining / daily_rate)
+                        goal_date = date.today().toordinal() + days_to_goal
+                        goal_date_estimate = date.fromordinal(goal_date).isoformat()
+                except (ValueError, OverflowError):
+                    pass
+
+        return {
+            "weight_entries": weight_entries,
+            "training_volume": training_volume,
+            "diet_compliance_pct": diet_compliance_pct,
+            "streak_days": streak_days,
+            "target_weight": target_weight,
+            "kpi": {
+                "weight_delta": weight_delta,
+                "avg_rpe_7d": avg_rpe_7d,
+                "goal_date_estimate": goal_date_estimate,
+            },
+        }
+
+
 # ─── Version & root ───────────────────────────────────────────────────────────
 
 @app.get("/")

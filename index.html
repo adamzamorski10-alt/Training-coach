@@ -349,6 +349,7 @@
       <a href="#" onclick="showTab('my-day');return false;" data-tab="my-day" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>📋</span><span>Mój Dzień</span></a>
       <a href="#" onclick="showTab('plan');return false;" data-tab="plan" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>📅</span><span>Plan</span></a>
       <a href="#" onclick="showTab('sport');return false;" data-tab="sport" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>🏀</span><span>Sport</span></a>
+      <a href="#" onclick="showTab('postepy');return false;" data-tab="postepy" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>📈</span><span>Postępy</span></a>
       <a href="#" onclick="showTab('profile');return false;" data-tab="profile" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>👤</span><span>Profil</span></a>
       <a href="#" onclick="showTab('contact');return false;" data-tab="contact" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>💬</span><span>Kontakt</span></a>
     </nav>
@@ -951,6 +952,118 @@
           <div><p class="text-sm font-bold text-white mb-1">Czy dane są bezpieczne?</p><p class="text-sm text-gray-400">Dane przechowywane lokalnie w przeglądarce (localStorage). Nie wysyłamy ich bez zgody.</p></div>
         </div>
       </div>
+    </section>
+
+    <!-- ====== TAB: POSTĘPY ====== -->
+    <section id="tab-postepy" class="hidden space-y-6">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-extrabold text-white" style="font-family:'Syne',sans-serif;">Postępy</h1>
+          <p class="text-xs text-gray-500 mt-0.5">Twoje dane w czasie — szczere, bez filtrów.</p>
+        </div>
+        <!-- Time range switcher -->
+        <div class="flex gap-1 p-1 rounded-xl" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);">
+          <button onclick="setStatsRange(7)"  id="rangeBtn7"  class="range-btn px-3 py-1.5 rounded-lg text-xs font-bold transition-all" style="color:var(--muted);">7d</button>
+          <button onclick="setStatsRange(30)" id="rangeBtn30" class="range-btn px-3 py-1.5 rounded-lg text-xs font-bold transition-all active-range" style="background:rgba(0,229,255,0.15);color:var(--cyan);">30d</button>
+          <button onclick="setStatsRange(0)"  id="rangeBtn0"  class="range-btn px-3 py-1.5 rounded-lg text-xs font-bold transition-all" style="color:var(--muted);">Wszystko</button>
+        </div>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="grid grid-cols-3 gap-3" id="kpiCards">
+        <!-- Weight delta -->
+        <div class="glass p-4 rounded-2xl relative overflow-hidden">
+          <div style="position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle,rgba(0,229,255,0.08) 0%,transparent 70%);pointer-events:none;"></div>
+          <p class="text-xs font-semibold uppercase tracking-wider" style="color:var(--muted);font-family:'Syne',sans-serif;">Zmiana wagi</p>
+          <p id="kpiWeightDelta" class="text-3xl font-extrabold mt-2" style="font-family:'Syne',sans-serif;color:var(--cyan);">—</p>
+          <p class="text-xs mt-1" style="color:var(--muted);">od pierwszego wpisu</p>
+        </div>
+        <!-- Avg RPE -->
+        <div class="glass p-4 rounded-2xl relative overflow-hidden">
+          <div style="position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle,rgba(124,58,237,0.1) 0%,transparent 70%);pointer-events:none;"></div>
+          <p class="text-xs font-semibold uppercase tracking-wider" style="color:var(--muted);font-family:'Syne',sans-serif;">Średnie RPE</p>
+          <p id="kpiAvgRpe" class="text-3xl font-extrabold mt-2" style="font-family:'Syne',sans-serif;color:#a78bfa;">—</p>
+          <p class="text-xs mt-1" style="color:var(--muted);">intensywność, ostatnie 7 dni</p>
+        </div>
+        <!-- Goal date -->
+        <div class="glass p-4 rounded-2xl relative overflow-hidden">
+          <div style="position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle,rgba(245,158,11,0.08) 0%,transparent 70%);pointer-events:none;"></div>
+          <p class="text-xs font-semibold uppercase tracking-wider" style="color:var(--muted);font-family:'Syne',sans-serif;">Cel wagowy</p>
+          <p id="kpiGoalDate" class="text-xl font-extrabold mt-2 leading-tight" style="font-family:'Syne',sans-serif;color:#fbbf24;">—</p>
+          <p class="text-xs mt-1" style="color:var(--muted);">prognozowana data</p>
+        </div>
+      </div>
+
+      <!-- Weight Trend Chart -->
+      <div class="glass p-5 rounded-2xl">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">Trend wagowy</h2>
+            <p class="text-xs mt-0.5" style="color:var(--muted);">Waga dzienna + linia celu</p>
+          </div>
+          <div class="flex items-center gap-3 text-xs" style="color:var(--muted);">
+            <span class="flex items-center gap-1.5"><span style="display:inline-block;width:20px;height:2px;background:linear-gradient(90deg,var(--cyan),var(--violet));border-radius:2px;"></span>Waga</span>
+            <span class="flex items-center gap-1.5"><span style="display:inline-block;width:20px;height:2px;background:rgba(251,191,36,0.7);border-radius:2px;border-top:2px dashed rgba(251,191,36,0.7);"></span>Cel</span>
+          </div>
+        </div>
+        <div id="weightChartWrap" style="position:relative;">
+          <canvas id="weightChart" style="max-height:260px;width:100%;"></canvas>
+          <div id="weightChartEmpty" class="hidden" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
+            <div style="font-size:2.5rem;">⚖️</div>
+            <p class="font-bold text-white text-sm" style="font-family:'Syne',sans-serif;">Zacznij logować treningi,<br>aby zobaczyć magię danych</p>
+            <p class="text-xs text-center" style="color:var(--muted);">Dodaj pierwszą wagę w zakładce Mój Dzień</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Training Volume Chart + Diet Compliance row -->
+      <div class="grid gap-4" style="grid-template-columns:2fr 1fr;">
+        <!-- Volume bar chart -->
+        <div class="glass p-5 rounded-2xl">
+          <div class="mb-4">
+            <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">Wolumen treningowy</h2>
+            <p class="text-xs mt-0.5" style="color:var(--muted);">Serie × powtórzenia × ciężar [kg]</p>
+          </div>
+          <div id="volumeChartWrap" style="position:relative;">
+            <canvas id="volumeChart" style="max-height:180px;width:100%;"></canvas>
+            <div id="volumeChartEmpty" class="hidden" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">
+              <div style="font-size:2rem;">🏋️</div>
+              <p class="text-xs font-semibold text-white text-center" style="font-family:'Syne',sans-serif;">Brak historii ćwiczeń</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Diet Compliance + Streak mini-cards -->
+        <div class="flex flex-col gap-4">
+          <div class="glass p-5 rounded-2xl flex-1 flex flex-col justify-between">
+            <p class="text-xs font-semibold uppercase tracking-wider" style="color:var(--muted);font-family:'Syne',sans-serif;">Diet Compliance</p>
+            <div class="text-center my-2">
+              <svg viewBox="0 0 80 80" width="80" height="80" style="margin:0 auto;display:block;">
+                <circle cx="40" cy="40" r="32" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="7"/>
+                <circle id="dietComplianceRing" cx="40" cy="40" r="32" fill="none" stroke="url(#statsGrad)" stroke-width="7" stroke-linecap="round"
+                  stroke-dasharray="201" stroke-dashoffset="201"
+                  style="transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1)"/>
+                <defs>
+                  <linearGradient id="statsGrad" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stop-color="#00e5ff"/>
+                    <stop offset="100%" stop-color="#7c3aed"/>
+                  </linearGradient>
+                </defs>
+                <text x="40" y="45" text-anchor="middle" font-size="14" font-weight="800" fill="white" id="dietComplianceText" style="font-family:'Syne',sans-serif;">—</text>
+              </svg>
+            </div>
+            <p class="text-xs text-center" style="color:var(--muted);">dni z posiłkami</p>
+          </div>
+          <div class="glass p-5 rounded-2xl flex-1 flex flex-col justify-center items-center gap-2">
+            <p class="text-xs font-semibold uppercase tracking-wider" style="color:var(--muted);font-family:'Syne',sans-serif;">Streak</p>
+            <p id="kpiStreak" class="text-4xl font-extrabold" style="font-family:'Syne',sans-serif;background:linear-gradient(135deg,var(--cyan),var(--violet));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">0</p>
+            <p class="text-xs" style="color:var(--muted);">dni z rzędu 🔥</p>
+          </div>
+        </div>
+      </div>
+
     </section>
 
   </main>
@@ -1815,6 +1928,7 @@ function showTab(tabId) {
     renderSportDrills();
     showSportSubtab('drills');
   }
+  if (tabId==='postepy') initCharts();
   document.getElementById('mainContent').scrollTop = 0;
 }
 
@@ -4321,8 +4435,256 @@ window.addEventListener('beforeunload', saveState);
 </script>
 
 <script>
+// ====== POSTĘPY — Charts & Stats ======
+let _weightChart = null;
+let _volumeChart = null;
+let _statsRange = 30;
+let _statsData = null;
+
+function setStatsRange(days) {
+  _statsRange = days;
+  document.querySelectorAll('.range-btn').forEach(b => {
+    b.style.background = '';
+    b.style.color = 'var(--muted)';
+  });
+  const activeId = days === 7 ? 'rangeBtn7' : days === 30 ? 'rangeBtn30' : 'rangeBtn0';
+  const ab = document.getElementById(activeId);
+  if (ab) { ab.style.background = 'rgba(0,229,255,0.15)'; ab.style.color = 'var(--cyan)'; }
+  if (_statsData) renderCharts(_statsData, days);
+}
+
+async function initCharts() {
+  const identityId = state.identityId || '';
+  if (!identityId) return;
+  try {
+    const r = await fetch(`${API_BASE}/app/stats/${identityId}?days=9999`);
+    if (!r.ok) return;
+    _statsData = await r.json();
+    renderCharts(_statsData, _statsRange);
+    renderKPI(_statsData);
+  } catch(e) { console.warn('Stats fetch failed', e); }
+}
+
+function filterByDays(arr, days, dateKey='date') {
+  if (!days || !arr || !arr.length) return arr || [];
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  return arr.filter(e => new Date(e[dateKey]) >= cutoff);
+}
+
+function renderKPI(data) {
+  const kpi = data.kpi || {};
+  // Weight delta
+  const wd = kpi.weight_delta;
+  const wdEl = document.getElementById('kpiWeightDelta');
+  if (wdEl && wd !== null && wd !== undefined) {
+    const sign = wd > 0 ? '+' : '';
+    wdEl.textContent = sign + wd + ' kg';
+    wdEl.style.color = wd <= 0 ? '#34d399' : '#f87171';
+  }
+  // RPE
+  const rpeEl = document.getElementById('kpiAvgRpe');
+  if (rpeEl) rpeEl.textContent = kpi.avg_rpe_7d !== null && kpi.avg_rpe_7d !== undefined ? kpi.avg_rpe_7d : '—';
+  // Goal date
+  const goalEl = document.getElementById('kpiGoalDate');
+  if (goalEl) {
+    if (kpi.goal_date_estimate) {
+      const d = new Date(kpi.goal_date_estimate);
+      goalEl.textContent = d.toLocaleDateString('pl-PL', {day:'numeric',month:'short',year:'numeric'});
+    } else goalEl.textContent = '—';
+  }
+  // Streak
+  const sEl = document.getElementById('kpiStreak');
+  if (sEl) sEl.textContent = data.streak_days || 0;
+  // Diet compliance ring
+  const pct = data.diet_compliance_pct || 0;
+  const ring = document.getElementById('dietComplianceRing');
+  const txt = document.getElementById('dietComplianceText');
+  if (ring) { const offset = 201 - (201 * pct / 100); ring.setAttribute('stroke-dashoffset', offset); }
+  if (txt) txt.textContent = pct + '%';
+}
+
+function renderCharts(data, days) {
+  const wEntries = filterByDays(data.weight_entries || [], days);
+  const vEntries = filterByDays(data.training_volume || [], days);
+
+  // ── Weight chart ──────────────────────────────────────────────────────────
+  const wWrap = document.getElementById('weightChartWrap');
+  const wEmpty = document.getElementById('weightChartEmpty');
+  const wCanvas = document.getElementById('weightChart');
+
+  if (!wEntries.length) {
+    if (wEmpty) { wEmpty.classList.remove('hidden'); wEmpty.style.display='flex'; }
+    if (wCanvas) wCanvas.style.opacity = '0';
+  } else {
+    if (wEmpty) { wEmpty.classList.add('hidden'); wEmpty.style.display='none'; }
+    if (wCanvas) wCanvas.style.opacity = '1';
+
+    const labels = wEntries.map(e => {
+      const d = new Date(e.date);
+      return d.toLocaleDateString('pl-PL', {day:'numeric',month:'short'});
+    });
+    const weights = wEntries.map(e => e.weight);
+    const moods = wEntries.map(e => e.mood || '');
+    const target = data.target_weight;
+
+    const ctx = wCanvas.getContext('2d');
+
+    // Gradient fill
+    const gradFill = ctx.createLinearGradient(0, 0, 0, 260);
+    gradFill.addColorStop(0, 'rgba(0,229,255,0.18)');
+    gradFill.addColorStop(1, 'rgba(124,58,237,0.03)');
+
+    // Gradient line
+    const gradLine = ctx.createLinearGradient(0, 0, wCanvas.clientWidth || 400, 0);
+    gradLine.addColorStop(0, '#00e5ff');
+    gradLine.addColorStop(1, '#7c3aed');
+
+    const datasets = [{
+      label: 'Waga (kg)',
+      data: weights,
+      borderColor: gradLine,
+      borderWidth: 2.5,
+      pointBackgroundColor: '#00e5ff',
+      pointBorderColor: '#0a0b10',
+      pointBorderWidth: 2,
+      pointRadius: 4,
+      pointHoverRadius: 7,
+      fill: true,
+      backgroundColor: gradFill,
+      tension: 0.4,
+    }];
+
+    if (target) {
+      datasets.push({
+        label: 'Cel',
+        data: Array(labels.length).fill(target),
+        borderColor: 'rgba(251,191,36,0.65)',
+        borderWidth: 1.5,
+        borderDash: [6, 4],
+        pointRadius: 0,
+        fill: false,
+        tension: 0,
+      });
+    }
+
+    if (_weightChart) { _weightChart.destroy(); _weightChart = null; }
+
+    _weightChart = new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: window.innerWidth < 640 ? 1.6 : 2.5,
+        animation: { duration: 600, easing: 'easeInOutQuart' },
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(10,11,16,0.95)',
+            borderColor: 'rgba(0,229,255,0.25)',
+            borderWidth: 1,
+            titleFont: { family: 'Syne', size: 12 },
+            bodyFont: { family: 'Plus Jakarta Sans', size: 12 },
+            callbacks: {
+              title: (items) => items[0].label,
+              afterBody: (items) => {
+                const idx = items[0].dataIndex;
+                const mood = moods[idx];
+                return mood ? ['', '😊 ' + mood] : [];
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
+            ticks: { color: '#64748b', font: { family: 'Plus Jakarta Sans', size: 10 }, maxTicksLimit: 8 },
+            border: { display: false }
+          },
+          y: {
+            grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
+            ticks: { color: '#64748b', font: { family: 'Plus Jakarta Sans', size: 10 }, callback: v => v + ' kg' },
+            border: { display: false }
+          }
+        }
+      }
+    });
+  }
+
+  // ── Volume bar chart ──────────────────────────────────────────────────────
+  const vCanvas = document.getElementById('volumeChart');
+  const vEmpty = document.getElementById('volumeChartEmpty');
+
+  if (!vEntries.length) {
+    if (vEmpty) { vEmpty.classList.remove('hidden'); vEmpty.style.display='flex'; }
+    if (vCanvas) vCanvas.style.opacity = '0';
+  } else {
+    if (vEmpty) { vEmpty.classList.add('hidden'); vEmpty.style.display='none'; }
+    if (vCanvas) vCanvas.style.opacity = '1';
+
+    const vLabels = vEntries.map(e => {
+      const d = new Date(e.date);
+      return d.toLocaleDateString('pl-PL', {day:'numeric',month:'short'});
+    });
+    const vData = vEntries.map(e => e.volume);
+
+    const vCtx = vCanvas.getContext('2d');
+    const barGrad = vCtx.createLinearGradient(0, 0, 0, 180);
+    barGrad.addColorStop(0, 'rgba(124,58,237,0.8)');
+    barGrad.addColorStop(1, 'rgba(0,229,255,0.3)');
+
+    if (_volumeChart) { _volumeChart.destroy(); _volumeChart = null; }
+
+    _volumeChart = new Chart(vCtx, {
+      type: 'bar',
+      data: {
+        labels: vLabels,
+        datasets: [{
+          label: 'Wolumen',
+          data: vData,
+          backgroundColor: barGrad,
+          borderRadius: 6,
+          borderSkipped: false,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: window.innerWidth < 640 ? 2 : 3.5,
+        animation: { duration: 500, easing: 'easeInOutQuart' },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(10,11,16,0.95)',
+            borderColor: 'rgba(124,58,237,0.3)',
+            borderWidth: 1,
+            callbacks: { label: ctx => ' ' + ctx.parsed.y.toLocaleString() + ' kg·reps' }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { color: '#64748b', font: { size: 10 }, maxTicksLimit: 8 },
+            border: { display: false }
+          },
+          y: {
+            grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
+            ticks: { color: '#64748b', font: { size: 10 }, maxTicksLimit: 5 },
+            border: { display: false }
+          }
+        }
+      }
+    });
+  }
+}
+</script>
+
+<script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(()=>{});
+}
 }
 </script>
 
