@@ -112,6 +112,24 @@
     /* Progress bar */
     .progress-bar{height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;}
     .progress-fill{height:100%;border-radius:3px;transition:width 0.8s cubic-bezier(0.4,0,0.2,1);}
+
+    /* ===== SPORT TAB ===== */
+    .sport-selector-card{transition:all 0.25s cubic-bezier(0.4,0,0.2,1);cursor:pointer;border:2px solid var(--border);border-radius:16px;padding:14px 10px;text-align:center;background:var(--card);}
+    .sport-selector-card:hover{border-color:var(--border-cyan);transform:translateY(-3px);box-shadow:0 0 20px rgba(0,229,255,0.08);}
+    .sport-selector-card.selected{border-color:var(--cyan);background:rgba(0,229,255,0.08);box-shadow:0 0 25px rgba(0,229,255,0.15);}
+    .sport-category-header{display:flex;align-items:center;justify-content:between;gap:10px;padding:14px 18px;cursor:pointer;border-radius:14px;transition:background 0.2s;}
+    .sport-category-header:hover{background:rgba(255,255,255,0.03);}
+    .sport-category-body{overflow:hidden;transition:max-height 0.4s cubic-bezier(0.4,0,0.2,1);}
+    .drill-row{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-radius:12px;border:1px solid var(--border);background:rgba(0,0,0,0.2);transition:all 0.2s;margin-bottom:8px;}
+    .drill-row:hover{border-color:var(--border-cyan);background:rgba(0,229,255,0.03);}
+    .drill-add-btn{flex-shrink:0;padding:6px 14px;border-radius:10px;font-size:12px;font-weight:700;background:rgba(0,229,255,0.1);border:1px solid var(--border-cyan);color:var(--cyan);cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+    .drill-add-btn:hover{background:rgba(0,229,255,0.2);box-shadow:0 0 10px rgba(0,229,255,0.2);}
+    .drill-add-btn.added{background:rgba(0,229,255,0.25);color:#000;border-color:var(--cyan);}
+    .cat-add-btn{padding:6px 16px;border-radius:10px;font-size:12px;font-weight:700;background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.35);color:#a78bfa;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+    .cat-add-btn:hover{background:rgba(124,58,237,0.22);}
+    /* Day picker modal */
+    .day-pick-btn{padding:10px 14px;border-radius:12px;border:1px solid var(--border);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;background:transparent;color:var(--text);}
+    .day-pick-btn:hover,.day-pick-btn.active{border-color:var(--cyan);background:rgba(0,229,255,0.1);color:var(--cyan);}
   </style>
 </head>
 <body>
@@ -292,8 +310,8 @@
       <a href="#" onclick="showTab('home');return false;" data-tab="home" class="nav-item active flex items-center gap-3 p-3 text-sm font-medium text-cyan-400"><span>🏠</span><span>Home</span></a>
       <a href="#" onclick="showTab('my-day');return false;" data-tab="my-day" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>📋</span><span>Mój Dzień</span></a>
       <a href="#" onclick="showTab('plan');return false;" data-tab="plan" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>📅</span><span>Plan</span></a>
-      <a href="#" onclick="showTab('profile');return false;" data-tab="profile" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>👤</span><span>Profil</span></a>
       <a href="#" onclick="showTab('sport');return false;" data-tab="sport" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>🏀</span><span>Sport</span></a>
+      <a href="#" onclick="showTab('profile');return false;" data-tab="profile" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>👤</span><span>Profil</span></a>
       <a href="#" onclick="showTab('contact');return false;" data-tab="contact" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>💬</span><span>Kontakt</span></a>
     </nav>
     <div class="glass rounded-2xl p-4">
@@ -532,7 +550,12 @@
       <!-- Training Plan -->
       <div id="planTrainingPanel" class="hidden space-y-4">
         <div class="glass p-6">
-          <h4 class="text-xl font-bold text-white mb-4" style="font-family:'Syne',sans-serif;">💪 Zaplanowany Trening</h4>
+          <div class="flex items-center justify-between mb-4">
+            <h4 class="text-xl font-bold text-white" style="font-family:'Syne',sans-serif;">💪 Zaplanowany Trening</h4>
+            <button id="editPlanBtn" onclick="openEditPlanModal()" class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all" style="background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.25);color:#00e5ff;">
+              ✏️ Edytuj plan
+            </button>
+          </div>
           <div id="planTrainingContainer" class="space-y-3"></div>
         </div>
       </div>
@@ -607,8 +630,6 @@
         <div class="glass p-6">
           <h4 class="text-lg font-bold text-white mb-4" style="font-family:'Syne',sans-serif;">🎯 Cele treningowe</h4>
           <div id="goalsGrid" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4"></div>
-          <h4 class="text-lg font-bold text-white mb-3 mt-6" style="font-family:'Syne',sans-serif;">🏅 Sporty dedykowane</h4>
-          <div id="sportGrid" class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4"></div>
           <h4 class="text-lg font-bold text-white mb-3 mt-6" style="font-family:'Syne',sans-serif;">💪 Priorytet partii mięśniowych</h4>
           <p class="text-xs text-gray-500 mb-4">Kliknij partie na sylwetce lub na kartach. Wybrane partie dostaną więcej ćwiczeń w planie.</p>
           
@@ -738,54 +759,31 @@
 
     <!-- ====== TAB: SPORT ====== -->
     <section id="tab-sport" class="hidden space-y-6">
-      <div class="flex justify-between items-start flex-wrap gap-3">
-        <div>
-          <h3 class="text-3xl font-bold" style="font-family:'Syne',sans-serif;">🏀 Sport</h3>
-          <p class="text-sm text-gray-500 mt-1">Drille sportowe z progresją i śledzeniem skuteczności</p>
-        </div>
-        <div class="flex gap-2">
-          <button onclick="showSportSubtab('drills')" id="sporttab-drills" class="plan-subtab active px-4 py-2 rounded-xl text-sm font-bold border border-transparent transition-all">🎯 Drille</button>
-          <button onclick="showSportSubtab('log')" id="sporttab-log" class="plan-subtab px-4 py-2 rounded-xl text-sm font-bold border border-transparent transition-all text-gray-400">📝 Loguj wynik</button>
-          <button onclick="showSportSubtab('history')" id="sporttab-history" class="plan-subtab px-4 py-2 rounded-xl text-sm font-bold border border-transparent transition-all text-gray-400">📊 Historia</button>
-          <button onclick="showSportSubtab('config')" id="sporttab-config" class="plan-subtab px-4 py-2 rounded-xl text-sm font-bold border border-transparent transition-all text-gray-400">⚙️ Konfiguracja</button>
-        </div>
+
+      <!-- HEADER -->
+      <div>
+        <h3 class="text-3xl font-bold" style="font-family:'Syne',sans-serif;">🏀 Sport</h3>
+        <p class="text-sm text-gray-500 mt-1">Wybierz sport, przeglądaj kategorie ćwiczeń i dodawaj drille bezpośrednio do planu tygodniowego</p>
       </div>
 
-      <!-- Sport Config Banner -->
-      <div id="sportConfigBanner" class="alert-neon hidden">
-        <p class="text-sm">⚙️ Skonfiguruj swój sport aby zobaczyć spersonalizowane drille. <button onclick="showSportSubtab('config')" class="text-cyan-400 underline font-bold">Skonfiguruj teraz →</button></p>
+      <!-- ① SPORT SELECTOR — wizualne kafelki -->
+      <div class="glass p-5 rounded-2xl">
+        <p class="text-xs font-bold text-gray-500 uppercase mb-3">Wybierz sport</p>
+        <div id="sportSelectorGrid" class="grid grid-cols-4 sm:grid-cols-8 gap-3"></div>
+      </div>
+
+      <!-- ② SUBTABS — Drille / Loguj / Historia -->
+      <div class="flex gap-2 flex-wrap">
+        <button onclick="showSportSubtab('drills')" id="sporttab-drills" class="plan-subtab active px-4 py-2 rounded-xl text-sm font-bold border border-transparent transition-all">🎯 Drille</button>
+        <button onclick="showSportSubtab('log')" id="sporttab-log" class="plan-subtab px-4 py-2 rounded-xl text-sm font-bold border border-transparent transition-all text-gray-400">📝 Loguj wynik</button>
+        <button onclick="showSportSubtab('history')" id="sporttab-history" class="plan-subtab px-4 py-2 rounded-xl text-sm font-bold border border-transparent transition-all text-gray-400">📊 Historia</button>
       </div>
 
       <!-- ---- DRILLES SUB-TAB ---- -->
-      <div id="sport-drills" class="space-y-5">
-        <!-- Sport & Specialization selectors -->
-        <div class="glass p-5">
-          <div class="flex flex-wrap items-center gap-4">
-            <div>
-              <label class="block text-xs text-gray-500 mb-1">Sport</label>
-              <select id="drillSportSelect" onchange="loadDrills()" class="text-sm" style="min-width:160px;">
-                <option value="koszykówka">🏀 Koszykówka</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs text-gray-500 mb-1">Specjalizacja</label>
-              <select id="drillSpecSelect" onchange="filterDrillsBySpec()" class="text-sm" style="min-width:180px;">
-                <option value="">Wszystkie</option>
-                <option value="rzuty">🎯 Rzuty</option>
-                <option value="drybling">🏃 Drybling</option>
-                <option value="obrona">🛡️ Obrona</option>
-              </select>
-            </div>
-            <div class="ml-auto">
-              <p class="text-xs text-gray-500 mb-1">Twój sport</p>
-              <p class="text-sm font-bold text-cyan-400" id="userSportLabel">Nie skonfigurowano</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Drill Cards -->
-        <div id="drillCardsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="glass p-6 text-center text-gray-500 md:col-span-2 italic">Ładowanie drilli…</div>
+      <div id="sport-drills" class="space-y-4">
+        <!-- Categories + drills rendered by renderSportDrills() -->
+        <div id="sportDrillsContainer">
+          <div class="glass p-6 text-center text-gray-500 italic">Wybierz sport powyżej aby zobaczyć ćwiczenia</div>
         </div>
       </div>
 
@@ -796,9 +794,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-xs text-gray-400 mb-1">Drill *</label>
-              <select id="logDrillName" class="w-full text-sm">
-                <option value="">Wybierz drill…</option>
-              </select>
+              <select id="logDrillName" class="w-full text-sm"><option value="">Wybierz drill…</option></select>
             </div>
             <div>
               <label class="block text-xs text-gray-400 mb-1">Data sesji</label>
@@ -813,7 +809,7 @@
               <input type="number" id="logTotalAttempts" placeholder="np. 20" min="1" class="w-full text-sm">
             </div>
             <div class="md:col-span-2">
-              <label class="block text-xs text-gray-400 mb-2">RPE — Ocena wysiłku (1 = bardzo lekko, 10 = maksymalny wysiłek)</label>
+              <label class="block text-xs text-gray-400 mb-2">RPE — Ocena wysiłku (1–10)</label>
               <div class="flex items-center gap-4">
                 <span class="text-xs text-gray-600 w-4">1</span>
                 <input type="range" id="logRPE" min="1" max="10" value="6" oninput="updateRPELabel(this.value)" class="flex-1">
@@ -828,14 +824,10 @@
             </div>
           </div>
           <div class="flex gap-3 mt-5">
-            <button onclick="submitDrillResult()" class="btn-neon px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2">
-              <span>✅</span> Zapisz wynik
-            </button>
+            <button onclick="submitDrillResult()" class="btn-neon px-6 py-2.5 rounded-xl font-bold text-sm">✅ Zapisz wynik</button>
             <button onclick="showSportSubtab('drills')" class="btn-ghost px-6 py-2.5 rounded-xl text-sm">Anuluj</button>
           </div>
         </div>
-
-        <!-- Live Accuracy Preview -->
         <div id="accuracyPreview" class="glass p-5 hidden">
           <h5 class="text-sm font-bold text-white mb-3">Podgląd skuteczności</h5>
           <div class="flex items-center gap-6">
@@ -855,66 +847,35 @@
       <div id="sport-history" class="hidden space-y-5">
         <div class="flex justify-between items-center">
           <h4 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">📊 Historia drilli</h4>
-          <button onclick="clearDrillHistory()" class="btn-danger px-4 py-1.5 rounded-xl text-xs font-bold">🗑️ Wyczyść historię</button>
+          <button onclick="clearDrillHistory()" class="btn-danger px-4 py-1.5 rounded-xl text-xs font-bold">🗑️ Wyczyść</button>
         </div>
-
-        <!-- Summary Cards -->
         <div id="drillSummaryCards" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
-
-        <!-- Per-drill progression -->
         <div id="drillHistoryList" class="space-y-4">
           <p class="text-sm text-gray-500 italic text-center py-8">Brak historii. Zaloguj pierwszy wynik →</p>
         </div>
       </div>
 
-      <!-- ---- CONFIG SUB-TAB ---- -->
-      <div id="sport-config" class="hidden space-y-5">
-        <div class="glass p-6">
-          <h4 class="text-lg font-bold text-white mb-5" style="font-family:'Syne',sans-serif;">⚙️ Konfiguracja modułu sportowego</h4>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs text-gray-400 mb-1">Główny sport</label>
-              <select id="configSportFocus" class="w-full text-sm">
-                <option value="koszykówka">🏀 Koszykówka</option>
-                <option value="piłka nożna">⚽ Piłka nożna</option>
-                <option value="tenis">🎾 Tenis</option>
-                <option value="inne">🏅 Inne</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs text-gray-400 mb-1">Specjalizacja / obszar do poprawy</label>
-              <select id="configSpecialization" class="w-full text-sm">
-                <option value="rzuty">🎯 Rzuty</option>
-                <option value="drybling">🏃 Drybling</option>
-                <option value="obrona">🛡️ Obrona</option>
-                <option value="">Ogólnie</option>
-              </select>
-            </div>
-            <div class="md:col-span-2">
-              <label class="block text-xs text-gray-400 mb-2">Dni treningowe sportu</label>
-              <div class="flex flex-wrap gap-2" id="sportDayChips">
-                <span class="chip" onclick="toggleSportDay(this,'Poniedziałek')">Pon</span>
-                <span class="chip" onclick="toggleSportDay(this,'Wtorek')">Wt</span>
-                <span class="chip" onclick="toggleSportDay(this,'Środa')">Śr</span>
-                <span class="chip" onclick="toggleSportDay(this,'Czwartek')">Czw</span>
-                <span class="chip" onclick="toggleSportDay(this,'Piątek')">Pt</span>
-                <span class="chip" onclick="toggleSportDay(this,'Sobota')">Sob</span>
-                <span class="chip" onclick="toggleSportDay(this,'Niedziela')">Niedz</span>
-              </div>
-            </div>
-          </div>
-          <div class="flex gap-3 mt-5">
-            <button onclick="saveSportConfig()" class="btn-neon px-6 py-2.5 rounded-xl font-bold text-sm">💾 Zapisz konfigurację</button>
-          </div>
-        </div>
+    </section>
 
-        <!-- Current config display -->
-        <div class="glass p-5" id="currentSportConfigDisplay">
-          <h5 class="text-sm font-bold text-gray-400 uppercase mb-3">Aktualna konfiguracja</h5>
-          <div id="currentSportConfigContent" class="text-sm text-gray-400 italic">Nie skonfigurowano</div>
+    <!-- ---- MODAL: Wybierz dzień do planu ---- -->
+    <div id="addToPlanModal" class="hidden fixed inset-0 z-[110] flex items-center justify-center p-4 modal-backdrop">
+      <div class="glass rounded-3xl w-full max-w-sm p-6 space-y-5" style="border-color:var(--border-cyan)!important;">
+        <div class="flex justify-between items-center">
+          <h5 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">📅 Dodaj do planu</h5>
+          <button onclick="closeAddToPlanModal()" class="text-gray-500 hover:text-white text-xl">✕</button>
+        </div>
+        <div id="addToPlanDrillName" class="text-sm text-cyan-400 font-semibold"></div>
+        <div>
+          <p class="text-xs text-gray-400 mb-3">Wybierz dzień tygodnia:</p>
+          <div class="grid grid-cols-4 gap-2" id="addToPlanDayGrid"></div>
+        </div>
+        <div id="addToPlanFeedback" class="text-xs text-center hidden"></div>
+        <div class="flex gap-3 pt-1">
+          <button onclick="confirmAddToPlan()" class="flex-1 btn-neon py-2.5 rounded-xl font-bold text-sm">✅ Dodaj</button>
+          <button onclick="closeAddToPlanModal()" class="flex-1 btn-ghost py-2.5 rounded-xl text-sm">Anuluj</button>
         </div>
       </div>
-    </section>
+    </div>
 
     <!-- ====== TAB: CONTACT ====== -->
     <section id="tab-contact" class="hidden space-y-6">
@@ -1807,9 +1768,8 @@ function showTab(tabId) {
   if (tabId==='home') updateDashboard();
   if (tabId==='my-day') { loadTodayPlanChecklist(); renderExtraItems(); }
   if (tabId==='sport') {
-    const st = loadSportState();
-    if (!st.sport_focus) document.getElementById('sportConfigBanner')?.classList.remove('hidden');
-    else document.getElementById('sportConfigBanner')?.classList.add('hidden');
+    renderSportSelector();
+    renderSportDrills();
     showSportSubtab('drills');
   }
   document.getElementById('mainContent').scrollTop = 0;
@@ -1917,34 +1877,31 @@ function refreshExercisesForSlider(count) {
   const checkedKey = p.id + '_' + day;
   const checked = state.dayChecked[checkedKey] || {};
 
-  // Determine muscle groups for this day from profile template
-  const goals = p.goals || [];
-  const sports = p.sports || [];
-  let templateKey = 'default';
-  if (sports.includes('basketball')) templateKey = 'basketball';
-  else if (sports.includes('running')) templateKey = 'running';
-  else if (goals.includes('cardio')) templateKey = 'cardio';
-  else if (goals.includes('strength') || goals.includes('mass')) templateKey = 'strength';
+  // Sprawdź czy użytkownik dodał ćwiczenia sportowe dla tego dnia
+  const allSaved = p.trainingPlan[day] || [];
+  const sportExercises = allSaved.filter(e => e._sport && !e.hidden);
 
-  const baseTemplate = PLAN_TEMPLATES[templateKey];
-  const muscleFocus = p.muscleFocus || [];
-  const dayGroups = (baseTemplate[day] || []).slice();
+  let exercises;
+  if (sportExercises.length > 0) {
+    // Dzień sportowy — pokazuj TYLKO ćwiczenia sportowe (bez siłowych z generatora)
+    exercises = sportExercises;
+  } else {
+    // Brak ćwiczeń sportowych — generuj z szablonu siłowego
+    const goals = p.goals || [];
+    const sports = p.sports || [];
+    let templateKey = 'default';
+    if (sports.includes('basketball')) templateKey = 'basketball';
+    else if (sports.includes('running')) templateKey = 'running';
+    else if (goals.includes('cardio')) templateKey = 'cardio';
+    else if (goals.includes('strength') || goals.includes('mass')) templateKey = 'strength';
 
-  // Add muscle focus groups to the front for priority
-  const priorityGroups = [...muscleFocus.filter(m => EXERCISE_DB[m] && !dayGroups.includes(m)), ...dayGroups];
-  const muscleGroups = priorityGroups.length > 0 ? priorityGroups : dayGroups;
-
-  // Generate fresh exercises directly from DB (not from saved plan)
-  const freshExercises = generateExercisesForDay(muscleGroups, equip, excl, count);
-
-  // Also merge in any exercises from saved plan that aren't already present
-  const savedExercises = p.trainingPlan[day] || [];
-  const savedNames = new Set(freshExercises.map(e => e.name));
-  const extra = savedExercises.filter(e => !savedNames.has(e.name) && !e.hidden);
-  const merged = [...freshExercises, ...extra].slice(0, count);
-
-  // Use merged if we got more exercises that way
-  const exercises = merged.length >= freshExercises.length ? merged : freshExercises;
+    const baseTemplate = PLAN_TEMPLATES[templateKey];
+    const muscleFocus = p.muscleFocus || [];
+    const dayGroups = (baseTemplate[day] || []).slice();
+    const priorityGroups = [...muscleFocus.filter(m => EXERCISE_DB[m] && !dayGroups.includes(m)), ...dayGroups];
+    const muscleGroups = priorityGroups.length > 0 ? priorityGroups : dayGroups;
+    exercises = generateExercisesForDay(muscleGroups, equip, excl, count);
+  }
 
   // Store for modal
   state._planExercises = exercises;
@@ -2052,16 +2009,6 @@ function renderGoalsGrid() {
       <span class="text-3xl">${g.emoji}</span>
       <span class="text-sm font-medium ${active?'text-cyan-400':'text-white'}">${g.label}</span>
       ${active ? '<span class="text-[10px] text-cyan-400 font-bold">✓ Aktywny</span>' : ''}
-    </div>`;
-  }).join('');
-
-  // Sport goals
-  document.getElementById('sportGrid').innerHTML = SPORT_GOALS.map(g => {
-    const active = (p.sports||[]).includes(g.id);
-    return `<div class="sport-tile glass rounded-xl p-3 cursor-pointer flex items-center gap-2 transition-all ${active ? 'border-cyan-400/60 bg-cyan-500/10 shadow-[0_0_12px_rgba(0,229,255,0.12)]' : 'hover:border-cyan-500/30'}" onclick="toggleSportTile('${g.id}',this)" data-id="${g.id}">
-      <span class="text-2xl">${g.emoji}</span>
-      <div><p class="text-sm font-medium ${active?'text-cyan-400':'text-white'}">${g.label}</p><p class="text-xs text-gray-500">${g.focus}</p></div>
-      ${active ? '<span class="ml-auto text-cyan-400 text-sm">✓</span>' : ''}
     </div>`;
   }).join('');
 
@@ -2800,7 +2747,77 @@ function printShoppingList() {
   </div>
 </div>
 
-</body></html>`);
+
+  <!-- ====== EDIT PLAN MODAL ====== -->
+  <div id="editPlanModal" class="fixed inset-0 z-[200] flex items-center justify-center p-4 hidden">
+    <div class="absolute inset-0" style="background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);" onclick="closeEditPlanModal()"></div>
+    <div class="relative w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl overflow-hidden" style="background:#0f1117;border:1px solid rgba(0,229,255,0.2);box-shadow:0 0 60px rgba(0,229,255,0.08);">
+      <!-- Header -->
+      <div class="flex items-center justify-between px-6 py-4 border-b" style="border-color:rgba(255,255,255,0.06);">
+        <div>
+          <h3 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">✏️ Edytuj plan treningowy</h3>
+          <p id="editPlanDayLabel" class="text-xs text-gray-500 mt-0.5"></p>
+        </div>
+        <button onclick="closeEditPlanModal()" class="w-8 h-8 flex items-center justify-center rounded-xl text-gray-400 hover:text-white transition-colors" style="background:rgba(255,255,255,0.05);">✕</button>
+      </div>
+
+      <!-- Exercise list (scrollable) -->
+      <div class="flex-1 overflow-y-auto px-6 py-4 space-y-2" id="editPlanList"></div>
+
+      <!-- Add exercise section -->
+      <div class="px-6 py-4 border-t" style="border-color:rgba(255,255,255,0.06);">
+        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Dodaj ćwiczenie</p>
+        <div class="flex gap-2">
+          <div class="relative flex-1">
+            <input id="editPlanSearch" type="text" placeholder="Szukaj ćwiczenia..." autocomplete="off"
+              class="w-full px-4 py-2.5 rounded-xl text-sm text-white placeholder-gray-600 outline-none"
+              style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);"
+              oninput="renderEditPlanSearch(this.value)"
+              onfocus="renderEditPlanSearch(this.value)">
+            <div id="editPlanDropdown" class="absolute bottom-full left-0 right-0 mb-1 rounded-xl overflow-hidden hidden max-h-52 overflow-y-auto"
+              style="background:#1a1d26;border:1px solid rgba(0,229,255,0.2);z-index:10;"></div>
+          </div>
+          <button onclick="addCustomExercise()" class="px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap" style="background:rgba(0,229,255,0.12);border:1px solid rgba(0,229,255,0.3);color:#00e5ff;">
+            + Własne
+          </button>
+        </div>
+      </div>
+
+      <!-- Footer buttons -->
+      <div class="flex gap-3 px-6 py-4 border-t" style="border-color:rgba(255,255,255,0.06);">
+        <button onclick="saveEditedPlan()" class="flex-1 btn-neon py-3 rounded-xl font-bold text-sm">💾 Zapisz plan</button>
+        <button onclick="closeEditPlanModal()" class="px-6 py-3 rounded-xl text-sm font-bold text-gray-400 hover:text-white transition-colors" style="background:rgba(255,255,255,0.05);">Anuluj</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== ADD CUSTOM EXERCISE MODAL ====== -->
+  <div id="customExModal" class="fixed inset-0 z-[210] flex items-center justify-center p-4 hidden">
+    <div class="absolute inset-0" style="background:rgba(0,0,0,0.6);" onclick="closeCustomExModal()"></div>
+    <div class="relative w-full max-w-sm rounded-2xl p-6 space-y-4" style="background:#0f1117;border:1px solid rgba(124,58,237,0.3);">
+      <h3 class="text-base font-bold text-white" style="font-family:'Syne',sans-serif;">➕ Własne ćwiczenie</h3>
+      <input id="customExName" type="text" placeholder="Nazwa ćwiczenia" class="w-full px-4 py-2.5 rounded-xl text-sm text-white placeholder-gray-600 outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+      <div class="grid grid-cols-3 gap-2">
+        <div>
+          <label class="text-xs text-gray-500 mb-1 block">Serie</label>
+          <input id="customExSets" type="number" value="3" min="1" max="10" class="w-full px-3 py-2 rounded-xl text-sm text-white text-center outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+        </div>
+        <div>
+          <label class="text-xs text-gray-500 mb-1 block">Powt.</label>
+          <input id="customExReps" type="number" value="10" min="1" max="100" class="w-full px-3 py-2 rounded-xl text-sm text-white text-center outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+        </div>
+        <div>
+          <label class="text-xs text-gray-500 mb-1 block">Kg</label>
+          <input id="customExWeight" type="number" value="0" min="0" class="w-full px-3 py-2 rounded-xl text-sm text-white text-center outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+        </div>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button onclick="confirmAddCustomEx()" class="flex-1 btn-neon py-2.5 rounded-xl font-bold text-sm">Dodaj</button>
+        <button onclick="closeCustomExModal()" class="px-4 py-2.5 rounded-xl text-sm text-gray-400" style="background:rgba(255,255,255,0.05);">Anuluj</button>
+      </div>
+    </div>
+  </div>
+<\/body><\/html>`);
   win.document.close();
   win.print();
 }
@@ -2933,23 +2950,231 @@ function escapeHTML(str) {
 
 // ========== SPORT MODULE ==========
 
-// Embedded drill database (mirrors backend SPORT_DRILLS_DB)
+// ========== ROZBUDOWANA BAZA SPORTÓW ==========
+const SPORTS_CATALOG = [
+  { id:'koszykówka',    emoji:'🏀', label:'Koszykówka',   color:'#f97316' },
+  { id:'piłka nożna',  emoji:'⚽', label:'Piłka nożna',  color:'#22c55e' },
+  { id:'tenis',         emoji:'🎾', label:'Tenis',         color:'#eab308' },
+  { id:'siatkówka',     emoji:'🏐', label:'Siatkówka',    color:'#a855f7' },
+  { id:'boks',          emoji:'🥊', label:'Boks',          color:'#ef4444' },
+  { id:'pływanie',      emoji:'🏊', label:'Pływanie',     color:'#06b6d4' },
+  { id:'bieganie',      emoji:'🏃', label:'Bieganie',     color:'#84cc16' },
+  { id:'kolarstwo',     emoji:'🚴', label:'Kolarstwo',    color:'#f59e0b' },
+];
+
 const SPORT_DRILLS = {
   'koszykówka': {
-    'rzuty': [
-      { name:'Rzuty osobiste', total_attempts:20, description:'Standardowe rzuty wolne z linii rzutów osobistych.', progression_tip:'Cel: ≥15/20 (75%) przez 2 sesje z rzędu → zwiększ do 25 prób.', target_pct:75 },
-      { name:'Rzuty za 3 punkty', total_attempts:20, description:'5 rzutów z 4 różnych pozycji za łukiem (corners, wings, top).', progression_tip:'Cel: ≥10/20 (50%) → dodaj 5 prób lub utrudnij pozycje.', target_pct:50 },
-      { name:'Rzuty z odchylenia', total_attempts:15, description:'Mid-range pull-up jump shot po jednym lub dwóch krokach.', progression_tip:'Cel: ≥10/15 (67%) → dodaj obrońcę lub skróć czas wykonania.', target_pct:67 },
-      { name:'Mikan Drill', total_attempts:40, description:'Naprzemienne layupy z obu stron tablicy (20 z lewej + 20 z prawej).', progression_tip:'Cel: ≥34/40 (85%) → przejdź do Power Mikan (po zbiórce).', target_pct:85 },
-    ],
-    'drybling': [
-      { name:'Figure-8 Dribbling', total_attempts:10, description:'Ósemka między nogami – 10 pełnych okrążeń bez zgubienia piłki.', progression_tip:'Cel: 10/10 bez błędu → przyspiesz tempo lub zamknij oczy.', target_pct:100 },
-      { name:'Stationary Crossover', total_attempts:20, description:'Crossover przed ciałem – 20 powtórzeń na stronę.', progression_tip:'Cel: 20/20 → wprowadź krok do przodu (live dribble).', target_pct:100 },
-    ],
-    'obrona': [
-      { name:'Defensive Slides', total_attempts:10, description:'10 powtórzeń ślizgów obronnych w obie strony (bez krzyżowania nóg).', progression_tip:'Cel: 10/10 ze stabilną pozycją → dodaj zmianę kierunku.', target_pct:100 },
-    ],
-  }
+    emoji:'🏀',
+    'rzuty': {
+      emoji:'🎯', label:'Rzuty',
+      drills: [
+        { name:'Rzuty osobiste', duration:'15 min', total_attempts:20, description:'Standardowe rzuty wolne z linii rzutów osobistych. Skup się na powtarzalności mechaniki rzutu.', progression_tip:'Cel: ≥15/20 (75%) przez 2 sesje z rzędu → zwiększ do 25 prób.', target_pct:75, sets:'3 serie po 20', muscle_group:'ramiona, koncentracja' },
+        { name:'Rzuty za 3 punkty', duration:'20 min', total_attempts:20, description:'5 rzutów z 4 różnych pozycji za łukiem (corners, wings, top). Zaznacz pozycje taśmą.', progression_tip:'Cel: ≥10/20 (50%) → dodaj 5 prób lub utrudnij pozycje.', target_pct:50, sets:'4 pozycje × 5 rzutów', muscle_group:'nogi, ramiona' },
+        { name:'Rzuty z odchylenia', duration:'15 min', total_attempts:15, description:'Mid-range pull-up jump shot po jednym lub dwóch krokach dryblingu.', progression_tip:'Cel: ≥10/15 (67%) → dodaj obrońcę lub skróć czas wykonania.', target_pct:67, sets:'3 serie po 5', muscle_group:'nogi, eksplozywność' },
+        { name:'Mikan Drill', duration:'10 min', total_attempts:40, description:'Naprzemienne layupy z obu stron tablicy (20 z lewej + 20 z prawej). Bez zatrzymywania.', progression_tip:'Cel: ≥34/40 (85%) → przejdź do Power Mikan (po zbiórce).', target_pct:85, sets:'2 serie po 20 z każdej strony', muscle_group:'nogi, koordynacja' },
+        { name:'Catch & Shoot', duration:'15 min', total_attempts:25, description:'Rzuty po podaniu od partnera z różnych pozycji. Skup się na czasie wykonania od odbioru piłki.', progression_tip:'Cel: ≥17/25 (68%) → skróć okno czasowe lub dodaj screen.', target_pct:68, sets:'5 rzutów z 5 pozycji', muscle_group:'ramiona, szybkość reakcji' },
+      ]
+    },
+    'drybling': {
+      emoji:'🏃', label:'Drybling',
+      drills: [
+        { name:'Figure-8 Dribbling', duration:'10 min', total_attempts:10, description:'Ósemka między nogami – 10 pełnych okrążeń bez zgubienia piłki. Lewa i prawa ręka.', progression_tip:'Cel: 10/10 bez błędu → przyspiesz tempo lub zamknij oczy.', target_pct:100, sets:'3 serie po 10 okrążeń', muscle_group:'nadgarstki, koordynacja' },
+        { name:'Stationary Crossover', duration:'10 min', total_attempts:20, description:'Crossover przed ciałem – 20 powtórzeń na stronę w niskiej pozycji.', progression_tip:'Cel: 20/20 → wprowadź krok do przodu (live dribble).', target_pct:100, sets:'4 serie po 20', muscle_group:'nadgarstki, kondycja' },
+        { name:'Full-Court Speed Dribble', duration:'15 min', total_attempts:10, description:'10 sprintów przez całe boisko z dryblowaniem. Naprzemiennie prawa i lewa.', progression_tip:'Cel: 10/10 bez straty piłki w sprincie → dodaj cone slalom.', target_pct:100, sets:'10 sprintów', muscle_group:'nogi, kardio' },
+        { name:'Two-Ball Dribbling', duration:'12 min', total_attempts:10, description:'Dryblowanie dwoma piłkami jednocześnie – 10 okrążeń bez zgubienia.', progression_tip:'Cel: 8/10 → wprowadź naprzemienność góra-dół.', target_pct:80, sets:'3 serie po 10', muscle_group:'koordynacja, koncentracja' },
+      ]
+    },
+    'obrona': {
+      emoji:'🛡️', label:'Obrona',
+      drills: [
+        { name:'Defensive Slides', duration:'10 min', total_attempts:10, description:'10 serii ślizgów obronnych w obie strony (bez krzyżowania nóg). Niski środek ciężkości.', progression_tip:'Cel: 10/10 ze stabilną pozycją → dodaj zmianę kierunku.', target_pct:100, sets:'5 serii w obie strony', muscle_group:'nogi, wytrzymałość' },
+        { name:'Close-out Drill', duration:'12 min', total_attempts:15, description:'Wypad na atakującego z przyspieszeniem i zatrzymaniem w dobrej pozycji obronnej.', progression_tip:'Cel: ≥12/15 poprawnych pozycji → dodaj rzut atakującego.', target_pct:80, sets:'3 serie po 5', muscle_group:'nogi, eksplozywność' },
+        { name:'Shell Defense 1v1', duration:'15 min', total_attempts:10, description:'Obrona 1na1 z partnerem. Każda posiadanie = 1 próba. Cel: nie dać rzutu lub wstrzymać 5s.', progression_tip:'Cel: ≥7/10 → utrudnij przez danie atakującemu preferowanej ręki.', target_pct:70, sets:'10 posiadań', muscle_group:'nogi, refleks' },
+      ]
+    },
+    'kondycja': {
+      emoji:'💨', label:'Kondycja',
+      drills: [
+        { name:'Suicide Sprints', duration:'15 min', total_attempts:8, description:'Sprint do linii rzutów wolnych (i z powrotem), do połowy, do linii 3pkt końca, do końca. 8 rund.', progression_tip:'Cel: 8/8 rund bez odpoczynku → skróć przerwy między rundami.', target_pct:100, sets:'8 rund', muscle_group:'kardio, nogi' },
+        { name:'17s Drill', duration:'10 min', total_attempts:10, description:'17 sprintów pełnymi korek + powrót w 60 sekund. 10 powtórzeń.', progression_tip:'Cel: 10/10 → skróć limit do 55 sekund.', target_pct:100, sets:'10 powtórzeń', muscle_group:'kardio, wytrzymałość' },
+      ]
+    },
+  },
+
+  'piłka nożna': {
+    emoji:'⚽',
+    'technika': {
+      emoji:'⚽', label:'Technika',
+      drills: [
+        { name:'Żonglowanie piłką', duration:'15 min', total_attempts:50, description:'Żonglowanie piłką obie nogi, udo i głowa. Łącz sekwencje bez upuszczania.', progression_tip:'Cel: ≥40/50 kontaktów → zwiększ do 75 lub wprowadź jedną nogę.', target_pct:80, sets:'3 serie 50 kontaktów', muscle_group:'koordynacja, nogi' },
+        { name:'Passing Wall Work', duration:'15 min', total_attempts:30, description:'30 podań w ścianę z pierwszym dotykiem, naprzemiennie lewa i prawa noga.', progression_tip:'Cel: 28/30 czystych przyjęć → zmniejsz odległość lub przyspieszaj.', target_pct:93, sets:'3 serie po 10 podań na nogę', muscle_group:'nogi, precyzja' },
+        { name:'Cone Slalom', duration:'12 min', total_attempts:10, description:'Slalom przez 10 pachołków z piłką, obie nogi, sprint powrotny.', progression_tip:'Cel: 10/10 bez trącenia pachołka → przyspieszaj każdą serię.', target_pct:100, sets:'5 serii z każdą nogą', muscle_group:'nogi, koordynacja' },
+        { name:'Rondo 5v2', duration:'20 min', total_attempts:20, description:'5 zawodników trzyma piłkę vs 2 pressujących. 20 podań bez straty.', progression_tip:'Cel: 20 podań z rzędu → zmniejsz pole gry o 1m.', target_pct:100, sets:'Sesja 20 min', muscle_group:'decyzyjność, technika' },
+      ]
+    },
+    'strzały': {
+      emoji:'🥅', label:'Strzały',
+      drills: [
+        { name:'Strzały z 16 metrów', duration:'15 min', total_attempts:20, description:'20 strzałów na bramkę z odległości 16m. 10 lewą, 10 prawą nogą.', progression_tip:'Cel: ≥14/20 (70%) w bramce → utrudnij pozycją lub bramkarzem.', target_pct:70, sets:'4 serie po 5 strzałów', muscle_group:'nogi, technika strzału' },
+        { name:'First-Touch Shot', duration:'15 min', total_attempts:15, description:'Strzał po podaniu z pierwszego kontaktu. Partner podaje, atakujesz natychmiast.', progression_tip:'Cel: ≥10/15 celnych → zmieniaj kąt podania.', target_pct:67, sets:'3 serie po 5', muscle_group:'nogi, szybkość reakcji' },
+        { name:'Volley Shots', duration:'12 min', total_attempts:10, description:'Strzały z woleja po podaniu w powietrze. Skup się na kontroli i precyzji.', progression_tip:'Cel: 7/10 w bramce → zwiększ wysokość lub odległość podania.', target_pct:70, sets:'10 strzałów', muscle_group:'nogi, koordynacja' },
+      ]
+    },
+    'sprint': {
+      emoji:'💨', label:'Sprint & Kondycja',
+      drills: [
+        { name:'30m Sprint Intervals', duration:'20 min', total_attempts:10, description:'10 × sprint 30m z pełną intensywnością. 90s przerwy między sprintami.', progression_tip:'Cel: Każdy sprint w czasie bazowym → skróć przerwę do 75s.', target_pct:100, sets:'10 sprintów', muscle_group:'kardio, nogi, eksplozywność' },
+        { name:'Agility Ladder', duration:'15 min', total_attempts:10, description:'10 serii drabinki koordynacyjnej — icky shuffle, lateral quick steps, in-out.', progression_tip:'Cel: 10/10 bez błędu → zwiększ tempo lub dodaj piłkę.', target_pct:100, sets:'3 wzorce × 10 serii', muscle_group:'koordynacja, szybkość nóg' },
+      ]
+    },
+  },
+
+  'tenis': {
+    emoji:'🎾',
+    'forehand': {
+      emoji:'🎾', label:'Forehand',
+      drills: [
+        { name:'Cross-Court Forehand Rally', duration:'20 min', total_attempts:50, description:'50 wymian cross-court forhendem z partnerem. Skupiaj się na rotacji topspin.', progression_tip:'Cel: ≥40/50 piłek w korcie → zwiększ moc lub skróć kąt.', target_pct:80, sets:'5 serii po 10 wymian', muscle_group:'ramiona, rotacja tułowia' },
+        { name:'Inside-Out Forehand', duration:'15 min', total_attempts:20, description:'Forhend inside-out na otwarty kort po krótkim uderzu.', progression_tip:'Cel: ≥15/20 → utrudnij przez zmianę głębokości piłki.', target_pct:75, sets:'4 serie po 5', muscle_group:'ramiona, footwork' },
+        { name:'Forehand Drive Baseline', duration:'20 min', total_attempts:30, description:'Flatowy forhend z bazy z głębokością min 80% kortu.', progression_tip:'Cel: 25/30 głęboko → dodaj cel (linia serwisowa).', target_pct:83, sets:'3 serie po 10', muscle_group:'ramiona, core' },
+      ]
+    },
+    'backhand': {
+      emoji:'🔙', label:'Backhand',
+      drills: [
+        { name:'Two-Handed Backhand Rally', duration:'20 min', total_attempts:50, description:'50 wymian bekhendem obunożnym cross-court. Skupiaj się na stabilności kroku.', progression_tip:'Cel: ≥40/50 → zwiększ tempo do 75% mocy.', target_pct:80, sets:'5 serii po 10', muscle_group:'ramiona, nogi' },
+        { name:'Slice Backhand', duration:'15 min', total_attempts:20, description:'Bekhend slice niski nad siatką. Utrzymuj piłkę pod linią bioder.', progression_tip:'Cel: ≥16/20 poniżej pasa → dodaj target w głębi kortu.', target_pct:80, sets:'4 serie po 5', muscle_group:'ramiona, nadgarstek' },
+      ]
+    },
+    'serwis': {
+      emoji:'💫', label:'Serwis',
+      drills: [
+        { name:'Flat Serve Placement', duration:'15 min', total_attempts:20, description:'20 serwisów flat – celuj w T, Body lub Wide. Po 7 z każdej pozycji.', progression_tip:'Cel: ≥14/20 (70%) w serwisowym → zwiększ prędkość o 10%.', target_pct:70, sets:'20 serwisów z podziałem na strefy', muscle_group:'ramiona, core, nogi' },
+        { name:'Kick Serve Practice', duration:'15 min', total_attempts:15, description:'Serwis kick – duże wybicie z rotacją topspin. Cel: wysoki odskkok po stornie bekhend.', progression_tip:'Cel: ≥10/15 z wysokim podskokiem → zmień cel na ciasny kąt.', target_pct:67, sets:'15 prób', muscle_group:'ramiona, rotacja' },
+      ]
+    },
+    'footwork': {
+      emoji:'👟', label:'Footwork',
+      drills: [
+        { name:'Split Step Timing', duration:'10 min', total_attempts:20, description:'20 ćwiczeń split step w odpowiednim momencie – przy uderzeniu przeciwnika.', progression_tip:'Cel: 18/20 z prawidłowym timingiem → dodaj ruch boczny po split.', target_pct:90, sets:'4 serie po 5', muscle_group:'nogi, reakcja' },
+        { name:'Spider Drill', duration:'15 min', total_attempts:10, description:'Sprint do 6 punktów kortu i z powrotem. 10 pełnych rund tenisowego pająka.', progression_tip:'Cel: 10/10 poniżej swojego rekordu → skróć czas bazowy o 5%.', target_pct:100, sets:'10 rund', muscle_group:'nogi, kardio, agility' },
+      ]
+    },
+  },
+
+  'siatkówka': {
+    emoji:'🏐',
+    'zagrywka': {
+      emoji:'💥', label:'Zagrywka',
+      drills: [
+        { name:'Zagrywka tenisowa (float)', duration:'15 min', total_attempts:20, description:'20 zagrywek float serwisowych z pełną mocą. Cel: przelot siatki i lądowanie w polu.', progression_tip:'Cel: ≥15/20 w polu → celuj w strefy (strefy 1,5,6).', target_pct:75, sets:'4 serie po 5', muscle_group:'ramiona, core' },
+        { name:'Zagrywka skoczna', duration:'20 min', total_attempts:15, description:'15 jump serve. Rozbiegu 3 kroki, odbicie, uderzenie w najwyższym punkcie.', progression_tip:'Cel: ≥10/15 z mocą → dodaj celowanie w konkretną strefę.', target_pct:67, sets:'3 serie po 5', muscle_group:'nogi, ramiona, eksplozywność' },
+      ]
+    },
+    'przyjęcie': {
+      emoji:'🙌', label:'Przyjęcie',
+      drills: [
+        { name:'Dig Drill – zagrywka partnera', duration:'20 min', total_attempts:20, description:'20 odbić sposobem dolnym zagrywek partnera. Skup się na platformie i kierowaniu piłki.', progression_tip:'Cel: ≥16/20 do strefy wyznaczonej → partner utrudnia zagrywkę.', target_pct:80, sets:'4 serie po 5', muscle_group:'ramiona, nogi, reakcja' },
+        { name:'Sprawdzian libero', duration:'15 min', total_attempts:15, description:'15 trudnych zagrywek (float + skoczna) z różnych kątów. Utrzymaj piłkę w grze.', progression_tip:'Cel: ≥12/15 → partner atakuje mocniej.', target_pct:80, sets:'15 prób', muscle_group:'reakcja, nogi' },
+      ]
+    },
+    'atak': {
+      emoji:'⚡', label:'Atak',
+      drills: [
+        { name:'Pipe Attack', duration:'15 min', total_attempts:20, description:'20 ataków środkowych (pipe) po wystawieniu. Pełny rozbieg i zamach.', progression_tip:'Cel: ≥14/20 za linię obronną → dodaj blok partnera.', target_pct:70, sets:'4 serie po 5', muscle_group:'nogi, ramiona, eksplozywność' },
+        { name:'Cross & Line Shot', duration:'15 min', total_attempts:10, description:'10 ataków naprzemiennie diagonal i po linii. Cel: precyzja zmiany kierunku.', progression_tip:'Cel: ≥8/10 → utrudnij przez wolniejsze wystawienie.', target_pct:80, sets:'10 prób', muscle_group:'ramiona, decyzyjność' },
+      ]
+    },
+  },
+
+  'boks': {
+    emoji:'🥊',
+    'kombinacje': {
+      emoji:'👊', label:'Kombinacje',
+      drills: [
+        { name:'1-2 na worku (jab-cross)', duration:'10 min', total_attempts:50, description:'50 kombinacji 1-2 na worku bokserskim. Skup się na rotacji bioder i cofaniu po kombinacji.', progression_tip:'Cel: 50/50 z pełną mocą i poprawnymi stopami → zwiększ do 3-ciosowej kombinacji.', target_pct:100, sets:'5 rund po 2 min', muscle_group:'ramiona, core, kardio' },
+        { name:'1-2-3-2 Combo', duration:'12 min', total_attempts:30, description:'Jab – cross – lewy hak – cross. 30 pełnych kombinacji z głową po każdej.', progression_tip:'Cel: 30/30 z powrotem do gardii → zwiększ prędkość.', target_pct:100, sets:'3 rund po 3 min', muscle_group:'ramiona, refleks' },
+        { name:'Body-Head Combo', duration:'10 min', total_attempts:30, description:'Ciosy do korpusu + głowa. Naprzemiennie 2 do ciała, 1 do głowy.', progression_tip:'Cel: 30/30 z changeup → partner z łapami.', target_pct:100, sets:'3 serie po 10', muscle_group:'ramiona, core' },
+      ]
+    },
+    'praca nóg': {
+      emoji:'👟', label:'Praca nóg',
+      drills: [
+        { name:'Box Step Footwork', duration:'10 min', total_attempts:10, description:'10 serii ruchu w kwadracie (przód-bok-tył-bok) utrzymując gardię. Bez patrzenia w dół.', progression_tip:'Cel: 10/10 bez utraty gardii → dodaj cios po każdym rogu.', target_pct:100, sets:'10 serii po 30s', muscle_group:'nogi, koordynacja' },
+        { name:'Slip & Counter', duration:'12 min', total_attempts:20, description:'Unik boczny i kontratak. 20 powtórzeń na każdą stronę.', progression_tip:'Cel: 18/20 płynnych → partner z tarczami.', target_pct:90, sets:'4 serie po 5 na stronę', muscle_group:'nogi, refleks, ramiona' },
+      ]
+    },
+    'kondycja': {
+      emoji:'🔥', label:'Kondycja',
+      drills: [
+        { name:'Rundki na worku', duration:'20 min', total_attempts:5, description:'5 rund po 3 minuty na worku z 1 min przerwy. Pełna intensywność każdej rundy.', progression_tip:'Cel: 5/5 rund z pełną intensywnością → zwiększ do 6 rund.', target_pct:100, sets:'5 × 3 min', muscle_group:'kardio, siła, wytrzymałość' },
+        { name:'Double-End Bag', duration:'15 min', total_attempts:10, description:'10 minut na gruszce double-end. Trening timingu i precyzji reagowania na odbicia.', progression_tip:'Cel: 10 min bez przerwy → zwiększ napięcie gumy.', target_pct:100, sets:'2 × 5 min', muscle_group:'oczy-ręka, refleks' },
+      ]
+    },
+  },
+
+  'pływanie': {
+    emoji:'🏊',
+    'technika': {
+      emoji:'🌊', label:'Technika',
+      drills: [
+        { name:'Catch-up Drill (kraul)', duration:'15 min', total_attempts:10, description:'10 długości basenu z catch-up – jedna ręka czeka, druga dobiega. Skup się na rotacji.', progression_tip:'Cel: 10/10 z równą rotacją → zmniejsz przerwę między rękami.', target_pct:100, sets:'10 długości', muscle_group:'ramiona, core, rotacja' },
+        { name:'Kickboard Kicks', duration:'10 min', total_attempts:8, description:'8 długości tylko z pracą nóg trzymając deskę. Naprzemiennie grzbiet i brzuch.', progression_tip:'Cel: 8/8 z ciałem poziomym → zmniejsz deskę lub kop bez deski.', target_pct:100, sets:'8 długości', muscle_group:'nogi, kardio' },
+        { name:'Fingertip Drag', duration:'10 min', total_attempts:6, description:'6 długości kraul z ciągnięciem palców po powierzchni. Wymaga wysokiego łokcia.', progression_tip:'Cel: 6/6 z ciągłym kontaktem palców → pełna prędkość.', target_pct:100, sets:'6 długości', muscle_group:'ramiona, technika powrotu' },
+      ]
+    },
+    'interwały': {
+      emoji:'⏱️', label:'Interwały',
+      drills: [
+        { name:'8×50m Sprint Intervals', duration:'20 min', total_attempts:8, description:'8 sprintów 50m z 30s odpoczynku. Cel: każdy sprint w tym samym tempie.', progression_tip:'Cel: Maksymalne tempo przez 8 powtórzeń → zmniejsz przerwę do 20s.', target_pct:100, sets:'8 × 50m', muscle_group:'kardio, siła' },
+        { name:'Pyramid Set', duration:'25 min', total_attempts:10, description:'Piramida: 50-100-150-200-150-100-50m z 15s przerwy między.', progression_tip:'Cel: Ukończyć bez obniżenia tempa → dodaj jeden szczebel (250m).', target_pct:100, sets:'Piramida 7 dystansów', muscle_group:'wytrzymałość, kardio' },
+      ]
+    },
+  },
+
+  'bieganie': {
+    emoji:'🏃',
+    'interwały': {
+      emoji:'⚡', label:'Interwały',
+      drills: [
+        { name:'400m Repeats', duration:'25 min', total_attempts:8, description:'8 × 400m w tempie wyścigu 5km z 90s jogging przerwy. Ścisłe trzymanie tempa.', progression_tip:'Cel: 8/8 w zaplanowanym tempie → zmniejsz przerwę do 75s.', target_pct:100, sets:'8 × 400m', muscle_group:'kardio, nogi, mentalność' },
+        { name:'Fartlek 20 min', duration:'20 min', total_attempts:10, description:'20 min z 10 przyspieszeniami 30-60s wplecionymi w łatwy jogging.', progression_tip:'Cel: 10/10 przyspieszeń → zwiększ długość do 90s lub prędkość.', target_pct:100, sets:'10 przyspieszeń', muscle_group:'kardio, nogi' },
+      ]
+    },
+    'technika': {
+      emoji:'👟', label:'Technika biegu',
+      drills: [
+        { name:'Strides (przyśpieszenia)', duration:'15 min', total_attempts:8, description:'8 × 80-100m płynnego przyspieszenia do ~90% max prędkości i stopniowe zwalnianie.', progression_tip:'Cel: 8/8 z lądowaniem środstopiem → zwiększ do 10 strides.', target_pct:100, sets:'8 strides', muscle_group:'technika, nogi' },
+        { name:'High Knees Drill', duration:'10 min', total_attempts:10, description:'10 serii 30m z wysokim unoszeniem kolan. Ręce aktywne, tułów wyprostowany.', progression_tip:'Cel: 10/10 z kolanami powyżej bioder → przyspieszaj każdą serię.', target_pct:100, sets:'10 × 30m', muscle_group:'nogi, koordynacja, core' },
+        { name:'A-Skip & B-Skip', duration:'10 min', total_attempts:10, description:'10 serii skip A (unoszenie kolan) i skip B (wyrzut podudzia). Technika cyklu biegowego.', progression_tip:'Cel: 10/10 z aktywną pracą stóp → dodaj przejście w sprint.', target_pct:100, sets:'5 serii A + 5 serii B', muscle_group:'koordynacja, technika' },
+      ]
+    },
+    'długodystansowe': {
+      emoji:'🏅', label:'Długi bieg',
+      drills: [
+        { name:'Easy Long Run', duration:'60+ min', total_attempts:1, description:'Bieg w tempie konwersacyjnym (możesz rozmawiać). Dystans wg planu tygodniowego.', progression_tip:'Cel: Ukończyć bez zatrzymywania → zwiększ dystans o 10% tygodniowo.', target_pct:100, sets:'1 ciągły bieg', muscle_group:'wytrzymałość aerobowa, nogi' },
+        { name:'Progression Run', duration:'40 min', total_attempts:1, description:'Bieg od łatwego tempa, co 10 min zwiększaj o 10s/km. Ostatnie 10 min w tempie wyścigu.', progression_tip:'Cel: Ostatnie 10 min w docelowym tempie bez upadku → zwiększ dystans.', target_pct:100, sets:'4 strefy × 10 min', muscle_group:'wytrzymałość, pace control' },
+      ]
+    },
+  },
+
+  'kolarstwo': {
+    emoji:'🚴',
+    'interwały': {
+      emoji:'⚡', label:'Interwały',
+      drills: [
+        { name:'Tabata Sprints', duration:'20 min', total_attempts:8, description:'8 × 20s maksymalny wysiłek / 10s odpoczynek na rowerze. Zrób 2 rundy z 2 min przerwy.', progression_tip:'Cel: Utrzymać moc przez 8 powtórzeń → dodaj 4 kolejne powtórzenia.', target_pct:100, sets:'2 rundy po 8', muscle_group:'kardio, nogi, moc' },
+        { name:'Sweet Spot Intervals', duration:'45 min', total_attempts:3, description:'3 × 15 min w strefie sweet spot (88-93% FTP). Tętno: ~160-175 bpm.', progression_tip:'Cel: 3 interwały bez spadku mocy → zwiększ do 4 × 15 min.', target_pct:100, sets:'3 × 15 min', muscle_group:'wytrzymałość, nogi' },
+      ]
+    },
+    'technika': {
+      emoji:'🚴', label:'Technika',
+      drills: [
+        { name:'Cadence Drills', duration:'20 min', total_attempts:5, description:'5 × 3 min pedalowanie z kadencją 100+ rpm. Praca nad efektywnym stylem.', progression_tip:'Cel: 5/5 powyżej 100 rpm bez huśtania → zwiększ czas do 4 min.', target_pct:100, sets:'5 × 3 min', muscle_group:'technika, nogi' },
+        { name:'One-Leg Pedaling', duration:'15 min', total_attempts:10, description:'10 × 1 min pedalowania jedną nogą (naprzemieniając). Wyrównuje asymetrie.', progression_tip:'Cel: 10/10 min płynnie → zwiększ do 90s na nogę.', target_pct:100, sets:'5 na każdą nogę', muscle_group:'nogi, technika' },
+      ]
+    },
+  },
 };
 
 // Sport state stored in localStorage under key 'fitai_sport_v1'
@@ -2960,103 +3185,299 @@ function saveSportState(data) {
   localStorage.setItem('fitai_sport_v1', JSON.stringify(data));
 }
 
+// ========== SPORT STATE ==========
+function loadSportState() {
+  try { return JSON.parse(localStorage.getItem('fitai_sport_v1') || '{}'); } catch { return {}; }
+}
+function saveSportState(data) {
+  localStorage.setItem('fitai_sport_v1', JSON.stringify(data));
+}
+
+// ========== SPORT SELECTOR — visual tiles ==========
+function renderSportSelector() {
+  const grid = document.getElementById('sportSelectorGrid');
+  if (!grid) return;
+  const st = loadSportState();
+  const current = st.sport_focus || 'koszykówka';
+  grid.innerHTML = SPORTS_CATALOG.map(s => `
+    <div class="sport-selector-card ${s.id === current ? 'selected' : ''}"
+         onclick="selectSport('${s.id}')"
+         title="${s.label}">
+      <div class="text-2xl mb-1">${s.emoji}</div>
+      <div class="text-xs font-bold text-white leading-tight">${s.label}</div>
+    </div>`).join('');
+}
+
+function selectSport(sportId) {
+  const st = loadSportState();
+  st.sport_focus = sportId;
+  saveSportState(st);
+  // Update selector UI
+  document.querySelectorAll('.sport-selector-card').forEach(el => {
+    el.classList.toggle('selected', el.onclick?.toString().includes(`'${sportId}'`));
+  });
+  renderSportSelector(); // re-render to sync
+  renderSportDrills();
+}
+
+// ========== DRILLS RENDERER — categories + drills ==========
+function renderSportDrills() {
+  const st = loadSportState();
+  const sportId = st.sport_focus || 'koszykówka';
+  const sportData = SPORT_DRILLS[sportId];
+  const container = document.getElementById('sportDrillsContainer');
+  if (!container) return;
+
+  if (!sportData) {
+    container.innerHTML = '<div class="glass p-6 text-center text-gray-500 italic">Brak drilli dla tego sportu.</div>';
+    return;
+  }
+
+  const categories = Object.entries(sportData).filter(([k]) => k !== 'emoji');
+  const generatedHtml = categories.map(([catKey, cat], catIdx) => {
+    const drills = cat.drills || [];
+    const drillsHtml = drills.map((drill, di) => {
+      const history = (st.drill_history || []).filter(r => r.drill_name === drill.name);
+      const last = history[0];
+      const lastPct = last ? Math.round(last.success_count / last.total_attempts * 100) : null;
+      const metTarget = lastPct !== null && lastPct >= (drill.target_pct || 70);
+      return `<div class="drill-row">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1 flex-wrap">
+            <span class="text-sm font-bold text-white">${drill.name}</span>
+            ${metTarget ? '<span class="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">✅ Cel osiągnięty</span>' : ''}
+          </div>
+          <p class="text-xs text-gray-400 leading-snug mb-2">${drill.description}</p>
+          <div class="flex items-center gap-4 flex-wrap text-xs text-gray-500">
+            <span>⏱ ${drill.duration}</span>
+            <span>🔁 ${drill.sets}</span>
+            <span>💪 ${drill.muscle_group}</span>
+            ${lastPct !== null ? `<span class="${metTarget ? 'text-cyan-400' : 'text-yellow-400'} font-bold">Ostatnio: ${lastPct}%</span>` : '<span class="text-gray-600 italic">brak wyników</span>'}
+          </div>
+          ${last ? `<div class="progress-bar mt-2" style="height:4px;"><div class="progress-fill ${metTarget ? 'bg-gradient-to-r from-cyan-500 to-green-400' : 'bg-gradient-to-r from-yellow-500 to-cyan-500'}" style="width:${Math.min(lastPct,100)}%"></div></div>` : ''}
+          <div class="alert-neon text-xs py-1.5 px-3 mt-2 leading-snug">💡 ${drill.progression_tip}</div>
+        </div>
+        <div class="flex flex-col gap-2 shrink-0">
+          <button class="drill-add-btn js-drill-add-btn"
+            data-drill="${drill.name.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}"
+            data-cat="${catKey}"
+            data-sport="${sportId}">
+            ➕ Do planu
+          </button>
+          <button class="drill-add-btn js-drill-log-btn" style="background:rgba(255,255,255,0.04);border-color:var(--border);color:var(--muted);"
+            data-drill="${drill.name.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}"
+            data-attempts="${drill.total_attempts}">
+            📝 Loguj
+          </button>
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="glass rounded-2xl overflow-hidden mb-4">
+      <div class="sport-category-header flex items-center justify-between px-5 py-4"
+           onclick="toggleSportCategory(this)">
+        <div class="flex items-center gap-3">
+          <span class="text-xl">${cat.emoji}</span>
+          <div>
+            <span class="font-bold text-white">${cat.label}</span>
+            <span class="text-xs text-gray-500 ml-2">${drills.length} ćwiczeń</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <button class="cat-add-btn js-cat-add-btn" data-cat="${catKey}" data-sport="${sportId}">
+            ➕ Dodaj całą kategorię
+          </button>
+          <svg class="cat-arrow w-4 h-4 text-gray-500 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </div>
+      </div>
+      <div class="sport-category-body" style="max-height:${catIdx === 0 ? '2000px' : '0'};">
+        <div class="px-5 pb-5 space-y-2">${drillsHtml}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Event delegation — czyścimy stare listenery przez podmianę węzła
+  const newContainer = container.cloneNode(false); // false = bez dzieci (czysty)
+  newContainer.innerHTML = generatedHtml;           // ← nowy HTML
+  container.replaceWith(newContainer);
+  newContainer.addEventListener('click', function(e) {
+    const addBtn = e.target.closest('.js-drill-add-btn');
+    const logBtn = e.target.closest('.js-drill-log-btn');
+    const catBtn = e.target.closest('.js-cat-add-btn');
+    if (addBtn) {
+      e.stopPropagation();
+      openAddToPlanModal(addBtn.dataset.drill, addBtn.dataset.cat, addBtn.dataset.sport);
+    } else if (logBtn) {
+      e.stopPropagation();
+      quickLogDrill(logBtn.dataset.drill, Number(logBtn.dataset.attempts));
+    } else if (catBtn) {
+      e.stopPropagation();
+      openAddToPlanModal(null, catBtn.dataset.cat, catBtn.dataset.sport, true);
+    }
+  });
+}
+
+function toggleSportCategory(header) {
+  const body = header.nextElementSibling;
+  const arrow = header.querySelector('.cat-arrow');
+  const isOpen = body.style.maxHeight !== '0px' && body.style.maxHeight !== '';
+  body.style.maxHeight = isOpen ? '0' : '2000px';
+  if (arrow) arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+
+// ========== ADD TO PLAN MODAL ==========
+let _addToPlanCtx = null;
+
+function openAddToPlanModal(drillName, catKey, sportId, wholeCategory = false) {
+  _addToPlanCtx = { drillName, catKey, sportId, wholeCategory, selectedDay: null };
+  const modal = document.getElementById('addToPlanModal');
+  const nameEl = document.getElementById('addToPlanDrillName');
+  const feedback = document.getElementById('addToPlanFeedback');
+  feedback.classList.add('hidden');
+
+  if (wholeCategory) {
+    const cat = (SPORT_DRILLS[sportId] || {})[catKey];
+    nameEl.textContent = `Kategoria: ${cat ? cat.label : catKey} (${(cat?.drills||[]).length} ćwiczeń)`;
+  } else {
+    nameEl.textContent = drillName;
+  }
+
+  // Render day buttons
+  const dayGrid = document.getElementById('addToPlanDayGrid');
+  const days = ['Pon','Wt','Śr','Czw','Pt','Sob','Niedz'];
+  dayGrid.innerHTML = days.map(d => `
+    <button class="day-pick-btn text-sm" onclick="selectAddToPlanDay(this, '${d}')">${d}</button>
+  `).join('');
+
+  modal.classList.remove('hidden');
+}
+
+function selectAddToPlanDay(btn, day) {
+  document.querySelectorAll('#addToPlanDayGrid .day-pick-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (_addToPlanCtx) _addToPlanCtx.selectedDay = day;
+}
+
+function closeAddToPlanModal() {
+  document.getElementById('addToPlanModal').classList.add('hidden');
+  _addToPlanCtx = null;
+}
+
+function confirmAddToPlan() {
+  if (!_addToPlanCtx || !_addToPlanCtx.selectedDay) {
+    const fb = document.getElementById('addToPlanFeedback');
+    fb.textContent = '⚠️ Wybierz dzień tygodnia';
+    fb.className = 'text-xs text-center text-yellow-400';
+    fb.classList.remove('hidden');
+    return;
+  }
+
+  const { drillName, catKey, sportId, wholeCategory, selectedDay } = _addToPlanCtx;
+  const dayMap = {'Pon':'Pon','Wt':'Wt','Śr':'Śr','Czw':'Czw','Pt':'Pt','Sob':'Sob','Niedz':'Niedz'};
+  const dayKey = dayMap[selectedDay] || selectedDay;
+
+  const p = getCurrentProfile();
+  if (!p.trainingPlan) p.trainingPlan = {};
+  if (!p.trainingPlan[dayKey]) p.trainingPlan[dayKey] = [];
+
+  let added = 0;
+  if (wholeCategory) {
+    const cat = (SPORT_DRILLS[sportId] || {})[catKey];
+    (cat?.drills || []).forEach(drill => {
+      const exists = p.trainingPlan[dayKey].some(e => e.name === drill.name);
+      if (!exists) {
+        p.trainingPlan[dayKey].push({
+          id: 'sp_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+          name: drill.name,
+          sets: drill.sets || '3 serie',
+          reps: drill.total_attempts || 20,
+          weight: 0,
+          tags: ['sport', sportId, catKey],
+          muscles: drill.muscle_group || '',
+          desc: drill.description,
+          _sport: true,
+        });
+        added++;
+      }
+    });
+  } else {
+    const exists = p.trainingPlan[dayKey].some(e => e.name === drillName);
+    if (!exists) {
+      const cat = (SPORT_DRILLS[sportId] || {})[catKey];
+      const drill = (cat?.drills || []).find(d => d.name === drillName);
+      p.trainingPlan[dayKey].push({
+        id: 'sp_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+        name: drillName,
+        sets: drill?.sets || '3 serie',
+        reps: drill?.total_attempts || 20,
+        weight: 0,
+        tags: ['sport', sportId, catKey],
+        muscles: drill?.muscle_group || '',
+        desc: drill?.description || '',
+        _sport: true,
+      });
+      added = 1;
+    }
+  }
+
+  saveState();
+
+  const fb = document.getElementById('addToPlanFeedback');
+  if (added > 0) {
+    fb.textContent = `✅ Dodano ${added} ćwiczeni${added === 1 ? 'e' : 'a'} do planu na ${selectedDay}!`;
+    fb.className = 'text-xs text-center text-cyan-400 font-semibold';
+  } else {
+    fb.textContent = '⚠️ Ćwiczenie już istnieje w tym dniu.';
+    fb.className = 'text-xs text-center text-yellow-400';
+  }
+  fb.classList.remove('hidden');
+
+  // Sync plan to backend
+  if (added > 0) {
+    const p = getCurrentProfile();
+    const token = (typeof netlifyIdentity !== 'undefined' && netlifyIdentity.currentUser())
+      ? netlifyIdentity.currentUser().token?.access_token : null;
+    fetch('/app/plan/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ day: dayKey, trainingPlan: p.trainingPlan }),
+    }).catch(() => { /* offline – localStorage already saved */ });
+  }
+
+  setTimeout(() => {
+    closeAddToPlanModal();
+    // Always refresh plan view after adding
+    loadPlanForDay();
+    if (added > 0) showToast(`✅ Dodano do planu: ${selectedDay}`);
+  }, 1200);
+}
+
+// ========== SPORT SUBTAB SWITCHING ==========
 function showSportSubtab(tab) {
-  ['drills','log','history','config'].forEach(t => {
-    document.getElementById('sport-'+t).classList.toggle('hidden', t !== tab);
+  ['drills','log','history'].forEach(t => {
+    const el = document.getElementById('sport-'+t);
+    if (el) el.classList.toggle('hidden', t !== tab);
     const btn = document.getElementById('sporttab-'+t);
     if (btn) {
       btn.classList.toggle('active', t === tab);
       btn.classList.toggle('text-gray-400', t !== tab);
     }
   });
-  if (tab === 'drills') loadDrills();
-  if (tab === 'log') prepareLogForm();
+  if (tab === 'drills') renderSportDrills();
+  if (tab === 'log')    prepareLogForm();
   if (tab === 'history') renderDrillHistory();
-  if (tab === 'config') renderCurrentSportConfig();
 }
 
-function loadDrills() {
-  const sport = document.getElementById('drillSportSelect')?.value || 'koszykówka';
-  const spec = document.getElementById('drillSpecSelect')?.value || '';
-  const sportData = SPORT_DRILLS[sport] || {};
-  const st = loadSportState();
-
-  // Update user sport label
-  const label = document.getElementById('userSportLabel');
-  if (label) label.textContent = st.sport_focus
-    ? `${st.sport_focus}${st.sport_specialization ? ' – ' + st.sport_specialization : ''}`
-    : 'Nie skonfigurowano';
-
-  let drills = [];
-  if (spec && sportData[spec]) {
-    drills = sportData[spec].map(d => ({...d, spec}));
-  } else {
-    for (const [s, list] of Object.entries(sportData)) {
-      drills.push(...list.map(d => ({...d, spec: s})));
-    }
-  }
-
-  const container = document.getElementById('drillCardsContainer');
-  if (!container) return;
-  if (drills.length === 0) {
-    container.innerHTML = '<div class="glass p-6 text-center text-gray-500 md:col-span-2 italic">Brak drilli dla wybranego sportu/specjalizacji.</div>';
-    return;
-  }
-
-  container.innerHTML = drills.map(drill => {
-    const history = (st.drill_history || []).filter(r => r.drill_name === drill.name);
-    const lastResult = history[0];
-    const lastAccPct = lastResult
-      ? Math.round(lastResult.success_count / lastResult.total_attempts * 100)
-      : null;
-    const targetMet = lastAccPct !== null && lastAccPct >= (drill.target_pct || 70);
-    const specLabel = { rzuty:'🎯', drybling:'🏃', obrona:'🛡️' }[drill.spec] || '🏅';
-
-    return `
-    <div class="glass p-5 space-y-3" style="${targetMet ? 'border-color:rgba(0,229,255,0.4)!important;box-shadow:0 0 20px rgba(0,229,255,0.06);' : ''}">
-      <div class="flex items-start justify-between gap-3">
-        <div>
-          <div class="flex items-center gap-2 mb-1">
-            <span class="text-xs font-bold px-2 py-0.5 rounded-full" style="background:rgba(0,229,255,0.08);color:var(--cyan);">${specLabel} ${drill.spec}</span>
-            ${targetMet ? '<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">✅ Cel osiągnięty</span>' : ''}
-          </div>
-          <h5 class="text-white font-bold text-base" style="font-family:'Syne',sans-serif;">${drill.name}</h5>
-        </div>
-        <div class="text-right shrink-0">
-          <p class="text-2xl font-bold ${lastAccPct === null ? 'text-gray-600' : lastAccPct >= (drill.target_pct||70) ? 'text-cyan-400' : 'text-yellow-400'}" style="font-family:'Syne',sans-serif;">
-            ${lastAccPct !== null ? lastAccPct+'%' : '—'}
-          </p>
-          <p class="text-xs text-gray-500">${lastResult ? 'ostatnio' : 'brak danych'}</p>
-        </div>
-      </div>
-      <p class="text-sm text-gray-400 leading-relaxed">${drill.description}</p>
-      ${lastResult ? `
-      <div class="progress-bar" style="height:6px;">
-        <div class="progress-fill ${lastAccPct >= (drill.target_pct||70) ? 'bg-gradient-to-r from-cyan-500 to-green-400' : 'bg-gradient-to-r from-yellow-500 to-cyan-500'}" style="width:${Math.min(lastAccPct,100)}%"></div>
-      </div>
-      <p class="text-xs text-gray-500">Cel: ${drill.target_pct||70}% | Ostatnio: ${lastResult.success_count}/${lastResult.total_attempts} | RPE ${lastResult.rpe}</p>
-      ` : `<div class="progress-bar" style="height:6px;"><div class="progress-fill bg-gray-700" style="width:0%"></div></div>`}
-      <div class="alert-neon text-xs py-2 px-3 leading-snug">💡 ${drill.progression_tip}</div>
-      <div class="flex gap-2 pt-1">
-        <button onclick="quickLogDrill(${JSON.stringify(drill.name)}, ${drill.total_attempts})"
-          class="flex-1 btn-outline-cyan py-2 rounded-xl text-xs font-bold">📝 Zaloguj wynik</button>
-        ${history.length > 0 ? `<button onclick="showDrillDetail(${JSON.stringify(drill.name)})" class="btn-ghost py-2 px-3 rounded-xl text-xs">📊 Historia</button>` : ''}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function filterDrillsBySpec() { loadDrills(); }
+function loadDrills() { renderSportDrills(); }
+function filterDrillsBySpec() { renderSportDrills(); }
 
 function quickLogDrill(drillName, defaultAttempts) {
   showSportSubtab('log');
   setTimeout(() => {
     const sel = document.getElementById('logDrillName');
-    if (sel) {
-      for (const opt of sel.options) {
-        if (opt.value === drillName) { sel.value = drillName; break; }
-      }
-    }
+    if (sel) { for (const opt of sel.options) { if (opt.value === drillName) { sel.value = drillName; break; } } }
     const att = document.getElementById('logTotalAttempts');
     if (att && defaultAttempts) att.value = defaultAttempts;
     updateAccuracyPreview();
@@ -3064,191 +3485,122 @@ function quickLogDrill(drillName, defaultAttempts) {
 }
 
 function prepareLogForm() {
-  // Populate drill select
   const sel = document.getElementById('logDrillName');
   if (!sel) return;
-  const sport = document.getElementById('drillSportSelect')?.value || 'koszykówka';
-  const sportData = SPORT_DRILLS[sport] || {};
+  const st = loadSportState();
+  const sportId = st.sport_focus || 'koszykówka';
+  const sportData = SPORT_DRILLS[sportId] || {};
   const allDrills = [];
-  for (const [spec, list] of Object.entries(sportData)) {
-    for (const d of list) allDrills.push({name: d.name, spec});
+  for (const [catKey, cat] of Object.entries(sportData)) {
+    if (catKey === 'emoji') continue;
+    for (const d of (cat.drills || [])) allDrills.push({ name: d.name, catKey });
   }
   sel.innerHTML = '<option value="">Wybierz drill…</option>' + allDrills.map(d =>
-    `<option value="${d.name}">${{ rzuty:'🎯', drybling:'🏃', obrona:'🛡️' }[d.spec]||'🏅'} ${d.name}</option>`
+    `<option value="${d.name}">${(SPORT_DRILLS[sportId][d.catKey]?.emoji)||'🏅'} ${d.name}</option>`
   ).join('');
-
-  // Set today's date
   const dateEl = document.getElementById('logDrillDate');
   if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
-
-  // Bind live accuracy preview
   ['logSuccessCount','logTotalAttempts'].forEach(id => {
     document.getElementById(id)?.addEventListener('input', updateAccuracyPreview);
   });
 }
 
+document.getElementById('aiInput').addEventListener('keydown', e => { if(e.key==='Enter') sendAIMessage(); });
+
+// ========== SPORT LOG HELPERS ==========
+function updateRPELabel(val) {
+  const el = document.getElementById('rpeLabel');
+  const desc = document.getElementById('rpeDesc');
+  if (el) el.textContent = val;
+  const descs = {1:'Bardzo lekko',2:'Lekko',3:'Umiarkowanie lekko',4:'Umiarkowanie',5:'Umiarkowanie ciężko',6:'Umiarkowany wysiłek',7:'Ciężko',8:'Bardzo ciężko',9:'Ekstremalnie ciężko',10:'Maksymalny wysiłek'};
+  if (desc) desc.textContent = descs[val] || '';
+}
+
 function updateAccuracyPreview() {
-  const s = parseInt(document.getElementById('logSuccessCount')?.value) || 0;
-  const t = parseInt(document.getElementById('logTotalAttempts')?.value) || 0;
+  const success = parseInt(document.getElementById('logSuccessCount')?.value) || 0;
+  const total   = parseInt(document.getElementById('logTotalAttempts')?.value) || 0;
   const preview = document.getElementById('accuracyPreview');
+  const accEl   = document.getElementById('previewAccuracy');
+  const barEl   = document.getElementById('previewBar');
   if (!preview) return;
-  if (t > 0) {
+  if (total > 0) {
     preview.classList.remove('hidden');
-    const pct = Math.round(s / t * 100);
-    document.getElementById('previewAccuracy').textContent = pct + '%';
-    document.getElementById('previewBar').style.width = Math.min(pct, 100) + '%';
+    const pct = Math.round((success / total) * 100);
+    if (accEl) accEl.textContent = pct + '%';
+    if (barEl) barEl.style.width = Math.min(pct, 100) + '%';
   } else {
     preview.classList.add('hidden');
   }
 }
 
-function updateRPELabel(val) {
-  const descriptions = {
-    1:'Bardzo lekko — spacer', 2:'Lekko', 3:'Umiarkowanie lekko', 4:'Dosyć lekko',
-    5:'Umiarkowany wysiłek', 6:'Nieco ciężko', 7:'Ciężko', 8:'Bardzo ciężko',
-    9:'Ekstremalnie ciężko', 10:'Absolutne maksimum'
-  };
-  const label = document.getElementById('rpeLabel');
-  const desc = document.getElementById('rpeDesc');
-  if (label) label.textContent = val;
-  if (desc) desc.textContent = descriptions[val] || '';
-}
-
 function submitDrillResult() {
-  const drillName = document.getElementById('logDrillName')?.value;
-  const successCount = parseInt(document.getElementById('logSuccessCount')?.value);
-  const totalAttempts = parseInt(document.getElementById('logTotalAttempts')?.value);
-  const rpe = parseInt(document.getElementById('logRPE')?.value) || 6;
-  const notes = document.getElementById('logDrillNotes')?.value || '';
-  const sessionDate = document.getElementById('logDrillDate')?.value || new Date().toISOString().split('T')[0];
-
-  if (!drillName) { showToast('⚠️ Wybierz drill!'); return; }
-  if (isNaN(successCount) || isNaN(totalAttempts) || totalAttempts < 1) { showToast('⚠️ Uzupełnij liczbę prób!'); return; }
-  if (successCount > totalAttempts) { showToast('⚠️ Trafienia nie mogą przekraczać liczby prób!'); return; }
-
+  const name    = document.getElementById('logDrillName')?.value;
+  const dateVal = document.getElementById('logDrillDate')?.value;
+  const success = parseInt(document.getElementById('logSuccessCount')?.value);
+  const total   = parseInt(document.getElementById('logTotalAttempts')?.value);
+  const rpe     = parseInt(document.getElementById('logRPE')?.value) || 6;
+  const notes   = document.getElementById('logDrillNotes')?.value || '';
+  if (!name) { showToast('⚠️ Wybierz drill'); return; }
+  if (!total || total < 1) { showToast('⚠️ Podaj łączną liczbę prób'); return; }
   const st = loadSportState();
   if (!st.drill_history) st.drill_history = [];
-
-  const result = { drill_name: drillName, session_date: sessionDate, success_count: successCount, total_attempts: totalAttempts, rpe, notes, logged_at: new Date().toISOString() };
-  // Newest first
-  st.drill_history.unshift(result);
+  st.drill_history.unshift({
+    drill_name: name,
+    date: dateVal || new Date().toISOString().split('T')[0],
+    success_count: success || 0,
+    total_attempts: total,
+    accuracy_pct: Math.round(((success||0)/total)*100),
+    rpe,
+    notes,
+    logged_at: new Date().toISOString(),
+  });
   saveSportState(st);
-
-  // Show progression suggestion
-  const accPct = Math.round(successCount / totalAttempts * 100);
-  const drillObj = getDrillByName(drillName);
-  let progression = '';
-  if (drillObj) {
-    const history = st.drill_history.filter(r => r.drill_name === drillName);
-    progression = suggestDrillProgression(drillName, history, drillObj);
-  }
-
-  showToast(`✅ Zapisano! Skuteczność: ${accPct}%`);
-
-  // Reset form
-  ['logSuccessCount','logTotalAttempts','logDrillNotes'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  showToast('✅ Wynik zapisany!');
+  // Clear form
+  ['logSuccessCount','logTotalAttempts','logDrillNotes'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
   document.getElementById('accuracyPreview')?.classList.add('hidden');
-  document.getElementById('logRPE').value = 6; updateRPELabel(6);
-
-  // Show result summary, then navigate to history
-  if (progression) {
-    setTimeout(() => { showToast('💡 ' + progression.substring(0, 80) + '…'); }, 1500);
-  }
-  setTimeout(() => { showSportSubtab('history'); }, 800);
-}
-
-function getDrillByName(name) {
-  for (const specs of Object.values(SPORT_DRILLS)) {
-    for (const list of Object.values(specs)) {
-      const found = list.find(d => d.name === name);
-      if (found) return found;
-    }
-  }
-  return null;
-}
-
-function suggestDrillProgression(drillName, history, drillObj) {
-  if (!history || history.length === 0) return 'brak historii – zacznij od bazowej liczby prób';
-  const analyzed = history.slice(0, 3);
-  const avgAcc = analyzed.reduce((s, r) => s + (r.success_count / r.total_attempts), 0) / analyzed.length;
-  const avgRpe = analyzed.reduce((s, r) => s + r.rpe, 0) / analyzed.length;
-  const current = history[0].total_attempts;
-  const threshold = (drillObj.target_pct || 70) / 100;
-  if (avgAcc >= threshold && avgRpe <= 5) {
-    return `Skuteczność ${Math.round(avgAcc*100)}% przy RPE=${avgRpe.toFixed(1)} – wyraźnie za łatwe. Zwiększ do ${current+5} prób lub utrudnij warunki.`;
-  } else if (avgAcc >= threshold) {
-    return `Skuteczność ${Math.round(avgAcc*100)}% – dobry moment na progresję. Sugerowane: ${current+5} prób lub zmiana wariantu drilla.`;
-  } else {
-    return `Skuteczność ${Math.round(avgAcc*100)}% – kontynuuj na ${current} próbach aż osiągniesz ≥${drillObj.target_pct||70}% przez 2 sesje z rzędu.`;
-  }
+  setTimeout(() => showSportSubtab('history'), 600);
 }
 
 function renderDrillHistory() {
   const st = loadSportState();
   const history = st.drill_history || [];
-  const listEl = document.getElementById('drillHistoryList');
-  const summaryEl = document.getElementById('drillSummaryCards');
-
+  const listEl  = document.getElementById('drillHistoryList');
+  const cardsEl = document.getElementById('drillSummaryCards');
+  if (!listEl) return;
   if (history.length === 0) {
-    if (listEl) listEl.innerHTML = '<p class="text-sm text-gray-500 italic text-center py-8">Brak historii. Zaloguj pierwszy wynik →</p>';
-    if (summaryEl) summaryEl.innerHTML = '';
+    listEl.innerHTML = '<p class="text-sm text-gray-500 italic text-center py-8">Brak historii. Zaloguj pierwszy wynik →</p>';
+    if (cardsEl) cardsEl.innerHTML = '';
     return;
   }
-
-  // Summary stats
+  // Summary cards
   const totalSessions = history.length;
-  const totalHits = history.reduce((s,r) => s+r.success_count, 0);
-  const totalAttempts = history.reduce((s,r) => s+r.total_attempts, 0);
-  const avgAccAll = totalAttempts > 0 ? Math.round(totalHits/totalAttempts*100) : 0;
-  const avgRpeAll = Math.round(history.reduce((s,r) => s+r.rpe, 0) / history.length * 10) / 10;
-  const uniqueDrills = new Set(history.map(r => r.drill_name)).size;
-
-  if (summaryEl) summaryEl.innerHTML = [
-    { label:'Sesje', value: totalSessions, color:'text-cyan-400', icon:'📋' },
-    { label:'Łączna skuteczność', value: avgAccAll+'%', color: avgAccAll>=70?'text-green-400':'text-yellow-400', icon:'🎯' },
-    { label:'Śr. RPE', value: avgRpeAll, color:'text-violet-400', icon:'💪' },
-    { label:'Drille', value: uniqueDrills, color:'text-white', icon:'🏅' },
-  ].map(c => `<div class="glass p-4 text-center"><p class="text-xs text-gray-500 mb-1">${c.icon} ${c.label}</p><p class="text-2xl font-bold ${c.color}" style="font-family:'Syne',sans-serif;">${c.value}</p></div>`).join('');
-
-  // Group by drill name
-  const byName = {};
-  for (const r of history) {
-    if (!byName[r.drill_name]) byName[r.drill_name] = [];
-    byName[r.drill_name].push(r);
-  }
-
-  if (listEl) listEl.innerHTML = Object.entries(byName).map(([name, results]) => {
-    const drillObj = getDrillByName(name);
-    const progression = drillObj ? suggestDrillProgression(name, results, drillObj) : '';
-    const recentRows = results.slice(0, 5).map(r => {
-      const acc = Math.round(r.success_count / r.total_attempts * 100);
-      return `<div class="flex items-center gap-3 py-2 border-b" style="border-color:var(--border);">
-        <span class="text-xs text-gray-500 w-24 shrink-0">${r.session_date}</span>
-        <span class="text-sm font-bold ${acc>=(drillObj?.target_pct||70)?'text-cyan-400':'text-yellow-400'}">${acc}%</span>
-        <div class="flex-1 progress-bar" style="height:4px;"><div class="progress-fill ${acc>=(drillObj?.target_pct||70)?'bg-cyan-400':'bg-yellow-500'}" style="width:${acc}%"></div></div>
-        <span class="text-xs text-gray-500">${r.success_count}/${r.total_attempts}</span>
-        <span class="text-xs px-2 py-0.5 rounded-full" style="background:rgba(124,58,237,0.15);color:#a78bfa;">RPE ${r.rpe}</span>
-      </div>`;
-    }).join('');
-
-    return `<div class="glass p-5 space-y-3">
-      <div class="flex items-center justify-between">
-        <h5 class="text-white font-bold" style="font-family:'Syne',sans-serif;">${name}</h5>
-        <button onclick="quickLogDrill(${JSON.stringify(name)}, ${results[0].total_attempts})" class="btn-outline-cyan text-xs px-3 py-1 rounded-xl font-bold">+ Nowy wynik</button>
+  const avgAcc = Math.round(history.reduce((s,r)=>s+(r.accuracy_pct||0),0)/totalSessions);
+  const bestAcc = Math.max(...history.map(r=>r.accuracy_pct||0));
+  const uniqueDrills = new Set(history.map(r=>r.drill_name)).size;
+  if (cardsEl) cardsEl.innerHTML = [
+    {label:'Sesje',val:totalSessions,color:'text-cyan-400'},
+    {label:'Śr. skuteczność',val:avgAcc+'%',color:'text-violet-400'},
+    {label:'Najlepszy wynik',val:bestAcc+'%',color:'text-green-400'},
+    {label:'Drille',val:uniqueDrills,color:'text-yellow-400'},
+  ].map(c=>`<div class="glass rounded-2xl p-4 text-center"><p class="text-2xl font-bold ${c.color}" style="font-family:'Syne',sans-serif;">${c.val}</p><p class="text-xs text-gray-500 mt-1">${c.label}</p></div>`).join('');
+  // Per-entry list
+  listEl.innerHTML = history.map(r => `
+    <div class="glass p-4 rounded-xl flex items-center gap-4 flex-wrap">
+      <div class="flex-1 min-w-0">
+        <p class="font-bold text-white text-sm">${r.drill_name}</p>
+        <p class="text-xs text-gray-500">${r.date} · RPE ${r.rpe}</p>
+        ${r.notes ? `<p class="text-xs text-gray-400 mt-1 italic">${r.notes}</p>` : ''}
       </div>
-      ${recentRows}
-      ${progression ? `<div class="alert-neon text-xs py-2 px-3">💡 ${progression}</div>` : ''}
-    </div>`;
-  }).join('');
+      <div class="text-right">
+        <p class="text-2xl font-bold ${(r.accuracy_pct||0)>=70?'text-cyan-400':'text-yellow-400'}" style="font-family:'Syne',sans-serif;">${r.accuracy_pct}%</p>
+        <p class="text-xs text-gray-500">${r.success_count}/${r.total_attempts}</p>
+      </div>
+      <div class="w-full"><div class="progress-bar" style="height:4px;"><div class="progress-fill ${(r.accuracy_pct||0)>=70?'bg-cyan-500':'bg-yellow-500'}" style="width:${Math.min(r.accuracy_pct||0,100)}%"></div></div></div>
+    </div>`).join('');
 }
 
-function showDrillDetail(drillName) {
-  showSportSubtab('history');
-  setTimeout(() => {
-    const el = document.getElementById('drillHistoryList');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 200);
-}
+function showDrillDetail(drillName) { showSportSubtab('history'); }
 
 function clearDrillHistory() {
   if (!confirm('Wyczyścić całą historię drilli?')) return;
@@ -3258,61 +3610,6 @@ function clearDrillHistory() {
   renderDrillHistory();
   showToast('🗑️ Historia wyczyszczona');
 }
-
-function toggleSportDay(el, day) {
-  el.classList.toggle('selected');
-}
-
-function saveSportConfig() {
-  const sport = document.getElementById('configSportFocus')?.value || 'koszykówka';
-  const spec = document.getElementById('configSpecialization')?.value || '';
-  const days = [...document.querySelectorAll('#sportDayChips .chip.selected')].map(el => el.dataset.day || el.textContent.trim());
-  const st = loadSportState();
-  st.sport_focus = sport;
-  st.sport_specialization = spec;
-  st.sport_training_days = days;
-  saveSportState(st);
-  showToast('✅ Konfiguracja sportu zapisana!');
-  renderCurrentSportConfig();
-  // Update drill sport select to match
-  const sel = document.getElementById('drillSportSelect');
-  if (sel) sel.value = sport;
-  // Hide config banner
-  document.getElementById('sportConfigBanner')?.classList.add('hidden');
-}
-
-function renderCurrentSportConfig() {
-  const st = loadSportState();
-  const el = document.getElementById('currentSportConfigContent');
-  if (!el) return;
-  if (!st.sport_focus) {
-    el.innerHTML = '<span class="italic">Nie skonfigurowano</span>';
-    return;
-  }
-  el.innerHTML = `
-    <div class="grid grid-cols-2 gap-3 text-sm">
-      <div><span class="text-gray-500">Sport:</span> <span class="text-white font-bold">${st.sport_focus}</span></div>
-      <div><span class="text-gray-500">Specjalizacja:</span> <span class="text-white font-bold">${st.sport_specialization || 'Ogólnie'}</span></div>
-      <div class="col-span-2"><span class="text-gray-500">Dni treningowe:</span> <span class="text-white font-bold">${(st.sport_training_days||[]).join(', ') || 'Nie wybrano'}</span></div>
-    </div>
-  `;
-  // Restore form values
-  const sportSel = document.getElementById('configSportFocus');
-  const specSel = document.getElementById('configSpecialization');
-  if (sportSel) sportSel.value = st.sport_focus || 'koszykówka';
-  if (specSel) specSel.value = st.sport_specialization || '';
-}
-
-// Inject day data attribute for sport day chips
-document.addEventListener('DOMContentLoaded', () => {
-  const days = { 'Pon':'Poniedziałek','Wt':'Wtorek','Śr':'Środa','Czw':'Czwartek','Pt':'Piątek','Sob':'Sobota','Niedz':'Niedziela' };
-  document.querySelectorAll('#sportDayChips .chip').forEach(chip => {
-    const short = chip.textContent.trim();
-    chip.dataset.day = days[short] || short;
-  });
-});
-
-document.getElementById('aiInput').addEventListener('keydown', e => { if(e.key==='Enter') sendAIMessage(); });
 
 // ========== UTILITIES ==========
 function copyToClipboard(text) {
@@ -3345,6 +3642,270 @@ document.getElementById('shoppingModal').addEventListener('click', function(e) {
 
 // Init
 window.addEventListener('load', initApp);
+
+// =====================================================================
+// EDIT PLAN MODAL
+// =====================================================================
+let _editPlanDraft = [];   // working copy — array of exercise objects
+let _dragIdx = null;       // drag-and-drop source index
+
+// --- All exercises from DB flattened for search ---
+function getAllDBExercises() {
+  const all = [];
+  Object.entries(EXERCISE_DB).forEach(([group, list]) => {
+    list.forEach(ex => all.push({ ...ex, muscles: ex.muscles || group }));
+  });
+  return all;
+}
+
+function openEditPlanModal() {
+  const p = getCurrentProfile();
+  const day = state.days[state.currentDay];
+  const sportEx = (p.trainingPlan[day] || []).filter(e => e._sport && !e.hidden);
+  const usesSport = sportEx.length > 0;
+  const source = usesSport ? sportEx : (state._planExercises || []);
+
+  // Deep copy so cancel truly reverts
+  _editPlanDraft = source.map(e => ({ ...e }));
+
+  document.getElementById('editPlanDayLabel').textContent =
+    `${day} — ${_editPlanDraft.length} ćwiczeń`;
+  document.getElementById('editPlanSearch').value = '';
+  document.getElementById('editPlanDropdown').classList.add('hidden');
+  document.getElementById('editPlanModal').classList.remove('hidden');
+  renderEditPlanList();
+}
+
+function closeEditPlanModal() {
+  document.getElementById('editPlanModal').classList.add('hidden');
+  _editPlanDraft = [];
+}
+
+// --- Render the list of exercises in editor ---
+function renderEditPlanList() {
+  const container = document.getElementById('editPlanList');
+  const day = state.days[state.currentDay];
+  document.getElementById('editPlanDayLabel').textContent = day + ' \u2014 ' + _editPlanDraft.length + ' \u0107wicze\u0144';
+
+  container.innerHTML = '';
+
+  if (_editPlanDraft.length === 0) {
+    container.innerHTML = '<p class="text-sm text-gray-600 italic text-center py-8">Brak \u0107wicze\u0144. Dodaj pierwsze z listy poni\u017cej.</p>';
+    return;
+  }
+
+  const muscleColors = {klatka:'#00e5ff',plecy:'#7c3aed',nogi:'#f59e0b',ramiona:'#10b981',kardio:'#ef4444',core:'#8b5cf6',brzuch:'#8b5cf6',biceps:'#06b6d4',triceps:'#6366f1'};
+
+  _editPlanDraft.forEach((e, idx) => {
+    const color = muscleColors[e.muscles?.split(',')[0]?.trim()] || '#64748b';
+    const isSport = !!e._sport;
+
+    const row = document.createElement('div');
+    row.className = 'edit-plan-row flex items-center gap-3 rounded-xl px-3 py-3 transition-all';
+    row.style.cssText = 'background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);';
+    row.setAttribute('draggable', 'true');
+    row.dataset.idx = idx;
+
+    // Drag handle
+    const handle = document.createElement('div');
+    handle.className = 'flex-shrink-0 cursor-grab text-gray-600 hover:text-gray-400 px-1 select-none';
+    handle.title = 'Przeci\u0105gnij aby zmieni\u0107 kolejno\u015b\u0107';
+    handle.textContent = '\u2803\u2803';
+    row.appendChild(handle);
+
+    // Number badge
+    const num = document.createElement('span');
+    num.className = 'text-xs font-bold w-5 text-center flex-shrink-0';
+    num.style.color = color;
+    num.textContent = idx + 1;
+    row.appendChild(num);
+
+    // Name + muscle
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'flex-1 min-w-0';
+    nameDiv.innerHTML = '<p class="text-sm font-semibold text-white truncate">' + e.name + '</p>' +
+      (isSport
+        ? '<span class="text-[10px] text-violet-400">\u26bd sport</span>'
+        : '<span class="text-[10px] text-gray-600">' + (e.muscles?.split(',')[0] || '') + '</span>');
+    row.appendChild(nameDiv);
+
+    // Inputs wrapper
+    const inputs = document.createElement('div');
+    inputs.className = 'flex items-center gap-1 flex-shrink-0';
+
+    function makeInput(label, field, value, minVal, maxVal, widthClass) {
+      const wrap = document.createElement('div');
+      wrap.className = 'flex flex-col items-center';
+      const lbl = document.createElement('span');
+      lbl.className = 'text-[9px] text-gray-600 mb-0.5';
+      lbl.textContent = label;
+      const inp = document.createElement('input');
+      inp.type = 'number';
+      inp.min = minVal; inp.max = maxVal;
+      inp.value = value;
+      inp.className = widthClass + ' text-center text-xs font-bold rounded-lg py-1.5 outline-none text-white';
+      inp.style.cssText = field === 'weight'
+        ? 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);'
+        : 'background:rgba(0,229,255,0.07);border:1px solid rgba(0,229,255,0.2);';
+      inp.addEventListener('change', () => epUpdateField(idx, field, +inp.value));
+      wrap.appendChild(lbl);
+      wrap.appendChild(inp);
+      return wrap;
+    }
+
+    inputs.appendChild(makeInput('Serie', 'sets', e.sets || 3, 1, 20, 'w-12'));
+    const sep = document.createElement('span');
+    sep.className = 'text-gray-700 text-xs mt-3';
+    sep.textContent = '\u00d7';
+    inputs.appendChild(sep);
+    inputs.appendChild(makeInput('Powt.', 'reps', e.reps || 10, 1, 200, 'w-12'));
+    inputs.appendChild(makeInput('Kg', 'weight', e.weight || 0, 0, 999, 'w-14'));
+    row.appendChild(inputs);
+
+    // Delete button
+    const del = document.createElement('button');
+    del.className = 'flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all';
+    del.title = 'Usu\u0144';
+    del.textContent = '\u2715';
+    del.addEventListener('click', () => epRemove(idx));
+    row.appendChild(del);
+
+    // Drag events
+    row.addEventListener('dragstart', ev => epDragStart(ev, idx));
+    row.addEventListener('dragover', ev => epDragOver(ev, idx));
+    row.addEventListener('dragend', epDragEnd);
+
+    container.appendChild(row);
+  });
+}
+
+// --- Field update ---
+function epUpdateField(idx, field, value) {
+  if (_editPlanDraft[idx]) _editPlanDraft[idx][field] = value;
+}
+
+// --- Remove ---
+function epRemove(idx) {
+  _editPlanDraft.splice(idx, 1);
+  renderEditPlanList();
+}
+
+// --- Drag and drop ---
+function epDragStart(e, idx) {
+  _dragIdx = idx;
+  if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => {
+    const rows = document.querySelectorAll('.edit-plan-row');
+    if (rows[idx]) rows[idx].style.opacity = '0.4';
+  }, 0);
+}
+
+function epDragOver(e, targetIdx) {
+  e.preventDefault();
+  if (_dragIdx === null || _dragIdx === targetIdx) return;
+  const moved = _editPlanDraft.splice(_dragIdx, 1)[0];
+  _editPlanDraft.splice(targetIdx, 0, moved);
+  _dragIdx = targetIdx;
+  renderEditPlanList();
+}
+
+function epDragEnd() {
+  _dragIdx = null;
+  document.querySelectorAll('.edit-plan-row').forEach(r => r.style.opacity = '1');
+}
+
+// --- Search & add from DB ---
+function renderEditPlanSearch(query) {
+  const dropdown = document.getElementById('editPlanDropdown');
+  const q = query.trim().toLowerCase();
+  const all = getAllDBExercises();
+  const matches = q
+    ? all.filter(e => e.name.toLowerCase().includes(q)).slice(0, 12)
+    : all.slice(0, 12);
+
+  if (matches.length === 0) {
+    dropdown.classList.add('hidden');
+    return;
+  }
+
+  // Build rows without serializing objects into HTML attributes
+  dropdown.innerHTML = '';
+  matches.forEach((ex, i) => {
+    const row = document.createElement('div');
+    row.className = 'px-4 py-2.5 cursor-pointer hover:bg-white/5 transition-colors flex items-center justify-between gap-3';
+    row.style.cssText = 'border-bottom:1px solid rgba(255,255,255,0.04)';
+    row.innerHTML =
+      '<div>' +
+        '<p class="text-sm text-white font-medium">' + ex.name + '</p>' +
+        '<p class="text-xs text-gray-500">' + (ex.muscles?.split(',')[0] || '') + ' · ' + ex.sets + '×' + ex.reps + (ex.weight ? ' · ' + ex.weight + 'kg' : '') + '</p>' +
+      '</div>' +
+      '<span class="text-cyan-500 text-lg flex-shrink-0">+</span>';
+    row.addEventListener('click', () => epAddFromDB(ex));
+    dropdown.appendChild(row);
+  });
+
+  dropdown.classList.remove('hidden');
+}
+
+function epAddFromDB(ex) {
+  // Check for duplicate
+  if (_editPlanDraft.some(e => e.name === ex.name)) {
+    showToast('⚠️ Ćwiczenie już jest w planie');
+    return;
+  }
+  _editPlanDraft.push({ ...ex, id: 'ep_' + Date.now() });
+  document.getElementById('editPlanSearch').value = '';
+  document.getElementById('editPlanDropdown').classList.add('hidden');
+  renderEditPlanList();
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('#editPlanSearch') && !e.target.closest('#editPlanDropdown')) {
+    const dd = document.getElementById('editPlanDropdown');
+    if (dd) dd.classList.add('hidden');
+  }
+});
+
+// --- Custom exercise modal ---
+function addCustomExercise() {
+  document.getElementById('customExName').value = '';
+  document.getElementById('customExSets').value = 3;
+  document.getElementById('customExReps').value = 10;
+  document.getElementById('customExWeight').value = 0;
+  document.getElementById('customExModal').classList.remove('hidden');
+}
+
+function closeCustomExModal() {
+  document.getElementById('customExModal').classList.add('hidden');
+}
+
+function confirmAddCustomEx() {
+  const name = document.getElementById('customExName').value.trim();
+  if (!name) { showToast('⚠️ Podaj nazwę ćwiczenia'); return; }
+  const sets = +document.getElementById('customExSets').value || 3;
+  const reps = +document.getElementById('customExReps').value || 10;
+  const weight = +document.getElementById('customExWeight').value || 0;
+  if (_editPlanDraft.some(e => e.name === name)) {
+    showToast('⚠️ Ćwiczenie już jest w planie'); return;
+  }
+  _editPlanDraft.push({ id: 'custom_' + Date.now(), name, sets, reps, weight, tags: ['własne'], muscles: 'inne', desc: '' });
+  closeCustomExModal();
+  renderEditPlanList();
+}
+
+// --- Save ---
+function saveEditedPlan() {
+  const p = getCurrentProfile();
+  const day = state.days[state.currentDay];
+  if (!p.trainingPlan) p.trainingPlan = {};
+  p.trainingPlan[day] = _editPlanDraft.map(e => ({ ...e }));
+  saveState();
+  closeEditPlanModal();
+  refreshExercisesForSlider(state.exerciseCount);
+  showToast('✅ Plan zapisany!');
+}
+
 window.addEventListener('beforeunload', saveState);
 </script>
 
@@ -3384,6 +3945,7 @@ if ('serviceWorker' in navigator) {
     </div>
   </div>
 </div>
+
 
 </body>
 </html>
