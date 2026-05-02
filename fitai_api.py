@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import os
+import random
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 
@@ -788,57 +789,379 @@ def _is_profile_ready_for_plan(user: UserDB) -> bool:
 
 
 def _default_meal_catalog(diet: str) -> dict:
+    """
+    Rozbudowany katalog posiłków — wystarczająco duży, żeby każdy dzień tygodnia
+    miał INNE danie. Kandydaci są mieszani pseudolosowo w _build_weekly_plan,
+    więc kolejność na liście nie determinuje przypisania do dnia.
+    """
     key = (diet or "").lower()
+
     if "wega" in key:
         return {
-            "Śniadanie": [("Owsianka proteinowa z owocami", 520), ("Tofu scramble + pieczywo", 500), ("Pudding chia + masło orzechowe", 480)],
-            "Przekąska 1": [("Shake roślinny + banan", 280), ("Hummus + warzywa", 260), ("Jogurt kokosowy + orzechy", 300)],
-            "Obiad": [("Tempeh, ryż, brokuł", 720), ("Makaron z sosem soczewicowym", 690), ("Bowl: tofu, komosa, warzywa", 700)],
-            "Przekąska 2": [("Kanapka z pastą z ciecierzycy", 310), ("Mix owoców + migdały", 290), ("Baton roślinny", 260)],
-            "Kolacja": [("Sałatka z fasolą i awokado", 520), ("Wrap pełnoziarnisty z tofu", 560), ("Krem z soczewicy", 500)],
+            "Śniadanie": [
+                ("Owsianka proteinowa z borówkami i nasionami chia", 520),
+                ("Tofu scramble z papryką i szpinakiem + chleb żytni", 500),
+                ("Pudding chia z mango i masłem migdałowym", 480),
+                ("Smoothie bowl: banan, szpinak, granola, nasiona konopi", 490),
+                ("Pancakes owsiane z syropem klonowym i owocami leśnymi", 530),
+                ("Musli nocne z mlekiem owsianym, malinami i orzechami", 470),
+                ("Awokado toast z pastą z ciecierzycy i kiełkami", 510),
+            ],
+            "Przekąska 1": [
+                ("Shake roślinny (białko grochu) + banan", 280),
+                ("Hummus z marchewką i selerem naciowym", 260),
+                ("Jogurt kokosowy z granolą i malinami", 300),
+                ("Jabłko z masłem orzechowym i nasionami słonecznika", 270),
+                ("Garść mieszanych orzechów + suszone morele", 290),
+                ("Edamame z odrobiną soli morskiej", 240),
+                ("Ryżowe wafle z pastą tahini i miodem", 255),
+            ],
+            "Obiad": [
+                ("Tempeh teriyaki z brązowym ryżem i brokułem", 720),
+                ("Makaron z bolognese z soczewicy i pomidorami", 690),
+                ("Buddha bowl: tofu, komosa ryżowa, warzywa pieczone, tahini", 700),
+                ("Curry z ciecierzycą, ziemniakami i szpinakiem + naan", 730),
+                ("Burrito z czarną fasolą, awokado, ryżem i salsą", 750),
+                ("Zupa tajska z tofu, mlekiem kokosowym i ryżem jaśminowym", 680),
+                ("Stir-fry z tempeh, papryką, brokułem i makaronem soba", 710),
+            ],
+            "Przekąska 2": [
+                ("Kanapka razowa z pastą z ciecierzycy i ogórkiem", 310),
+                ("Mix świeżych owoców (kiwi, truskawki, winogrona) + migdały", 290),
+                ("Baton roślinny daktylowo-orzechowy", 260),
+                ("Smoothie: banan, szpinak, mleko migdałowe", 280),
+                ("Nachos z guacamole i pico de gallo", 320),
+                ("Twaróg sojowy z borówkami i syropem agawy", 270),
+                ("Pieczone ciecierzycy z papryką i czosnkiem", 300),
+            ],
+            "Kolacja": [
+                ("Sałatka z czarną fasolą, awokado, kukurydzą i limonką", 520),
+                ("Wrap pełnoziarnisty z tofu, rukolą i pesto", 560),
+                ("Krem z czerwonej soczewicy z grzankami żytnimi", 500),
+                ("Grzybowa zapiekanka z kaszą gryczaną i ziołami", 540),
+                ("Sałatka z pieczonym burakiem, orzechami i rukolą", 480),
+                ("Zupa miso z tofu, wakame i makaronem ryżowym", 460),
+                ("Tacos z jackfruitem, kapustą pekińską i salsą awokado", 530),
+            ],
         }
+
+    if "ketogen" in key or "keto" in key:
+        return {
+            "Śniadanie": [
+                ("Jajecznica na boczku z awokado i serem feta", 580),
+                ("Omlet z łososiem wędzonym, szpinakiem i śmietaną", 560),
+                ("Jajka sadzone z chorizo i pieczonym szparagiem", 540),
+                ("Shake MCT: mleko kokosowe, białko, masło migdałowe", 520),
+                ("Fritata z boczkiem, papryką i mozarellą", 570),
+                ("Jajka gotowane + awokado + oliwa z oliwek + rukola", 510),
+                ("Pancakes z mąki migdałowej z masłem i jagodami", 500),
+            ],
+            "Przekąska 1": [
+                ("Plastry ogórka z kremowym serem i łososiem", 220),
+                ("Orzechy macadamia + kawałek sera cheddar", 280),
+                ("Seler naciowy z masłem orzechowym (bez cukru)", 200),
+                ("Jajka na twardo (2 szt.) + oliwa z ziołami", 240),
+                ("Plastry salami z serem gouda", 260),
+                ("Shake konopny z olejem kokosowym i cynamonem", 230),
+                ("Pepperoni + kostki sera + oliwki", 270),
+            ],
+            "Obiad": [
+                ("Łosoś pieczony z kalafiorem w śmietanie i koperkiem", 750),
+                ("Stek wołowy z puree z kalafiora i masłem ziołowym", 780),
+                ("Kurczak w sosie śmietanowo-grzybowym z fasolką szparagową", 720),
+                ("Tuńczyk z awokado, jajkiem, oliwkami i oliwą", 700),
+                ("Boczek panierowany w parmezanie z sałatką cezar", 760),
+                ("Udka z kurczaka pieczone z warzywami keto i tymiankiem", 740),
+                ("Kotlet mielony wieprzowy z kapustą zasmażaną i boczkiem", 730),
+            ],
+            "Przekąska 2": [
+                ("Plastry awokado z solą morską i cytryną", 240),
+                ("Wiórki kokosowe + orzechy pekan", 280),
+                ("Łyżka masła orzechowego bez cukru + kawałek gorzk. czekolady", 260),
+                ("Rollsy z sałatą, szynką parmeńską i serem", 220),
+                ("Małe porcje sardynek w oliwie", 230),
+                ("Orzechy brazylijskie + plasterek sera brie", 270),
+                ("Chips z parmezanu pieczony z rozmarynem", 210),
+            ],
+            "Kolacja": [
+                ("Sałatka z rukolą, boczkiem, jajkiem i parmezanem", 540),
+                ("Krewetki na maśle czosnkowym ze szparagami", 520),
+                ("Zupa krem z dyni z kokosem i imbirem (keto)", 480),
+                ("Pieczony dorsz z pesto bazyliowym i cukinią", 510),
+                ("Wrap sałatowy z kurczakiem, awokado i fetą", 500),
+                ("Carpaccio wołowe z oliwą, kaparami i parmezanem", 490),
+                ("Mielone indycze z cukinią i sosem hollandaise", 530),
+            ],
+        }
+
+    # ── Dieta standardowa / wysokobiałkowa (domyślna) ─────────────────────────
     return {
-        "Śniadanie": [("Owsianka + odżywka białkowa", 520), ("Jajecznica + pieczywo", 510), ("Skyr + granola + owoce", 480)],
-        "Przekąska 1": [("Shake białkowy + banan", 280), ("Serek wiejski + orzechy", 300), ("Jogurt naturalny + owoce", 250)],
-        "Obiad": [("Kurczak, ryż, brokuł", 730), ("Indyk, ziemniaki, surówka", 700), ("Łosoś, kasza, warzywa", 750)],
-        "Przekąska 2": [("Kanapka z indykiem", 320), ("Twaróg + owoce", 290), ("Baton proteinowy", 260)],
-        "Kolacja": [("Sałatka z tuńczykiem", 520), ("Wrap pełnoziarnisty z kurczakiem", 560), ("Omlet warzywny", 500)],
+        "Śniadanie": [
+            ("Owsianka z odżywką białkową, bananem i masłem orzechowym", 520),
+            ("Jajecznica z 4 jaj, szpinakiem i pełnoziarnistym tostami", 510),
+            ("Skyr z granolą, borówkami i miodem", 480),
+            ("Pancakes z twarogiem i musem truskawkowym", 530),
+            ("Shake proteinowy: mleko, białko, banan, płatki owsiane", 540),
+            ("Musli nocne z jogurtem greckim, malinami i orzechami", 490),
+            ("Tosty z awokado, jajkiem sadzonym i kiełkami rzodkiewki", 500),
+        ],
+        "Przekąska 1": [
+            ("Shake białkowy z bananem i mlekiem", 280),
+            ("Serek wiejski z papryką i ogórkiem", 300),
+            ("Jogurt grecki z owocami i łyżeczką miodu", 250),
+            ("Jabłko z masłem orzechowym i garścią orzechów", 270),
+            ("Ryżowe wafle z twarogiem i szczypiorkiem", 240),
+            ("Koktajl: kefir, truskawki, banan, siemię lniane", 290),
+            ("Kanapka razowa z jajkiem na twardo i rzodkiewką", 310),
+        ],
+        "Obiad": [
+            ("Pierś z kurczaka, ryż basmati, brokuł gotowany na parze", 730),
+            ("Indyk w sosie pomidorowym, ziemniaki gotowane, surówka", 700),
+            ("Łosoś pieczony z kaszą gryczaną i warzywami z piekarnika", 750),
+            ("Dorsz w ziołach z puree ziemniaczanym i fasolką szparagową", 680),
+            ("Makaron pełnoziarnisty z mięsem mielonym i sosem pomidorowym", 720),
+            ("Kurczak tikka masala z ryżem jaśminowym i jogurtem", 760),
+            ("Wołowina duszona z kaszą pęczak i buraczkami", 740),
+        ],
+        "Przekąska 2": [
+            ("Kanapka pełnoziarnista z indykiem i rukolą", 320),
+            ("Twaróg z borówkami i cynamonem", 290),
+            ("Baton proteinowy (20+ g białka)", 260),
+            ("Garść migdałów + suszone śliwki", 280),
+            ("Koktajl: kefir, banan, łyżka białka", 300),
+            ("Serek wiejski z ogórkiem i rzodkiewką", 270),
+            ("Szklanka maślanki + 2 ryżowe wafle", 250),
+        ],
+        "Kolacja": [
+            ("Sałatka z tuńczykiem, jajkiem, pomidorem i jogurtowym dressingiem", 520),
+            ("Wrap pełnoziarnisty z kurczakiem, awokado i warzywami", 560),
+            ("Omlet z 3 jaj z papryką, cebulą i serem żółtym", 500),
+            ("Kasza jaglana z pieczoną dynią, fetą i orzechami", 510),
+            ("Sałatka grecka z grillowanym kurczakiem i fetą", 490),
+            ("Zupa krem z brokułu z grzankami żytnimi i serem", 470),
+            ("Pieczony łosoś z sałatką z rukoli, pomidorków i parmezanu", 530),
+        ],
     }
 
 
 def _exercise_pool() -> dict:
+    """
+    Rozbudowana baza ćwiczeń — każda partia ma 7+ ćwiczeń, żeby
+    _build_weekly_plan mógł losować różne zestawy bez powtórzeń w tygodniu.
+    """
     return {
         "klatka": [
-            {"name": "Wyciskanie sztangi leżąc", "sets": "4", "reps": "6-8", "notes": "Łopatki ściągnięte, stopy stabilnie.", "how_to": "Opuszczaj sztangę do dolnej części klatki, prowadząc łokcie około 45 stopni."},
-            {"name": "Wyciskanie hantli na skosie", "sets": "3", "reps": "8-10", "notes": "Kontroluj fazę opuszczania.", "how_to": "Ustaw ławkę 30-45 stopni i prowadź hantle po łuku nad klatkę."},
-            {"name": "Rozpiętki na bramie", "sets": "3", "reps": "12-15", "notes": "Skup się na napięciu klatki.", "how_to": "Prowadź dłonie półkolem i zatrzymaj ruch na końcu spięcia."},
+            {"name": "Wyciskanie sztangi leżąc", "sets": "4", "reps": "6-8",
+             "notes": "Łopatki ściągnięte, stopy stabilnie na podłodze.",
+             "how_to": "Opuszczaj sztangę do dolnej części klatki, łokcie pod kątem ~45°. Wydech przy wycisku."},
+            {"name": "Wyciskanie hantli na skosie dodatnim", "sets": "4", "reps": "8-10",
+             "notes": "Ławka 30-45°, kontroluj fazę ekscentryczną (3 sek.).",
+             "how_to": "Hantle unieś po łuku nad górną klatkę, nie rozkładaj łokci do boku."},
+            {"name": "Wyciskanie hantli na skosie ujemnym", "sets": "3", "reps": "10-12",
+             "notes": "Aktywuje dolną część klatki.",
+             "how_to": "Ustaw ławkę pod kątem -15° do -30°. Prowadź hantle nad dolną klatkę."},
+            {"name": "Rozpiętki na maszynie (pec deck)", "sets": "3", "reps": "12-15",
+             "notes": "Skup się na szczytowym napięciu klatki.",
+             "how_to": "Na końcu ruchu zatrzymaj dłonie obok siebie przez 1 sekundę."},
+            {"name": "Rozpiętki na bramie (kabel dolny)", "sets": "3", "reps": "12-15",
+             "notes": "Dolna gałąź kabla — izolacja środkowej i górnej klatki.",
+             "how_to": "Prowadź dłonie od bioder ku górze po szerokim łuku, napnij klatkę na szczycie."},
+            {"name": "Pompki na poręczach", "sets": "3", "reps": "8-12",
+             "notes": "Lekkie pochylenie do przodu = więcej klatki.",
+             "how_to": "Zejdź, aż ramię będzie równoległe do podłogi, odepchnij się dynamicznie."},
+            {"name": "Pompki szerokie z obciążeniem (talerz na plecach)", "sets": "3", "reps": "10-15",
+             "notes": "Wariant dla zaawansowanych bez sprzętu.",
+             "how_to": "Rozstaw dłonie szeroko, opuść klatkę blisko podłoża, utrzymaj sztywny tułów."},
+            {"name": "Wyciskanie na maszynie Hammera", "sets": "3", "reps": "10-12",
+             "notes": "Dobre jako ćwiczenie finiszujące — mniejsze ryzyko kontuzji.",
+             "how_to": "Pełny zakres ruchu, wolne opuszczanie, szybki wycisk."},
         ],
         "nogi": [
-            {"name": "Przysiad ze sztangą", "sets": "4", "reps": "6-8", "notes": "Neutralny kręgosłup i kontrola kolan.", "how_to": "Cofnij biodra, zejdź do stabilnej głębokości i wróć dynamicznie."},
-            {"name": "Rumuński martwy ciąg", "sets": "3", "reps": "8-10", "notes": "Ruch inicjuj biodrem.", "how_to": "Prowadź sztangę blisko nóg, utrzymuj napięty brzuch i prosty grzbiet."},
-            {"name": "Wykroki chodzone", "sets": "3", "reps": "10/strona", "notes": "Pilnuj stabilności miednicy.", "how_to": "Długi krok, zejście w dół, odepchnięcie z pięty przedniej nogi."},
+            {"name": "Przysiad ze sztangą (back squat)", "sets": "4", "reps": "6-8",
+             "notes": "Neutralny kręgosłup, kolana podążają za stopami.",
+             "how_to": "Cofnij biodra, zejdź poniżej równoległości, wróć wypchnięciem przez pięty."},
+            {"name": "Front squat (przysiad ze sztangą z przodu)", "sets": "4", "reps": "6-8",
+             "notes": "Większe zaangażowanie czworogłowych i gorsetu.",
+             "how_to": "Sztanga na przednich deltoidsach, łokcie wysoko, prostszy tors niż w back squat."},
+            {"name": "Rumuński martwy ciąg na prostych nogach", "sets": "3", "reps": "8-10",
+             "notes": "Ruch inicjuj biodrem, bez zaokrąglenia lędźwi.",
+             "how_to": "Prowadź sztangę blisko ud, poczuj rozciąganie w tylnych udach, wróć napinając pośladki."},
+            {"name": "Wykroki bułgarskie (na ławce)", "sets": "3", "reps": "8/strona",
+             "notes": "Tylna noga na ławce — głęboka izolacja czworogłowych.",
+             "how_to": "Przednia stopa daleko od ławki, zejdź pionowo w dół, odepchnij się z pięty."},
+            {"name": "Leg press (prasa nożna)", "sets": "4", "reps": "10-12",
+             "notes": "Stopy wyżej = więcej tylnych ud i pośladków.",
+             "how_to": "Nie blokuj kolan na szczycie, pełen zakres opuszczania."},
+            {"name": "Wyprosty nóg na maszynie", "sets": "3", "reps": "12-15",
+             "notes": "Izolacja czworogłowych — dobre jako pre-exhaust.",
+             "how_to": "Zatrzymaj się na szczycie przez 1 sekundę, wolne opuszczanie (3 sek.)."},
+            {"name": "Uginanie nóg leżąc (leg curl)", "sets": "3", "reps": "10-12",
+             "notes": "Pełny zakres ruchu, bez wyrywania bioder.",
+             "how_to": "Ugnij nogi do maksimum, zatrzymaj, wolno wróć do wyprostu."},
+            {"name": "Wspięcia na palce stojąc (łydki)", "sets": "4", "reps": "15-20",
+             "notes": "Pełen zakres — od pełnego rozciągnięcia do pełnego uniesienia.",
+             "how_to": "Zatrzymaj się na szczycie 2 sekundy, opuść powoli, poczuj rozciągnięcie."},
         ],
         "plecy": [
-            {"name": "Podciąganie nachwytem", "sets": "4", "reps": "6-10", "notes": "Aktywuj łopatki przed ruchem.", "how_to": "Zwis aktywny, podciągnięcie klatki do drążka bez bujania."},
-            {"name": "Wiosłowanie hantlem", "sets": "3", "reps": "8-12", "notes": "Łokieć blisko tułowia.", "how_to": "W stabilnym podparciu przyciągaj hantel do biodra i wolno opuszczaj."},
-            {"name": "Ściąganie drążka do klatki", "sets": "3", "reps": "10-12", "notes": "Unikaj przeprostu odcinka lędźwiowego.", "how_to": "Prowadź drążek do górnej klatki i kontroluj tor ruchu."},
-        ],
-        "brzuch": [
-            {"name": "Plank", "sets": "3", "reps": "40-60 s", "notes": "Linia bark-biodro-kostka.", "how_to": "Napnij brzuch i pośladki, oddychaj spokojnie, nie unoś bioder."},
-            {"name": "Dead bug", "sets": "3", "reps": "10/strona", "notes": "Lędźwia dociśnięte do podłoża.", "how_to": "Opuszczaj naprzemiennie rękę i nogę po przeciwnej stronie."},
-            {"name": "Unoszenie nóg w zwisie", "sets": "3", "reps": "8-12", "notes": "Bez bujania.", "how_to": "Unieś nogi przez napięcie brzucha, opuszczaj z kontrolą."},
+            {"name": "Martwy ciąg konwencjonalny", "sets": "4", "reps": "4-6",
+             "notes": "Król ćwiczeń wielostawowych — priorytet techniczny.",
+             "how_to": "Biodra nisko, klatka wypięta, sztanga przy goleniach, wyprost bioder i kolan jednocześnie."},
+            {"name": "Podciąganie nachwytem (szerokim chwytem)", "sets": "4", "reps": "6-10",
+             "notes": "Aktywuj łopatki przed ruchem (scapular pull).",
+             "how_to": "Zwis aktywny → podciągnięcie klatki do drążka → wolne opuszczanie (3 sek.)."},
+            {"name": "Podciąganie podchwytem (supination)", "sets": "3", "reps": "8-10",
+             "notes": "Większe zaangażowanie bicepsów, wąski chwyt.",
+             "how_to": "Dłonie skierowane do siebie, opuszczaj z pełnym wyprostem łokci."},
+            {"name": "Wiosłowanie sztangą w opadzie tułowia", "sets": "4", "reps": "6-8",
+             "notes": "Tułów pod 45°, ściągaj sztangę do brzucha.",
+             "how_to": "Utrzymaj napięty brzuch i prosty grzbiet przez cały ruch."},
+            {"name": "Wiosłowanie hantlem jednostronnie", "sets": "3", "reps": "8-12/strona",
+             "notes": "Łokieć blisko tułowia, ruch do biodra.",
+             "how_to": "Podpórz się wolną ręką i kolanem na ławce, pełny zakres ruchu."},
+            {"name": "Ściąganie drążka wyciągu do klatki (szeroki chwyt)", "sets": "3", "reps": "10-12",
+             "notes": "Prowadź drążek do górnej klatki, ściągaj łopatki.",
+             "how_to": "Lekkie odchylenie tułowia, ściągnij drążek do mostka, powoli wróć."},
+            {"name": "Wiosłowanie na maszynie siedząc (cable row)", "sets": "3", "reps": "10-12",
+             "notes": "Brak ruchu tułowia — czysta izolacja pleców.",
+             "how_to": "Przyciągnij rączki do brzucha, zatrzymaj z ściągniętymi łopatkami."},
+            {"name": "Szrugsy ze sztangą (czworoboczny kapturowy)", "sets": "3", "reps": "12-15",
+             "notes": "Ruch pionowy, bez rotacji barków.",
+             "how_to": "Unieś barki pionowo ku uszom i powoli opuść z kontrolą."},
         ],
         "barki": [
-            {"name": "Wyciskanie hantli nad głowę", "sets": "4", "reps": "6-10", "notes": "Brak przeprostu lędźwi.", "how_to": "Prowadź hantle pionowo i kontroluj opuszczanie."},
-            {"name": "Unoszenie bokiem", "sets": "3", "reps": "12-15", "notes": "Ruch bez szarpania.", "how_to": "Unieś hantle do poziomu barków z lekkim ugięciem łokci."},
-            {"name": "Face pull", "sets": "3", "reps": "12-15", "notes": "Aktywuj tylny akton barków.", "how_to": "Przyciągaj linę do twarzy z rotacją zewnętrzną ramion."},
+            {"name": "Wyciskanie żołnierskie (military press) ze sztangą", "sets": "4", "reps": "6-8",
+             "notes": "Brak przeprostu lędźwi, aktywny brzuch.",
+             "how_to": "Ze sztangą na poziomie obojczyków, wyciśnij pionowo nad głowę, łokcie lekko przed tułowiem."},
+            {"name": "Wyciskanie hantli nad głowę siedząc", "sets": "3", "reps": "8-10",
+             "notes": "Oparcie ławki ustawione pionowo lub lekko odchylone.",
+             "how_to": "Prowadź hantle pionowo, w górze zbliż do siebie bez uderzania."},
+            {"name": "Arnold press", "sets": "3", "reps": "10-12",
+             "notes": "Rotacja angażuje przedni i środkowy akton barku.",
+             "how_to": "Start z dłońmi ku sobie na wysokości brody → obróć w górę i wyciśnij."},
+            {"name": "Unoszenie hantli bokiem (lateral raise)", "sets": "4", "reps": "12-15",
+             "notes": "Ruch bez szarpania, lekkie ugięcie łokci.",
+             "how_to": "Unieś hantle do poziomu barków, zatrzymaj 1 sek., powoli opuść."},
+            {"name": "Unoszenie hantli przodem (front raise)", "sets": "3", "reps": "10-12",
+             "notes": "Angażuje przedni akton barku.",
+             "how_to": "Prowadź hantle do wysokości oczu z lekkim ugięciem łokcia."},
+            {"name": "Face pull na wyciągu (z liną)", "sets": "4", "reps": "15-20",
+             "notes": "Kluczowe dla zdrowia stawów ramiennych — nie pomijaj.",
+             "how_to": "Wyciąg na wysokości głowy, przyciągnij linę do twarzy z rotacją zewnętrzną."},
+            {"name": "Odwrotne rozpiętki na maszynie (rear delt fly)", "sets": "3", "reps": "12-15",
+             "notes": "Tylny akton barku i górne plecy.",
+             "how_to": "Usiądź przodem do maszyny, rozłóż ramiona jak skrzydła, zatrzymaj na szczycie."},
+        ],
+        "biceps": [
+            {"name": "Uginania ze sztangą stojąc", "sets": "4", "reps": "8-10",
+             "notes": "Brak bujanias tułowia, łokcie przy boku.",
+             "how_to": "Pełny wyprost w dole, ugnij do szczytowego napięcia i powoli opuść."},
+            {"name": "Uginania hantlami naprzemiennie", "sets": "3", "reps": "10/strona",
+             "notes": "Supinacja nadgarstka w górnej fazie ruchu.",
+             "how_to": "Ugnij, obracając dłoń ku górze, zatrzymaj u góry 1 sek., powoli opuść."},
+            {"name": "Uginania hantlem na modlitewniku (concentration curl)", "sets": "3", "reps": "10-12/strona",
+             "notes": "Maksymalna izolacja bicepsa.",
+             "how_to": "Łokieć oparty o wewnętrzną stronę uda, pełen zakres ruchu."},
+            {"name": "Uginania na wyciągu (cable curl)", "sets": "3", "reps": "12-15",
+             "notes": "Stałe napięcie mięśnia przez cały ruch.",
+             "how_to": "Stój blisko wyciągu, ugnij ku ramionom i wolno wróć."},
+            {"name": "Uginania młotkowe (hammer curl)", "sets": "3", "reps": "10-12",
+             "notes": "Angażuje brachialis i brachioradialis.",
+             "how_to": "Neutralny chwyt (kciuk ku górze), ugnij pionowo, bez rotacji nadgarstka."},
+            {"name": "Spider curl na ławce skośnej", "sets": "3", "reps": "10-12",
+             "notes": "Brak możliwości użycia inercji — czysta praca bicepsa.",
+             "how_to": "Połóż się klatką na ławce pod 45°, ramiona zwisają swobodnie, uginaj ku twarzy."},
+        ],
+        "triceps": [
+            {"name": "Wyciskanie wąskim chwytem", "sets": "4", "reps": "6-8",
+             "notes": "Chwyp na szerokość barków, łokcie blisko tułowia.",
+             "how_to": "Opuszczaj sztangę do dolnej klatki, wyciśnij z tricepsów, nie z klatki."},
+            {"name": "Prostowanie ramion na wyciągu (pushdown)", "sets": "3", "reps": "12-15",
+             "notes": "Łokcie przy tułowiu przez cały ruch.",
+             "how_to": "Naciśnij drążek/linę do bioder, zatrzymaj, powoli wróć do 90°."},
+            {"name": "Skull crushers (łamiące czaszkę) z hantlami", "sets": "3", "reps": "10-12",
+             "notes": "Długa głowa tricepsa — ruch ponad głowę.",
+             "how_to": "Leż na ławce, opuść hantle ku czołu, wyciśnij pionowo nad klatkę."},
+            {"name": "French press ze sztangą stojąc", "sets": "3", "reps": "10-12",
+             "notes": "Zaangażowanie długiej głowy przy stałym napięciu.",
+             "how_to": "Unieś sztangę nad głowę, zegnij w łokciach, opuść za głowę i wróć."},
+            {"name": "Triceps kick-back hantlem", "sets": "3", "reps": "12-15/strona",
+             "notes": "Izolacja bocznej i środkowej głowy tricepsa.",
+             "how_to": "Tułów w opadzie, łokieć przy boku na poziomie tułowia, wyciągnij ramię do tyłu."},
+            {"name": "Pompki na poręczach (triceps dips)", "sets": "3", "reps": "8-12",
+             "notes": "Pionowy tułów = więcej tricepsa, pochylony = klatka.",
+             "how_to": "Zejdź do 90° w łokciu, odepchnij przez tricepsy, nie rozchylaj łokci."},
+        ],
+        "brzuch": [
+            {"name": "Plank przedni", "sets": "3", "reps": "45-60 s",
+             "notes": "Linia bark–biodro–kostka, brak opadania bioder.",
+             "how_to": "Napnij brzuch, pośladki i uda. Oddychaj spokojnie. Wzrok ku podłodze."},
+            {"name": "Dead bug", "sets": "3", "reps": "10/strona",
+             "notes": "Lędźwia DOCIŚNIĘTE do podłogi przez cały ruch.",
+             "how_to": "Opuszczaj naprzemiennie prostowaną nogę i przeciwne ramię, zachowując kontakt pleców z podłogą."},
+            {"name": "Unoszenie nóg w zwisie na drążku", "sets": "3", "reps": "8-12",
+             "notes": "Bez bujania — kontrolowany ruch.",
+             "how_to": "Unieś nogi zgięte lub proste przez napięcie brzucha. Opuść powoli."},
+            {"name": "Kółka ab wheel (rollout)", "sets": "3", "reps": "6-10",
+             "notes": "Zaawansowane — nie wypuszczaj bioder na dół.",
+             "how_to": "Powoli toczysz kółko do przodu, utrzymuj napięty brzuch i proste plecy, wróć kontrolując."},
+            {"name": "Hollow body hold", "sets": "3", "reps": "30-45 s",
+             "notes": "Baza gimnastyczna — napięcie przez cały czas.",
+             "how_to": "Leż na plecach, wyciągnij ręce za głowę, unieś nogi i barki, wciśnij dolną część pleców."},
+            {"name": "Crunch na maszynie z linką", "sets": "3", "reps": "15-20",
+             "notes": "Stałe napięcie dzięki ciężarowi — kontroluj prędkość.",
+             "how_to": "Stój lub klęcz przed wyciągiem, zgiń kręgosłup w zgięciu, nie ciągnij szyją."},
+            {"name": "Side plank z rotacją (thread the needle)", "sets": "3", "reps": "8/strona",
+             "notes": "Skośne + stabilizacja boczna w jednym ćwiczeniu.",
+             "how_to": "Pozycja side plank, przeciągnij górną rękę pod tułowiem i wróć do góry."},
+        ],
+        "full body": [
+            {"name": "Martwy ciąg konwencjonalny", "sets": "4", "reps": "5-6",
+             "notes": "Wzorzec ruchowy numer jeden — cały łańcuch tylny.",
+             "how_to": "Sztanga nad stopami, klatka wysoko, napnij brzuch i wyciągnij pionowo."},
+            {"name": "Clean & press (podrzut + wycisk)", "sets": "3", "reps": "5-6",
+             "notes": "Ćwiczenie balistyczne — siła eksplozywna i koordynacja.",
+             "how_to": "Szybko podciągnij sztangę do ramion i natychmiast wyciśnij nad głowę."},
+            {"name": "Przysiad ze sztangą", "sets": "3", "reps": "8",
+             "notes": "Łączy nogi, tułów i stabilizację.",
+             "how_to": "Pełna głębokość, pięty na podłodze, kolana na zewnątrz."},
+            {"name": "Podciąganie nachwytem", "sets": "3", "reps": "6-8",
+             "notes": "Górna część ciała — plecy i biceps.",
+             "how_to": "Aktywny zwis, podciągnięcie klatki do drążka, kontrolowane opuszczanie."},
+            {"name": "Kettlebell swing", "sets": "4", "reps": "15",
+             "notes": "Moc bioder, wytrzymałość mięśniowa, cardio.",
+             "how_to": "Ruch bioder (hip hinge), nie przysiad. Kettlebell wychyla się ruchem bioder, nie rąk."},
+            {"name": "Turkish get-up (TGU)", "sets": "3", "reps": "3/strona",
+             "notes": "Stabilizacja, mobilność, siła funkcjonalna.",
+             "how_to": "Powolny, kontrolowany ruch przez każdy etap — oczy na dzwonku przez cały czas."},
+        ],
+        "cardio": [
+            {"name": "Interwały HIIT na bieżni (30 s sprint / 90 s marsz)", "sets": "8", "reps": "1 runda",
+             "notes": "Monitoruj tętno — sprint >85% HRmax, marsz <65%.",
+             "how_to": "Rozgrzewka 5 min marszu, 8 rund interwałów, schłodzenie 5 min."},
+            {"name": "Ergometr wioślarski (steady state)", "sets": "1", "reps": "20 min",
+             "notes": "Tempo średnie, 500m split ~2:20-2:40.",
+             "how_to": "Nogi → tułów → ręce w fazie pchania; ręce → tułów → nogi w powrocie."},
+            {"name": "Skakanka (double under lub single)", "sets": "5", "reps": "1 min",
+             "notes": "Odpoczynek 30 s między seriami.",
+             "how_to": "Nadgarstki przy biodrach, drobne skoki, rytmiczne obroty nadgarstkami."},
+            {"name": "Box jumps (skoki na skrzynię)", "sets": "4", "reps": "8",
+             "notes": "Miękkie lądowanie na całej stopie — nie na palcach.",
+             "how_to": "Dołek z zamachu ramion → eksplozywny odskok → lądowanie w przysiadzie na skrzyni."},
+            {"name": "Burpees", "sets": "5", "reps": "10",
+             "notes": "Pełny zakres — klatka dotyka podłogi, pełny skok z klaśnięciem.",
+             "how_to": "Padnij, pompka, wróć do przysiadu, eksploduj do góry z oklaśnięciem nad głową."},
+            {"name": "Atak rowerowy (assault bike) — tabata", "sets": "8", "reps": "20 s sprint / 10 s odpocz.",
+             "notes": "Wyczerpujące — maksymalny wysiłek w fazach sprintu.",
+             "how_to": "W fazie sprintu pełna moc rękoma i nogami, faza odpoczynku to aktywne pedałowanie."},
         ],
     }
 
 
 def _build_weekly_plan(user: UserDB) -> dict:
-    """Builds weekly plan with Carb Cycling macro targets per day.
-    On days listed in sport_training_days, a sport drill session replaces the gym workout.
+    """
+    Buduje tygodniowy plan z Carb Cycling + unikalnymi posiłkami i ćwiczeniami
+    na każdy dzień. Zamiast `i % len(list)` używamy przetasowanego indeksu,
+    dzięki czemu każdy dzień dostaje INNE zestawy posiłków i ćwiczeń.
     """
     profile = user.to_profile_dict()
     meal_catalog = _default_meal_catalog(profile.get("diet", ""))
@@ -857,37 +1180,88 @@ def _build_weekly_plan(user: UserDB) -> dict:
     avoid_exercises = [x.lower() for x in user.get_list("avoid_exercises_json")]
 
     # ─── Sport module configuration ───────────────────────────────────────────
-    sport_focus = (user.sport_focus or "").lower().strip()           # e.g. "koszykówka"
-    sport_spec = (user.sport_specialization or "").lower().strip()   # e.g. "rzuty"
-    sport_days = {d.strip() for d in user.get_list("sport_training_days_json")}  # e.g. {"Środa"}
+    sport_focus = (user.sport_focus or "").lower().strip()
+    sport_spec = (user.sport_specialization or "").lower().strip()
+    sport_days = {d.strip() for d in user.get_list("sport_training_days_json")}
 
-    # Resolve drill list for this user's sport+spec combination
     _sport_drills: List[dict] = []
     if sport_focus and sport_focus in SPORT_DRILLS_DB:
         spec_map = SPORT_DRILLS_DB[sport_focus]
         if sport_spec in spec_map:
             _sport_drills = spec_map[sport_spec]
         elif spec_map:
-            # Fallback: first available specialization
             _sport_drills = next(iter(spec_map.values()))
 
-    # Niedziela = dzień odpoczynku
     week_schedule = [
         ("Poniedziałek", False), ("Wtorek", False), ("Środa", False),
         ("Czwartek", False), ("Piątek", False), ("Sobota", False),
-        ("Niedziela", True),   # rest day
+        ("Niedziela", True),
     ]
     meal_slots = ["Śniadanie", "Przekąska 1", "Obiad", "Przekąska 2", "Kolacja"]
+
+    # ─── Przetasuj posiłki dla każdego slotu raz na cały tydzień ─────────────
+    # Każdy slot dostaje listę kandydatów w losowej kolejności.
+    # Dzień i bierze kandydata o indeksie i → brak powtórzeń przez 7 dni
+    # (o ile lista ma ≥7 pozycji, co zapewniamy w _default_meal_catalog).
+    rng_seed = hash(user.user_key + datetime.now().strftime("%Y-%W"))  # stały seed dla danego tygodnia
+    rng = random.Random(rng_seed)
+
+    shuffled_meals: Dict[str, list] = {}
+    for slot in meal_slots:
+        candidates = list(meal_catalog.get(slot, []))
+        rng.shuffle(candidates)
+        shuffled_meals[slot] = candidates
+
+    # ─── Rozdziel partie treningowe na dni ────────────────────────────────────
+    # Budujemy listę partii dla dni treningowych (bez niedzieli i dni sportowych),
+    # żeby każda partia pojawiła się raz i nie powielała sąsiednich.
+    training_days_count = sum(
+        1 for (day_name, is_rest) in week_schedule
+        if not is_rest and not (bool(_sport_drills) and day_name in sport_days)
+    )
+
+    # Rozwiń preferred do rozmiaru liczby dni treningowych — bez powtórzeń o ile możliwe
+    if len(preferred) >= training_days_count:
+        day_focuses_pool = preferred[:training_days_count]
+    else:
+        # Powtarzamy partie, ale tak, żeby sąsiednie dni się nie duplikowały
+        day_focuses_pool = []
+        prev = None
+        extended = preferred * (training_days_count // len(preferred) + 2)
+        for p in extended:
+            if p != prev:
+                day_focuses_pool.append(p)
+                prev = p
+            if len(day_focuses_pool) >= training_days_count:
+                break
+
+    rng.shuffle(day_focuses_pool)  # przetasuj partie — różna kolejność każdego tygodnia
+    focus_iter = iter(day_focuses_pool)
+
+    # ─── Przetasuj ćwiczenia wewnątrz każdej partii ───────────────────────────
+    shuffled_pool: Dict[str, list] = {}
+    for key, exercises in pool.items():
+        ex_copy = list(exercises)
+        rng.shuffle(ex_copy)
+        shuffled_pool[key] = ex_copy
+
     days = []
-
-    for i, (day_name, is_rest) in enumerate(week_schedule):
+    for day_idx, (day_name, is_rest) in enumerate(week_schedule):
         is_sport_day = bool(_sport_drills) and (day_name in sport_days)
-        focus_key = "odpoczynek" if is_rest else preferred[i % len(preferred)]
-        if focus_key not in pool and not is_rest:
-            focus_key = "klatka"
 
-        # Carb Cycling: wyznacz typ dnia i makroskładniki
-        day_type = "rest" if is_rest else _day_type(day_name, focus_key)
+        # ─── Wyznacz typ dnia i makro ─────────────────────────────────────────
+        if is_rest:
+            day_type = "rest"
+            focus_key = "odpoczynek"
+        elif is_sport_day:
+            day_type = "heavy"   # sesja sportowa = ciężki dzień kaloryczny
+            focus_key = sport_focus
+        else:
+            focus_key = next(focus_iter, preferred[0])
+            if focus_key not in pool:
+                focus_key = "klatka"
+            day_type = _day_type(day_name, focus_key)
+
         macros = calc_daily_macros(base_calories, day_type)
 
         # ─── Ćwiczenia ────────────────────────────────────────────────────────
@@ -896,7 +1270,6 @@ def _build_weekly_plan(user: UserDB) -> dict:
             workout_title = "Odpoczynek / Aktywna regeneracja"
             is_sport_session = False
         elif is_sport_day:
-            # Zamień siłownię na sesję drilli sportowych
             workout_items = [
                 {
                     "name": drill["name"],
@@ -915,32 +1288,52 @@ def _build_weekly_plan(user: UserDB) -> dict:
             workout_title = f"Sesja Sportowa – {sport_focus.title()} ({spec_label})"
             is_sport_session = True
         else:
+            # Wybierz 4 różne ćwiczenia z przetasowanej partii (brak powtórzeń w dniu)
             available_ex = [
-                ex for ex in pool[focus_key]
+                ex for ex in shuffled_pool.get(focus_key, pool.get(focus_key, []))
                 if not any(a in ex["name"].lower() for a in avoid_exercises)
-            ] or pool[focus_key]
+            ] or shuffled_pool.get(focus_key, pool.get(focus_key, []))
+
+            selected = available_ex[:4]
             workout_items = []
-            for idx, ex in enumerate(available_ex[:4]):
-                alts = [a for a in available_ex if a["name"] != ex["name"]]
-                other_key = preferred[(i + idx + 1) % len(preferred)]
-                if other_key in pool:
-                    alts.extend(pool[other_key][:1])
-                workout_items.append({**ex, "alternatives": alts[:3]})
+            for ex in selected:
+                # Alternatywy: inne ćwiczenia tej samej partii (nie wybrane) + 1 z innej partii
+                same_group_alts = [a for a in available_ex if a["name"] != ex["name"]]
+                # Dobierz alternatywę z sąsiedniej partii dla urozmaicenia
+                complement_keys = [k for k in preferred if k != focus_key and k in pool]
+                if complement_keys:
+                    comp_key = complement_keys[day_idx % len(complement_keys)]
+                    same_group_alts.extend(shuffled_pool.get(comp_key, pool.get(comp_key, []))[:1])
+                workout_items.append({
+                    **ex,
+                    "alternatives": [
+                        {"name": a["name"], "sets": a["sets"], "reps": a["reps"]}
+                        for a in same_group_alts[:3]
+                    ],
+                })
             workout_title = f"Sesja {focus_key.title()}"
             is_sport_session = False
 
-        # Posiłki
+        # ─── Posiłki ──────────────────────────────────────────────────────────
         meals = []
         for slot in meal_slots:
-            candidates = meal_catalog.get(slot, [])
+            candidates = shuffled_meals.get(slot, [])
+
+            # Filtruj preferowane / zakazane
             if preferred_foods:
                 pref_c = [c for c in candidates if any(p in c[0].lower() for p in preferred_foods)]
                 if pref_c:
                     candidates = pref_c
             if avoid_foods:
                 filtered = [c for c in candidates if not any(av in c[0].lower() for av in avoid_foods)]
-                candidates = filtered or meal_catalog.get(slot, [])
-            main = candidates[i % len(candidates)] if candidates else ("Posiłek", 500)
+                if filtered:
+                    candidates = filtered
+
+            # Wybierz posiłek dla tego dnia (day_idx jako indeks w przetasowanej liście)
+            if not candidates:
+                candidates = meal_catalog.get(slot, [("Posiłek", 500)])
+
+            main = candidates[day_idx % len(candidates)]
             alt = [{"name": c[0], "kcal": c[1]} for c in candidates if c[0] != main[0]][:3]
             meals.append({"slot": slot, "name": main[0], "kcal": main[1], "alternatives": alt})
 

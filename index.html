@@ -454,8 +454,23 @@
           <div id="groupWidget" class="space-y-3"><p class="text-sm text-gray-500 italic">Brak innych profili</p></div>
         </div>
         <div class="glass p-6 lg:col-span-2">
-          <h4 class="text-lg font-bold text-white mb-4" style="font-family:'Syne',sans-serif;">🎯 Co teraz?</h4>
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h4 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">🎯 Co teraz?</h4>
+              <p class="text-xs mt-0.5" style="color:var(--muted);" id="nextStepsSubtitle">Twój plan na dziś</p>
+            </div>
+            <div id="nextStepsDayProgress" class="text-right hidden">
+              <p class="text-xs font-bold" style="color:var(--cyan);" id="nextStepsDoneFrac">0/0</p>
+              <p class="text-xs" style="color:var(--muted);">ukończono</p>
+            </div>
+          </div>
+          <div id="nextStepsPrimary" class="hidden mb-3"></div>
           <div id="nextSteps" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+          <div id="nextStepsAllDone" class="hidden text-center py-6">
+            <div style="font-size:3rem;margin-bottom:8px;" class="float-anim">🏆</div>
+            <p class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">Plan dnia zrealizowany!</p>
+            <p class="text-xs mt-2" style="color:var(--muted);">Świetna robota. Jutro nowe wyzwanie czeka.</p>
+          </div>
         </div>
       </div>
     </section>
@@ -1783,6 +1798,15 @@ function planFilter(items, exclusions) {
   });
 }
 
+// ========== HEX TO RGB HELPER ==========
+function hexToRgb(hex) {
+  // Accepts #rrggbb or named css vars fallback
+  const m = hex.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+  if (m) return parseInt(m[1],16)+','+parseInt(m[2],16)+','+parseInt(m[3],16);
+  // Fallback cyan
+  return '0,229,255';
+}
+
 // ========== RING HELPER ==========
 function setRing(circleId, val, max, pctId, valId, maxId) {
   const pct = max > 0 ? Math.min(Math.round(val/max*100), 100) : 0;
@@ -1813,7 +1837,7 @@ function updateDashboard() {
   // KPIs — use real checked data
   const checkedKey = `${p.id}_${state.days[state.currentDay]}`;
   const checked = state.dayChecked[checkedKey] || {};
-  const dayMeals = p.dietPlan[state.days[state.currentDay]] || [];
+  const dayMeals = (p.dietPlan[state.days[state.currentDay]] || []).filter(m => !m.hidden);
   const dayExercises = p.trainingPlan[state.days[state.currentDay]] || [];
   const totalItems = dayMeals.length + dayExercises.length;
   const doneItems = Object.keys(checked).filter(k=>checked[k]).length;
@@ -1827,10 +1851,11 @@ function updateDashboard() {
   document.getElementById('kpiGoal').textContent = (p.goals||[]).length+'×';
   document.getElementById('kpiGoalLabel').textContent = (p.goals||[]).length>0 ? 'Active Goals' : 'Brak celów';
 
-  // Progress Rings from dayLogs
-  const dietLog = state.dayLogs[p.id]?.diet || [];
-  const calEaten = dietLog.reduce((s,i) => s+(i.kcal||0), 0);
-  const protEaten = dietLog.reduce((s,i) => s+(i.protein||0), 0);
+  // Progress Rings — same source as Mój Dzień: checked dayMeals + extraItems
+  const _extras = state.extraItems[p.id] || [];
+  let calEaten = 0, protEaten = 0;
+  dayMeals.forEach((m, i) => { if (checked['meal_'+i]) { calEaten += m.kcal||0; protEaten += m.protein||0; } });
+  _extras.forEach(ex => { if (ex.type === 'diet') { calEaten += ex.kcal||0; protEaten += ex.protein||0; } });
   setRing('ringCalories', calEaten, tdee, 'ringCalPct', 'ringCalVal', 'ringCalMax');
   setRing('ringProtein', protEaten, protein, 'ringProtPct', 'ringProtVal', 'ringProtMax');
   const macroTot = tdee > 0 ? Math.round(calEaten/tdee*100) : 0;
@@ -1860,14 +1885,197 @@ function updateDashboard() {
     }).join('');
   }
 
-  // Next steps
-  const nextEl = document.getElementById('nextSteps');
-  const steps = [];
-  if (calEaten < tdee * 0.5) steps.push({icon:'🍽️', title:'Dodaj posiłek', desc:'Nie osiągnąłeś połowy kalorycznej normy', action:"showTab('my-day')"});
-  if (dayExercises.length > 0 && doneItems < dayMeals.length + dayExercises.length) steps.push({icon:'💪', title:'Wykonaj trening', desc:'Masz zaplanowane ćwiczenia na dziś', action:"showTab('plan');switchPlanSubtab('training')"});
-  if (protEaten < protein * 0.4) steps.push({icon:'🥩', title:'Dodaj białko', desc:`Cel: ${protein}g, masz: ${protEaten}g`, action:"showTab('my-day')"});
-  if (steps.length === 0) steps.push({icon:'🎉', title:'Świetna robota!', desc:'Plan dnia jest w realizacji!', action:''});
-  nextEl.innerHTML = steps.map(s => `<div class="glass rounded-2xl p-4 cursor-pointer hover:border-cyan-500/30 transition-all" onclick="${s.action}"><p class="text-2xl mb-2">${s.icon}</p><p class="text-sm font-bold text-white">${s.title}</p><p class="text-xs text-gray-400 mt-1">${s.desc}</p></div>`).join('');
+  // ── Co teraz? — rich contextual next steps ──────────────────────────────
+  (function renderNextSteps() {
+    const primaryEl = document.getElementById('nextStepsPrimary');
+    const gridEl    = document.getElementById('nextSteps');
+    const allDone   = document.getElementById('nextStepsAllDone');
+    const subtitle  = document.getElementById('nextStepsSubtitle');
+    const fracEl    = document.getElementById('nextStepsDoneFrac');
+    const progBox   = document.getElementById('nextStepsDayProgress');
+
+    // — Compute today's completion state —
+    const mealsDone     = dayMeals.filter((_,i)=> checked[`meal_${i}`]).length;
+    const exercisesDone = dayExercises.filter((_,i)=> checked[`ex_${i}`]).length;
+    const totalTasks    = dayMeals.length + dayExercises.length;
+    const doneTasks     = mealsDone + exercisesDone;
+    const allComplete   = totalTasks > 0 && doneTasks >= totalTasks;
+
+    // — Day progress counter —
+    if (totalTasks > 0) {
+      progBox.classList.remove('hidden');
+      fracEl.textContent = doneTasks + '/' + totalTasks;
+    } else {
+      progBox.classList.add('hidden');
+    }
+
+    // Streak info
+    const streak = state.profiles.reduce((s,pr)=> Math.max(s, pr.streak||0), 0);
+    const hour   = new Date().getHours();
+    const isEvening = hour >= 18;
+    const isMorning = hour < 10;
+
+    // — Collect smart tasks —
+    const tasks = [];
+
+    // 1. Calories critical shortfall
+    const calPct = tdee > 0 ? calEaten / tdee : 0;
+    if (calPct < 0.3) {
+      tasks.push({
+        priority: 1, type: 'urgent',
+        icon: '⚠️', color: '#f87171',
+        title: 'Bardzo mało kalorii!',
+        desc: `Spożyto tylko ${calEaten} z ${tdee} kcal (${Math.round(calPct*100)}%). Dodaj posiłek jak najszybciej.`,
+        badge: 'Pilne',
+        badgeColor: 'rgba(248,113,113,0.2)', badgeBorder: 'rgba(248,113,113,0.4)',
+        action: "showTab('my-day')", actionLabel: '→ Mój Dzień'
+      });
+    } else if (calPct < 0.55 && !isEvening) {
+      tasks.push({
+        priority: 2, type: 'warn',
+        icon: '🍽️', color: '#fbbf24',
+        title: 'Uzupełnij kalorie',
+        desc: `${calEaten} z ${tdee} kcal — zostało Ci ${tdee - calEaten} kcal do celu.`,
+        badge: null,
+        action: "showTab('my-day')", actionLabel: '→ Dodaj posiłek'
+      });
+    }
+
+    // 2. Protein shortfall
+    const protPct = protein > 0 ? protEaten / protein : 0;
+    if (protPct < 0.4) {
+      tasks.push({
+        priority: 3, type: 'warn',
+        icon: '🥩', color: '#a78bfa',
+        title: 'Za mało białka',
+        desc: `${protEaten}g z ${protein}g celu — brakuje ${protein - protEaten}g. Sięgnij po kurczaka, twaróg lub shake.`,
+        badge: null,
+        action: "showTab('my-day')", actionLabel: '→ Dodaj białko'
+      });
+    }
+
+    // 3. Workout reminder
+    const workoutsMissed = dayExercises.length - exercisesDone;
+    if (workoutsMissed > 0) {
+      tasks.push({
+        priority: 4, type: 'action',
+        icon: '💪', color: '#00e5ff',
+        title: workoutsMissed === dayExercises.length ? 'Trening nierozpoczęty' : `Trening w toku (${exercisesDone}/${dayExercises.length})`,
+        desc: workoutsMissed === dayExercises.length
+          ? `Zaplanowano ${dayExercises.length} ćwiczeni${dayExercises.length===1?'e':'a'} — czas na sesję!`
+          : `Zostało ${workoutsMissed} ćwicze${workoutsMissed===1?'nie':'nia'} do ukończenia.`,
+        badge: workoutsMissed > 0 && isEvening ? 'Dziś!' : null,
+        badgeColor: 'rgba(0,229,255,0.15)', badgeBorder: 'rgba(0,229,255,0.35)',
+        action: "showTab('plan');switchPlanSubtab('training')", actionLabel: '→ Plan treningu'
+      });
+    }
+
+    // 4. Streak maintenance
+    if (streak > 0 && isEvening && doneTasks < totalTasks) {
+      tasks.push({
+        priority: 5, type: 'info',
+        icon: '🔥', color: '#f97316',
+        title: `Chroń streak ${streak} dni!`,
+        desc: 'Jest wieczór — ukończ plan zanim stracisz serię.',
+        badge: streak >= 7 ? `${streak} dni 🔥` : null,
+        badgeColor: 'rgba(249,115,22,0.15)', badgeBorder: 'rgba(249,115,22,0.35)',
+        action: "showTab('my-day')", actionLabel: '→ Uzupełnij dziennik'
+      });
+    }
+
+    // 5. No plan generated yet
+    if (dayMeals.length === 0 && dayExercises.length === 0) {
+      tasks.push({
+        priority: 1, type: 'setup',
+        icon: '📅', color: '#7c3aed',
+        title: 'Wygeneruj plan tygodnia',
+        desc: 'Nie masz jeszcze planu na ten dzień. Wygeneruj go w zakładce Plan.',
+        badge: 'Start',
+        badgeColor: 'rgba(124,58,237,0.2)', badgeBorder: 'rgba(124,58,237,0.4)',
+        action: "showTab('plan')", actionLabel: '→ Generuj plan'
+      });
+    }
+
+    // 6. Morning: log weight suggestion
+    if (isMorning && (!p.weight || p.weight === 0)) {
+      tasks.push({
+        priority: 6, type: 'tip',
+        icon: '⚖️', color: '#34d399',
+        title: 'Poranny pomiar wagi',
+        desc: 'Zważ się przed śniadaniem dla najdokładniejszego pomiaru.',
+        badge: 'Poranek',
+        badgeColor: 'rgba(52,211,153,0.15)', badgeBorder: 'rgba(52,211,153,0.35)',
+        action: "showTab('my-day')", actionLabel: '→ Wpisz wagę'
+      });
+    }
+
+    // 7. Meals mostly done, just log them
+    if (dayMeals.length > 0 && mealsDone === dayMeals.length && calPct < 0.7) {
+      tasks.push({
+        priority: 7, type: 'tip',
+        icon: '📝', color: '#64748b',
+        title: 'Uzupełnij dziennik żywieniowy',
+        desc: 'Posiłki zaznaczone — wejdź w Mój Dzień i dodaj co zjadłeś.',
+        badge: null,
+        action: "showTab('my-day')", actionLabel: '→ Mój Dzień'
+      });
+    }
+
+    // 8. All good, suggest progress tab
+    if (tasks.length === 0 || allComplete) {
+      primaryEl.classList.add('hidden');
+      gridEl.innerHTML = '';
+      allDone.classList.remove('hidden');
+      subtitle.textContent = 'Dziś wszystko ukończone!';
+      return;
+    }
+
+    allDone.classList.add('hidden');
+    subtitle.textContent = isMorning ? 'Dobry poranek! Oto plan:' : isEvening ? 'Wieczorne podsumowanie:' : 'Twój plan na dziś';
+
+    // Sort by priority
+    tasks.sort((a,b)=>a.priority-b.priority);
+
+    // Render primary (top priority, big card)
+    const primary = tasks[0];
+    primaryEl.classList.remove('hidden');
+    primaryEl.innerHTML = `
+      <div class="rounded-2xl p-5 cursor-pointer transition-all"
+           style="background:linear-gradient(135deg,rgba(${hexToRgb(primary.color)},0.1) 0%,rgba(0,0,0,0.2) 100%);border:1px solid rgba(${hexToRgb(primary.color)},0.25);box-shadow:0 0 24px rgba(${hexToRgb(primary.color)},0.06);"
+           onclick="${primary.action}">
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex items-start gap-3 flex-1">
+            <span style="font-size:1.8rem;line-height:1;">${primary.icon}</span>
+            <div class="flex-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <p class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">${primary.title}</p>
+                ${primary.badge ? `<span style="background:${primary.badgeColor};border:1px solid ${primary.badgeBorder};color:${primary.color};border-radius:99px;padding:2px 10px;font-size:10px;font-weight:700;">${primary.badge}</span>` : ''}
+              </div>
+              <p class="text-sm mt-1.5" style="color:rgba(255,255,255,0.6);line-height:1.5;">${primary.desc}</p>
+            </div>
+          </div>
+          <span class="text-xs font-bold whitespace-nowrap mt-1" style="color:${primary.color};">${primary.actionLabel}</span>
+        </div>
+      </div>`;
+
+    // Render remaining tasks as smaller grid cards
+    const rest = tasks.slice(1, 5);
+    gridEl.innerHTML = rest.map(s => `
+      <div class="rounded-xl p-4 cursor-pointer transition-all"
+           style="background:rgba(255,255,255,0.03);border:1px solid var(--border);"
+           onmouseenter="this.style.borderColor='rgba(${hexToRgb(s.color)},0.3)';this.style.background='rgba(${hexToRgb(s.color)},0.05)';"
+           onmouseleave="this.style.borderColor='var(--border)';this.style.background='rgba(255,255,255,0.03)';"
+           onclick="${s.action}">
+        <div class="flex items-center gap-3">
+          <span style="font-size:1.4rem;flex-shrink:0;">${s.icon}</span>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-bold text-white truncate">${s.title}</p>
+            <p class="text-xs mt-0.5 truncate" style="color:var(--muted);">${s.desc}</p>
+          </div>
+          <span class="text-xs font-semibold flex-shrink-0" style="color:${s.color};">›</span>
+        </div>
+      </div>`).join('');
+  })();
 
   // Chart
   renderConsistencyChart();
