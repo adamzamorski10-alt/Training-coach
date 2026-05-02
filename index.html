@@ -2715,109 +2715,7 @@ function generateShoppingList() {
 function printShoppingList() {
   const content = document.getElementById('shoppingContent').innerHTML;
   const win = window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html><head><title>Lista Zakupów FitAI</title><style>body{font-family:sans-serif;max-width:600px;margin:40px auto;}h1{color:#00e5ff;margin-bottom:20px;}h6{font-weight:bold;margin:16px 0 8px;}div{margin-bottom:4px;}span{display:inline-block;}span:last-child{float:right;color:#00e5ff;}</style></head><body><h1>🛒 Lista Zakupów FitAI — Tygodniowa</h1>${content}
-<!-- ====== ADD OTHER MODAL ====== -->
-<div id="addOtherModal" class="hidden fixed inset-0 z-[110] flex items-center justify-center p-4 modal-backdrop">
-  <div class="glass rounded-3xl w-full max-w-sm p-6" style="border-color:var(--border-cyan)!important;">
-    <div class="flex justify-between items-center mb-5">
-      <h5 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;" id="addOtherTitle">Dodaj własne</h5>
-      <button onclick="closeAddOtherModal()" class="text-gray-500 hover:text-white text-xl">✕</button>
-    </div>
-    <div class="space-y-3">
-      <div><label class="block text-xs text-gray-400 mb-1">Nazwa *</label><input type="text" id="otherName" placeholder="np. Koktajl warzywny" class="w-full"></div>
-      <div id="otherDietFields" class="space-y-3">
-        <div class="grid grid-cols-2 gap-3">
-          <div><label class="block text-xs text-gray-400 mb-1">Kalorie (kcal)</label><input type="number" id="otherKcal" placeholder="200" class="w-full"></div>
-          <div><label class="block text-xs text-gray-400 mb-1">Białko (g)</label><input type="number" id="otherProtein" placeholder="0" class="w-full"></div>
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div><label class="block text-xs text-gray-400 mb-1">Węgle (g)</label><input type="number" id="otherCarbs" placeholder="0" class="w-full"></div>
-          <div><label class="block text-xs text-gray-400 mb-1">Tłuszcz (g)</label><input type="number" id="otherFat" placeholder="0" class="w-full"></div>
-        </div>
-      </div>
-      <div id="otherTrainingFields" class="hidden">
-        <label class="block text-xs text-gray-400 mb-1">Czas / opis</label>
-        <input type="text" id="otherDuration" placeholder="np. 30 min, 3×10 powt." class="w-full">
-      </div>
-    </div>
-    <div class="flex gap-3 mt-5">
-      <button onclick="submitAddOther()" class="flex-1 btn-neon py-2 rounded-xl font-bold text-sm">Dodaj</button>
-      <button onclick="closeAddOtherModal()" class="flex-1 btn-ghost py-2 rounded-xl text-sm">Anuluj</button>
-    </div>
-  </div>
-</div>
-
-
-  <!-- ====== EDIT PLAN MODAL ====== -->
-  <div id="editPlanModal" class="fixed inset-0 z-[200] flex items-center justify-center p-4 hidden">
-    <div class="absolute inset-0" style="background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);" onclick="closeEditPlanModal()"></div>
-    <div class="relative w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl overflow-hidden" style="background:#0f1117;border:1px solid rgba(0,229,255,0.2);box-shadow:0 0 60px rgba(0,229,255,0.08);">
-      <!-- Header -->
-      <div class="flex items-center justify-between px-6 py-4 border-b" style="border-color:rgba(255,255,255,0.06);">
-        <div>
-          <h3 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">✏️ Edytuj plan treningowy</h3>
-          <p id="editPlanDayLabel" class="text-xs text-gray-500 mt-0.5"></p>
-        </div>
-        <button onclick="closeEditPlanModal()" class="w-8 h-8 flex items-center justify-center rounded-xl text-gray-400 hover:text-white transition-colors" style="background:rgba(255,255,255,0.05);">✕</button>
-      </div>
-
-      <!-- Exercise list (scrollable) -->
-      <div class="flex-1 overflow-y-auto px-6 py-4 space-y-2" id="editPlanList"></div>
-
-      <!-- Add exercise section -->
-      <div class="px-6 py-4 border-t" style="border-color:rgba(255,255,255,0.06);">
-        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Dodaj ćwiczenie</p>
-        <div class="flex gap-2">
-          <div class="relative flex-1">
-            <input id="editPlanSearch" type="text" placeholder="Szukaj ćwiczenia..." autocomplete="off"
-              class="w-full px-4 py-2.5 rounded-xl text-sm text-white placeholder-gray-600 outline-none"
-              style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);"
-              oninput="renderEditPlanSearch(this.value)"
-              onfocus="renderEditPlanSearch(this.value)">
-            <div id="editPlanDropdown" class="absolute bottom-full left-0 right-0 mb-1 rounded-xl overflow-hidden hidden max-h-52 overflow-y-auto"
-              style="background:#1a1d26;border:1px solid rgba(0,229,255,0.2);z-index:10;"></div>
-          </div>
-          <button onclick="addCustomExercise()" class="px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap" style="background:rgba(0,229,255,0.12);border:1px solid rgba(0,229,255,0.3);color:#00e5ff;">
-            + Własne
-          </button>
-        </div>
-      </div>
-
-      <!-- Footer buttons -->
-      <div class="flex gap-3 px-6 py-4 border-t" style="border-color:rgba(255,255,255,0.06);">
-        <button onclick="saveEditedPlan()" class="flex-1 btn-neon py-3 rounded-xl font-bold text-sm">💾 Zapisz plan</button>
-        <button onclick="closeEditPlanModal()" class="px-6 py-3 rounded-xl text-sm font-bold text-gray-400 hover:text-white transition-colors" style="background:rgba(255,255,255,0.05);">Anuluj</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ====== ADD CUSTOM EXERCISE MODAL ====== -->
-  <div id="customExModal" class="fixed inset-0 z-[210] flex items-center justify-center p-4 hidden">
-    <div class="absolute inset-0" style="background:rgba(0,0,0,0.6);" onclick="closeCustomExModal()"></div>
-    <div class="relative w-full max-w-sm rounded-2xl p-6 space-y-4" style="background:#0f1117;border:1px solid rgba(124,58,237,0.3);">
-      <h3 class="text-base font-bold text-white" style="font-family:'Syne',sans-serif;">➕ Własne ćwiczenie</h3>
-      <input id="customExName" type="text" placeholder="Nazwa ćwiczenia" class="w-full px-4 py-2.5 rounded-xl text-sm text-white placeholder-gray-600 outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
-      <div class="grid grid-cols-3 gap-2">
-        <div>
-          <label class="text-xs text-gray-500 mb-1 block">Serie</label>
-          <input id="customExSets" type="number" value="3" min="1" max="10" class="w-full px-3 py-2 rounded-xl text-sm text-white text-center outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
-        </div>
-        <div>
-          <label class="text-xs text-gray-500 mb-1 block">Powt.</label>
-          <input id="customExReps" type="number" value="10" min="1" max="100" class="w-full px-3 py-2 rounded-xl text-sm text-white text-center outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
-        </div>
-        <div>
-          <label class="text-xs text-gray-500 mb-1 block">Kg</label>
-          <input id="customExWeight" type="number" value="0" min="0" class="w-full px-3 py-2 rounded-xl text-sm text-white text-center outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
-        </div>
-      </div>
-      <div class="flex gap-3 pt-2">
-        <button onclick="confirmAddCustomEx()" class="flex-1 btn-neon py-2.5 rounded-xl font-bold text-sm">Dodaj</button>
-        <button onclick="closeCustomExModal()" class="px-4 py-2.5 rounded-xl text-sm text-gray-400" style="background:rgba(255,255,255,0.05);">Anuluj</button>
-      </div>
-    </div>
-  </div>
-<\/body><\/html>`);
+  win.document.write(`<!DOCTYPE html><html><head><title>Lista Zakupów FitAI</title><style>body{font-family:sans-serif;max-width:600px;margin:40px auto;}h1{color:#00e5ff;margin-bottom:20px;}h6{font-weight:bold;margin:16px 0 8px;}div{margin-bottom:4px;}span{display:inline-block;}span:last-child{float:right;color:#00e5ff;}</style></head><body><h1>🛒 Lista Zakupów FitAI — Tygodniowa</h1>${content}</body></html>`);
   win.document.close();
   win.print();
 }
@@ -3946,6 +3844,81 @@ if ('serviceWorker' in navigator) {
   </div>
 </div>
 
+
+
+
+
+
+
+  <!-- ====== EDIT PLAN MODAL ====== -->
+  <div id="editPlanModal" class="fixed inset-0 z-[200] flex items-center justify-center p-4 hidden">
+    <div class="absolute inset-0" style="background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);" onclick="closeEditPlanModal()"></div>
+    <div class="relative w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl overflow-hidden" style="background:#0f1117;border:1px solid rgba(0,229,255,0.2);box-shadow:0 0 60px rgba(0,229,255,0.08);">
+      <!-- Header -->
+      <div class="flex items-center justify-between px-6 py-4 border-b" style="border-color:rgba(255,255,255,0.06);">
+        <div>
+          <h3 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">✏️ Edytuj plan treningowy</h3>
+          <p id="editPlanDayLabel" class="text-xs text-gray-500 mt-0.5"></p>
+        </div>
+        <button onclick="closeEditPlanModal()" class="w-8 h-8 flex items-center justify-center rounded-xl text-gray-400 hover:text-white transition-colors" style="background:rgba(255,255,255,0.05);">✕</button>
+      </div>
+
+      <!-- Exercise list (scrollable) -->
+      <div class="flex-1 overflow-y-auto px-6 py-4 space-y-2" id="editPlanList"></div>
+
+      <!-- Add exercise section -->
+      <div class="px-6 py-4 border-t" style="border-color:rgba(255,255,255,0.06);">
+        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Dodaj ćwiczenie</p>
+        <div class="flex gap-2">
+          <div class="relative flex-1">
+            <input id="editPlanSearch" type="text" placeholder="Szukaj ćwiczenia..." autocomplete="off"
+              class="w-full px-4 py-2.5 rounded-xl text-sm text-white placeholder-gray-600 outline-none"
+              style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);"
+              oninput="renderEditPlanSearch(this.value)"
+              onfocus="renderEditPlanSearch(this.value)">
+            <div id="editPlanDropdown" class="absolute bottom-full left-0 right-0 mb-1 rounded-xl overflow-hidden hidden max-h-52 overflow-y-auto"
+              style="background:#1a1d26;border:1px solid rgba(0,229,255,0.2);z-index:10;"></div>
+          </div>
+          <button onclick="addCustomExercise()" class="px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap" style="background:rgba(0,229,255,0.12);border:1px solid rgba(0,229,255,0.3);color:#00e5ff;">
+            + Własne
+          </button>
+        </div>
+      </div>
+
+      <!-- Footer buttons -->
+      <div class="flex gap-3 px-6 py-4 border-t" style="border-color:rgba(255,255,255,0.06);">
+        <button onclick="saveEditedPlan()" class="flex-1 btn-neon py-3 rounded-xl font-bold text-sm">💾 Zapisz plan</button>
+        <button onclick="closeEditPlanModal()" class="px-6 py-3 rounded-xl text-sm font-bold text-gray-400 hover:text-white transition-colors" style="background:rgba(255,255,255,0.05);">Anuluj</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== ADD CUSTOM EXERCISE MODAL ====== -->
+  <div id="customExModal" class="fixed inset-0 z-[210] flex items-center justify-center p-4 hidden">
+    <div class="absolute inset-0" style="background:rgba(0,0,0,0.6);" onclick="closeCustomExModal()"></div>
+    <div class="relative w-full max-w-sm rounded-2xl p-6 space-y-4" style="background:#0f1117;border:1px solid rgba(124,58,237,0.3);">
+      <h3 class="text-base font-bold text-white" style="font-family:'Syne',sans-serif;">➕ Własne ćwiczenie</h3>
+      <input id="customExName" type="text" placeholder="Nazwa ćwiczenia" class="w-full px-4 py-2.5 rounded-xl text-sm text-white placeholder-gray-600 outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+      <div class="grid grid-cols-3 gap-2">
+        <div>
+          <label class="text-xs text-gray-500 mb-1 block">Serie</label>
+          <input id="customExSets" type="number" value="3" min="1" max="10" class="w-full px-3 py-2 rounded-xl text-sm text-white text-center outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+        </div>
+        <div>
+          <label class="text-xs text-gray-500 mb-1 block">Powt.</label>
+          <input id="customExReps" type="number" value="10" min="1" max="100" class="w-full px-3 py-2 rounded-xl text-sm text-white text-center outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+        </div>
+        <div>
+          <label class="text-xs text-gray-500 mb-1 block">Kg</label>
+          <input id="customExWeight" type="number" value="0" min="0" class="w-full px-3 py-2 rounded-xl text-sm text-white text-center outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+        </div>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button onclick="confirmAddCustomEx()" class="flex-1 btn-neon py-2.5 rounded-xl font-bold text-sm">Dodaj</button>
+        <button onclick="closeCustomExModal()" class="px-4 py-2.5 rounded-xl text-sm text-gray-400" style="background:rgba(255,255,255,0.05);">Anuluj</button>
+      </div>
+    </div>
+  </div>
 
 </body>
 </html>
