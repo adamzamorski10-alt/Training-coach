@@ -514,6 +514,16 @@ def calc_protein(p: dict | UserDB) -> int:
 _HEAVY_MUSCLE_GROUPS = {"nogi", "plecy", "full body", "cardio"}
 _REST_KEYWORDS = {"odpoczynek", "rest", "regeneracja"}
 
+# Mapowanie partii z frontendu na klucze w bazie ćwiczeń (pool)
+_MUSCLE_MAP = {
+    "ramiona": "barki",
+    "core": "brzuch",
+    "pośladki": "nogi",
+    "brzuch": "brzuch",
+    "klatka": "klatka",
+    "plecy": "plecy",
+    "nogi": "nogi"
+}
 
 def _day_type(day_name: str, focus: str) -> str:
     """Returns 'heavy', 'moderate', or 'rest' for carb cycling logic."""
@@ -1257,7 +1267,9 @@ def _build_weekly_plan(user: UserDB) -> dict:
             day_type = "heavy"   # sesja sportowa = ciężki dzień kaloryczny
             focus_key = sport_focus
         else:
-            focus_key = next(focus_iter, preferred[0])
+            raw_focus = next(focus_iter, preferred[0])
+            # Rozwiąż mapowanie (np. ramiona -> barki)
+            focus_key = _MUSCLE_MAP.get(raw_focus, raw_focus)
             if focus_key not in pool:
                 focus_key = "klatka"
             day_type = _day_type(day_name, focus_key)

@@ -1,11 +1,19 @@
 @echo off
-title FitAI Launcher
-cd /d "%~dp0"
-echo [1/3] Generowanie najnowszej wersji strony...
+TITLE FitAI v3.0 Launcher
+echo [FitAI] Zamykanie aktywnych procesow...
+taskkill /IM uvicorn.exe /F 2>nul
+
+echo [FitAI] Generowanie nowoczesnego interfejsu (v3.0)...
 python generate_html_complete.py
-echo [2/3] Uruchamianie Backend API w nowym oknie...
-start "FitAI Backend" cmd /k "uvicorn fitai_api:app --reload --port 8000"
-echo [3/3] Oczekiwanie na start serwera...
-timeout /t 3
-echo Otwieranie strony w przegladarce...
+if %ERRORLEVEL% NEQ 0 (
+    echo [BŁĄD] Nie udalo sie wygenerowac index.html. Sprawdz bledy Pythona powyzej.
+    pause
+    exit /b
+)
+
+echo [FitAI] Uruchamianie backendu API (Port 8000)...
+start /B uvicorn fitai_api:app --host 0.0.0.0 --port 8000
+
+echo [FitAI] Otwieranie Dashboardu w przegladarce...
 start index.html
+echo [FitAI] System gotowy! API: http://localhost:8000. Jesli widzisz stare dane, uzyj Ctrl+F5 w przegladarce.
