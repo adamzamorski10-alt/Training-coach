@@ -130,7 +130,23 @@
     /* Day picker modal */
     .day-pick-btn{padding:10px 14px;border-radius:12px;border:1px solid var(--border);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;background:transparent;color:var(--text);}
     .day-pick-btn:hover,.day-pick-btn.active{border-color:var(--cyan);background:rgba(0,229,255,0.1);color:var(--cyan);}
-  </style>
+  
+    /* ─── Edit Plan Modal: fix number input sizing ─── */
+    #editPlanList input[type=number] {
+      width: 48px !important;
+      padding: 4px 2px !important;
+      font-size: 13px !important;
+      font-weight: 700 !important;
+      text-align: center !important;
+      box-shadow: none !important;
+      -moz-appearance: textfield !important;
+    }
+    #editPlanList input[type=number]::-webkit-outer-spin-button,
+    #editPlanList input[type=number]::-webkit-inner-spin-button {
+      -webkit-appearance: none !important;
+      margin: 0 !important;
+    }
+</style>
 </head>
 <body>
 
@@ -3633,18 +3649,22 @@ function renderEditPlanList() {
 
     function makeInput(label, field, value, minVal, maxVal, widthClass) {
       const wrap = document.createElement('div');
-      wrap.className = 'flex flex-col items-center';
+      wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:2px;';
       const lbl = document.createElement('span');
-      lbl.className = 'text-[9px] text-gray-600 mb-0.5';
+      lbl.style.cssText = 'font-size:9px;color:#9ca3af;line-height:1;display:block;text-align:center;';
       lbl.textContent = label;
       const inp = document.createElement('input');
       inp.type = 'number';
       inp.min = minVal; inp.max = maxVal;
       inp.value = value;
-      inp.className = widthClass + ' text-center text-xs font-bold rounded-lg py-1.5 outline-none text-white';
-      inp.style.cssText = field === 'weight'
-        ? 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);'
-        : 'background:rgba(0,229,255,0.07);border:1px solid rgba(0,229,255,0.2);';
+      // Force all styles inline to override global input !important rules
+      const bg = field === 'weight' ? 'rgba(255,255,255,0.06)' : 'rgba(0,229,255,0.09)';
+      const bd = field === 'weight' ? 'rgba(255,255,255,0.18)' : 'rgba(0,229,255,0.35)';
+      inp.style.cssText = 'width:48px!important;padding:4px 2px!important;text-align:center!important;' +
+        'font-size:13px!important;font-weight:700!important;color:#e2e8f0!important;' +
+        'background:' + bg + '!important;border:1px solid ' + bd + '!important;' +
+        'border-radius:8px!important;outline:none!important;display:block!important;' +
+        '-moz-appearance:textfield;box-shadow:none!important;';
       inp.addEventListener('change', () => epUpdateField(idx, field, +inp.value));
       wrap.appendChild(lbl);
       wrap.appendChild(inp);
