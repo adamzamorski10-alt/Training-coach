@@ -1,19 +1,25 @@
 @echo off
-TITLE FitAI v3.0 Launcher
-echo [FitAI] Zamykanie aktywnych procesow...
+TITLE FitAI v3.0 - Safe Launcher
+echo [FitAI] Zamykanie aktywnych procesow backendu...
 taskkill /IM uvicorn.exe /F 2>nul
 
-echo [FitAI] Generowanie nowoczesnego interfejsu (v3.0)...
-python generate_html_complete.py
+echo [FitAI] Wdraczanie zmian z backendu...
+python deploy_backend.py
 if %ERRORLEVEL% NEQ 0 (
-    echo [BŁĄD] Nie udalo sie wygenerowac index.html. Sprawdz bledy Pythona powyzej.
+    echo [BLAD] Wystapil problem z wdrozeniem zmian. Sprawdz bledy Pythona.
     pause
     exit /b
 )
 
-echo [FitAI] Uruchamianie backendu API (Port 8000)...
+echo [FitAI] Uruchamianie API (Port 8000)...
 start /B uvicorn fitai_api:app --host 0.0.0.0 --port 8000
 
-echo [FitAI] Otwieranie Dashboardu w przegladarce...
+echo [FitAI] Otwieranie strony w przegladarce...
 start index.html
-echo [FitAI] System gotowy! API: http://localhost:8000. Jesli widzisz stare dane, uzyj Ctrl+F5 w przegladarce.
+
+echo.
+echo ======================================================
+echo SYSTEM GOTOWY!
+echo Twoje zmiany w index.html sa teraz BEZPIECZNE.
+echo Backend API dziala na: http://localhost:8000
+echo ======================================================
