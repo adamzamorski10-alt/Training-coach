@@ -96,6 +96,10 @@
     .check-circle{width:22px;height:22px;border-radius:50%;border:2px solid var(--border-cyan);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;flex-shrink:0;}
     .check-circle.checked{background:var(--cyan);border-color:var(--cyan);}
     .check-circle.checked::after{content:'✓';color:#000;font-size:12px;font-weight:bold;animation:checkPop 0.3s ease;}
+    /* Plan tab – posilek zjedzony (Single Source of Truth) */
+    .meal-eaten{background:rgba(0,229,255,0.04)!important;border-color:rgba(0,229,255,0.18)!important;}
+    .meal-eaten .meal-name-text{text-decoration:line-through;color:var(--muted);}
+    .meal-eaten-badge{font-size:10px;font-weight:700;color:#00e5ff;background:rgba(0,229,255,0.1);border:1px solid rgba(0,229,255,0.25);border-radius:99px;padding:1px 7px;white-space:nowrap;}
     /* Shopping list */
     .shop-category{border-left:3px solid var(--cyan);padding-left:12px;margin-bottom:16px;}
     /* Range slider */
@@ -495,6 +499,74 @@
         <div class="glass p-4 text-center"><p class="text-xs text-gray-500 mb-1">Białko</p><p class="text-lg font-bold text-violet-400" style="font-family:'Syne',sans-serif;"><span id="daySumProt">0</span>g</p></div>
         <div class="glass p-4 text-center"><p class="text-xs text-gray-500 mb-1">Aktywności</p><p class="text-lg font-bold text-yellow-400" style="font-family:'Syne',sans-serif;" id="dayTrainCount">0</p></div>
       </div>
+      <!-- ══════ SMART WATER TRACKER ══════ -->
+      <div class="glass p-5 rounded-2xl" id="waterTrackerCard">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">💧</span>
+            <h4 class="text-base font-bold text-white" style="font-family:'Syne',sans-serif;">Smart Water Tracker</h4>
+            <span id="weatherBadge" class="hidden text-xs px-2 py-0.5 rounded-full font-bold"
+              style="background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.4);color:#fbbf24;"></span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="waterGoalLabel" class="text-xs font-bold" style="color:var(--muted);">Cel: 2500 ml</span>
+            <button onclick="water.fetchWeather()" class="btn-ghost px-3 py-1.5 rounded-xl text-xs">📍 Pogoda</button>
+          </div>
+        </div>
+        <!-- Ring + current ml -->
+        <div class="flex items-center gap-5 mb-4">
+          <div style="position:relative;flex-shrink:0;width:80px;height:80px;">
+            <svg width="80" height="80" viewBox="0 0 80 80">
+              <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(56,189,248,0.1)" stroke-width="8"/>
+              <circle id="waterRing" cx="40" cy="40" r="34" fill="none"
+                stroke="url(#wg)" stroke-width="8" stroke-linecap="round"
+                stroke-dasharray="213.6" stroke-dashoffset="213.6"
+                style="transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset 0.7s cubic-bezier(0.4,0,0.2,1);"/>
+              <defs>
+                <linearGradient id="wg" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#38bdf8"/>
+                  <stop offset="100%" stop-color="#0ea5e9"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+              <span id="waterPct" class="text-xs font-extrabold" style="color:#38bdf8;font-family:'Syne',sans-serif;">0%</span>
+            </div>
+          </div>
+          <div class="flex-1">
+            <div class="flex items-end gap-1 mb-1">
+              <span id="waterCurrentMl" class="text-3xl font-extrabold" style="font-family:'Syne',sans-serif;color:#38bdf8;">0</span>
+              <span class="text-sm mb-0.5" style="color:var(--muted);">/ <span id="waterGoalMl">2500</span> ml</span>
+            </div>
+            <div id="waterCupsRow" class="flex gap-1 flex-wrap mt-1"></div>
+            <p id="waterMotivation" class="text-xs mt-2" style="color:var(--muted);">Zacznij dzień od szklanki wody!</p>
+          </div>
+        </div>
+        <!-- Quick add buttons -->
+        <div class="grid grid-cols-5 gap-2 mb-3">
+          <button onclick="water.add(150)" class="btn-ghost py-2 rounded-xl text-xs font-bold flex flex-col items-center gap-0.5"><span style="font-size:1.1rem;">🥤</span><span>150ml</span></button>
+          <button onclick="water.add(200)" class="btn-ghost py-2 rounded-xl text-xs font-bold flex flex-col items-center gap-0.5"><span style="font-size:1.1rem;">🫙</span><span>200ml</span></button>
+          <button onclick="water.add(250)" class="btn-ghost py-2 rounded-xl text-xs font-bold flex flex-col items-center gap-0.5"><span style="font-size:1.1rem;">🥛</span><span>250ml</span></button>
+          <button onclick="water.add(330)" class="btn-ghost py-2 rounded-xl text-xs font-bold flex flex-col items-center gap-0.5"><span style="font-size:1.1rem;">🍺</span><span>330ml</span></button>
+          <button onclick="water.add(500)" class="btn-ghost py-2 rounded-xl text-xs font-bold flex flex-col items-center gap-0.5"><span style="font-size:1.1rem;">🍶</span><span>500ml</span></button>
+        </div>
+        <!-- Custom + undo -->
+        <div class="flex gap-2">
+          <input type="number" id="waterCustomMl" placeholder="Własna ilość ml" min="1" max="2000" class="flex-1 text-sm" style="color:#38bdf8;">
+          <button onclick="water.addCustom()" class="btn-outline-cyan px-4 py-2 rounded-xl text-xs font-bold">+ Dodaj</button>
+          <button onclick="water.undo()" class="btn-ghost px-3 py-2 rounded-xl text-xs font-bold" title="Cofnij ostatni wpis">↩</button>
+        </div>
+        <!-- Weather info row -->
+        <div id="weatherInfoRow" class="hidden mt-3 rounded-xl px-4 py-3 flex items-center gap-3"
+          style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.2);">
+          <span id="weatherIcon" class="text-2xl">☀️</span>
+          <div class="flex-1">
+            <p id="weatherDesc" class="text-xs font-bold text-yellow-300"></p>
+            <p id="weatherAdvice" class="text-xs mt-0.5" style="color:var(--muted);"></p>
+          </div>
+        </div>
+      </div>
+
       <div class="glass p-6">
         <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
           <h4 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">📋 Plan dnia — checklista</h4>
@@ -776,6 +848,7 @@
         <button onclick="switchProfileTab('goals')" data-ptab="goals" class="profile-tab px-4 py-2 rounded-xl text-sm font-medium text-gray-400 transition-colors whitespace-nowrap">🎯 Cele</button>
         <button onclick="switchProfileTab('prefs')" data-ptab="prefs" class="profile-tab px-4 py-2 rounded-xl text-sm font-medium text-gray-400 transition-colors whitespace-nowrap">⚙️ Preferencje</button>
         <button onclick="switchProfileTab('payments')" data-ptab="payments" class="profile-tab px-4 py-2 rounded-xl text-sm font-medium text-gray-400 transition-colors whitespace-nowrap">💳 Płatności</button>
+        <button onclick="switchProfileTab('videos')" data-ptab="videos" class="profile-tab px-4 py-2 rounded-xl text-sm font-medium text-gray-400 transition-colors whitespace-nowrap">📹 Wideo</button>
       </div>
 
       <!-- DATA tab -->
@@ -952,6 +1025,32 @@
       </div>
 
       <!-- PAYMENTS tab -->
+      <!-- ══════════ VIDEO LIBRARY PANEL ══════════ -->
+      <div id="ptab-videos" class="profile-tab-panel hidden space-y-6">
+        <div class="glass p-6 rounded-2xl">
+          <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+            <div>
+              <h4 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">📹 Biblioteka Wideo</h4>
+              <p class="text-xs text-gray-500 mt-0.5">Instruktażowe GIFy i wskazówki do każdego ćwiczenia</p>
+            </div>
+            <div class="flex gap-2 flex-wrap" id="videoFilterChips">
+              <button onclick="filterVideos('all')" data-vcat="all" class="chip selected">Wszystkie</button>
+              <button onclick="filterVideos('klatka')" data-vcat="klatka" class="chip">Klatka</button>
+              <button onclick="filterVideos('nogi')" data-vcat="nogi" class="chip">Nogi</button>
+              <button onclick="filterVideos('plecy')" data-vcat="plecy" class="chip">Plecy</button>
+              <button onclick="filterVideos('barki')" data-vcat="barki" class="chip">Barki</button>
+              <button onclick="filterVideos('core')" data-vcat="core" class="chip">Core</button>
+            </div>
+          </div>
+          <div class="relative mb-5">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none">🔍</span>
+            <input type="text" id="videoSearch" placeholder="Szukaj ćwiczenia lub partii…"
+              oninput="filterVideos()" class="w-full pl-9 text-sm">
+          </div>
+          <div id="videoGrid" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div>
+        </div>
+      </div>
+
       <div id="ptab-payments" class="profile-tab-panel hidden">
         <div class="glass p-6">
           <h4 class="text-lg font-bold text-white mb-4" style="font-family:'Syne',sans-serif;">💳 Plan płatności</h4>
@@ -1119,6 +1218,33 @@
 
     <!-- ====== TAB: POSTĘPY ====== -->
     <section id="tab-postepy" class="hidden space-y-6">
+
+      <!-- ── XP Level Bar ── -->
+      <div class="glass p-4 rounded-2xl flex items-center gap-4" id="xpBanner">
+        <div class="flex-shrink-0 text-center" style="min-width:60px;">
+          <span id="xpLevel" class="text-xl font-extrabold" style="font-family:'Syne',sans-serif;color:var(--cyan);">Lv 1</span>
+        </div>
+        <div class="flex-1">
+          <div class="flex justify-between text-xs mb-1">
+            <span id="xpLabel" style="color:var(--muted);">0 XP</span>
+            <span id="xpNextLabel" style="color:var(--muted);">Do Lv 2: 500 XP</span>
+          </div>
+          <div class="progress-bar" style="height:8px;background:rgba(0,229,255,0.08);">
+            <div id="xpBar" class="progress-fill" style="width:0%;background:linear-gradient(90deg,var(--cyan),var(--violet));border-radius:4px;transition:width 1s cubic-bezier(0.4,0,0.2,1);"></div>
+          </div>
+        </div>
+        <div class="flex-shrink-0 text-2xl">⚡</div>
+      </div>
+
+      <!-- ── Stagnation banner (hidden until detected) ── -->
+      <div id="stagnationBanner" class="hidden flex items-start gap-3 rounded-2xl px-4 py-3"
+        style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);">
+      </div>
+
+      <!-- ── Overload alert (hidden until detected) ── -->
+      <div id="overloadAlert" class="hidden flex items-start gap-3 rounded-2xl px-4 py-3"
+        style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);">
+      </div>
 
       <!-- Header -->
       <div class="flex items-center justify-between">
@@ -1885,6 +2011,79 @@ function saveChecked() {
   localStorage.setItem('fitai_checked_v3', JSON.stringify(state.dayChecked));
 }
 
+// ========== DATE-BASED MEAL KEY HELPERS (Single Source of Truth fix) ==========
+/**
+ * Returns ISO date string (YYYY-MM-DD) for a given plan dayIndex (0=Mon).
+ * todayIdx = (new Date().getDay() + 6) % 7
+ * Other days are offset relative to today.
+ */
+function _isoDateForDayIndex(dayIndex) {
+  const todayIdx = (new Date().getDay() + 6) % 7;
+  const diffDays = dayIndex - todayIdx;
+  const d = new Date();
+  d.setDate(d.getDate() + diffDays);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Returns the dayChecked storage key for a given profile and day index. */
+function _checkedKey(profileId, dayIndex) {
+  return profileId + '_' + _isoDateForDayIndex(dayIndex);
+}
+
+/** Returns the dayChecked storage key for TODAY specifically. */
+function _todayCheckedKey(profileId) {
+  return profileId + '_' + new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * Syncs a meal toggle to the backend (/app/meal-toggle).
+ * Fire-and-forget — does not block the UI.
+ */
+async function _syncMealToggleToBackend(mealName, eaten) {
+  const identityId = state.identityId;
+  if (!identityId || !window.API_BASE) return;
+  try {
+    await fetch(window.API_BASE + '/app/meal-toggle/' + identityId, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ meal_name: mealName, eaten: eaten }),
+    });
+  } catch (e) {
+    console.warn('[FitAI] Meal toggle sync failed:', e);
+  }
+}
+
+/**
+ * Loads today_eaten from backend and merges into state.dayChecked for today.
+ * Called on tab switch to "Mój Dzień" and "Plan".
+ */
+async function _loadTodayEatenFromBackend() {
+  const identityId = state.identityId;
+  if (!identityId || !window.API_BASE) return;
+  try {
+    const r = await fetch(window.API_BASE + '/app/checkin/' + identityId);
+    if (!r.ok) return;
+    const data = await r.json();
+    const todayDate = new Date().toISOString().slice(0, 10);
+    if (data.date !== todayDate) return;
+    const p = getCurrentProfile();
+    const k = _todayCheckedKey(p.id);
+    if (!state.dayChecked[k]) state.dayChecked[k] = {};
+    // Map meal names back to meal_N indices using today's plan
+    const todayIdx = (new Date().getDay() + 6) % 7;
+    const day = state.days[todayIdx];
+    const meals = (p.dietPlan[day] || []).filter(m => !m.hidden);
+    meals.forEach((m, i) => {
+      if (data.today_eaten.includes(m.name)) {
+        state.dayChecked[k]['meal_' + i] = true;
+      }
+    });
+    saveChecked();
+  } catch (e) {
+    console.warn('[FitAI] Could not load today_eaten:', e);
+  }
+}
+
 function getCurrentProfile() {
   return state.profiles.find(p => p.id === state.currentProfile) || state.profiles[0];
 }
@@ -2048,8 +2247,8 @@ function updateDashboard() {
   const calcBMR = document.getElementById('calcBMR');
   if (calcBMR) { calcBMR.textContent = bmr; document.getElementById('calcTDEE').textContent = tdee; document.getElementById('calcProtein').textContent = protein+'g'; document.getElementById('calcGoalKcal').textContent = tdee+'kcal'; }
 
-  // KPIs — use real checked data
-  const checkedKey = `${p.id}_${state.days[state.currentDay]}`;
+  // KPIs — use date-based key (Single Source of Truth)
+  const checkedKey = _checkedKey(p.id, state.currentDay);
   const checked = state.dayChecked[checkedKey] || {};
   const dayMeals = (p.dietPlan[state.days[state.currentDay]] || []).filter(m => !m.hidden);
   const dayExercises = p.trainingPlan[state.days[state.currentDay]] || [];
@@ -2084,7 +2283,7 @@ function updateDashboard() {
     groupEl.innerHTML = '<p class="text-sm text-gray-500 italic">Dodaj kolejne profile aby zobaczyć porównanie</p>';
   } else {
     groupEl.innerHTML = state.profiles.map(pr => {
-      const prCheckedKey = `${pr.id}_${state.days[state.currentDay]}`;
+      const prCheckedKey = _checkedKey(pr.id, state.currentDay);
       const prChecked = state.dayChecked[prCheckedKey] || {};
       const prMeals = pr.dietPlan[state.days[state.currentDay]] || [];
       const prEx = pr.trainingPlan[state.days[state.currentDay]] || [];
@@ -2300,7 +2499,7 @@ function renderConsistencyChart() {
   const p = getCurrentProfile();
   // Simulate 7-day consistency data based on checked items
   const data = state.days.map((d, i) => {
-    const k = `${p.id}_${d}`;
+    const k = _checkedKey(p.id, i);
     const checked = state.dayChecked[k] || {};
     const items = (p.dietPlan[d]||[]).length + (p.trainingPlan[d]||[]).length;
     const done = Object.keys(checked).filter(k2=>checked[k2]).length;
@@ -2453,7 +2652,7 @@ function refreshExercisesForSlider(count) {
   const day = state.days[state.currentDay];
   const excl = p.exclusions || [];
   const equip = p.equipment || [];
-  const checkedKey = p.id + '_' + day;
+  const checkedKey = _checkedKey(p.id, state.currentDay);
   const checked = state.dayChecked[checkedKey] || {};
 
   // Sprawdź czy użytkownik dodał ćwiczenia sportowe dla tego dnia
@@ -2828,7 +3027,8 @@ function loadPlanForDay() {
   const p = getCurrentProfile();
   const day = state.days[state.currentDay];
   const excl = p.exclusions || [];
-  const checkedKey = `${p.id}_${day}`;
+  // Use date-based key as Single Source of Truth
+  const checkedKey = _checkedKey(p.id, state.currentDay);
   const checked = state.dayChecked[checkedKey] || {};
 
   if (state.planSubtab === 'diet' || !state.planSubtab) {
@@ -2836,16 +3036,24 @@ function loadPlanForDay() {
     const meals = planFilter(rawMeals, excl);
     state._planMeals = meals;
     const dietContainer = document.getElementById('planDietContainer');
+    // For today's plan, read checked state from date-based key only
+    const isToday = (state.currentDay === (new Date().getDay() + 6) % 7);
+    const effectiveChecked = isToday
+      ? (state.dayChecked[_todayCheckedKey(p.id)] || {})
+      : checked;
     dietContainer.innerHTML = meals.length ? meals.map((m, idx) => {
       if (m.hidden) return `<div class="p-3 rounded-xl text-xs text-gray-600 bg-white/2 border border-white/5 italic flex items-center gap-2"><span>🚫</span> ${m.name} — ukryto (wykluczenie)</div>`;
-      const isDone = !!checked['meal_'+idx];
-      return `<div class="glass rounded-xl p-4 cursor-pointer hover:border-cyan-500/30 transition-all ${isDone?'opacity-60':''}" onclick="openExpandByIndex('diet',${idx})">
+      const isDone = !!effectiveChecked['meal_'+idx];
+      return `<div class="glass rounded-xl p-4 cursor-pointer hover:border-cyan-500/30 transition-all ${isDone?'meal-eaten':''}" onclick="openExpandByIndex('diet',${idx})">
         <div class="flex justify-between items-start mb-2">
           <div class="flex items-center gap-2">
             <div class="check-circle ${isDone?'checked':''}" onclick="event.stopPropagation();togglePlanCheck('meal_${idx}','${p.id}','${day}')"></div>
-            <p class="font-medium text-white text-sm ${isDone?'line-through text-gray-500':''}">${m.name}</p>
+            <p class="font-medium text-white text-sm meal-name-text ${isDone?'line-through text-gray-500':''}">${m.name}</p>
           </div>
-          <span class="text-xs bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded">${m.kcal} kcal</span>
+          <div class="flex items-center gap-2">
+            ${isDone ? '<span class="meal-eaten-badge">✓ Zjedzone</span>' : ''}
+            <span class="text-xs bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded">${m.kcal} kcal</span>
+          </div>
         </div>
         <div class="flex gap-3 text-xs text-gray-500 pl-7"><span>P: ${m.protein}g</span><span>W: ${m.carbs}g</span><span>T: ${m.fat}g</span></div>
       </div>`;
@@ -2866,10 +3074,26 @@ function openExpandByIndex(type, idx) {
 
 // ========== CHECK PLAN ITEMS ==========
 function togglePlanCheck(itemKey, profileId, day) {
-  const k = `${profileId}_${day}`;
+  // Use date-based key so toggling on Monday week 1 ≠ Monday week 2
+  const k = _checkedKey(profileId, state.currentDay);
   if (!state.dayChecked[k]) state.dayChecked[k] = {};
-  state.dayChecked[k][itemKey] = !state.dayChecked[k][itemKey];
+  const newVal = !state.dayChecked[k][itemKey];
+  state.dayChecked[k][itemKey] = newVal;
   saveChecked();
+
+  // If this is TODAY's plan and it's a meal, sync to backend
+  const todayIdx = (new Date().getDay() + 6) % 7;
+  if (state.currentDay === todayIdx && itemKey.startsWith('meal_')) {
+    const p = getCurrentProfile();
+    const meals = (p.dietPlan[day] || []).filter(m => !m.hidden);
+    const idx = parseInt(itemKey.replace('meal_', ''), 10);
+    if (meals[idx]) {
+      _syncMealToggleToBackend(meals[idx].name, newVal);
+    }
+    // Also update the "Mój Dzień" checklist to stay in sync
+    loadTodayPlanChecklist();
+  }
+
   loadPlanForDay();
   updateDashboard();
   updateDayProgress();
@@ -2878,7 +3102,7 @@ function togglePlanCheck(itemKey, profileId, day) {
 function updateDayProgress() {
   const p = getCurrentProfile();
   const day = state.days[state.currentDay];
-  const k = `${p.id}_${day}`;
+  const k = _checkedKey(p.id, state.currentDay);
   const checked = state.dayChecked[k] || {};
   const total = (p.dietPlan[day]||[]).length + (p.trainingPlan[day]||[]).length;
   const done = Object.keys(checked).filter(k2=>checked[k2]).length;
@@ -2891,7 +3115,8 @@ function loadTodayPlanChecklist() {
   const p = getCurrentProfile();
   const todayIdx = (new Date().getDay() + 6) % 7;
   const day = state.days[todayIdx];
-  const k = `${p.id}_${day}`;
+  // Use date-based key (Single Source of Truth)
+  const k = _todayCheckedKey(p.id);
   const checked = state.dayChecked[k] || {};
   const meals = (p.dietPlan[day] || []).filter(m => !m.hidden);
 
@@ -2962,10 +3187,24 @@ function loadTodayPlanChecklist() {
 }
 
 function toggleCheckAndRefresh(key, profileId, day) {
-  const k = profileId + '_' + day;
+  // Use date-based key (Single Source of Truth): today's ISO date for today's plan
+  const todayIdx = (new Date().getDay() + 6) % 7;
+  const k = _todayCheckedKey(profileId);
   if (!state.dayChecked[k]) state.dayChecked[k] = {};
-  state.dayChecked[k][key] = !state.dayChecked[k][key];
+  const newVal = !state.dayChecked[k][key];
+  state.dayChecked[k][key] = newVal;
   saveChecked();
+
+  // Sync meal toggles to backend
+  if (key.startsWith('meal_')) {
+    const p = getCurrentProfile();
+    const meals = (p.dietPlan[day] || []).filter(m => !m.hidden);
+    const idx = parseInt(key.replace('meal_', ''), 10);
+    if (meals[idx]) {
+      _syncMealToggleToBackend(meals[idx].name, newVal);
+    }
+  }
+
   loadTodayPlanChecklist();  // refresh checklist
   updateDashboard();         // refresh rings + chart
 }
@@ -2974,7 +3213,7 @@ function updateDayProgress() {
   const p = getCurrentProfile();
   const todayIdx = (new Date().getDay() + 6) % 7;
   const day = state.days[todayIdx];
-  const k = p.id + '_' + day;
+  const k = _todayCheckedKey(p.id);
   const checked = state.dayChecked[k] || {};
   const meals = (p.dietPlan[day] || []).filter(m => !m.hidden);
   const exercises = (p.trainingPlan[day] || []).filter(e => !e.hidden).slice(0, state.exerciseCount);
@@ -2995,7 +3234,7 @@ function updateDaySummaryCounters() {
   const p = getCurrentProfile();
   const todayIdx = (new Date().getDay() + 6) % 7;
   const day = state.days[todayIdx];
-  const k = p.id + '_' + day;
+  const k = _todayCheckedKey(p.id);
   const checked = state.dayChecked[k] || {};
   const meals = (p.dietPlan[day] || []).filter(m => !m.hidden);
   const exercises = (p.trainingPlan[day] || []).filter(e => !e.hidden).slice(0, state.exerciseCount);
@@ -3526,7 +3765,7 @@ async function submitCheckin() {
   const p = getCurrentProfile();
   const todayIdx = (new Date().getDay() + 6) % 7;
   const day = state.days[todayIdx];
-  const k = p.id + '_' + day;
+  const k = _todayCheckedKey(p.id);
   const checked = state.dayChecked[k] || {};
   const meals = (p.dietPlan[day] || []).filter(m => !m.hidden);
   const exercises = (p.trainingPlan[day] || []).filter(e => !e.hidden).slice(0, state.exerciseCount);
@@ -3534,6 +3773,8 @@ async function submitCheckin() {
   const doneEx = exercises.filter((e,i) => checked['ex_'+i]).map(e => e.name).join(', ');
   if (doneMeals) payload.food = doneMeals;
   if (doneEx) payload.workout = doneEx;
+  // v3: send eaten_meals list as Single Source of Truth
+  payload.eaten_meals = meals.filter((m,i) => checked['meal_'+i]).map(m => m.name);
   payload.mood = `Sen:${_checkinSliders.sleep} Energia:${_checkinSliders.energy} Stres:${_checkinSliders.stress}`;
 
   // Save locally too for offline mode
@@ -5779,6 +6020,518 @@ if ('serviceWorker' in navigator) {
       </div>
     </div>
   </div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// FitAI PATCH — renderProgressCharts / Smart Water Tracker / Video Library
+// Dotyczy: ostatnie 2 wiadomości z sesji
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ─── 1. renderProgressCharts(data) ───────────────────────────────────────────
+// Rysuje wykres wagi z gradientem i wykres słupkowy wolumenu.
+// Wywoływana przez initCharts() oraz bezpośrednio po fetchie statystyk.
+
+let _pcWeightChart = null;
+let _pcVolumeChart = null;
+
+function renderProgressCharts(data) {
+  if (!data) return;
+  _pcRenderWeight(data);
+  _pcRenderVolume(data);
+  _pcRenderXPBar(data);
+  _pcRenderStagnation(data);
+  _pcRenderOverload(data);
+}
+
+function _pcRenderWeight(data) {
+  const canvas = document.getElementById('weightChart');
+  if (!canvas) return;
+  const entries = data.weight_entries || [];
+  const empty   = document.getElementById('weightChartEmpty');
+  if (!entries.length) {
+    if (empty) { empty.classList.remove('hidden'); empty.style.display='flex'; }
+    canvas.style.opacity='0'; return;
+  }
+  if (empty) { empty.classList.add('hidden'); empty.style.display='none'; }
+  canvas.style.opacity='1';
+
+  const labels  = entries.map(e=>new Date(e.date).toLocaleDateString('pl-PL',{day:'numeric',month:'short'}));
+  const weights = entries.map(e=>e.weight);
+  const moods   = entries.map(e=>e.mood||'');
+  const target  = data.target_weight;
+  const ctx     = canvas.getContext('2d');
+
+  // Gradient fill cyan→violet
+  const gradFill = ctx.createLinearGradient(0,0,0,canvas.clientHeight||260);
+  gradFill.addColorStop(0,  'rgba(0,229,255,0.22)');
+  gradFill.addColorStop(0.6,'rgba(0,229,255,0.06)');
+  gradFill.addColorStop(1,  'rgba(124,58,237,0.02)');
+
+  // Gradient stroke cyan→violet (horizontal)
+  const gradLine = ctx.createLinearGradient(0,0,canvas.clientWidth||500,0);
+  gradLine.addColorStop(0,'#00e5ff');
+  gradLine.addColorStop(1,'#7c3aed');
+
+  const datasets = [{
+    label:'Waga (kg)', data:weights,
+    borderColor:gradLine, borderWidth:2.5,
+    pointBackgroundColor:'#00e5ff', pointBorderColor:'#0a0b10',
+    pointBorderWidth:2, pointRadius:4, pointHoverRadius:8,
+    fill:true, backgroundColor:gradFill, tension:0.4,
+  }];
+  if (target) datasets.push({
+    label:'Cel', data:Array(labels.length).fill(target),
+    borderColor:'rgba(251,191,36,0.6)', borderWidth:1.5, borderDash:[6,4],
+    pointRadius:0, fill:false, tension:0,
+  });
+
+  if (_pcWeightChart) { _pcWeightChart.destroy(); _pcWeightChart=null; }
+  _pcWeightChart = new Chart(ctx, {
+    type:'line', data:{labels,datasets},
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      aspectRatio: window.innerWidth<640 ? 1.6 : 2.5,
+      animation:{duration:700,easing:'easeInOutQuart'},
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'rgba(10,11,16,0.95)',
+          borderColor:'rgba(0,229,255,0.25)', borderWidth:1,
+          titleFont:{family:'Syne',size:12},
+          bodyFont:{family:'Plus Jakarta Sans',size:12},
+          callbacks:{
+            title:items=>items[0].label,
+            afterBody:items=>{const m=moods[items[0].dataIndex];return m?['','💬 '+m]:[];},
+          },
+        },
+      },
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,0.04)',drawBorder:false},
+           ticks:{color:'#64748b',font:{family:'Plus Jakarta Sans',size:10},maxTicksLimit:8},
+           border:{display:false}},
+        y:{grid:{color:'rgba(255,255,255,0.04)',drawBorder:false},
+           ticks:{color:'#64748b',font:{family:'Plus Jakarta Sans',size:10},callback:v=>v+' kg'},
+           border:{display:false}},
+      },
+    },
+  });
+}
+
+function _pcRenderVolume(data) {
+  const canvas = document.getElementById('volumeChart');
+  if (!canvas) return;
+  const entries = data.training_volume||[];
+  const empty   = document.getElementById('volumeChartEmpty');
+  if (!entries.length) {
+    if (empty) { empty.classList.remove('hidden'); empty.style.display='flex'; }
+    canvas.style.opacity='0'; return;
+  }
+  if (empty) { empty.classList.add('hidden'); empty.style.display='none'; }
+  canvas.style.opacity='1';
+
+  const labels = entries.map(e=>new Date(e.date).toLocaleDateString('pl-PL',{day:'numeric',month:'short'}));
+  const values = entries.map(e=>e.volume);
+  const ctx    = canvas.getContext('2d');
+
+  const barGrad = ctx.createLinearGradient(0,0,0,canvas.clientHeight||180);
+  barGrad.addColorStop(0,'rgba(124,58,237,0.85)');
+  barGrad.addColorStop(1,'rgba(0,229,255,0.35)');
+
+  if (_pcVolumeChart) { _pcVolumeChart.destroy(); _pcVolumeChart=null; }
+  _pcVolumeChart = new Chart(ctx, {
+    type:'bar',
+    data:{labels,datasets:[{label:'Wolumen',data:values,backgroundColor:barGrad,borderRadius:7,borderSkipped:false}]},
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      aspectRatio: window.innerWidth<640 ? 2 : 3.5,
+      animation:{duration:500,easing:'easeInOutQuart'},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'rgba(10,11,16,0.95)',borderColor:'rgba(124,58,237,0.3)',borderWidth:1,
+          callbacks:{label:ctx=>' '+ctx.parsed.y.toLocaleString()+' kg·reps'},
+        },
+      },
+      scales:{
+        x:{grid:{display:false},ticks:{color:'#64748b',font:{size:10},maxTicksLimit:8},border:{display:false}},
+        y:{grid:{color:'rgba(255,255,255,0.04)',drawBorder:false},
+           ticks:{color:'#64748b',font:{size:10},maxTicksLimit:5},border:{display:false}},
+      },
+    },
+  });
+}
+
+function _pcRenderXPBar(data) {
+  const xp=data.xp||{};
+  const lvl=document.getElementById('xpLevel');
+  const bar=document.getElementById('xpBar');
+  const lbl=document.getElementById('xpLabel');
+  const nxt=document.getElementById('xpNextLabel');
+  if (!lvl) return;
+  lvl.textContent='Lv '+(xp.level||1);
+  if (bar) bar.style.width=(xp.progress_pct||0)+'%';
+  if (lbl) lbl.textContent=((xp.xp||0)).toLocaleString()+' XP';
+  if (nxt) nxt.textContent=xp.next_level_xp
+    ?'Do Lv '+(xp.level+1)+': '+(xp.xp_needed_for_next||0)+' XP'
+    :'MAX LEVEL 🏆';
+}
+
+function _pcRenderStagnation(data) {
+  const el=document.getElementById('stagnationBanner');
+  if (!el) return;
+  if (data.stagnation_detected && data.stagnation) {
+    const s=data.stagnation;
+    el.innerHTML='<span class="text-lg">📉</span><div class="flex-1"><p class="text-sm font-bold text-yellow-300">Wykryto stagnację wagową</p><p class="text-xs mt-0.5" style="color:var(--muted);">'+s.message+' (Δ'+(s.delta_kg>0?'+':'')+s.delta_kg+' kg / 7 dni)</p></div>';
+    el.classList.remove('hidden');
+  } else { el.classList.add('hidden'); }
+}
+
+function _pcRenderOverload(data) {
+  const el=document.getElementById('overloadAlert');
+  if (!el) return;
+  const ov=data.overload||{};
+  if (ov.overload_detected) {
+    const ex=(ov.exercises||[]).filter(e=>e.overloaded);
+    el.innerHTML='<span class="text-lg">🔴</span><div class="flex-1"><p class="text-sm font-bold text-red-400">Uwaga: przeciążenie treningowe</p><p class="text-xs mt-0.5" style="color:var(--muted);">'+ex.slice(0,3).map(e=>e.name+' (+'+e.increase_pct+'%)').join(', ')+'</p></div>';
+    el.classList.remove('hidden');
+  } else { el.classList.add('hidden'); }
+}
+
+// Monkey-patch initCharts() żeby zawsze wywoływać renderProgressCharts
+(function(){
+  const _orig = window.initCharts;
+  window.initCharts = async function() {
+    const identityId=(typeof state!=='undefined'&&state.identityId)||'';
+    if (!identityId) return;
+    try {
+      const base=(typeof API_BASE!=='undefined')?API_BASE:'http://localhost:8000';
+      const r=await fetch(base+'/app/stats/'+identityId+'?days=9999');
+      if (!r.ok) { if(typeof _orig==='function') await _orig(); return; }
+      const data=await r.json();
+      if (typeof _statsData!=='undefined') window._statsData=data;
+      // Wywołaj oryginalne renderKPI jeśli istnieje (nie nadpisujemy)
+      if (typeof renderKPI==='function') renderKPI(data);
+      // Nasze rozszerzenia
+      renderProgressCharts(data);
+      // Filtr zakresu dat jeśli ustalony
+      if (typeof renderCharts==='function' && typeof _statsRange!=='undefined') renderCharts(data,_statsRange);
+    } catch(e) { console.warn('[FitAI] initCharts error',e); }
+  };
+})();
+
+
+// ─── 2. Smart Water Tracker ───────────────────────────────────────────────────
+
+const WATER_GOAL_DEFAULT  = 2500;   // ml
+const WATER_GOAL_HOT      = 3500;   // ml gdy temp > 25°C
+const WATER_HOT_THRESHOLD = 25;     // °C
+
+const water = {
+  _goal: WATER_GOAL_DEFAULT,
+  _history: [],  // stos ml do cofania
+
+  // Klucz localStorage zmienia się co dobę → automatyczny reset
+  _key() { return 'fitai_water_'+new Date().toISOString().slice(0,10); },
+  get current() { return parseInt(localStorage.getItem(this._key())||'0',10); },
+  set current(v) { localStorage.setItem(this._key(),Math.max(0,v)); },
+
+  init() { this._render(); this.fetchWeather(); },
+
+  add(ml) {
+    ml=parseInt(ml,10); if(!ml||ml<=0) return;
+    this._history.push(ml);
+    this.current+=ml;
+    this._render();
+    this._toast('+'+ml+' ml');
+  },
+
+  addCustom() {
+    const inp=document.getElementById('waterCustomMl');
+    const v=parseInt((inp&&inp.value)||'0',10);
+    if (v>0&&v<=2000) { this.add(v); if(inp) inp.value=''; }
+  },
+
+  undo() {
+    if (!this._history.length) return;
+    this.current-=this._history.pop();
+    this._render();
+  },
+
+  setGoal(ml) { this._goal=ml; this._render(); },
+
+  _render() {
+    const cur=this.current, goal=this._goal;
+    const pct=Math.min(100,Math.round(cur/goal*100));
+
+    // SVG ring — obwód = 2*π*34 ≈ 213.6
+    const ring=document.getElementById('waterRing');
+    if (ring) ring.setAttribute('stroke-dashoffset',213.6-(213.6*pct/100));
+
+    const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+    set('waterPct',pct+'%');
+    set('waterCurrentMl',cur.toLocaleString());
+    set('waterGoalMl',goal.toLocaleString());
+    set('waterGoalLabel','Cel: '+goal.toLocaleString()+' ml');
+
+    // Ikonki kubków (co 250 ml)
+    const cups=document.getElementById('waterCupsRow');
+    if (cups) {
+      const total=Math.round(goal/250), filled=Math.floor(cur/250);
+      cups.innerHTML=Array.from({length:total},(_,i)=>
+        '<span style="font-size:0.95rem;opacity:'+(i<filled?1:0.18)+';transition:opacity 0.35s">💧</span>'
+      ).join('');
+    }
+
+    // Komunikat motywacyjny
+    const msg=document.getElementById('waterMotivation');
+    if (msg) {
+      const msgs=[[100,'🎉 Cel dzienny osiągnięty! Doskonale!'],[75,'Blisko! Jeszcze trochę. 🔥'],
+        [50,'Połowa celu — świetnie! 🎯'],[25,'Dobry start! Nawadniaj się. 💪'],[0,'Zacznij dzień od szklanki wody! 🌅']];
+      msg.textContent=(msgs.find(([p])=>pct>=p)||[0,''])[1];
+    }
+  },
+
+  async fetchWeather() {
+    if (!navigator.geolocation) { this._weatherFallback(); return; }
+    navigator.geolocation.getCurrentPosition(async pos=>{
+      try {
+        const {latitude:lat,longitude:lon}=pos.coords;
+        const key='OPENWEATHER_API_KEY'; // ← wstaw własny klucz OpenWeatherMap
+        const r=await fetch('https://api.openweathermap.org/data/2.5/weather?lat='+lat+'&lon='+lon+'&appid='+key+'&units=metric&lang=pl');
+        if (!r.ok) { this._weatherFallback(); return; }
+        const d=await r.json();
+        const temp=Math.round(d.main?.temp||20), desc=d.weather?.[0]?.description||'';
+        this._applyWeather(temp,desc,temp>WATER_HOT_THRESHOLD);
+      } catch { this._weatherFallback(); }
+    },()=>this._weatherFallback());
+  },
+
+  _applyWeather(temp,desc,isHot) {
+    const badge=document.getElementById('weatherBadge');
+    const row=document.getElementById('weatherInfoRow');
+    const icon=document.getElementById('weatherIcon');
+    const descEl=document.getElementById('weatherDesc');
+    const advice=document.getElementById('weatherAdvice');
+
+    if (badge) { badge.textContent=temp+'°C '+(isHot?'☀️':'🌤️'); badge.classList.remove('hidden'); }
+    if (row) row.classList.remove('hidden');
+    if (icon) icon.textContent=isHot?'☀️':temp<10?'🥶':'🌤️';
+    if (descEl) descEl.textContent=temp+'°C · '+desc;
+
+    if (isHot) {
+      this.setGoal(WATER_GOAL_HOT);
+      if (advice) advice.textContent='Gorąco! Cel wody zwiększony do '+(WATER_GOAL_HOT/1000).toFixed(1)+' L — nawadniaj się intensywnie! 🌡️';
+    } else {
+      this.setGoal(WATER_GOAL_DEFAULT);
+      if (advice) advice.textContent='Temperatura OK. Standardowy cel: '+(WATER_GOAL_DEFAULT/1000).toFixed(1)+' L dziennie.';
+    }
+  },
+
+  _weatherFallback() {
+    const b=document.getElementById('weatherBadge');
+    if (b) {
+      b.textContent='📍 brak danych pogody';
+      b.classList.remove('hidden');
+      b.style.background='rgba(100,116,139,0.12)';
+      b.style.borderColor='rgba(100,116,139,0.3)';
+      b.style.color='#94a3b8';
+    }
+  },
+
+  _toast(msg) {
+    const t=document.createElement('div');
+    t.textContent=msg+' 💧';
+    t.style.cssText='position:fixed;bottom:90px;right:20px;z-index:9999;padding:8px 16px;border-radius:12px;font-size:13px;font-weight:700;pointer-events:none;animation:slideUp 0.3s ease,fadeIn 0.3s ease;background:rgba(56,189,248,0.15);border:1px solid rgba(56,189,248,0.4);color:#38bdf8;font-family:"Plus Jakarta Sans",sans-serif;';
+    document.body.appendChild(t);
+    setTimeout(()=>t.remove(),1800);
+  },
+};
+
+
+// ─── 3. Video Library ─────────────────────────────────────────────────────────
+
+const VIDEO_LIBRARY = [
+  // Klatka
+  {id:'v1',cat:'klatka',emoji:'🏋️',name:'Wyciskanie sztangi leżąc',
+   tip:'Łopatki ściągnięte przez cały ruch. Łokcie ~45°.',
+   muscles:['klatka','triceps','barki']},
+  {id:'v2',cat:'klatka',emoji:'🔀',name:'Rozpiętki na bramie',
+   tip:'Na szczycie ruchu zatrzymaj 1 sekundę — szczytowe napięcie klatki.',
+   muscles:['klatka']},
+  {id:'v3',cat:'klatka',emoji:'💪',name:'Pompki na poręczach',
+   tip:'Pochylenie do przodu aktywuje dolną klatkę.',
+   muscles:['klatka','triceps']},
+  {id:'v4',cat:'klatka',emoji:'📐',name:'Wyciskanie na skosie dodatnim',
+   tip:'Ławka 30–45°. Kontroluj fazę ekscentryczną (3 sek.).',
+   muscles:['górna klatka','barki','triceps']},
+  // Nogi
+  {id:'v5',cat:'nogi',emoji:'🦵',name:'Przysiad ze sztangą',
+   tip:'Poniżej równoległości. Kolana na zewnątrz. Pięty na podłodze.',
+   muscles:['czworogłowy','pośladki','łydki']},
+  {id:'v6',cat:'nogi',emoji:'🏋️',name:'Rumuński martwy ciąg',
+   tip:'Ruch startuje od bioder — nie od kolan. Sztanga przy udach.',
+   muscles:['dwugłowy uda','pośladki','dolny grzbiet']},
+  {id:'v7',cat:'nogi',emoji:'🦶',name:'Wykroki bułgarskie',
+   tip:'Przednia stopa daleko od ławki. Zejdź pionowo w dół.',
+   muscles:['czworogłowy','pośladki']},
+  {id:'v8',cat:'nogi',emoji:'🔩',name:'Leg press',
+   tip:'Stopy wyżej = więcej pośladków. Nie blokuj kolan na szczycie.',
+   muscles:['czworogłowy','pośladki','dwugłowy uda']},
+  // Plecy
+  {id:'v9',cat:'plecy',emoji:'🏆',name:'Podciąganie nachwytem',
+   tip:'Scapular pull przed ruchem — aktywuj łopatki. Wolne opuszczanie.',
+   muscles:['plecy','biceps','core']},
+  {id:'v10',cat:'plecy',emoji:'🚣',name:'Wiosłowanie sztangą',
+   tip:'Tułów pod 45°. Sztanga do dolnego brzucha. Napięty brzuch.',
+   muscles:['plecy','biceps','czworoboczny']},
+  {id:'v11',cat:'plecy',emoji:'💀',name:'Martwy ciąg konwencjonalny',
+   tip:'Sztanga przy goleniach. Klatka wysoko. Wyprost bioder i kolan razem.',
+   muscles:['łańcuch tylny','pośladki','chwyt']},
+  {id:'v12',cat:'plecy',emoji:'📌',name:'Ściąganie drążka do klatki',
+   tip:'Ściągaj łopatki, prowadź drążek do mostka. Lekkie odchylenie.',
+   muscles:['plecy','biceps']},
+  // Barki
+  {id:'v13',cat:'barki',emoji:'🫡',name:'Military Press',
+   tip:'Aktywny brzuch — bez przeprostu lędźwi. Łokcie lekko przed tułowiem.',
+   muscles:['barki','triceps','core']},
+  {id:'v14',cat:'barki',emoji:'↔️',name:'Lateral Raise',
+   tip:'Lekkie ugięcie łokci. Ruch do poziomu barków. Bez szarpania.',
+   muscles:['akton środkowy barku']},
+  {id:'v15',cat:'barki',emoji:'🎯',name:'Face Pull',
+   tip:'Kluczowe dla zdrowia rotatorów — nie pomijaj! Wyciąg na poziomie głowy.',
+   muscles:['tylny akton','rotatory']},
+  // Core
+  {id:'v16',cat:'core',emoji:'🐛',name:'Dead Bug',
+   tip:'Lędźwia dociśnięte do podłogi PRZEZ CAŁY CZAS. Oddychaj spokojnie.',
+   muscles:['core','stabilizacja']},
+  {id:'v17',cat:'core',emoji:'🧵',name:'Plank z rotacją (Thread the Needle)',
+   tip:'Biodra nieruchome. Tylko tułów pracuje. Kontrolowany ruch.',
+   muscles:['skośne brzucha','core','stabilizacja']},
+  {id:'v18',cat:'core',emoji:'🛞',name:'Ab Wheel Rollout',
+   tip:'Zaawansowane. Buduj zakres stopniowo. Nie wypuszczaj bioder.',
+   muscles:['core','dolny grzbiet','barki']},
+  {id:'v19',cat:'core',emoji:'🔄',name:'Hollow Body Hold',
+   tip:'Wciśnij dolną część pleców w podłogę. Utrzymaj napięcie przez cały czas.',
+   muscles:['core','prostowniki']},
+];
+
+let _activeVideoFilter='all';
+
+function filterVideos(cat) {
+  if (cat!==undefined) _activeVideoFilter=cat;
+  const q=(document.getElementById('videoSearch')?.value||'').toLowerCase().trim();
+
+  // Zaktualizuj stylistykę chipów
+  document.querySelectorAll('[data-vcat]').forEach(b=>{
+    b.classList.toggle('selected',b.dataset.vcat===_activeVideoFilter);
+  });
+
+  const list=VIDEO_LIBRARY.filter(v=>{
+    const mc=_activeVideoFilter==='all'||v.cat===_activeVideoFilter;
+    const ms=!q||v.name.toLowerCase().includes(q)||(v.muscles||[]).some(m=>m.toLowerCase().includes(q));
+    return mc&&ms;
+  });
+
+  const grid=document.getElementById('videoGrid');
+  if (!grid) return;
+
+  if (!list.length) {
+    grid.innerHTML='<div class="col-span-3 text-center py-10 text-gray-500 italic text-sm">Brak wyników dla podanego filtra.</div>';
+    return;
+  }
+
+  grid.innerHTML=list.map(v=>`
+    <div class="glass rounded-2xl overflow-hidden feature-card cursor-pointer group" onclick="openVideoModal('${v.id}')">
+      <!-- Placeholder GIF area -->
+      <div class="flex items-center justify-center" style="height:100px;background:linear-gradient(135deg,rgba(0,229,255,0.07),rgba(124,58,237,0.12));position:relative;">
+        <span style="font-size:2.8rem;transition:transform 0.3s;" class="group-hover:scale-110">${v.emoji}</span>
+        <span class="absolute top-2 left-2 text-[10px] px-2 py-0.5 rounded-full font-bold"
+          style="background:rgba(0,0,0,0.5);border:1px solid rgba(0,229,255,0.3);color:var(--cyan);">${v.cat}</span>
+        <span class="absolute inset-0 flex items-center justify-center text-2xl opacity-0 group-hover:opacity-100 transition-opacity"
+          style="background:rgba(0,0,0,0.4);">▶️</span>
+      </div>
+      <div class="p-3">
+        <p class="text-xs font-bold text-white leading-tight mb-1">${v.name}</p>
+        <p class="text-[11px] leading-snug" style="color:var(--muted);">${v.tip.slice(0,55)}${v.tip.length>55?'…':''}</p>
+        <div class="flex flex-wrap gap-1 mt-2">
+          ${(v.muscles||[]).slice(0,2).map(m=>`<span class="text-[10px] px-1.5 py-0.5 rounded-md font-medium" style="background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.25);color:#a78bfa;">${m}</span>`).join('')}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function openVideoModal(id) {
+  const v=VIDEO_LIBRARY.find(x=>x.id===id);
+  if (!v) return;
+  document.getElementById('videoModal')?.remove();
+  const m=document.createElement('div');
+  m.id='videoModal';
+  m.className='fixed inset-0 z-[300] flex items-center justify-center p-4 modal-backdrop';
+  m.onclick=e=>{ if(e.target===m) m.remove(); };
+  m.innerHTML=`
+    <div class="glass rounded-3xl w-full max-w-md p-6 space-y-4" style="border-color:var(--border-cyan)!important;max-height:92vh;overflow-y:auto;">
+      <div class="flex justify-between items-start">
+        <div>
+          <h5 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">${v.emoji} ${v.name}</h5>
+          <span class="text-xs px-2 py-0.5 rounded-full" style="background:rgba(0,229,255,0.1);color:var(--cyan);border:1px solid var(--border-cyan);">${v.cat}</span>
+        </div>
+        <button onclick="document.getElementById('videoModal').remove()" class="text-gray-500 hover:text-white text-xl leading-none">✕</button>
+      </div>
+      <!-- Placeholder GIF -->
+      <div class="rounded-2xl flex items-center justify-center"
+        style="height:160px;background:linear-gradient(135deg,rgba(0,229,255,0.07),rgba(124,58,237,0.14));font-size:5rem;">
+        ${v.emoji}
+      </div>
+      <div class="text-xs text-center py-1 rounded-xl" style="color:var(--muted);background:rgba(255,255,255,0.03);border:1px solid var(--border);">
+        🎥 Tu docelowo pojawi się animacja GIF / klip instruktażowy
+      </div>
+      <!-- Tech tip -->
+      <div class="alert-neon rounded-xl p-3">
+        <p class="text-xs font-bold text-cyan-400 mb-1">💡 Wskazówka techniczna</p>
+        <p class="text-sm">${v.tip}</p>
+      </div>
+      <!-- Muscles -->
+      <div>
+        <p class="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Zaangażowane mięśnie</p>
+        <div class="flex flex-wrap gap-2">${(v.muscles||[]).map(m=>`<span class="chip">${m}</span>`).join('')}</div>
+      </div>
+      <button onclick="document.getElementById('videoModal').remove()"
+        class="w-full btn-ghost py-2.5 rounded-xl text-sm font-bold">Zamknij</button>
+    </div>`;
+  document.body.appendChild(m);
+}
+
+
+// ─── Boot — podpięcie wszystkiego po DOMContentLoaded ────────────────────────
+
+document.addEventListener('DOMContentLoaded',()=>{
+  // Water Tracker
+  water.init();
+
+  // Wrap showTab żeby reinicjalizować Water i Charts przy zmianie zakładki
+  const _origST=window.showTab;
+  if (typeof _origST==='function') {
+    window.showTab=function(tabId){
+      _origST(tabId);
+      if (tabId==='my-day') water._render();
+      if (tabId==='postepy') initCharts();
+    };
+  }
+
+  // Wrap switchProfileTab żeby renderować Video Library przy wejściu w zakładkę
+  const _origPT=window.switchProfileTab;
+  if (typeof _origPT==='function') {
+    window.switchProfileTab=function(tab){
+      _origPT(tab);
+      if (tab==='videos') filterVideos(_activeVideoFilter);
+    };
+  }
+
+  // Inicjalne wypełnienie siatki wideo (gdy użytkownik otworzy zakładkę)
+  filterVideos('all');
+});
+</script>
 
 </body>
 </html>

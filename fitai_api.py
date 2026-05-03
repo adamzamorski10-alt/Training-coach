@@ -79,12 +79,14 @@ class UserDB(SQLModel, table=True):
     reminders_json: str = '{"email_enabled":true,"discord_enabled":false,"discord_channel_id":null}'
     weekly_plan_json: Optional[str] = None
     substitutes_history_json: str = "{}"
-    # ─── AI-generated current plan (diet + training JSON) ────────────────────
-    current_plan_json: Optional[str] = None       # JSON: {diet: {...}, training: {...}, generated_at: "..."}
     # ─── Sports module ───────────────────────────────────────────────────────
     sport_focus: Optional[str] = None                  # np. "koszykówka"
     sport_specialization: Optional[str] = None         # np. "rzuty"
     sport_training_days_json: str = "[]"               # np. ["Środa", "Sobota"]
+    # ─── Gamification & safety ───────────────────────────────────────────────
+    total_xp: int = 0                                  # łączne punkty XP
+    injuries: str = ""                                 # przecinkowy string: "kolano lewe,bark"
+    last_weight_change: float = 0.0                    # delta wagi wzgl. poprzedniego wpisu [kg]
     created_at: str = Field(default_factory=lambda: datetime.now().isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now().isoformat())
 
@@ -142,7 +144,10 @@ class UserDB(SQLModel, table=True):
             "sport_focus": self.sport_focus,
             "sport_specialization": self.sport_specialization,
             "sport_training_days": self.get_list("sport_training_days_json"),
-            "current_plan": self.get_dict("current_plan_json") if self.current_plan_json else None,
+            "total_xp": self.total_xp,
+            "level": _xp_to_level(self.total_xp),
+            "injuries": [i.strip() for i in self.injuries.split(",") if i.strip()],
+            "last_weight_change": self.last_weight_change,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
         }
@@ -158,14 +163,6 @@ class DailyLogDB(SQLModel, table=True):
     workout: str = ""
     mood: str = ""
     weight: Optional[float] = None
-    # ─── Extended check-in fields (v2) ────────────────────────────────────────
-    sleep_quality: Optional[int] = None         # 1-10
-    energy_level: Optional[int] = None          # 1-10
-    stress_level: Optional[int] = None          # 1-10
-    water_liters: Optional[float] = None        # litry wypitej wody
-    waist_cm: Optional[float] = None            # obwód pasa (cm)
-    chest_cm: Optional[float] = None            # obwód klatki (cm)
-    photo_path: Optional[str] = None            # ścieżka do zdjęcia sylwetki
     logged_at: str = Field(default_factory=lambda: datetime.now().isoformat())
 
     user: Optional[UserDB] = Relationship(back_populates="logs")
@@ -177,13 +174,6 @@ class DailyLogDB(SQLModel, table=True):
             "workout": self.workout,
             "mood": self.mood,
             "weight": self.weight,
-            "sleep_quality": self.sleep_quality,
-            "energy_level": self.energy_level,
-            "stress_level": self.stress_level,
-            "water_liters": self.water_liters,
-            "waist_cm": self.waist_cm,
-            "chest_cm": self.chest_cm,
-            "photo_path": self.photo_path,
             "logged_at": self.logged_at,
         }
 
@@ -423,14 +413,6 @@ class AppDailyCheckinRequest(BaseModel):
     workout: str = ""
     mood: str = ""
     weight: Optional[float] = None
-    # Extended check-in v2 fields
-    sleep_quality: Optional[int] = None
-    energy_level: Optional[int] = None
-    stress_level: Optional[int] = None
-    water_liters: Optional[float] = None
-    waist_cm: Optional[float] = None
-    chest_cm: Optional[float] = None
-    photo_path: Optional[str] = None
 
 
 class DiscordLinkRequest(BaseModel):
@@ -765,6 +747,146 @@ def _suggest_drill_progression(
         "sessions_analyzed": len(analyzed),
     }
 
+
+
+# ─── XP / Leveling system ─────────────────────────────────────────────────────
+
+# Progi XP dla kolejnych poziomów (index 0 = poziom 1 = 0 pkt)
+# Level N wymaga sumy: 0, 500, 1200, 2200, 3500, 5500, 8000, 11500, 16000, 22000 …
+_XP_THRESHOLDS = [0, 500, 1200, 2200, 3500, 5500, 8000, 11500, 16000, 22000, 30000]
+
+# XP per akcja
+_XP_CHECKIN = 20         # codzienne logowanie check-inu
+_XP_MEAL_LOGGED = 5      # zaznaczenie posiłku
+_XP_WEIGHT_LOGGED = 15   # wpis wagi
+_XP_WORKOUT_LOGGED = 30  # wpis treningu
+_XP_STREAK_BONUS = 10    # bonus za każdy dzień streaku (cumulatywnie)
+
+
+def _xp_to_level(total_xp: int) -> int:
+    """Zwraca aktualny poziom na podstawie łącznych punktów XP."""
+    level = 1
+    for i, threshold in enumerate(_XP_THRESHOLDS):
+        if total_xp >= threshold:
+            level = i + 1
+        else:
+            break
+    return min(level, len(_XP_THRESHOLDS))
+
+
+def _xp_to_next_level(total_xp: int) -> dict:
+    """Zwraca informacje o postępie do następnego poziomu."""
+    level = _xp_to_level(total_xp)
+    current_threshold = _XP_THRESHOLDS[level - 1] if level <= len(_XP_THRESHOLDS) else _XP_THRESHOLDS[-1]
+    next_threshold = _XP_THRESHOLDS[level] if level < len(_XP_THRESHOLDS) else None
+    if next_threshold is None:
+        return {"level": level, "xp": total_xp, "next_level_xp": None, "progress_pct": 100}
+    xp_in_level = total_xp - current_threshold
+    xp_needed = next_threshold - current_threshold
+    return {
+        "level": level,
+        "xp": total_xp,
+        "next_level_xp": next_threshold,
+        "xp_in_level": xp_in_level,
+        "xp_needed_for_next": xp_needed - xp_in_level,
+        "progress_pct": round(xp_in_level / xp_needed * 100) if xp_needed > 0 else 100,
+    }
+
+
+def _award_xp(user: UserDB, points: int, session: Session) -> int:
+    """
+    Dodaje punkty XP użytkownikowi i commituje zmianę.
+    Zwraca nową sumę XP.
+    """
+    user.total_xp = (user.total_xp or 0) + points
+    user.updated_at = datetime.now().isoformat()
+    session.commit()
+    return user.total_xp
+
+
+# ─── Overload detection ───────────────────────────────────────────────────────
+
+def _check_overload(
+    user_id: int,
+    session: Session,
+    threshold_pct: float = 0.20,
+) -> dict:
+    """
+    Porównuje wolumen (sets × reps × weight_kg) dwóch ostatnich RÓŻNYCH sesji
+    treningowych dla każdego ćwiczenia.
+
+    Zwraca:
+        {
+          "overload_detected": bool,
+          "exercises": [
+            {
+              "name": str,
+              "session_a_date": str,   # starsza sesja
+              "session_b_date": str,   # nowsza sesja
+              "volume_a": float,
+              "volume_b": float,
+              "increase_pct": float,   # % wzrostu wolumenu
+              "overloaded": bool,      # True jeśli wzrost > threshold_pct
+            }, ...
+          ]
+        }
+
+    Sesja = unikalna data. Jeśli użytkownik ma < 2 sesji dla danego ćwiczenia,
+    wpis jest pomijany.
+    """
+    all_results = list(session.exec(
+        select(ExerciseResultDB)
+        .where(ExerciseResultDB.user_id == user_id)
+        .order_by(ExerciseResultDB.session_date.desc())
+    ).all())
+
+    # Grupuj po nazwie ćwiczenia, zachowując kolejność dat
+    by_exercise: Dict[str, Dict[str, float]] = {}
+    for r in all_results:
+        name = r.exercise_name
+        if name not in by_exercise:
+            by_exercise[name] = {}
+        d = r.session_date
+        vol = r.sets * r.reps * r.weight_kg
+        by_exercise[name][d] = by_exercise[name].get(d, 0) + vol
+
+    exercises_report = []
+    any_overloaded = False
+
+    for name, vol_by_date in by_exercise.items():
+        dates_sorted = sorted(vol_by_date.keys(), reverse=True)  # nowsze pierwsze
+        if len(dates_sorted) < 2:
+            continue
+        date_b, date_a = dates_sorted[0], dates_sorted[1]
+        vol_b, vol_a = vol_by_date[date_b], vol_by_date[date_a]
+
+        if vol_a == 0:
+            continue
+
+        increase_pct = round((vol_b - vol_a) / vol_a * 100, 1)
+        overloaded = increase_pct > threshold_pct * 100
+
+        if overloaded:
+            any_overloaded = True
+
+        exercises_report.append({
+            "name": name,
+            "session_a_date": date_a,
+            "session_b_date": date_b,
+            "volume_a": round(vol_a, 1),
+            "volume_b": round(vol_b, 1),
+            "increase_pct": increase_pct,
+            "overloaded": overloaded,
+        })
+
+    # Posortuj: najpierw przeciążone, potem reszta
+    exercises_report.sort(key=lambda x: -x["increase_pct"])
+
+    return {
+        "overload_detected": any_overloaded,
+        "threshold_pct": round(threshold_pct * 100),
+        "exercises": exercises_report,
+    }
 
 
 def _compute_streak_days_from_logs(logs: List[DailyLogDB]) -> int:
@@ -1522,13 +1644,6 @@ def add_log(user_id: str, log: DailyLog):
         entry = DailyLogDB(
             user_id=user.id, log_date=today,
             food=log.food, workout=log.workout, mood=log.mood, weight=log.weight,
-            sleep_quality=log.sleep_quality,
-            energy_level=log.energy_level,
-            stress_level=log.stress_level,
-            water_liters=log.water_liters,
-            waist_cm=log.waist_cm,
-            chest_cm=log.chest_cm,
-            photo_path=log.photo_path,
         )
         session.add(entry)
         if log.weight is not None:
@@ -1710,25 +1825,60 @@ def app_daily_checkin(identity_id: str, log: AppDailyCheckinRequest):
         entry = DailyLogDB(
             user_id=user.id, log_date=today,
             food=log.food, workout=log.workout, mood=log.mood, weight=log.weight,
-            sleep_quality=log.sleep_quality,
-            energy_level=log.energy_level,
-            stress_level=log.stress_level,
-            water_liters=log.water_liters,
-            waist_cm=log.waist_cm,
-            chest_cm=log.chest_cm,
-            photo_path=log.photo_path,
+            sleep_quality=getattr(log, "sleep_quality", None),
+            energy_level=getattr(log, "energy_level", None),
+            stress_level=getattr(log, "stress_level", None),
+            water_liters=getattr(log, "water_liters", None),
+            waist_cm=getattr(log, "waist_cm", None),
+            chest_cm=getattr(log, "chest_cm", None),
+            photo_path=getattr(log, "photo_path", None),
         )
+        if hasattr(log, "eaten_meals") and log.eaten_meals:
+            entry.set_eaten_meals(log.eaten_meals)
         session.add(entry)
+
+        # ── XP awards ────────────────────────────────────────────────────────
+        xp_earned = _XP_CHECKIN
         if log.weight is not None:
+            xp_earned += _XP_WEIGHT_LOGGED
+            # Aktualizuj last_weight_change
+            prev_log = session.exec(
+                select(DailyLogDB)
+                .where(DailyLogDB.user_id == user.id)
+                .where(DailyLogDB.log_date < today)
+                .where(DailyLogDB.weight != None)
+                .order_by(DailyLogDB.log_date.desc())
+            ).first()
+            if prev_log and prev_log.weight:
+                user.last_weight_change = round(log.weight - prev_log.weight, 2)
             user.weight = log.weight
             user.calories_target = calc_calories(user)
             user.protein_target = calc_protein(user)
+        if log.workout:
+            xp_earned += _XP_WORKOUT_LOGGED
+        eaten = getattr(log, "eaten_meals", []) or []
+        if eaten:
+            xp_earned += min(len(eaten) * _XP_MEAL_LOGGED, 25)
+
+        user.total_xp = (user.total_xp or 0) + xp_earned
         logs = list(session.exec(select(DailyLogDB).where(DailyLogDB.user_id == user.id)).all())
         logs.append(entry)
         user.streak_days = _compute_streak_days_from_logs(logs)
+        if user.streak_days > 1:
+            streak_bonus = min(user.streak_days * _XP_STREAK_BONUS, 100)
+            user.total_xp += streak_bonus
+            xp_earned += streak_bonus
         user.updated_at = datetime.now().isoformat()
         session.commit()
-        return {"status": "ok", "log": entry.to_dict(), "streak_days": user.streak_days}
+        return {
+            "status": "ok",
+            "log": entry.to_dict(),
+            "streak_days": user.streak_days,
+            "today_eaten": entry.get_eaten_meals() if hasattr(entry, "get_eaten_meals") else [],
+            "xp_earned": xp_earned,
+            "total_xp": user.total_xp,
+            "level": _xp_to_level(user.total_xp),
+        }
 
 
 @app.post("/app/link-discord")
@@ -2078,11 +2228,7 @@ def ai_workout_plan(req: AIRequest):
             "i wskazówkami technicznymi. Unikaj partii zmęczonych z ostatnich dni.\n"
             f"Cel: {user.goal}, sporty: {', '.join(user.get_list('sports_json'))}"
         )
-        try:
-            result = ask_claude(system, user_msg, 900)
-        except HTTPException as e:
-            result = f"[Błąd AI: {e.detail}]"
-        return {"plan": result}
+        return {"plan": ask_claude(system, user_msg, 900)}
 
 
 @app.post("/ai/analyze-log")
@@ -2115,11 +2261,7 @@ def ai_analyze_log(req: AIRequest):
             f"- Waga: {today_log.weight or 'nie podano'} kg\n\n"
             "Oceń dzień i podaj KONKRETNY plan na jutro z makroskładnikami. Max 400 słów."
         )
-        try:
-            result = ask_claude(system, user_msg, 1000)
-        except HTTPException as e:
-            result = f"[Błąd AI: {e.detail}]"
-        return {"analysis": result}
+        return {"analysis": ask_claude(system, user_msg, 1000)}
 
 
 @app.post("/ai/weekly")
@@ -2139,11 +2281,55 @@ def ai_weekly_summary(req: AIRequest):
             "Podaj tygodniowe podsumowanie: ocena tygodnia, postęp do celu, "
             "top 3 rekomendacje na kolejny tydzień (dieta + trening). Max 300 słów."
         )
-        try:
-            result = ask_claude(system, user_msg, 800)
-        except HTTPException as e:
-            result = f"[Błąd AI: {e.detail}]"
-        return {"summary": result}
+        return {"summary": ask_claude(system, user_msg, 800)}
+
+
+# ─── XP / Injuries endpoints ─────────────────────────────────────────────────
+
+class InjuryUpdateRequest(BaseModel):
+    injuries: List[str] = []   # lista kontuzji, np. ["kolano lewe", "bark prawy"]
+
+
+@app.get("/app/xp/{identity_id}")
+def app_get_xp(identity_id: str):
+    """Zwraca poziom XP, level i postęp do następnego poziomu."""
+    user_key = _web_user_key(identity_id)
+    with Session(engine) as session:
+        user = _get_user_or_404(user_key, session)
+        return {
+            "total_xp": user.total_xp,
+            **_xp_to_next_level(user.total_xp),
+            "injuries": [i.strip() for i in (user.injuries or "").split(",") if i.strip()],
+        }
+
+
+@app.post("/app/injuries/{identity_id}")
+def app_update_injuries(identity_id: str, payload: InjuryUpdateRequest):
+    """Aktualizuje listę kontuzji użytkownika."""
+    user_key = _web_user_key(identity_id)
+    with Session(engine) as session:
+        user = _get_user_or_404(user_key, session)
+        user.injuries = ", ".join(i.strip() for i in payload.injuries if i.strip())
+        user.updated_at = datetime.now().isoformat()
+        session.commit()
+        return {
+            "status": "ok",
+            "injuries": [i.strip() for i in user.injuries.split(",") if i.strip()],
+        }
+
+
+@app.get("/app/overload/{identity_id}")
+def app_check_overload(identity_id: str, threshold_pct: float = 20.0):
+    """
+    Sprawdza przeciążenie treningowe: porównuje wolumen (sets×reps×weight)
+    dwóch ostatnich sesji dla każdego ćwiczenia.
+    threshold_pct: próg wzrostu wolumenu w % (domyślnie 20%).
+    """
+    user_key = _web_user_key(identity_id)
+    with Session(engine) as session:
+        user = _get_user_or_404(user_key, session)
+        result = _check_overload(user.id, session, threshold_pct=threshold_pct / 100)
+        return result
 
 
 # ─── Stats / Progress endpoint ───────────────────────────────────────────────
@@ -2249,70 +2435,59 @@ def app_get_stats(identity_id: str, days: int = 30):
                 except (ValueError, OverflowError):
                     pass
 
-        # ── Body measurements trend ───────────────────────────────────────────
-        measurement_entries = [
-            {"date": l.log_date, "waist": l.waist_cm, "chest": l.chest_cm,
-             "sleep": l.sleep_quality, "energy": l.energy_level, "stress": l.stress_level,
-             "water": l.water_liters}
-            for l in all_logs
-            if any([l.waist_cm, l.chest_cm, l.sleep_quality, l.energy_level, l.water_liters])
-        ][-days:]
+        # ── Stagnation detection ─────────────────────────────────────────────
+        # Porównaj średnią wagę: ostatnie 7 vs poprzednie 7 wpisów wagowych
+        stagnation_detected = False
+        stagnation_info: dict = {}
+        goal_lower = (user.goal or "").lower()
+        is_reduction_goal = any(x in goal_lower for x in ["redukcj", "odchudzani", "schud"])
+        is_mass_goal = any(x in goal_lower for x in ["masa", "budow", "przyty"])
 
-        # ── Activity heatmap (last 365 days) ─────────────────────────────────
-        activity_days = set()
-        for l in all_logs:
-            if l.food or l.workout or l.weight or l.sleep_quality:
-                activity_days.add(l.log_date)
-        for r in ex_results:
-            activity_days.add(r.session_date)
+        all_weight_entries = [
+            {"date": l.log_date, "weight": l.weight}
+            for l in all_logs if l.weight is not None
+        ]
+        if len(all_weight_entries) >= 14:
+            recent_7 = [e["weight"] for e in all_weight_entries[-7:]]
+            prev_7 = [e["weight"] for e in all_weight_entries[-14:-7]]
+            avg_recent = sum(recent_7) / len(recent_7)
+            avg_prev = sum(prev_7) / len(prev_7)
+            delta = round(avg_recent - avg_prev, 2)
+            if (is_reduction_goal or is_mass_goal) and abs(delta) < 0.1:
+                stagnation_detected = True
+            stagnation_info = {
+                "avg_weight_last_7": round(avg_recent, 2),
+                "avg_weight_prev_7": round(avg_prev, 2),
+                "delta_kg": delta,
+                "goal_type": "redukcja" if is_reduction_goal else ("masa" if is_mass_goal else "inne"),
+                "message": (
+                    "Brak zmian wagi od 2 tygodni — czas na korektę deficytu lub planu treningowego."
+                    if stagnation_detected else
+                    f"Waga zmienia się zgodnie z planem ({delta:+.2f} kg / 7 dni)."
+                ),
+            }
 
-        # ── AI Insights (rule-based, no API call needed) ─────────────────────
-        insights = []
-        if weight_delta is not None:
-            if weight_delta < -0.5:
-                insights.append({"icon": "📉", "type": "success",
-                    "text": f"Twoja waga spada zgodnie z planem ({weight_delta:+.1f} kg). Świetna robota!"})
-            elif weight_delta > 0.5:
-                insights.append({"icon": "📈", "type": "warning",
-                    "text": f"Waga wzrosła o {weight_delta:+.1f} kg. Sprawdź bilans kaloryczny."})
-            else:
-                insights.append({"icon": "⚖️", "type": "info",
-                    "text": "Waga utrzymuje się stabilnie. Kontynuuj obecny schemat."})
-        if avg_rpe_7d is not None:
-            if avg_rpe_7d >= 8.5:
-                insights.append({"icon": "🔴", "type": "warning",
-                    "text": f"Średnie RPE z ostatnich 7 dni wynosi {avg_rpe_7d} — bardzo wysoka intensywność. Zaplanuj dzień regeneracji."})
-            elif avg_rpe_7d <= 5.0:
-                insights.append({"icon": "💪", "type": "info",
-                    "text": f"Średnie RPE: {avg_rpe_7d} — treningi są lekkie. Czas na progresję obciążenia!"})
-            else:
-                insights.append({"icon": "✅", "type": "success",
-                    "text": f"RPE {avg_rpe_7d} — optymalna strefa intensywności. Dobra robota!"})
-        if diet_compliance_pct < 50 and log_days_total > 3:
-            insights.append({"icon": "🍽️", "type": "warning",
-                "text": f"Dieta zalogowana tylko w {diet_compliance_pct}% dni. Regularne logowanie poprawia wyniki o ~30%."})
-        # Sleep/wellness insights
-        recent_sleep = [l.sleep_quality for l in all_logs[-7:] if l.sleep_quality is not None]
-        if recent_sleep:
-            avg_sleep = round(sum(recent_sleep) / len(recent_sleep), 1)
-            if avg_sleep <= 4:
-                insights.append({"icon": "😴", "type": "warning",
-                    "text": f"Średnia jakość snu: {avg_sleep}/10. Słaby sen hamuje regenerację i wyniki."})
-            elif avg_sleep >= 8:
-                insights.append({"icon": "🌟", "type": "success",
-                    "text": f"Doskonała jakość snu ({avg_sleep}/10)! To klucz do maksymalnych wyników."})
-        if goal_date_estimate:
-            insights.append({"icon": "🎯", "type": "info",
-                "text": f"Przy obecnym tempie osiągniesz cel wagowy ok. {goal_date_estimate}."})
-        if not insights:
-            insights.append({"icon": "📊", "type": "info",
-                "text": "Zacznij logować check-iny i treningi, aby zobaczyć spersonalizowane wnioski."})
+        # ── XP & leveling ────────────────────────────────────────────────────
+        xp_info = _xp_to_next_level(user.total_xp or 0)
+
+        # ── Overload detection ────────────────────────────────────────────────
+        overload = _check_overload(user.id, session, threshold_pct=0.20)
+
+        # ── Injuries list ─────────────────────────────────────────────────────
+        injuries_list = [i.strip() for i in (user.injuries or "").split(",") if i.strip()]
+
+        # ── Update last_weight_change on user record (passive update) ─────────
+        if len(all_weight_entries) >= 2:
+            w_latest = all_weight_entries[-1]["weight"]
+            w_prev = all_weight_entries[-2]["weight"]
+            new_delta = round(w_latest - w_prev, 2)
+            if user.last_weight_change != new_delta:
+                user.last_weight_change = new_delta
+                session.commit()
 
         return {
             "weight_entries": weight_entries,
             "training_volume": training_volume,
-            "measurement_entries": measurement_entries,
-            "activity_days": sorted(activity_days),
             "diet_compliance_pct": diet_compliance_pct,
             "streak_days": streak_days,
             "target_weight": target_weight,
@@ -2321,7 +2496,13 @@ def app_get_stats(identity_id: str, days: int = 30):
                 "avg_rpe_7d": avg_rpe_7d,
                 "goal_date_estimate": goal_date_estimate,
             },
-            "insights": insights,
+            # ── v2 extensions ─────────────────────────────────────────────────
+            "stagnation_detected": stagnation_detected,
+            "stagnation": stagnation_info,
+            "xp": xp_info,
+            "overload": overload,
+            "injuries": injuries_list,
+            "last_weight_change": user.last_weight_change,
         }
 
 
