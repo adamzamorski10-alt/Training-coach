@@ -172,6 +172,24 @@
       #editPlanModal > div > div > div { flex-direction:column; }
       #editPlanModal .w-\[48\%\] { width:100%;border-right:none!important;border-bottom:1px solid rgba(255,255,255,0.05); max-height:35vh; }
     }
+
+/* kitchen AI */
+.spin-ring {
+  width: 48px; height: 48px;
+  border: 3px solid rgba(255,255,255,0.08);
+  border-top-color: var(--cyan);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.mealprep-day-btn {
+  background: rgba(255,255,255,0.04);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  transition: all 0.2s;
+}
+.mealprep-day-btn:hover { background: rgba(124,58,237,0.12); color: #a78bfa; }
+
 </style>
 </head>
 <body>
@@ -356,6 +374,7 @@
       <a href="#" onclick="showTab('postepy');return false;" data-tab="postepy" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>📈</span><span>Postępy</span></a>
       <a href="#" onclick="showTab('profile');return false;" data-tab="profile" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>👤</span><span>Profil</span></a>
       <a href="#" onclick="showTab('contact');return false;" data-tab="contact" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>💬</span><span>Kontakt</span></a>
+      <a href="#" onclick="showTab('kuchnia');return false;" data-tab="kuchnia" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>🤖</span><span>Kuchnia AI</span></a>
     </nav>
     <div class="glass rounded-2xl p-4">
       <p class="text-xs font-bold text-gray-500 uppercase mb-3">Twój Fundament</p>
@@ -1214,6 +1233,198 @@
           <div><p class="text-sm font-bold text-white mb-1">Czy dane są bezpieczne?</p><p class="text-sm text-gray-400">Dane przechowywane lokalnie w przeglądarce (localStorage). Nie wysyłamy ich bez zgody.</p></div>
         </div>
       </div>
+    </section>
+
+    <!-- ====== TAB: KUCHNIA AI ====== -->
+    <section id="tab-kuchnia" class="hidden space-y-6">
+
+      <!-- Header -->
+      <div>
+        <h1 class="text-2xl font-extrabold text-white" style="font-family:'Syne',sans-serif;">🤖 Kuchnia AI</h1>
+        <p class="text-xs mt-1" style="color:var(--muted);">Inteligentny chef i meal-prep asystent — pracuje z Twoim profilem.</p>
+      </div>
+
+      <!-- Sub-tabs -->
+      <div class="flex gap-2 p-1 rounded-xl" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);width:fit-content;">
+        <button id="kitchenTabFridge" onclick="switchKitchenTab('fridge')"
+          class="kitchen-tab px-4 py-2 rounded-lg text-sm font-bold transition-all"
+          style="background:rgba(0,229,255,0.15);color:var(--cyan);">🥦 Co mam w lodówce</button>
+        <button id="kitchenTabMealprep" onclick="switchKitchenTab('mealprep')"
+          class="kitchen-tab px-4 py-2 rounded-lg text-sm font-bold transition-all"
+          style="color:var(--muted);">📦 Meal Prep</button>
+      </div>
+
+      <!-- ═══ FRIDGE CHEF ═══ -->
+      <div id="kitchenPanelFridge">
+        <div class="grid gap-5" style="grid-template-columns:1fr 1fr;">
+
+          <!-- Input panel -->
+          <div class="glass p-5 rounded-2xl flex flex-col gap-4">
+            <div>
+              <h2 class="font-extrabold text-white text-base mb-1" style="font-family:'Syne',sans-serif;">Składniki w lodówce</h2>
+              <p class="text-xs" style="color:var(--muted);">Wpisz co masz — AI dobierze przepis do Twojego celu.</p>
+            </div>
+
+            <!-- Tag input -->
+            <div>
+              <div id="fridgeTagsContainer" class="flex flex-wrap gap-2 min-h-[36px] mb-2 p-2 rounded-xl"
+                   style="background:rgba(255,255,255,0.03);border:1px solid var(--border);">
+              </div>
+              <div class="flex gap-2">
+                <input id="fridgeIngredientInput" type="text" placeholder="np. kurczak 200g, brokuły…"
+                  class="flex-1 bg-transparent border rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 outline-none focus:border-cyan-500/50"
+                  style="border-color:var(--border);"
+                  onkeydown="if(event.key==='Enter'||event.key===','){event.preventDefault();fridgeAddTag();}">
+                <button onclick="fridgeAddTag()" class="px-3 py-2 rounded-xl text-xs font-bold transition-all"
+                  style="background:rgba(0,229,255,0.12);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);">+ Dodaj</button>
+              </div>
+              <p class="text-xs mt-1" style="color:var(--muted);">Enter lub przecinek = dodaj. Kliknij tag = usuń.</p>
+            </div>
+
+            <!-- Quick-add chips -->
+            <div>
+              <p class="text-xs font-semibold mb-2" style="color:var(--muted);">Szybkie dodawanie:</p>
+              <div class="flex flex-wrap gap-2" id="fridgeQuickChips"></div>
+            </div>
+
+            <!-- Context -->
+            <div>
+              <label class="text-xs font-semibold block mb-1" style="color:var(--muted);">Kontekst (opcjonalnie)</label>
+              <input id="fridgeContext" type="text" placeholder="np. jestem po treningu siłowym, szukam czegoś szybkiego"
+                class="w-full bg-transparent border rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 outline-none focus:border-cyan-500/50"
+                style="border-color:var(--border);">
+            </div>
+
+            <button id="fridgeGenerateBtn" onclick="fridgeGenerate()"
+              class="w-full py-3 rounded-xl font-extrabold text-sm transition-all"
+              style="background:linear-gradient(135deg,var(--cyan),var(--violet));color:#000;">
+              🍳 Generuj przepis
+            </button>
+          </div>
+
+          <!-- Result panel -->
+          <div class="glass p-5 rounded-2xl flex flex-col gap-3" id="fridgeResultPanel">
+            <!-- Empty state -->
+            <div id="fridgeEmptyState" class="flex flex-col items-center justify-center h-full gap-3 py-8">
+              <div style="font-size:3rem;">🥗</div>
+              <p class="font-bold text-white text-sm text-center" style="font-family:'Syne',sans-serif;">Dodaj składniki i kliknij<br>„Generuj przepis"</p>
+              <p class="text-xs text-center" style="color:var(--muted);">AI dopasuje przepis do Twojego celu<br>i limitów kalorycznych.</p>
+            </div>
+            <!-- Loading -->
+            <div id="fridgeLoading" class="hidden flex-col items-center justify-center h-full gap-4 py-8">
+              <div class="spin-ring"></div>
+              <p class="text-sm font-semibold" style="color:var(--cyan);" id="fridgeLoadingMsg">Analizuję Twoje składniki…</p>
+            </div>
+            <!-- Recipe output -->
+            <div id="fridgeResult" class="hidden flex-col gap-3">
+              <div class="flex items-center justify-between">
+                <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">Przepis</h2>
+                <div class="flex gap-2">
+                  <button onclick="fridgeCopyRecipe()" class="text-xs px-3 py-1 rounded-lg transition-all"
+                    style="background:rgba(255,255,255,0.06);color:var(--muted);border:1px solid var(--border);">📋 Kopiuj</button>
+                  <button onclick="fridgeSaveToDay()" class="text-xs px-3 py-1 rounded-lg transition-all font-bold"
+                    style="background:rgba(0,229,255,0.12);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);">+ Dodaj do Mój Dzień</button>
+                </div>
+              </div>
+              <div id="fridgeRecipeContent" class="text-sm leading-relaxed"
+                   style="color:rgba(255,255,255,0.82);white-space:pre-wrap;"></div>
+              <!-- Macro pills extracted from response -->
+              <div id="fridgeMacroPills" class="flex flex-wrap gap-2 pt-2 border-t" style="border-color:var(--border);"></div>
+            </div>
+            <!-- Error -->
+            <div id="fridgeError" class="hidden text-center py-8">
+              <p style="font-size:2rem;">⚠️</p>
+              <p class="text-sm font-bold text-red-400 mt-2" id="fridgeErrorMsg">Wystąpił błąd. Spróbuj ponownie.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- History -->
+        <div class="glass p-5 rounded-2xl mt-4">
+          <h3 class="font-extrabold text-white text-sm mb-3" style="font-family:'Syne',sans-serif;">📖 Historia przepisów (ta sesja)</h3>
+          <div id="fridgeHistory" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <p class="text-xs col-span-2" style="color:var(--muted);">Przepisy pojawią się tutaj po wygenerowaniu.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ MEAL PREP ═══ -->
+      <div id="kitchenPanelMealprep" class="hidden flex flex-col gap-5">
+
+        <div class="grid gap-5" style="grid-template-columns:300px 1fr;">
+
+          <!-- Config panel -->
+          <div class="glass p-5 rounded-2xl flex flex-col gap-4">
+            <div>
+              <h2 class="font-extrabold text-white text-base mb-1" style="font-family:'Syne',sans-serif;">Konfiguracja</h2>
+              <p class="text-xs" style="color:var(--muted);">AI przeanalizuje Twój plan i wypisze zakupy + harmonogram gotowania.</p>
+            </div>
+
+            <div>
+              <label class="text-xs font-semibold block mb-2" style="color:var(--muted);">Liczba dni planu</label>
+              <div class="flex gap-2">
+                <button onclick="setMealPrepDays(this,3)" class="mealprep-day-btn active-day-btn flex-1 py-2 rounded-xl text-xs font-bold" data-days="3">3 dni</button>
+                <button onclick="setMealPrepDays(this,5)" class="mealprep-day-btn flex-1 py-2 rounded-xl text-xs font-bold" data-days="5">5 dni</button>
+                <button onclick="setMealPrepDays(this,7)" class="mealprep-day-btn flex-1 py-2 rounded-xl text-xs font-bold" data-days="7">7 dni</button>
+              </div>
+            </div>
+
+            <div>
+              <label class="text-xs font-semibold block mb-1" style="color:var(--muted);">Kontekst (opcjonalnie)</label>
+              <textarea id="mealPrepContext" rows="3" placeholder="np. mam wolne w niedzielę na gotowanie, preferuję proste przepisy…"
+                class="w-full bg-transparent border rounded-xl px-3 py-2 text-xs text-white placeholder-gray-600 outline-none focus:border-cyan-500/50 resize-none"
+                style="border-color:var(--border);"></textarea>
+            </div>
+
+            <!-- Profile summary card -->
+            <div class="rounded-xl p-3" style="background:rgba(0,229,255,0.05);border:1px solid rgba(0,229,255,0.15);">
+              <p class="text-xs font-bold mb-2" style="color:var(--cyan);">Twój profil żywieniowy</p>
+              <div class="space-y-1 text-xs" style="color:var(--muted);" id="mealPrepProfileSummary">
+                Ładowanie…
+              </div>
+            </div>
+
+            <button id="mealPrepGenerateBtn" onclick="mealPrepGenerate()"
+              class="w-full py-3 rounded-xl font-extrabold text-sm transition-all"
+              style="background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;">
+              📦 Generuj Meal Prep Plan
+            </button>
+          </div>
+
+          <!-- Result panel -->
+          <div class="glass p-5 rounded-2xl flex flex-col gap-3 min-h-[400px]">
+            <div id="mealPrepEmptyState" class="flex flex-col items-center justify-center h-full gap-3 py-8">
+              <div style="font-size:3.5rem;">🗓️</div>
+              <p class="font-bold text-white text-base text-center" style="font-family:'Syne',sans-serif;">Zaoszczędź czas<br>na gotowaniu</p>
+              <p class="text-xs text-center max-w-[220px]" style="color:var(--muted);">Ugotuj raz, jedz przez cały tydzień. AI zrobi za Ciebie listę zakupów i harmonogram.</p>
+            </div>
+            <div id="mealPrepLoading" class="hidden flex-col items-center justify-center h-full gap-4 py-8">
+              <div class="spin-ring" style="border-top-color:#a78bfa;"></div>
+              <p class="text-sm font-semibold" style="color:#a78bfa;" id="mealPrepLoadingMsg">Analizuję Twój plan posiłków…</p>
+            </div>
+            <div id="mealPrepResult" class="hidden flex-col gap-3">
+              <div class="flex items-center justify-between">
+                <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">Plan Meal Prep</h2>
+                <div class="flex gap-2">
+                  <span id="mealPrepDaysBadge" class="text-xs px-3 py-1 rounded-full font-bold"
+                    style="background:rgba(124,58,237,0.2);color:#a78bfa;border:1px solid rgba(124,58,237,0.3);"></span>
+                  <button onclick="mealPrepCopy()" class="text-xs px-3 py-1 rounded-lg transition-all"
+                    style="background:rgba(255,255,255,0.06);color:var(--muted);border:1px solid var(--border);">📋 Kopiuj</button>
+                  <button onclick="mealPrepExport()" class="text-xs px-3 py-1 rounded-lg transition-all font-bold"
+                    style="background:rgba(124,58,237,0.15);color:#a78bfa;border:1px solid rgba(124,58,237,0.25);">⬇ Eksportuj</button>
+                </div>
+              </div>
+              <div id="mealPrepContent" class="text-sm leading-relaxed"
+                   style="color:rgba(255,255,255,0.82);white-space:pre-wrap;"></div>
+            </div>
+            <div id="mealPrepError" class="hidden text-center py-8">
+              <p style="font-size:2rem;">⚠️</p>
+              <p class="text-sm font-bold text-red-400 mt-2" id="mealPrepErrorMsg">Wystąpił błąd.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </section>
 
     <!-- ====== TAB: POSTĘPY ====== -->
@@ -2550,6 +2761,7 @@ function showTab(tabId) {
     showSportSubtab('drills');
   }
   if (tabId==='postepy') initCharts();
+  if (tabId==='kuchnia') { kitchenInit(); }
   document.getElementById('mainContent').scrollTop = 0;
 }
 
@@ -5263,6 +5475,378 @@ window.addEventListener('beforeunload', saveState);
 </script>
 
 <script>
+// ====== KUCHNIA AI ======
+
+// ── State ─────────────────────────────────────────────────────────────────────
+const _kitchen = {
+  fridgeTags: [],
+  mealPrepDays: 3,
+  fridgeHistory: [],
+  lastFridgeRecipe: '',
+  lastMealPrepPlan: '',
+};
+
+const FRIDGE_QUICK = [
+  'Kurczak','Jajka','Ryż','Makaron','Tuńczyk','Łosoś',
+  'Brokuły','Szpinak','Pomidor','Papryka','Cebula','Czosnek',
+  'Ziemniaki','Twarożek','Jogurt grecki','Awokado',
+  'Płatki owsiane','Kasza gryczana','Soczewica',
+];
+
+function kitchenInit() {
+  // Render quick-add chips
+  const chipsEl = document.getElementById('fridgeQuickChips');
+  if (chipsEl && chipsEl.children.length === 0) {
+    FRIDGE_QUICK.forEach(item => {
+      const btn = document.createElement('button');
+      btn.textContent = item;
+      btn.className = 'text-xs px-3 py-1 rounded-full transition-all';
+      btn.style.cssText = 'background:rgba(255,255,255,0.05);color:var(--muted);border:1px solid var(--border);';
+      btn.onmouseenter = () => { btn.style.background='rgba(0,229,255,0.08)'; btn.style.color='var(--cyan)'; };
+      btn.onmouseleave = () => { if (!_kitchen.fridgeTags.includes(item)) { btn.style.background='rgba(255,255,255,0.05)'; btn.style.color='var(--muted)'; } };
+      btn.onclick = () => fridgeAddTagValue(item);
+      chipsEl.appendChild(btn);
+    });
+  }
+  // Profile summary for meal prep
+  renderMealPrepProfile();
+}
+
+function switchKitchenTab(tab) {
+  document.getElementById('kitchenPanelFridge').classList.toggle('hidden', tab !== 'fridge');
+  document.getElementById('kitchenPanelMealprep').classList.toggle('hidden', tab !== 'mealprep');
+  ['fridge','mealprep'].forEach(t => {
+    const btn = document.getElementById('kitchenTab' + t.charAt(0).toUpperCase() + t.slice(1));
+    if (!btn) return;
+    if (t === tab) {
+      btn.style.background = t === 'fridge' ? 'rgba(0,229,255,0.15)' : 'rgba(124,58,237,0.2)';
+      btn.style.color = t === 'fridge' ? 'var(--cyan)' : '#a78bfa';
+    } else {
+      btn.style.background = '';
+      btn.style.color = 'var(--muted)';
+    }
+  });
+}
+
+// ── FRIDGE CHEF ───────────────────────────────────────────────────────────────
+function fridgeAddTag() {
+  const input = document.getElementById('fridgeIngredientInput');
+  const val = (input?.value || '').trim().replace(/,+$/, '');
+  if (!val) return;
+  val.split(',').map(v => v.trim()).filter(Boolean).forEach(fridgeAddTagValue);
+  if (input) input.value = '';
+}
+
+function fridgeAddTagValue(val) {
+  if (!val || _kitchen.fridgeTags.includes(val)) return;
+  _kitchen.fridgeTags.push(val);
+  fridgeRenderTags();
+}
+
+function fridgeRemoveTag(val) {
+  _kitchen.fridgeTags = _kitchen.fridgeTags.filter(t => t !== val);
+  fridgeRenderTags();
+}
+
+function fridgeRenderTags() {
+  const container = document.getElementById('fridgeTagsContainer');
+  if (!container) return;
+  container.innerHTML = _kitchen.fridgeTags.map(tag => `
+    <span class="flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium"
+      style="background:rgba(0,229,255,0.12);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);">
+      ${tag}
+      <button onclick="fridgeRemoveTag('${tag.replace(/'/g,"\\'")}'))" style="opacity:0.6;font-size:14px;line-height:1;">&times;</button>
+    </span>`).join('');
+}
+
+const FRIDGE_LOADING_MSGS = [
+  'Sprawdzam Twój cel kaloryczny…',
+  'Komponuję makroskładniki…',
+  'Dobieramy składniki do przepisu…',
+  'Obliczam gramaturę…',
+  'Już prawie gotowe! 🍳',
+];
+
+async function fridgeGenerate() {
+  const identityId = state.identityId || state.profiles[0]?.id || '';
+  if (!identityId) { alert('Zaloguj się aby korzystać z Kuchni AI'); return; }
+  if (_kitchen.fridgeTags.length === 0) {
+    document.getElementById('fridgeIngredientInput')?.focus();
+    return;
+  }
+
+  // UI: loading
+  const showEl = id => { const e = document.getElementById(id); if(e){e.classList.remove('hidden');e.style.display='flex';} };
+  const hideEl = id => { const e = document.getElementById(id); if(e){e.classList.add('hidden');e.style.display='none';} };
+  hideEl('fridgeEmptyState'); hideEl('fridgeResult'); hideEl('fridgeError');
+  showEl('fridgeLoading');
+  document.getElementById('fridgeGenerateBtn').disabled = true;
+  document.getElementById('fridgeGenerateBtn').style.opacity = '0.5';
+
+  // Cycle loading messages
+  let msgIdx = 0;
+  const msgEl = document.getElementById('fridgeLoadingMsg');
+  const msgInterval = setInterval(() => {
+    if (msgEl) msgEl.textContent = FRIDGE_LOADING_MSGS[msgIdx++ % FRIDGE_LOADING_MSGS.length];
+  }, 1800);
+
+  try {
+    const _apiBase = window.API_BASE || "http://localhost:8000";
+    const res = await fetch(`${_apiBase}/app/fridge-chef`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        identity_id: identityId,
+        ingredients: _kitchen.fridgeTags,
+        extra_context: document.getElementById('fridgeContext')?.value || '',
+      }),
+    });
+    clearInterval(msgInterval);
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    _kitchen.lastFridgeRecipe = data.recipe;
+
+    // Show result
+    hideEl('fridgeLoading');
+    showEl('fridgeResult');
+
+    const contentEl = document.getElementById('fridgeRecipeContent');
+    if (contentEl) contentEl.textContent = data.recipe;
+
+    // Macro pills — parse from response text
+    fridgeRenderMacroPills(data.recipe, data.meta);
+
+    // Save to history
+    const historyItem = {
+      tags: [..._kitchen.fridgeTags],
+      recipe: data.recipe,
+      ts: new Date().toLocaleTimeString('pl-PL', {hour:'2-digit',minute:'2-digit'}),
+    };
+    _kitchen.fridgeHistory.unshift(historyItem);
+    fridgeRenderHistory();
+
+  } catch (err) {
+    clearInterval(msgInterval);
+    hideEl('fridgeLoading');
+    showEl('fridgeError');
+    const errEl = document.getElementById('fridgeErrorMsg');
+    if (errEl) errEl.textContent = err.message || 'Wystąpił błąd. Spróbuj ponownie.';
+  } finally {
+    document.getElementById('fridgeGenerateBtn').disabled = false;
+    document.getElementById('fridgeGenerateBtn').style.opacity = '1';
+  }
+}
+
+function fridgeRenderMacroPills(recipeText, meta) {
+  const pillsEl = document.getElementById('fridgeMacroPills');
+  if (!pillsEl) return;
+  // Try to extract macros from AI response text
+  const patterns = [
+    { key:'kcal', re:/Kcal:\s*(\d+)/i,   icon:'🔥', color:'var(--cyan)',  label:'kcal' },
+    { key:'prot', re:/Białko:\s*(\d+)g/i, icon:'💪', color:'#a78bfa',     label:'białko' },
+    { key:'carb', re:/Węgle:\s*(\d+)g/i,  icon:'🌾', color:'#fbbf24',     label:'węgle' },
+    { key:'fat',  re:/Tłuszcze:\s*(\d+)g/i,icon:'🥑',color:'#34d399',    label:'tłuszcze' },
+  ];
+  const pills = patterns.map(p => {
+    const m = recipeText.match(p.re);
+    if (!m) return '';
+    return `<span class="flex items-center gap-1 text-xs px-3 py-1.5 rounded-full font-bold"
+      style="background:rgba(255,255,255,0.05);color:${p.color};border:1px solid rgba(255,255,255,0.08);">
+      ${p.icon} ${m[1]} ${p.label}
+    </span>`;
+  }).filter(Boolean);
+
+  if (meta?.kcal_target_per_meal) {
+    pills.push(`<span class="text-xs px-3 py-1.5 rounded-full"
+      style="background:rgba(255,255,255,0.03);color:var(--muted);border:1px solid var(--border);">
+      Cel: ~${meta.kcal_target_per_meal} kcal/posiłek
+    </span>`);
+  }
+  pillsEl.innerHTML = pills.join('');
+}
+
+function fridgeRenderHistory() {
+  const histEl = document.getElementById('fridgeHistory');
+  if (!histEl || _kitchen.fridgeHistory.length === 0) return;
+  histEl.innerHTML = _kitchen.fridgeHistory.slice(0, 4).map((item, idx) => `
+    <div class="rounded-xl p-3 cursor-pointer transition-all"
+         style="background:rgba(255,255,255,0.03);border:1px solid var(--border);"
+         onmouseenter="this.style.borderColor='rgba(0,229,255,0.2)'"
+         onmouseleave="this.style.borderColor='var(--border)'"
+         onclick="fridgeShowHistoryItem(${idx})">
+      <div class="flex items-center justify-between mb-1">
+        <p class="text-xs font-bold text-white">${item.tags.slice(0,3).join(', ')}${item.tags.length > 3 ? ' +' + (item.tags.length-3) : ''}</p>
+        <span class="text-xs" style="color:var(--muted);">${item.ts}</span>
+      </div>
+      <p class="text-xs truncate" style="color:var(--muted);">${item.recipe.split('\n')[0].replace(/[#*]/g,'').trim()}</p>
+    </div>`).join('');
+}
+
+function fridgeShowHistoryItem(idx) {
+  const item = _kitchen.fridgeHistory[idx];
+  if (!item) return;
+  _kitchen.lastFridgeRecipe = item.recipe;
+  const contentEl = document.getElementById('fridgeRecipeContent');
+  if (contentEl) contentEl.textContent = item.recipe;
+  ['fridgeEmptyState','fridgeLoading','fridgeError'].forEach(id => {
+    const e = document.getElementById(id); if(e){e.classList.add('hidden');e.style.display='none';}
+  });
+  const res = document.getElementById('fridgeResult');
+  if(res){res.classList.remove('hidden');res.style.display='flex';}
+}
+
+function fridgeCopyRecipe() {
+  if (!_kitchen.lastFridgeRecipe) return;
+  navigator.clipboard?.writeText(_kitchen.lastFridgeRecipe).then(() => {
+    const btn = event.target;
+    const orig = btn.textContent;
+    btn.textContent = '✅ Skopiowano!';
+    setTimeout(() => { btn.textContent = orig; }, 2000);
+  });
+}
+
+function fridgeSaveToDay() {
+  // Add a note to "Mój Dzień" via the extra items system (type=diet, minimal)
+  const p = state.profiles[state.activeProfileIdx || 0];
+  if (!p) return;
+  if (!state.extraItems[p.id]) state.extraItems[p.id] = [];
+  const recipe = _kitchen.lastFridgeRecipe;
+  // Extract name from first line
+  const nameLine = recipe.split('\n').find(l => l.includes('##')) || 'Przepis z lodówki';
+  const name = nameLine.replace(/[#🍳]/g,'').trim().slice(0, 60);
+  // Extract kcal
+  const kcalMatch = recipe.match(/Kcal:\s*(\d+)/i);
+  const protMatch = recipe.match(/Białko:\s*(\d+)/i);
+  const kcal = kcalMatch ? parseInt(kcalMatch[1]) : 300;
+  const protein = protMatch ? parseInt(protMatch[1]) : 20;
+  state.extraItems[p.id].push({ type:'diet', name, kcal, protein, source:'fridge-chef' });
+  saveState();
+  showTab('my-day');
+  // brief toast
+  const toast = document.createElement('div');
+  toast.textContent = '✅ Dodano do Mój Dzień!';
+  toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(0,229,255,0.15);color:var(--cyan);border:1px solid rgba(0,229,255,0.3);padding:8px 20px;border-radius:12px;font-size:13px;font-weight:700;z-index:9999;backdrop-filter:blur(12px);';
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2500);
+}
+
+// ── MEAL PREP ──────────────────────────────────────────────────────────────────
+function setMealPrepDays(btn, days) {
+  _kitchen.mealPrepDays = days;
+  document.querySelectorAll('.mealprep-day-btn').forEach(b => {
+    b.style.background = '';
+    b.style.color = 'var(--muted)';
+    b.style.border = '1px solid var(--border)';
+  });
+  btn.style.background = 'rgba(124,58,237,0.2)';
+  btn.style.color = '#a78bfa';
+  btn.style.border = '1px solid rgba(124,58,237,0.3)';
+}
+
+function renderMealPrepProfile() {
+  const el = document.getElementById('mealPrepProfileSummary');
+  if (!el) return;
+  const p = state.profiles[state.activeProfileIdx || 0];
+  if (!p) { el.innerHTML = '<span>Brak profilu</span>'; return; }
+  const tdee = p.tdee || 2000;
+  const prot = p.protein || 120;
+  el.innerHTML = `
+    <div class="flex justify-between"><span>Cel:</span><span class="text-white font-semibold">${p.goal || '—'}</span></div>
+    <div class="flex justify-between"><span>Dieta:</span><span class="text-white font-semibold">${p.dietType || p.diet || '—'}</span></div>
+    <div class="flex justify-between"><span>Kcal/dzień:</span><span class="text-white font-semibold">${tdee} kcal</span></div>
+    <div class="flex justify-between"><span>Białko/dzień:</span><span class="text-white font-semibold">${prot}g</span></div>
+    <div class="flex justify-between"><span>Posiłki/dzień:</span><span class="text-white font-semibold">${p.mealsPerDay || 5}</span></div>
+    <div class="flex justify-between"><span>Alergie:</span><span class="text-white font-semibold">${p.allergies || 'brak'}</span></div>
+  `;
+}
+
+const MEAL_PREP_LOADING_MSGS = [
+  'Analizuję Twój plan posiłków…',
+  'Obliczam zbiorcze ilości produktów…',
+  'Układam harmonogram gotowania…',
+  'Optymalizuję czas przygotowania…',
+  'Generuję listę zakupów…',
+  'Prawie gotowe! 📦',
+];
+
+async function mealPrepGenerate() {
+  const identityId = state.identityId || state.profiles[0]?.id || '';
+  if (!identityId) { alert('Zaloguj się aby korzystać z Kuchni AI'); return; }
+
+  const showEl = id => { const e = document.getElementById(id); if(e){e.classList.remove('hidden');e.style.display='flex';} };
+  const hideEl = id => { const e = document.getElementById(id); if(e){e.classList.add('hidden');e.style.display='none';} };
+  hideEl('mealPrepEmptyState'); hideEl('mealPrepResult'); hideEl('mealPrepError');
+  showEl('mealPrepLoading');
+  document.getElementById('mealPrepGenerateBtn').disabled = true;
+  document.getElementById('mealPrepGenerateBtn').style.opacity = '0.5';
+
+  let msgIdx = 0;
+  const msgEl = document.getElementById('mealPrepLoadingMsg');
+  const msgInterval = setInterval(() => {
+    if (msgEl) msgEl.textContent = MEAL_PREP_LOADING_MSGS[msgIdx++ % MEAL_PREP_LOADING_MSGS.length];
+  }, 1800);
+
+  try {
+    const ctx = encodeURIComponent(document.getElementById('mealPrepContext')?.value || '');
+    const _apiBase = window.API_BASE || "http://localhost:8000";
+    const url = `${_apiBase}/app/meal-prep-plan/${identityId}?days=${_kitchen.mealPrepDays}${ctx ? '&extra_context=' + ctx : ''}`;
+    const res = await fetch(url);
+    clearInterval(msgInterval);
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    _kitchen.lastMealPrepPlan = data.meal_prep_plan;
+
+    hideEl('mealPrepLoading');
+    showEl('mealPrepResult');
+
+    const contentEl = document.getElementById('mealPrepContent');
+    if (contentEl) contentEl.textContent = data.meal_prep_plan;
+
+    const badge = document.getElementById('mealPrepDaysBadge');
+    if (badge) badge.textContent = `${data.meta?.days} dni • ${data.meta?.kcal_target} kcal/dzień`;
+
+  } catch (err) {
+    clearInterval(msgInterval);
+    hideEl('mealPrepLoading');
+    showEl('mealPrepError');
+    const errEl = document.getElementById('mealPrepErrorMsg');
+    if (errEl) errEl.textContent = err.message || 'Wystąpił błąd. Spróbuj ponownie.';
+  } finally {
+    document.getElementById('mealPrepGenerateBtn').disabled = false;
+    document.getElementById('mealPrepGenerateBtn').style.opacity = '1';
+  }
+}
+
+function mealPrepCopy() {
+  if (!_kitchen.lastMealPrepPlan) return;
+  navigator.clipboard?.writeText(_kitchen.lastMealPrepPlan).then(() => {
+    const btn = event.target;
+    const orig = btn.textContent;
+    btn.textContent = '✅ Skopiowano!';
+    setTimeout(() => { btn.textContent = orig; }, 2000);
+  });
+}
+
+function mealPrepExport() {
+  if (!_kitchen.lastMealPrepPlan) return;
+  const blob = new Blob([_kitchen.lastMealPrepPlan], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `FitAI_MealPrep_${_kitchen.mealPrepDays}dni_${new Date().toISOString().slice(0,10)}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+
 // ====== POSTĘPY — Charts & Stats ======
 let _weightChart = null;
 let _volumeChart = null;
@@ -5299,7 +5883,7 @@ async function initCharts() {
     + '<div class="msg-loading"><span></span><span></span><span></span></div>'
     + '<span style="color:var(--muted);">Ładowanie wniosków AI…</span></div>';
   try {
-    const r = await fetch(`${API_BASE}/app/stats/${identityId}?days=9999`);
+    const r = await fetch(`${window.API_BASE || "http://localhost:8000"}/app/stats/${identityId}?days=9999`);
     if (!r.ok) return;
     _statsData = await r.json();
     renderCharts(_statsData, _statsRange);
@@ -6516,6 +7100,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       _origST(tabId);
       if (tabId==='my-day') water._render();
       if (tabId==='postepy') initCharts();
+  if (tabId==='kuchnia') { kitchenInit(); }
     };
   }
 
