@@ -14,12 +14,14 @@ from __future__ import annotations
 import json
 import os
 import random
+import uuid as uuid_lib
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 
 import anthropic
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import Response as FastAPIResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlmodel import Field, Relationship, Session, SQLModel, create_engine, select
@@ -2731,6 +2733,218 @@ def get_version():
     except Exception:
         version = "2.0.0"
     return {"version": version, "build_date": datetime.now().strftime("%Y-%m-%d"), "api_version": "2.0.0"}
+
+
+# ─── Eksport kalendarza (.ics) ────────────────────────────────────────────────
+
+@app.get("/app/export/calendar/{identity_id}")
+def export_calendar(identity_id: str):
+    """
+    GET /app/export/calendar/{identity_id}
+
+    Generuje plik .ics (iCalendar) z harmonogramem treningów i posiłków
+    na bieżący tydzień, na podstawie weekly_plan użytkownika.
+    Kompatybilny z: Google Calendar, Apple Calendar, Outlook.
+    """
+    user_key = _web_user_key(identity_id)
+
+    with Session(engine) as session:
+        user = session.exec(select(UserDB).where(UserDB.user_key == user_key)).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="Użytkownik nie znaleziony.")
+
+        weekly_plan: dict = user.get_dict("weekly_plan_json") if user.weekly_plan_json else {}
+        if not weekly_plan:
+            raise HTTPException(
+                status_code=404,
+                detail="Brak planu tygodniowego. Wygeneruj plan najpierw w aplikacji."
+            )
+
+    # ── Mapowanie dni polskich → numer dnia (ISO: Mon=0) ─────────────────────
+    DAY_MAP = {
+        "poniedziałek": 0, "wtorek": 1, "środa": 2,
+        "czwartek": 3,     "piątek": 4, "sobota": 5, "niedziela": 6,
+        "pon": 0, "wt": 1, "śr": 2, "czw": 3, "pt": 4, "sob": 5, "nd": 6,
+        "monday": 0, "tuesday": 1, "wednesday": 2, "thursday": 3,
+        "friday": 4,  "saturday": 5,  "sunday": 6,
+    }
+
+    import datetime as dt_module
+    today    = date.today()
+    mon      = today - dt_module.timedelta(days=today.weekday())
+    timezone = "Europe/Warsaw"
+
+    events: list[str] = []
+
+    def _uid() -> str:
+        return str(uuid_lib.uuid4()).upper() + "@fitai"
+
+    def _ics_dt(d: date, hour: int, minute: int = 0) -> str:
+        d2 = datetime(d.year, d.month, d.day, hour, minute, 0)
+        return d2.strftime("%Y%m%dT%H%M%S")
+
+    def _safe_text(text: str) -> str:
+        return (
+            text.replace("\\", "\\\\")
+                .replace(";", "\\;")
+                .replace(",", "\\,")
+                .replace("\n", "\\n")
+        )
+
+    def _make_event(summary, description, event_date, start_hour, duration_minutes, category, color_name="3"):
+        end_hour   = start_hour + (duration_minutes // 60)
+        end_minute = duration_minutes % 60
+        return "\r\n".join([
+            "BEGIN:VEVENT",
+            f"UID:{_uid()}",
+            f"DTSTART;TZID={timezone}:{_ics_dt(event_date, start_hour)}",
+            f"DTEND;TZID={timezone}:{_ics_dt(event_date, end_hour, end_minute)}",
+            f"SUMMARY:{_safe_text(summary)}",
+            f"DESCRIPTION:{_safe_text(description)}",
+            f"CATEGORIES:{category}",
+            f"COLOR:{color_name}",
+            "STATUS:CONFIRMED",
+            "TRANSP:OPAQUE",
+            f"DTSTAMP:{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}",
+            "END:VEVENT",
+        ])
+
+    # Normalizuj plan do listy
+    plan_days: list[dict] = []
+    if isinstance(weekly_plan, dict):
+        if "days" in weekly_plan:
+            plan_days = weekly_plan["days"]
+        else:
+            for day_name, content in weekly_plan.items():
+                entry = {"day": day_name}
+                if isinstance(content, dict):
+                    entry.update(content)
+                plan_days.append(entry)
+    elif isinstance(weekly_plan, list):
+        plan_days = weekly_plan
+
+    MEAL_TIMES = [(7, 30), (10, 30), (13, 0), (16, 0), (19, 0)]
+    MEAL_LABELS = ["🍳 Śniadanie", "🥗 II Śniadanie", "🍽️ Obiad", "🥤 Przekąska", "🌙 Kolacja"]
+
+    for day_entry in plan_days:
+        day_label = str(day_entry.get("day", "")).lower().strip()
+        day_idx   = DAY_MAP.get(day_label)
+        if day_idx is None:
+            for key, idx in DAY_MAP.items():
+                if key in day_label:
+                    day_idx = idx
+                    break
+        if day_idx is None:
+            continue
+
+        event_date = mon + dt_module.timedelta(days=day_idx)
+
+        # Trening
+        workout = day_entry.get("workout") or day_entry.get("training") or ""
+        if workout and str(workout).lower() not in ("odpoczynek", "rest", "off", "", "brak"):
+            if isinstance(workout, dict):
+                exercises    = workout.get("exercises", [])
+                workout_name = workout.get("name", "Trening FitAI")
+                desc_lines   = [f"• {e}" if isinstance(e, str) else f"• {e.get('name','?')} {e.get('sets','')}" for e in exercises[:10]]
+                description  = "\n".join(desc_lines) or "Plan wygenerowany przez FitAI"
+            else:
+                workout_name = str(workout)[:60]
+                description  = str(workout)[:500]
+
+            events.append(_make_event(
+                summary=f"💪 {workout_name}",
+                description=description + f"\n\nFitAI — {user.name}",
+                event_date=event_date,
+                start_hour=7,
+                duration_minutes=60,
+                category="TRENING,FITAI",
+                color_name="3",
+            ))
+
+        # Posiłki
+        meals = day_entry.get("meals") or day_entry.get("diet") or []
+        if isinstance(meals, list):
+            for i, meal in enumerate(meals[:5]):
+                hour, minute = MEAL_TIMES[i]
+                label        = MEAL_LABELS[i]
+                if isinstance(meal, dict):
+                    name    = meal.get("name") or meal.get("meal") or f"Posiłek {i+1}"
+                    kcal    = meal.get("calories") or meal.get("kcal") or ""
+                    protein = meal.get("protein") or ""
+                    desc    = meal.get("description") or meal.get("ingredients") or ""
+                    summary = f"{label}: {name}"
+                    detail  = f"Kalorie: {kcal} kcal\nBiałko: {protein} g\n{desc}".strip()
+                else:
+                    summary = f"{label}: {str(meal)[:50]}"
+                    detail  = str(meal)[:300]
+
+                events.append(_make_event(
+                    summary=summary,
+                    description=detail,
+                    event_date=event_date,
+                    start_hour=hour,
+                    duration_minutes=20,
+                    category="DIETA,FITAI",
+                    color_name="6",
+                ))
+        elif isinstance(meals, str) and meals.strip():
+            events.append(_make_event(
+                summary=f"🥗 Posiłki — {day_entry.get('day','')}",
+                description=meals[:500],
+                event_date=event_date,
+                start_hour=12,
+                duration_minutes=30,
+                category="DIETA,FITAI",
+                color_name="6",
+            ))
+
+    if not events:
+        raise HTTPException(
+            status_code=404,
+            detail="Plan nie zawiera danych treningowych ani żywieniowych do eksportu."
+        )
+
+    ics_lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//FitAI//FitAI Platform v2.0//PL",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        f"X-WR-CALNAME:FitAI — Plan {user.name}",
+        f"X-WR-CALDESC:Tygodniowy plan treningowy i dietetyczny dla {user.name}",
+        "X-WR-TIMEZONE:Europe/Warsaw",
+        "BEGIN:VTIMEZONE",
+        "TZID:Europe/Warsaw",
+        "BEGIN:DAYLIGHT",
+        "DTSTART:19810329T020000",
+        "RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=3",
+        "TZOFFSETFROM:+0100",
+        "TZOFFSETTO:+0200",
+        "TZNAME:CEST",
+        "END:DAYLIGHT",
+        "BEGIN:STANDARD",
+        "DTSTART:19961027T030000",
+        "RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=10",
+        "TZOFFSETFROM:+0200",
+        "TZOFFSETTO:+0100",
+        "TZNAME:CET",
+        "END:STANDARD",
+        "END:VTIMEZONE",
+        *events,
+        "END:VCALENDAR",
+    ]
+
+    ics_content = "\r\n".join(ics_lines)
+    filename    = f"fitai_plan_{user.name.replace(' ', '_')}_{today.isoformat()}.ics"
+
+    return FastAPIResponse(
+        content    = ics_content,
+        media_type = "text/calendar; charset=utf-8",
+        headers    = {
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control":       "no-cache",
+        },
+    )
 
 
 if __name__ == "__main__":
