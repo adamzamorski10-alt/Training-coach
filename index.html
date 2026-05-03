@@ -1271,6 +1271,27 @@
         <div id="activityHeatmap" style="min-height:80px;"></div>
       </div>
 
+      <!-- ── AI Insights ── -->
+      <div class="glass p-5 rounded-2xl">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0"
+               style="background:linear-gradient(135deg,rgba(0,229,255,0.15),rgba(124,58,237,0.15));border:1px solid rgba(0,229,255,0.25);">🤖</div>
+          <div>
+            <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">Wnioski AI</h2>
+            <p class="text-xs mt-0.5" style="color:var(--muted);">Automatyczna analiza Twoich danych</p>
+          </div>
+          <button onclick="refreshStats()" class="ml-auto btn-ghost px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+            Odśwież
+          </button>
+        </div>
+        <div id="aiInsightsList" class="space-y-2">
+          <div class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm" style="background:rgba(255,255,255,0.03);border:1px solid var(--border);">
+            <span class="text-lg flex-shrink-0">📊</span>
+            <span style="color:var(--muted);">Wejdź w zakładkę Postępy, aby zobaczyć wnioski po zalogowaniu check-inów.</span>
+          </div>
+        </div>
+      </div>
 
     </section>
 
@@ -5027,8 +5048,15 @@ async function initCharts() {
   const identityId = state.identityId || '';
   if (!identityId) {
     if (typeof renderActivityHeatmap === 'function') renderActivityHeatmap({ activity_days: [] });
+    // Show placeholder insights for local-only mode
+    renderInsights([{icon:'📊',type:'info',text:'Zaloguj się lub podłącz backend, aby zobaczyć spersonalizowane wnioski AI.'}]);
     return;
   }
+  // Show loading state in insights
+  const insightBox = document.getElementById('aiInsightsList');
+  if (insightBox) insightBox.innerHTML = '<div class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm" style="background:rgba(0,229,255,0.04);border:1px solid var(--border);">'  
+    + '<div class="msg-loading"><span></span><span></span><span></span></div>'
+    + '<span style="color:var(--muted);">Ładowanie wniosków AI…</span></div>';
   try {
     const r = await fetch(`${API_BASE}/app/stats/${identityId}?days=9999`);
     if (!r.ok) return;
@@ -5081,6 +5109,24 @@ function renderKPI(data) {
   const txt = document.getElementById('dietComplianceText');
   if (ring) { const offset = 201 - (201 * pct / 100); ring.setAttribute('stroke-dashoffset', offset); }
   if (txt) txt.textContent = pct + '%';
+  // Render AI insights
+  renderInsights(data.insights || []);
+}
+
+function renderInsights(insights) {
+  const container = document.getElementById('aiInsightsList');
+  if (!container || !insights.length) return;
+  var bgMap = { success: 'rgba(52,211,153,0.08)', warning: 'rgba(251,146,60,0.08)', info: 'rgba(0,229,255,0.06)' };
+  var brMap = { success: 'rgba(52,211,153,0.25)', warning: 'rgba(251,146,60,0.25)', info: 'rgba(0,229,255,0.2)' };
+  var html = insights.map(function(item) {
+    var bg = bgMap[item.type] || bgMap.info;
+    var br = brMap[item.type] || brMap.info;
+    return '<div class="flex items-start gap-3 rounded-xl px-4 py-3 text-sm"'
+      + ' style="background:' + bg + ';border:1px solid ' + br + ';animation:slideUp 0.3s ease;">'
+      + '<span class="text-lg flex-shrink-0 mt-0.5">' + item.icon + '</span>'
+      + '<span style="color:#e2e8f0;line-height:1.5;">' + item.text + '</span></div>';
+  }).join('');
+  container.innerHTML = html;
 }
 
 function renderCharts(data, days) {

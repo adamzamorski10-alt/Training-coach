@@ -79,6 +79,8 @@ class UserDB(SQLModel, table=True):
     reminders_json: str = '{"email_enabled":true,"discord_enabled":false,"discord_channel_id":null}'
     weekly_plan_json: Optional[str] = None
     substitutes_history_json: str = "{}"
+    # ─── AI-generated current plan (diet + training JSON) ────────────────────
+    current_plan_json: Optional[str] = None       # JSON: {diet: {...}, training: {...}, generated_at: "..."}
     # ─── Sports module ───────────────────────────────────────────────────────
     sport_focus: Optional[str] = None                  # np. "koszykówka"
     sport_specialization: Optional[str] = None         # np. "rzuty"
@@ -140,6 +142,7 @@ class UserDB(SQLModel, table=True):
             "sport_focus": self.sport_focus,
             "sport_specialization": self.sport_specialization,
             "sport_training_days": self.get_list("sport_training_days_json"),
+            "current_plan": self.get_dict("current_plan_json") if self.current_plan_json else None,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
         }
@@ -1707,6 +1710,13 @@ def app_daily_checkin(identity_id: str, log: AppDailyCheckinRequest):
         entry = DailyLogDB(
             user_id=user.id, log_date=today,
             food=log.food, workout=log.workout, mood=log.mood, weight=log.weight,
+            sleep_quality=log.sleep_quality,
+            energy_level=log.energy_level,
+            stress_level=log.stress_level,
+            water_liters=log.water_liters,
+            waist_cm=log.waist_cm,
+            chest_cm=log.chest_cm,
+            photo_path=log.photo_path,
         )
         session.add(entry)
         if log.weight is not None:
@@ -2068,7 +2078,11 @@ def ai_workout_plan(req: AIRequest):
             "i wskazówkami technicznymi. Unikaj partii zmęczonych z ostatnich dni.\n"
             f"Cel: {user.goal}, sporty: {', '.join(user.get_list('sports_json'))}"
         )
-        return {"plan": ask_claude(system, user_msg, 900)}
+        try:
+            result = ask_claude(system, user_msg, 900)
+        except HTTPException as e:
+            result = f"[Błąd AI: {e.detail}]"
+        return {"plan": result}
 
 
 @app.post("/ai/analyze-log")
@@ -2101,7 +2115,11 @@ def ai_analyze_log(req: AIRequest):
             f"- Waga: {today_log.weight or 'nie podano'} kg\n\n"
             "Oceń dzień i podaj KONKRETNY plan na jutro z makroskładnikami. Max 400 słów."
         )
-        return {"analysis": ask_claude(system, user_msg, 1000)}
+        try:
+            result = ask_claude(system, user_msg, 1000)
+        except HTTPException as e:
+            result = f"[Błąd AI: {e.detail}]"
+        return {"analysis": result}
 
 
 @app.post("/ai/weekly")
@@ -2121,7 +2139,11 @@ def ai_weekly_summary(req: AIRequest):
             "Podaj tygodniowe podsumowanie: ocena tygodnia, postęp do celu, "
             "top 3 rekomendacje na kolejny tydzień (dieta + trening). Max 300 słów."
         )
-        return {"summary": ask_claude(system, user_msg, 800)}
+        try:
+            result = ask_claude(system, user_msg, 800)
+        except HTTPException as e:
+            result = f"[Błąd AI: {e.detail}]"
+        return {"summary": result}
 
 
 # ─── Stats / Progress endpoint ───────────────────────────────────────────────
@@ -2244,6 +2266,48 @@ def app_get_stats(identity_id: str, days: int = 30):
         for r in ex_results:
             activity_days.add(r.session_date)
 
+        # ── AI Insights (rule-based, no API call needed) ─────────────────────
+        insights = []
+        if weight_delta is not None:
+            if weight_delta < -0.5:
+                insights.append({"icon": "📉", "type": "success",
+                    "text": f"Twoja waga spada zgodnie z planem ({weight_delta:+.1f} kg). Świetna robota!"})
+            elif weight_delta > 0.5:
+                insights.append({"icon": "📈", "type": "warning",
+                    "text": f"Waga wzrosła o {weight_delta:+.1f} kg. Sprawdź bilans kaloryczny."})
+            else:
+                insights.append({"icon": "⚖️", "type": "info",
+                    "text": "Waga utrzymuje się stabilnie. Kontynuuj obecny schemat."})
+        if avg_rpe_7d is not None:
+            if avg_rpe_7d >= 8.5:
+                insights.append({"icon": "🔴", "type": "warning",
+                    "text": f"Średnie RPE z ostatnich 7 dni wynosi {avg_rpe_7d} — bardzo wysoka intensywność. Zaplanuj dzień regeneracji."})
+            elif avg_rpe_7d <= 5.0:
+                insights.append({"icon": "💪", "type": "info",
+                    "text": f"Średnie RPE: {avg_rpe_7d} — treningi są lekkie. Czas na progresję obciążenia!"})
+            else:
+                insights.append({"icon": "✅", "type": "success",
+                    "text": f"RPE {avg_rpe_7d} — optymalna strefa intensywności. Dobra robota!"})
+        if diet_compliance_pct < 50 and log_days_total > 3:
+            insights.append({"icon": "🍽️", "type": "warning",
+                "text": f"Dieta zalogowana tylko w {diet_compliance_pct}% dni. Regularne logowanie poprawia wyniki o ~30%."})
+        # Sleep/wellness insights
+        recent_sleep = [l.sleep_quality for l in all_logs[-7:] if l.sleep_quality is not None]
+        if recent_sleep:
+            avg_sleep = round(sum(recent_sleep) / len(recent_sleep), 1)
+            if avg_sleep <= 4:
+                insights.append({"icon": "😴", "type": "warning",
+                    "text": f"Średnia jakość snu: {avg_sleep}/10. Słaby sen hamuje regenerację i wyniki."})
+            elif avg_sleep >= 8:
+                insights.append({"icon": "🌟", "type": "success",
+                    "text": f"Doskonała jakość snu ({avg_sleep}/10)! To klucz do maksymalnych wyników."})
+        if goal_date_estimate:
+            insights.append({"icon": "🎯", "type": "info",
+                "text": f"Przy obecnym tempie osiągniesz cel wagowy ok. {goal_date_estimate}."})
+        if not insights:
+            insights.append({"icon": "📊", "type": "info",
+                "text": "Zacznij logować check-iny i treningi, aby zobaczyć spersonalizowane wnioski."})
+
         return {
             "weight_entries": weight_entries,
             "training_volume": training_volume,
@@ -2257,6 +2321,7 @@ def app_get_stats(identity_id: str, days: int = 30):
                 "avg_rpe_7d": avg_rpe_7d,
                 "goal_date_estimate": goal_date_estimate,
             },
+            "insights": insights,
         }
 
 
