@@ -508,6 +508,154 @@
         </div>
         <div id="extraItemsContainer" class="space-y-2 mt-2"></div>
       </div>
+
+      <!-- ══════════ CHECK-IN v2 ══════════ -->
+      <div class="glass p-6 rounded-2xl space-y-6">
+        <div class="flex items-center gap-3 mb-1">
+          <span class="text-xl">📊</span>
+          <h4 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">Dzienny Check-in</h4>
+          <span class="text-xs px-2 py-0.5 rounded-full font-bold" style="background:rgba(0,229,255,0.1);color:var(--cyan);border:1px solid rgba(0,229,255,0.25);">v2</span>
+        </div>
+
+        <!-- Row 1: Sleep / Energy / Stress -->
+        <div class="grid grid-cols-1 gap-5 md:grid-cols-3">
+
+          <!-- Sen -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">😴 Jakość snu</label>
+              <span id="sleepVal" class="text-lg font-extrabold" style="font-family:'Syne',sans-serif;color:var(--cyan);">—</span>
+            </div>
+            <input type="range" id="checkinSleep" min="1" max="10" value="7"
+              oninput="updateCheckinSlider('sleep',this.value)"
+              class="w-full" style="accent-color:var(--cyan);">
+            <div class="flex justify-between text-xs mt-1" style="color:var(--muted);">
+              <span>Fatalne</span><span>Świetnie</span>
+            </div>
+            <p id="sleepDesc" class="text-xs mt-1 text-center" style="color:var(--muted);">Przesuń, aby ocenić</p>
+          </div>
+
+          <!-- Energia -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">⚡ Poziom energii</label>
+              <span id="energyVal" class="text-lg font-extrabold" style="font-family:'Syne',sans-serif;color:#a78bfa;">—</span>
+            </div>
+            <input type="range" id="checkinEnergy" min="1" max="10" value="7"
+              oninput="updateCheckinSlider('energy',this.value)"
+              class="w-full" style="accent-color:#a78bfa;">
+            <div class="flex justify-between text-xs mt-1" style="color:var(--muted);">
+              <span>Wyczerpany</span><span>Pełen mocy</span>
+            </div>
+            <p id="energyDesc" class="text-xs mt-1 text-center" style="color:var(--muted);">Przesuń, aby ocenić</p>
+          </div>
+
+          <!-- Stres -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">🧠 Poziom stresu</label>
+              <span id="stressVal" class="text-lg font-extrabold" style="font-family:'Syne',sans-serif;color:#fb923c;">—</span>
+            </div>
+            <input type="range" id="checkinStress" min="1" max="10" value="5"
+              oninput="updateCheckinSlider('stress',this.value)"
+              class="w-full" style="accent-color:#fb923c;">
+            <div class="flex justify-between text-xs mt-1" style="color:var(--muted);">
+              <span>Spokój</span><span>Bardzo wysoki</span>
+            </div>
+            <p id="stressDesc" class="text-xs mt-1 text-center" style="color:var(--muted);">Przesuń, aby ocenić</p>
+          </div>
+        </div>
+
+        <!-- Divider -->
+        <div style="height:1px;background:var(--border);"></div>
+
+        <!-- Row 2: Water + Weight + Measurements -->
+        <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+
+          <!-- Woda -->
+          <div>
+            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5 mb-3">💧 Wypita woda</label>
+            <div class="flex items-center gap-4">
+              <button onclick="adjustWater(-0.25)"
+                class="w-10 h-10 rounded-xl flex items-center justify-center text-xl font-bold transition-all"
+                style="background:rgba(255,255,255,0.06);border:1px solid var(--border);"
+                onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.06)'">−</button>
+              <div class="flex-1 text-center">
+                <span id="waterVal" class="text-3xl font-extrabold" style="font-family:'Syne',sans-serif;color:#38bdf8;">0.0</span>
+                <span class="text-sm ml-1" style="color:var(--muted);">L</span>
+                <div class="progress-bar mt-2" style="height:6px;background:rgba(56,189,248,0.1);">
+                  <div id="waterBar" class="progress-fill" style="width:0%;background:linear-gradient(90deg,#38bdf8,#0ea5e9);border-radius:4px;transition:width 0.4s;"></div>
+                </div>
+                <p class="text-xs mt-1" style="color:var(--muted);">cel: 2.5 L</p>
+              </div>
+              <button onclick="adjustWater(0.25)"
+                class="w-10 h-10 rounded-xl flex items-center justify-center text-xl font-bold transition-all"
+                style="background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.25);color:#38bdf8;"
+                onmouseover="this.style.background='rgba(56,189,248,0.2)'" onmouseout="this.style.background='rgba(56,189,248,0.1)'">+</button>
+            </div>
+            <!-- Szybkie kroki wody -->
+            <div class="flex gap-2 mt-3 flex-wrap">
+              <button onclick="setWater(1.0)" class="chip text-xs" style="border-color:rgba(56,189,248,0.3);color:#38bdf8;">1L</button>
+              <button onclick="setWater(1.5)" class="chip text-xs" style="border-color:rgba(56,189,248,0.3);color:#38bdf8;">1.5L</button>
+              <button onclick="setWater(2.0)" class="chip text-xs" style="border-color:rgba(56,189,248,0.3);color:#38bdf8;">2L</button>
+              <button onclick="setWater(2.5)" class="chip text-xs" style="border-color:rgba(56,189,248,0.3);color:#38bdf8;">2.5L</button>
+              <button onclick="setWater(3.0)" class="chip text-xs" style="border-color:rgba(56,189,248,0.3);color:#38bdf8;">3L</button>
+            </div>
+          </div>
+
+          <!-- Waga + Pomiary -->
+          <div class="space-y-3">
+            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">⚖️ Pomiary (opcjonalne)</label>
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="text-xs text-gray-500 mb-1 block">Waga (kg)</label>
+                <input type="number" id="checkinWeight" placeholder="75.0" step="0.1" min="30" max="250"
+                  class="w-full text-sm text-center font-bold" style="color:var(--cyan);"
+                  oninput="updateCheckinWeight(this.value)">
+              </div>
+              <div>
+                <label class="text-xs text-gray-500 mb-1 block">Pas (cm)</label>
+                <input type="number" id="checkinWaist" placeholder="80" step="0.5" min="40" max="200"
+                  class="w-full text-sm text-center">
+              </div>
+              <div>
+                <label class="text-xs text-gray-500 mb-1 block">Klatka (cm)</label>
+                <input type="number" id="checkinChest" placeholder="100" step="0.5" min="50" max="200"
+                  class="w-full text-sm text-center">
+              </div>
+            </div>
+            <!-- Zdjęcie sylwetki -->
+            <div>
+              <label class="text-xs text-gray-500 mb-1 block">📸 Zdjęcie sylwetki</label>
+              <div class="flex items-center gap-2">
+                <input type="text" id="checkinPhoto" placeholder="np. /zdjecia/tydzien-1-front.jpg"
+                  class="flex-1 text-xs" style="color:var(--muted);">
+                <span id="photoPreviewIcon" class="text-lg hidden">🖼️</span>
+              </div>
+              <p class="text-xs mt-1" style="color:var(--muted);">Podaj ścieżkę lub nazwę pliku dla własnej dokumentacji</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Divider -->
+        <div style="height:1px;background:var(--border);"></div>
+
+        <!-- Autoregulacja hint -->
+        <div id="checkinHint" class="hidden rounded-xl p-3 text-sm font-medium"
+          style="background:rgba(251,146,60,0.08);border:1px solid rgba(251,146,60,0.25);color:#fb923c;">
+        </div>
+
+        <!-- Save button -->
+        <div class="flex items-center justify-between flex-wrap gap-3">
+          <p class="text-xs" style="color:var(--muted);">Check-in zapisuje się raz dziennie — kolejne wpisy nadpisują dzisiejsze dane.</p>
+          <button onclick="submitCheckin()"
+            class="btn-neon px-7 py-3 rounded-2xl font-bold text-sm flex items-center gap-2">
+            <span>✅</span> Zapisz Check-in
+          </button>
+        </div>
+        <div id="checkinFeedback" class="hidden text-sm font-semibold text-center py-2 rounded-xl"
+          style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.3);color:#34d399;"></div>
+      </div>
     </section>
 
     <!-- ====== TAB: PLAN ====== -->
@@ -1078,6 +1226,51 @@
           </div>
         </div>
       </div>
+
+      <!-- ── Body Measurements Chart ── -->
+      <div class="glass p-5 rounded-2xl">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">📐 Obwody ciała</h2>
+            <p class="text-xs mt-0.5" style="color:var(--muted);">Pas i klatka piersiowa (cm)</p>
+          </div>
+          <div class="flex items-center gap-3 text-xs" style="color:var(--muted);">
+            <span class="flex items-center gap-1.5"><span style="display:inline-block;width:14px;height:2px;background:#00e5ff;border-radius:2px;"></span>Pas</span>
+            <span class="flex items-center gap-1.5"><span style="display:inline-block;width:14px;height:2px;background:#a78bfa;border-radius:2px;"></span>Klatka</span>
+          </div>
+        </div>
+        <div id="measurementsChartWrap" style="position:relative;">
+          <canvas id="measurementsChart" style="max-height:220px;width:100%;"></canvas>
+          <div id="measurementsChartEmpty" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
+            <div style="font-size:2rem;">📏</div>
+            <p class="text-xs font-semibold text-white text-center" style="font-family:'Syne',sans-serif;">Brak pomiarów</p>
+            <p class="text-xs text-center" style="color:var(--muted);">Uzupełnij obwody w Check-inie</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Wellness Chart (Sen / Energia / Stres) ── -->
+      <div class="glass p-5 rounded-2xl">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">🧠 Wellness — Sen · Energia · Stres</h2>
+            <p class="text-xs mt-0.5" style="color:var(--muted);">Skala 1–10 z dziennych check-inów</p>
+          </div>
+        </div>
+        <canvas id="wellnessChart" style="max-height:200px;width:100%;"></canvas>
+      </div>
+
+      <!-- ── Activity Heatmap ── -->
+      <div class="glass p-5 rounded-2xl">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">📅 Heatmapa aktywności</h2>
+            <p class="text-xs mt-0.5" style="color:var(--muted);">Dni z pełną realizacją planu — ostatnie 365 dni</p>
+          </div>
+        </div>
+        <div id="activityHeatmap" style="min-height:80px;"></div>
+      </div>
+
 
     </section>
 
@@ -2130,7 +2323,7 @@ function showTab(tabId) {
   }
   if (tabId==='profile') renderProfileTabs();
   if (tabId==='home') updateDashboard();
-  if (tabId==='my-day') { loadTodayPlanChecklist(); renderExtraItems(); }
+  if (tabId==='my-day') { loadTodayPlanChecklist(); renderExtraItems(); initCheckinSliders(); }
   if (tabId==='sport') {
     renderSportSelector();
     renderSportDrills();
@@ -3231,6 +3424,171 @@ async function sendAIMessage() {
 function escapeHTML(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+
+// ========== CHECK-IN v2 — Water, Sliders, Submit ==========
+let _waterValue = 0;
+const _checkinSliders = { sleep: 7, energy: 7, stress: 5 };
+
+const _sliderDescriptions = {
+  sleep: ['Bezsenna noc 😓','Bardzo słaby sen','Słaby sen','Poniżej średniej','Przeciętnie','W porządku','Dobry sen','Bardzo dobry','Świetny sen','Idealny sen 🌟'],
+  energy: ['Totalnie bez siły 💀','Bardzo mało energii','Zmęczony','Nieco zmęczony','Normalnie','Całkiem dobrze','Energiczny','Bardzo energiczny','Pełen mocy','Absolutnie naładowany ⚡'],
+  stress: ['Pełny spokój 🧘','Minimalny stres','Lekki stres','Trochę zdenerwowany','Umiarkowanie','Dość stresująco','Wysoki stres','Bardzo stresująco','Ekstremalny stres','Paraliżujący stres 🔴'],
+};
+
+function updateCheckinSlider(type, val) {
+  const v = parseInt(val);
+  _checkinSliders[type] = v;
+  const ids = { sleep: ['sleepVal','sleepDesc'], energy: ['energyVal','energyDesc'], stress: ['stressVal','stressDesc'] };
+  const [valId, descId] = ids[type];
+  const valEl = document.getElementById(valId);
+  const descEl = document.getElementById(descId);
+  if (valEl) valEl.textContent = v;
+  if (descEl) descEl.textContent = _sliderDescriptions[type][v-1] || '';
+  // Autoregulacja hint
+  _updateCheckinHint();
+}
+
+function _updateCheckinHint() {
+  const hint = document.getElementById('checkinHint');
+  if (!hint) return;
+  const msgs = [];
+  if (_checkinSliders.sleep <= 4) msgs.push('😴 Słaba jakość snu — rozważ lżejszy trening lub regenerację.');
+  if (_checkinSliders.energy <= 3) msgs.push('⚡ Niska energia — skróć sesję lub wybierz ćwiczenia o mniejszej intensywności.');
+  if (_checkinSliders.stress >= 8) msgs.push('🧠 Wysoki stres — kortyzol hamuje regenerację. Priorytet: sen i aktywna regeneracja.');
+  if (msgs.length) {
+    hint.innerHTML = '⚠️ <strong>Autoregulacja:</strong> ' + msgs.join(' ');
+    hint.classList.remove('hidden');
+  } else {
+    hint.classList.add('hidden');
+  }
+}
+
+function adjustWater(delta) {
+  _waterValue = Math.max(0, Math.round((_waterValue + delta) * 4) / 4);
+  _renderWater();
+}
+
+function setWater(val) {
+  _waterValue = parseFloat(val);
+  _renderWater();
+}
+
+function _renderWater() {
+  const el = document.getElementById('waterVal');
+  const bar = document.getElementById('waterBar');
+  if (el) el.textContent = _waterValue.toFixed(1);
+  if (bar) bar.style.width = Math.min(100, (_waterValue / 2.5) * 100) + '%';
+}
+
+async function submitCheckin() {
+  const profile = getCurrentProfile();
+  const identityId = state.identityId;
+  const feedback = document.getElementById('checkinFeedback');
+
+  // Build payload from current UI state
+  const payload = {
+    food: '',
+    workout: '',
+    mood: document.getElementById('checkinStress') ? 'Stres:' + _checkinSliders.stress : '',
+    weight: parseFloat(document.getElementById('checkinWeight')?.value) || null,
+    sleep_quality: _checkinSliders.sleep,
+    energy_level: _checkinSliders.energy,
+    stress_level: _checkinSliders.stress,
+    water_liters: _waterValue > 0 ? _waterValue : null,
+    waist_cm: parseFloat(document.getElementById('checkinWaist')?.value) || null,
+    chest_cm: parseFloat(document.getElementById('checkinChest')?.value) || null,
+    photo_path: document.getElementById('checkinPhoto')?.value?.trim() || null,
+  };
+
+  // Also collect today checklist data if available
+  const p = getCurrentProfile();
+  const todayIdx = (new Date().getDay() + 6) % 7;
+  const day = state.days[todayIdx];
+  const k = p.id + '_' + day;
+  const checked = state.dayChecked[k] || {};
+  const meals = (p.dietPlan[day] || []).filter(m => !m.hidden);
+  const exercises = (p.trainingPlan[day] || []).filter(e => !e.hidden).slice(0, state.exerciseCount);
+  const doneMeals = meals.filter((m,i) => checked['meal_'+i]).map(m => m.name).join(', ');
+  const doneEx = exercises.filter((e,i) => checked['ex_'+i]).map(e => e.name).join(', ');
+  if (doneMeals) payload.food = doneMeals;
+  if (doneEx) payload.workout = doneEx;
+  payload.mood = `Sen:${_checkinSliders.sleep} Energia:${_checkinSliders.energy} Stres:${_checkinSliders.stress}`;
+
+  // Save locally too for offline mode
+  if (p) {
+    if (!p.checkinHistory) p.checkinHistory = {};
+    const today = new Date().toISOString().slice(0,10);
+    p.checkinHistory[today] = payload;
+    saveState();
+  }
+
+  // Try API if online
+  if (identityId && window.API_BASE) {
+    try {
+      const r = await fetch(window.API_BASE + '/app/checkin/' + identityId, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload),
+      });
+      if (r.ok) {
+        const data = await r.json();
+        if (feedback) {
+          feedback.textContent = '✅ Check-in zapisany! Streak: ' + (data.streak_days || 1) + ' dni 🔥';
+          feedback.classList.remove('hidden');
+          setTimeout(() => feedback.classList.add('hidden'), 4000);
+        }
+        return;
+      }
+    } catch(e) { console.warn('API offline, saved locally', e); }
+  }
+  // Offline success
+  if (feedback) {
+    feedback.textContent = '✅ Check-in zapisany lokalnie!';
+    feedback.classList.remove('hidden');
+    setTimeout(() => feedback.classList.add('hidden'), 3500);
+  }
+  // Auto-refresh Postępy if visible
+  if (document.getElementById('tab-postepy') && !document.getElementById('tab-postepy').classList.contains('hidden')) {
+    initCharts();
+  }
+}
+
+// Initialize slider display on tab load
+function initCheckinSliders() {
+  ['sleep','energy','stress'].forEach(type => {
+    const slider = document.getElementById('checkin' + type.charAt(0).toUpperCase() + type.slice(1));
+    if (slider) updateCheckinSlider(type, slider.value);
+  });
+  _renderWater();
+  // Load today's saved checkin if exists
+  const p = getCurrentProfile();
+  if (p && p.checkinHistory) {
+    const today = new Date().toISOString().slice(0,10);
+    const saved = p.checkinHistory[today];
+    if (saved) {
+      if (saved.sleep_quality) {
+        _checkinSliders.sleep = saved.sleep_quality;
+        const sl = document.getElementById('checkinSleep');
+        if (sl) { sl.value = saved.sleep_quality; updateCheckinSlider('sleep', saved.sleep_quality); }
+      }
+      if (saved.energy_level) {
+        _checkinSliders.energy = saved.energy_level;
+        const el2 = document.getElementById('checkinEnergy');
+        if (el2) { el2.value = saved.energy_level; updateCheckinSlider('energy', saved.energy_level); }
+      }
+      if (saved.stress_level) {
+        _checkinSliders.stress = saved.stress_level;
+        const stl = document.getElementById('checkinStress');
+        if (stl) { stl.value = saved.stress_level; updateCheckinSlider('stress', saved.stress_level); }
+      }
+      if (saved.water_liters) { _waterValue = saved.water_liters; _renderWater(); }
+      if (saved.weight) { const wInput = document.getElementById('checkinWeight'); if (wInput) wInput.value = saved.weight; }
+    }
+  }
+}
+
+// ========== END CHECK-IN v2 ==========
 
 // ========== SPORT MODULE ==========
 
@@ -4887,6 +5245,237 @@ function renderCharts(data, days) {
     });
   }
 }
+
+
+// ── Measurements chart ─────────────────────────────────────────────────────
+let _measurementsChart = null;
+
+function renderMeasurementsChart(data, days) {
+  const entries = filterByDays(data.measurement_entries || [], days);
+  const canvas = document.getElementById('measurementsChart');
+  const empty = document.getElementById('measurementsChartEmpty');
+  const waistEntries = entries.filter(e => e.waist != null);
+  const chestEntries = entries.filter(e => e.chest != null);
+
+  if (!waistEntries.length && !chestEntries.length) {
+    if (empty) { empty.classList.remove('hidden'); empty.style.display = 'flex'; }
+    if (canvas) canvas.style.opacity = '0';
+    return;
+  }
+  if (empty) { empty.classList.add('hidden'); empty.style.display = 'none'; }
+  if (canvas) canvas.style.opacity = '1';
+
+  // Merge dates
+  const allDates = [...new Set([...waistEntries.map(e=>e.date), ...chestEntries.map(e=>e.date)])].sort();
+  const labels = allDates.map(d => new Date(d).toLocaleDateString('pl-PL',{day:'numeric',month:'short'}));
+
+  const waistData = allDates.map(d => { const e = waistEntries.find(x=>x.date===d); return e ? e.waist : null; });
+  const chestData = allDates.map(d => { const e = chestEntries.find(x=>x.date===d); return e ? e.chest : null; });
+
+  if (_measurementsChart) { _measurementsChart.destroy(); _measurementsChart = null; }
+  const ctx = canvas.getContext('2d');
+  _measurementsChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Pas (cm)',
+          data: waistData,
+          borderColor: '#00e5ff',
+          backgroundColor: 'rgba(0,229,255,0.08)',
+          borderWidth: 2,
+          pointRadius: 4,
+          pointBackgroundColor: '#00e5ff',
+          tension: 0.4,
+          fill: true,
+          spanGaps: true,
+        },
+        {
+          label: 'Klatka (cm)',
+          data: chestData,
+          borderColor: '#a78bfa',
+          backgroundColor: 'rgba(167,139,250,0.08)',
+          borderWidth: 2,
+          pointRadius: 4,
+          pointBackgroundColor: '#a78bfa',
+          tension: 0.4,
+          fill: true,
+          spanGaps: true,
+        },
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: window.innerWidth < 640 ? 1.6 : 2.8,
+      animation: { duration: 600 },
+      plugins: {
+        legend: {
+          display: true,
+          labels: { color: '#64748b', font: { family: 'Plus Jakarta Sans', size: 11 }, boxWidth: 14 }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(10,11,16,0.95)',
+          borderColor: 'rgba(0,229,255,0.2)',
+          borderWidth: 1,
+          callbacks: { label: ctx => ' ' + ctx.parsed.y + ' cm' }
+        }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#64748b', font: { size: 10 }, maxTicksLimit: 8 }, border: { display: false } },
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#64748b', font: { size: 10 }, callback: v => v + ' cm' }, border: { display: false } }
+      }
+    }
+  });
+}
+
+// ── Wellness (sen/energia/stres) mini-chart ─────────────────────────────────
+let _wellnessChart = null;
+
+function renderWellnessChart(data, days) {
+  const entries = filterByDays(data.measurement_entries || [], days).filter(e => e.sleep || e.energy || e.stress);
+  const canvas = document.getElementById('wellnessChart');
+  if (!canvas || !entries.length) return;
+
+  const labels = entries.map(e => new Date(e.date).toLocaleDateString('pl-PL',{day:'numeric',month:'short'}));
+  if (_wellnessChart) { _wellnessChart.destroy(); _wellnessChart = null; }
+  const ctx = canvas.getContext('2d');
+  _wellnessChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Sen', data: entries.map(e=>e.sleep||null), borderColor: '#38bdf8', pointRadius: 3, borderWidth: 2, tension: 0.4, spanGaps: true, fill: false },
+        { label: 'Energia', data: entries.map(e=>e.energy||null), borderColor: '#a78bfa', pointRadius: 3, borderWidth: 2, tension: 0.4, spanGaps: true, fill: false },
+        { label: 'Stres', data: entries.map(e=>e.stress||null), borderColor: '#fb923c', pointRadius: 3, borderWidth: 2, tension: 0.4, spanGaps: true, fill: false },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      aspectRatio: window.innerWidth < 640 ? 1.8 : 3,
+      animation: { duration: 500 },
+      plugins: {
+        legend: { display: true, labels: { color: '#64748b', font: { size: 11 }, boxWidth: 12 } },
+        tooltip: { backgroundColor: 'rgba(10,11,16,0.9)', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1 }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b', font: { size: 10 }, maxTicksLimit: 8 }, border: { display: false } },
+        y: { min: 0, max: 10, grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b', font: { size: 10 }, stepSize: 2 }, border: { display: false } }
+      }
+    }
+  });
+}
+
+// ── Activity heatmap (GitHub-style) ───────────────────────────────────────
+function renderActivityHeatmap(data) {
+  const container = document.getElementById('activityHeatmap');
+  if (!container) return;
+
+  const activitySet = new Set(data.activity_days || []);
+  const today = new Date();
+  const cells = [];
+  for (let i = 364; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    cells.push(d.toISOString().slice(0, 10));
+  }
+
+  // Build 7-row grid (weeks)
+  const startDow = new Date(cells[0]).getDay(); // 0=Sun
+  const padded = Array(startDow).fill(null).concat(cells);
+  const weeks = [];
+  for (let i = 0; i < padded.length; i += 7) weeks.push(padded.slice(i, i + 7));
+
+  const monthLabels = [];
+  let lastMonth = -1;
+  weeks.forEach((week, wi) => {
+    week.forEach(d => {
+      if (!d) return;
+      const m = new Date(d).getMonth();
+      if (m !== lastMonth) { monthLabels.push({ wi, label: new Date(d).toLocaleDateString('pl-PL',{month:'short'}) }); lastMonth = m; }
+    });
+  });
+
+  let html = '<div style="overflow-x:auto;padding-bottom:4px;">';
+  html += '<div style="display:inline-flex;gap:3px;flex-direction:column;">';
+  // Month labels row
+  html += '<div style="display:flex;gap:3px;margin-bottom:2px;height:14px;">';
+  let lastWi = -3;
+  weeks.forEach((_, wi) => {
+    const ml = monthLabels.find(m => m.wi === wi);
+    if (ml) {
+      html += '<div style="width:11px;font-size:9px;color:#4b5563;white-space:nowrap;position:relative;"><span style="position:absolute;left:0;">' + ml.label + '</span></div>';
+      lastWi = wi;
+    } else {
+      html += '<div style="width:11px;"></div>';
+    }
+  });
+  html += '</div>';
+  // Day rows (Mon-Sun)
+  for (let dow = 0; dow < 7; dow++) {
+    html += '<div style="display:flex;gap:3px;">';
+    weeks.forEach(week => {
+      const d = week[dow];
+      if (!d) {
+        html += '<div style="width:11px;height:11px;border-radius:2px;background:transparent;"></div>';
+      } else {
+        const active = activitySet.has(d);
+        const isToday = d === today.toISOString().slice(0,10);
+        const bg = active ? (isToday ? '#00e5ff' : 'rgba(0,229,255,0.55)') : 'rgba(255,255,255,0.05)';
+        const border = isToday ? '1px solid #00e5ff' : 'none';
+        html += '<div title="' + d + (active?' ✓':' —') + '" style="width:11px;height:11px;border-radius:2px;background:' + bg + ';border:' + border + ';cursor:default;transition:transform 0.1s;" onmouseover="this.style.transform='scale(1.4)'" onmouseout="this.style.transform='scale(1)'"></div>';
+      }
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+  // Legend
+  html += '<div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:10px;color:#4b5563;">';
+  html += '<span>Mniej</span>';
+  ['rgba(255,255,255,0.05)','rgba(0,229,255,0.2)','rgba(0,229,255,0.4)','rgba(0,229,255,0.7)','#00e5ff'].forEach(c => {
+    html += '<div style="width:11px;height:11px;border-radius:2px;background:'+c+';"></div>';
+  });
+  html += '<span>Więcej</span></div>';
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+// ── refreshStats public alias ──────────────────────────────────────────────
+async function refreshStats() { await initCharts(); }
+
+// Patch initCharts to also call new renderers
+const _origInitCharts = initCharts;
+initCharts = async function() {
+  const identityId = state.identityId || '';
+  if (!identityId) return;
+  try {
+    const r = await fetch(`${API_BASE}/app/stats/${identityId}?days=9999`);
+    if (!r.ok) return;
+    _statsData = await r.json();
+    renderCharts(_statsData, _statsRange);
+    renderKPI(_statsData);
+    renderMeasurementsChart(_statsData, _statsRange);
+    renderWellnessChart(_statsData, _statsRange);
+    renderActivityHeatmap(_statsData);
+  } catch(e) { console.warn('Stats fetch failed', e); }
+};
+
+// Also patch setStatsRange to call new renderers
+const _origSetStatsRange = setStatsRange;
+setStatsRange = function(days) {
+  _statsRange = days;
+  document.querySelectorAll('.range-btn').forEach(b => { b.style.background = ''; b.style.color = 'var(--muted)'; });
+  const activeId = days === 7 ? 'rangeBtn7' : days === 30 ? 'rangeBtn30' : 'rangeBtn0';
+  const ab = document.getElementById(activeId);
+  if (ab) { ab.style.background = 'rgba(0,229,255,0.15)'; ab.style.color = 'var(--cyan)'; }
+  if (_statsData) {
+    renderCharts(_statsData, days);
+    renderMeasurementsChart(_statsData, days);
+    renderWellnessChart(_statsData, days);
+  }
+};
+
 </script>
 
 <script>

@@ -155,6 +155,14 @@ class DailyLogDB(SQLModel, table=True):
     workout: str = ""
     mood: str = ""
     weight: Optional[float] = None
+    # ─── Extended check-in fields (v2) ────────────────────────────────────────
+    sleep_quality: Optional[int] = None         # 1-10
+    energy_level: Optional[int] = None          # 1-10
+    stress_level: Optional[int] = None          # 1-10
+    water_liters: Optional[float] = None        # litry wypitej wody
+    waist_cm: Optional[float] = None            # obwód pasa (cm)
+    chest_cm: Optional[float] = None            # obwód klatki (cm)
+    photo_path: Optional[str] = None            # ścieżka do zdjęcia sylwetki
     logged_at: str = Field(default_factory=lambda: datetime.now().isoformat())
 
     user: Optional[UserDB] = Relationship(back_populates="logs")
@@ -166,6 +174,13 @@ class DailyLogDB(SQLModel, table=True):
             "workout": self.workout,
             "mood": self.mood,
             "weight": self.weight,
+            "sleep_quality": self.sleep_quality,
+            "energy_level": self.energy_level,
+            "stress_level": self.stress_level,
+            "water_liters": self.water_liters,
+            "waist_cm": self.waist_cm,
+            "chest_cm": self.chest_cm,
+            "photo_path": self.photo_path,
             "logged_at": self.logged_at,
         }
 
@@ -405,6 +420,14 @@ class AppDailyCheckinRequest(BaseModel):
     workout: str = ""
     mood: str = ""
     weight: Optional[float] = None
+    # Extended check-in v2 fields
+    sleep_quality: Optional[int] = None
+    energy_level: Optional[int] = None
+    stress_level: Optional[int] = None
+    water_liters: Optional[float] = None
+    waist_cm: Optional[float] = None
+    chest_cm: Optional[float] = None
+    photo_path: Optional[str] = None
 
 
 class DiscordLinkRequest(BaseModel):
@@ -1496,6 +1519,13 @@ def add_log(user_id: str, log: DailyLog):
         entry = DailyLogDB(
             user_id=user.id, log_date=today,
             food=log.food, workout=log.workout, mood=log.mood, weight=log.weight,
+            sleep_quality=log.sleep_quality,
+            energy_level=log.energy_level,
+            stress_level=log.stress_level,
+            water_liters=log.water_liters,
+            waist_cm=log.waist_cm,
+            chest_cm=log.chest_cm,
+            photo_path=log.photo_path,
         )
         session.add(entry)
         if log.weight is not None:
@@ -2197,9 +2227,28 @@ def app_get_stats(identity_id: str, days: int = 30):
                 except (ValueError, OverflowError):
                     pass
 
+        # ── Body measurements trend ───────────────────────────────────────────
+        measurement_entries = [
+            {"date": l.log_date, "waist": l.waist_cm, "chest": l.chest_cm,
+             "sleep": l.sleep_quality, "energy": l.energy_level, "stress": l.stress_level,
+             "water": l.water_liters}
+            for l in all_logs
+            if any([l.waist_cm, l.chest_cm, l.sleep_quality, l.energy_level, l.water_liters])
+        ][-days:]
+
+        # ── Activity heatmap (last 365 days) ─────────────────────────────────
+        activity_days = set()
+        for l in all_logs:
+            if l.food or l.workout or l.weight or l.sleep_quality:
+                activity_days.add(l.log_date)
+        for r in ex_results:
+            activity_days.add(r.session_date)
+
         return {
             "weight_entries": weight_entries,
             "training_volume": training_volume,
+            "measurement_entries": measurement_entries,
+            "activity_days": sorted(activity_days),
             "diet_compliance_pct": diet_compliance_pct,
             "streak_days": streak_days,
             "target_weight": target_weight,
