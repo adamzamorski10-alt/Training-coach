@@ -21,7 +21,8 @@ import uuid as _uuid_mod
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional
 
-import anthropic
+import groq as _groq_module
+import google.generativeai as genai
 import jwt                          # PyJWT>=2.0
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Request, status
@@ -447,7 +448,9 @@ app.add_exception_handler(
     _rate_limit_exceeded_handler,   # returns 429 with Retry-After header
 )
 
-ai_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+# ── Klienty AI (Groq primary, Gemini fallback) ───────────────────────────────
+_groq_client:  Optional[_groq_module.Groq]  = None
+_gemini_ready: bool = False
 
 CORS_ORIGINS = [
     "http://localhost:3000",
@@ -472,26 +475,40 @@ app.add_middleware(
 
 @app.on_event("startup")
 def on_startup():
-    # ── 1. Validate ANTHROPIC_API_KEY presence ────────────────────────────────
-    _api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
-    if not _api_key:
-        raise RuntimeError(
-            "\n\n"
-            "══════════════════════════════════════════════════════\n"
-            "  BŁĄD KRYTYCZNY: brak zmiennej ANTHROPIC_API_KEY\n"
-            "  Ustaw ją w pliku .env lub jako zmienną środowiskową:\n"
-            "    ANTHROPIC_API_KEY=sk-ant-...\n"
-            "  Bez tego klucza endpointy /ai/* nie będą działać.\n"
-            "══════════════════════════════════════════════════════\n"
-        )
-    if not _api_key.startswith("sk-ant-"):
-        # Warn but don't block — key format may change; let Anthropic reject it.
+    global _groq_client, _gemini_ready
+
+    # ── 1. Inicjalizacja Groq ─────────────────────────────────────────────────
+    _groq_key = os.getenv("GROQ_API_KEY", "").strip()
+    if _groq_key:
+        _groq_client = _groq_module.Groq(api_key=_groq_key)
+        print("[FitAI] ✅ Groq: klient zainicjalizowany (primary AI).")
+    else:
         print(
-            "[FitAI] OSTRZEŻENIE: ANTHROPIC_API_KEY nie zaczyna się od 'sk-ant-'. "
-            "Upewnij się, że klucz jest poprawny."
+            "[FitAI] ⚠️  GROQ_API_KEY nie jest ustawiony. "
+            "Endpointy AI będą używać wyłącznie Gemini (fallback). "
+            "Dodaj GROQ_API_KEY do pliku .env, aby włączyć primary AI."
         )
 
-    # ── 2. Database bootstrap ─────────────────────────────────────────────────
+    # ── 2. Inicjalizacja Google Gemini ────────────────────────────────────────
+    _gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if _gemini_key:
+        genai.configure(api_key=_gemini_key)
+        _gemini_ready = True
+        print("[FitAI] ✅ Gemini: klient zainicjalizowany (fallback AI).")
+    else:
+        print(
+            "[FitAI] ⚠️  GEMINI_API_KEY nie jest ustawiony. "
+            "Fallback AI jest wyłączony. "
+            "Dodaj GEMINI_API_KEY do pliku .env, aby aktywować fallback."
+        )
+
+    if not _groq_key and not _gemini_key:
+        print(
+            "[FitAI] ❌ ŻADEN klucz AI nie jest ustawiony (GROQ_API_KEY, GEMINI_API_KEY). "
+            "Endpointy /ai/* i /app/plan/generate zwrócą komunikaty zastępcze."
+        )
+
+    # ── 3. Database bootstrap ─────────────────────────────────────────────────
     create_db_and_tables()
     _migrate_json_to_sqlite()
 
@@ -1790,25 +1807,18 @@ def _build_weekly_plan(user: UserDB) -> dict:
 
 
 
-# ─── AI helper ────────────────────────────────────────────────────────────────
+# ─── AI helper — Groq (primary) + Gemini (fallback) ──────────────────────────
 
-_AI_UNAVAILABLE_MSG = "Asystent AI jest chwilowo niedostępny. Spróbuj ponownie za chwilę."
-
-# Sentinel used to distinguish "AI failed" from a real empty response,
-# so callers can decide whether to raise HTTP 503 or return a fallback.
+# Sentinel: subklasa str — caller może sprawdzić isinstance(result, _AIError)
+# żeby zdecydować czy podnieść HTTP 503, zamiast traktować to jako pusty tekst.
 class _AIError(str):
-    """Subclass of str that signals an AI backend failure to callers."""
+    """Oznacza odpowiedź zwróconą przez fallback lokalny, nie przez AI."""
     pass
 
 
 def _fallback_response(error_kind: str, system_hint: str) -> str:
-    """
-    Returns a contextual Polish fallback when the AI API is unavailable.
-    `system_hint` is the first 80 chars of the system prompt so we can
-    pick the most relevant canned response.
-    """
+    """Kontekstowy komunikat zastępczy po polsku gdy oba API są niedostępne."""
     hint = system_hint.lower()
-
     if "dietet" in hint or "diet" in hint or "posiłk" in hint or "meal" in hint:
         return (
             "⚠️ Asystent AI jest chwilowo niedostępny.\n\n"
@@ -1818,7 +1828,6 @@ def _fallback_response(error_kind: str, system_hint: str) -> str:
             "• Pij co najmniej 2 l wody dziennie.\n"
             "• Spróbuj ponownie za kilka minut — spersonalizowany plan będzie dostępny."
         )
-
     if "trener" in hint or "workout" in hint or "trening" in hint or "ćwiczeni" in hint:
         return (
             "⚠️ Asystent AI jest chwilowo niedostępny.\n\n"
@@ -1828,14 +1837,12 @@ def _fallback_response(error_kind: str, system_hint: str) -> str:
             "• Pamiętaj o rozgrzewce (5–10 min) i rozciąganiu po treningu.\n"
             "• Spróbuj ponownie za kilka minut — szczegółowy plan wróci wkrótce."
         )
-
     if "analiz" in hint or "raport" in hint or "log" in hint:
         return (
             "⚠️ Asystent AI jest chwilowo niedostępny.\n\n"
             "**Wskazówka:** Twój dziennik został zapisany. Analiza będzie dostępna, "
             "gdy połączenie z AI zostanie przywrócone. Spróbuj ponownie za kilka minut."
         )
-
     if "tygodniow" in hint or "weekly" in hint or "podsumow" in hint:
         return (
             "⚠️ Asystent AI jest chwilowo niedostępny.\n\n"
@@ -1843,7 +1850,6 @@ def _fallback_response(error_kind: str, system_hint: str) -> str:
             "i wolumenu treningowego za ostatnie tygodnie. Podsumowanie AI będzie "
             "dostępne po przywróceniu połączenia."
         )
-
     if "przepis" in hint or "lodówk" in hint or "fridge" in hint or "chef" in hint:
         return (
             "⚠️ Asystent AI jest chwilowo niedostępny.\n\n"
@@ -1851,8 +1857,6 @@ def _fallback_response(error_kind: str, system_hint: str) -> str:
             "z warzywami i źródłem węglowodanów (ryż, makaron, ziemniaki). "
             "Dopraw oliwą, czosnkiem i ulubionymi ziołami. Spróbuj ponownie wkrótce."
         )
-
-    # Generic fallback
     return (
         f"⚠️ Asystent AI jest chwilowo niedostępny ({error_kind}).\n\n"
         "Spróbuj ponownie za kilka minut. Jeśli problem się powtarza, "
@@ -1860,49 +1864,95 @@ def _fallback_response(error_kind: str, system_hint: str) -> str:
     )
 
 
-def ask_claude(system: str, user_msg: str, max_tokens: int = 800) -> str:
+def _call_groq(system: str, user_msg: str, max_tokens: int) -> str:
     """
-    Calls the Anthropic API and returns the response text.
+    Wywołuje Groq API (model llama-3-70b-versatile).
+    Rzuca wyjątek przy każdym błędzie — caller decyduje o fallbacku.
+    """
+    if _groq_client is None:
+        raise RuntimeError("Groq client nie jest zainicjalizowany (brak GROQ_API_KEY)")
 
-    On failure returns a _AIError (subclass of str) with a contextual Polish
-    fallback message — never an empty string.  Callers that need to detect
-    failures can do: `if isinstance(result, _AIError): raise HTTP 503`.
+    completion = _groq_client.chat.completions.create(
+        model="llama3-70b-8192",      # aktualny identyfikator modelu w Groq API
+        max_tokens=max_tokens,
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user",   "content": user_msg},
+        ],
+    )
+    return completion.choices[0].message.content
+
+
+def _call_gemini(system: str, user_msg: str, max_tokens: int) -> str:
+    """
+    Wywołuje Google Gemini API (model gemini-1.5-flash).
+    Rzuca wyjątek przy każdym błędzie.
+    """
+    if not _gemini_ready:
+        raise RuntimeError("Gemini client nie jest zainicjalizowany (brak GEMINI_API_KEY)")
+
+    model = genai.GenerativeModel(
+        model_name="gemini-1.5-flash",
+        system_instruction=system,
+        generation_config=genai.GenerationConfig(max_output_tokens=max_tokens),
+    )
+    response = model.generate_content(user_msg)
+    return response.text
+
+
+def ask_ai(system: str, user_msg: str, max_tokens: int = 800) -> str:
+    """
+    Główna funkcja AI z architekturą Groq → Gemini fallback.
+
+    Sekwencja:
+      1. Próbuje Groq (llama3-70b-8192) — szybki, darmowy tier.
+      2. Jeśli Groq zwróci błąd (limit zapytań, brak klucza, błąd sieci)
+         → automatycznie przechodzi na Gemini (gemini-1.5-flash).
+      3. Jeśli oba zawiodą → zwraca _AIError z kontekstowym komunikatem PL.
+
+    Callerzy wykrywający błąd AI:
+        result = ask_ai(system, msg)
+        if isinstance(result, _AIError):
+            raise HTTPException(status_code=503, detail=str(result))
     """
     system_hint = system[:80]
-    try:
-        message = ai_client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=max_tokens,
-            system=system,
-            messages=[{"role": "user", "content": user_msg}],
-        )
-        return message.content[0].text
 
-    except anthropic.AuthenticationError as e:
-        print(f"[FitAI] Błąd API: nieprawidłowy klucz ANTHROPIC_API_KEY. {e}")
-        return _AIError(_fallback_response("błąd autoryzacji", system_hint))
+    # ── Krok 1: Groq (primary) ────────────────────────────────────────────────
+    if _groq_client is not None:
+        try:
+            text = _call_groq(system, user_msg, max_tokens)
+            print("[FitAI] AI: odpowiedź z Groq ✅")
+            return text
+        except _groq_module.RateLimitError as e:
+            print(f"[FitAI] Groq: limit zapytań — przełączam na Gemini. ({e})")
+        except _groq_module.AuthenticationError as e:
+            print(f"[FitAI] Groq: błąd autoryzacji (GROQ_API_KEY?) — przełączam na Gemini. ({e})")
+        except _groq_module.APIConnectionError as e:
+            print(f"[FitAI] Groq: brak połączenia — przełączam na Gemini. ({e})")
+        except _groq_module.APIStatusError as e:
+            print(f"[FitAI] Groq: HTTP {e.status_code} — przełączam na Gemini. ({e})")
+        except Exception as e:
+            print(f"[FitAI] Groq: nieoczekiwany błąd ({type(e).__name__}: {e}) — przełączam na Gemini.")
+    else:
+        print("[FitAI] AI: Groq niedostępny (brak klucza) — próbuję Gemini.")
 
-    except anthropic.PermissionDeniedError as e:
-        # Typically: account out of credits or suspended
-        print(f"[FitAI] Błąd API: brak środków lub konto zablokowane. {e}")
-        return _AIError(_fallback_response("brak środków na koncie AI", system_hint))
+    # ── Krok 2: Gemini (fallback) ─────────────────────────────────────────────
+    if _gemini_ready:
+        try:
+            text = _call_gemini(system, user_msg, max_tokens)
+            print("[FitAI] AI: odpowiedź z Gemini (fallback) ✅")
+            return text
+        except Exception as e:
+            print(f"[FitAI] Gemini: błąd ({type(e).__name__}: {e}) — serwuję odpowiedź lokalną.")
+    else:
+        print("[FitAI] AI: Gemini niedostępny (brak klucza) — serwuję odpowiedź lokalną.")
 
-    except anthropic.RateLimitError as e:
-        # Anthropic-side rate limit (different from our own user-level limit)
-        print(f"[FitAI] Błąd API: przekroczono limit zapytań po stronie Anthropic. {e}")
-        return _AIError(_fallback_response("chwilowe przeciążenie AI", system_hint))
+    # ── Krok 3: Lokalny fallback ──────────────────────────────────────────────
+    return _AIError(_fallback_response("oba dostawcy AI niedostępni", system_hint))
 
-    except anthropic.APIConnectionError as e:
-        print(f"[FitAI] Błąd API: brak połączenia z serwerem Anthropic. {e}")
-        return _AIError(_fallback_response("brak połączenia z AI", system_hint))
 
-    except anthropic.APIStatusError as e:
-        print(f"[FitAI] Błąd API: HTTP {e.status_code} — {e.message}")
-        return _AIError(_fallback_response(f"błąd HTTP {e.status_code}", system_hint))
-
-    except Exception as e:
-        print(f"[FitAI] Błąd API: nieoczekiwany wyjątek {type(e).__name__}: {e}")
-        return _AIError(_fallback_response("nieoczekiwany błąd", system_hint))
+# Alias wsteczny — wszystkie istniejące wywołania ask_claude() działają bez zmian
+ask_claude = ask_ai
 
 
 # ─── DB helpers ───────────────────────────────────────────────────────────────
