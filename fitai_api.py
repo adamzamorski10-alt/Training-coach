@@ -496,6 +496,9 @@ CORS_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
+    "http://localhost:5500",   # VS Code Live Server
+    "http://127.0.0.1:5500",
+    "null",                    # file:// origin (lokalne otwarcie index.html)
     "https://training-coach-app.netlify.app",
     "https://training-coach-api.onrender.com",
 ]
@@ -3135,6 +3138,7 @@ class FridgeChefRequest(BaseModel):
     identity_id: str
     ingredients: list[str]                  # np. ["kurczak 300g", "brokuły", "jajka"]
     extra_context: Optional[str] = None     # np. "jestem po treningu siłowym"
+    strict_mode: bool = False               # True = używaj WYŁĄCZNIE podanych składników
 
 
 class MealPrepRequest(BaseModel):
@@ -3144,22 +3148,44 @@ class MealPrepRequest(BaseModel):
 
 # ── SYSTEM PROMPTS ─────────────────────────────────────────────────────────────
 
-_FRIDGE_SYSTEM = """\
+_FRIDGE_SYSTEM_BASE = """\
 Jesteś kulinarnym asystentem sportowym. Piszesz WYŁĄCZNIE po polsku.
 Zasady odpowiedzi:
-1. Zwróć dokładnie JEDEN przepis — najlepiej pasujący do celu i dostępnych składników.
-2. Format odpowiedzi (zachowaj nagłówki):
+1. Zwróć dokładnie 4 RÓŻNE dania.
+2. Format każdego dania (zachowaj nagłówki, powtórz dla każdego z 4 dań):
    ## 🍳 [Nazwa potrawy]
    **Czas przygotowania:** X min
    **Makroskładniki (porcja):** Kcal: X | Białko: Xg | Węgle: Xg | Tłuszcze: Xg
    ### Składniki
-   - [ilość] [produkt]  ← tylko to co ma użytkownik + max 2 łatwo dostępne brakujące
+   - [ilość] [produkt]
    ### Przygotowanie
    Numerowane kroki (max 6). Konkretne, bez lania wody.
    ### 💡 Wskazówka
    Jedno zdanie o modyfikacji pasującej do celu użytkownika.
-3. Nie pytaj o nic. Nie dodawaj komentarzy poza formatem. Nie proponuj alternatyw.
+3. Nie pytaj o nic. Nie dodawaj komentarzy poza formatem.
 """
+
+_FRIDGE_SYSTEM_STRICT = """\
+Jesteś kulinarnym asystentem sportowym. Piszesz WYŁĄCZNIE po polsku.
+Zasady odpowiedzi:
+1. Wygeneruj dokładnie 4 RÓŻNE dania używając WYŁĄCZNIE składników podanych przez użytkownika.
+   Nie możesz użyć ŻADNEGO składnika spoza listy — nawet soli, oliwy czy przypraw, jeśli nie są na liście.
+   Jeśli podanych składników jest za mało, by stworzyć 4 kompletne dania, zwróć TYLKO tekst: Error01
+2. Jeśli możesz stworzyć 4 dania — format każdego (powtórz 4x):
+   ## 🍳 [Nazwa potrawy]
+   **Czas przygotowania:** X min
+   **Makroskładniki (porcja):** Kcal: X | Białko: Xg | Węgle: Xg | Tłuszcze: Xg
+   ### Składniki
+   - [ilość] [produkt]  ← tylko z podanej listy
+   ### Przygotowanie
+   Numerowane kroki (max 6).
+   ### 💡 Wskazówka
+   Jedno zdanie.
+3. Nie pytaj o nic. Nie używaj składników spoza listy pod żadnym pozorem.
+"""
+
+# Keep alias for backward compat
+_FRIDGE_SYSTEM = _FRIDGE_SYSTEM_BASE
 
 _MEAL_PREP_SYSTEM = """\
 Jesteś ekspertem od meal-prep i optymalizacji żywieniowej dla sportowców. Piszesz WYŁĄCZNIE po polsku.
@@ -3213,6 +3239,17 @@ def app_fridge_chef(request: Request, req: FridgeChefRequest, user: UserDB = Dep
         avoid_str       = ", ".join(avoid_foods) if avoid_foods else "brak"
         preferred_str   = ", ".join(preferred)   if preferred   else "brak"
 
+        # Select system prompt based on strict_mode
+        system_prompt = _FRIDGE_SYSTEM_STRICT if req.strict_mode else _FRIDGE_SYSTEM_BASE
+
+        mode_instruction = (
+            "Używaj WYŁĄCZNIE podanych składników — żadnych dodatków spoza listy. "
+            "Jeśli nie można stworzyć 4 pełnych dań, zwróć TYLKO: Error01"
+            if req.strict_mode else
+            "Generuj 4 dania na bazie tych składników. Dopuszczalne są standardowe dodatki "
+            "(sól, pieprz, oliwa, podstawowe przyprawy) spoza listy."
+        )
+
         user_msg = (
             f"Profil użytkownika:\n"
             f"  Imię: {user.name}\n"
@@ -3224,12 +3261,13 @@ def app_fridge_chef(request: Request, req: FridgeChefRequest, user: UserDB = Dep
             f"  Unikane produkty: {avoid_str}\n"
             f"  Preferowane smaki/produkty: {preferred_str}\n"
             f"  Kontuzje (unikaj ciężkostrawnych potraw): {user.injuries or 'brak'}\n\n"
-            f"Mam w lodówce: {ingredients_str}\n\n"
+            f"Składniki dostępne: {ingredients_str}\n\n"
             f"Kontekst dodatkowy: {req.extra_context or 'brak'}\n\n"
-            "Wygeneruj 1 przepis zgodnie z instrukcjami systemowymi."
+            f"Tryb: {mode_instruction}\n\n"
+            "Wygeneruj 4 przepisy zgodnie z instrukcjami systemowymi."
         )
 
-        recipe_text = ask_claude(_FRIDGE_SYSTEM, user_msg, max_tokens=900)
+        recipe_text = ask_claude(system_prompt, user_msg, max_tokens=2400)
 
         return {
             "recipe": recipe_text,
