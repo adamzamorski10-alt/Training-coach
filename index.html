@@ -668,35 +668,23 @@
         <!-- Row 2: Water + Weight + Measurements -->
         <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
 
-          <!-- Woda -->
-          <div>
-            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5 mb-3">💧 Wypita woda</label>
-            <div class="flex items-center gap-4">
-              <button onclick="adjustWater(-0.25)"
-                class="w-10 h-10 rounded-xl flex items-center justify-center text-xl font-bold transition-all"
-                style="background:rgba(255,255,255,0.06);border:1px solid var(--border);"
-                onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.06)'">−</button>
-              <div class="flex-1 text-center">
-                <span id="waterVal" class="text-3xl font-extrabold" style="font-family:'Syne',sans-serif;color:#38bdf8;">0.0</span>
-                <span class="text-sm ml-1" style="color:var(--muted);">L</span>
-                <div class="progress-bar mt-2" style="height:6px;background:rgba(56,189,248,0.1);">
-                  <div id="waterBar" class="progress-fill" style="width:0%;background:linear-gradient(90deg,#38bdf8,#0ea5e9);border-radius:4px;transition:width 0.4s;"></div>
-                </div>
-                <p class="text-xs mt-1" style="color:var(--muted);">cel: 2.5 L</p>
+          <!-- Woda — tylko podsumowanie z Smart Water Tracker (brak edycji tutaj) -->
+          <div class="glass rounded-2xl p-4 flex items-center gap-4" style="border-color:rgba(56,189,248,0.2);background:rgba(56,189,248,0.04);">
+            <span class="text-3xl flex-shrink-0">💧</span>
+            <div class="flex-1 min-w-0">
+              <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">Spożycie wody (dziś)</p>
+              <div class="flex items-baseline gap-1.5">
+                <span id="checkinWaterDisplay" class="text-xl font-extrabold" style="font-family:'Syne',sans-serif;color:#38bdf8;">0</span>
+                <span class="text-xs" style="color:var(--muted);">ml / <span id="checkinWaterGoal">2500</span> ml</span>
               </div>
-              <button onclick="adjustWater(0.25)"
-                class="w-10 h-10 rounded-xl flex items-center justify-center text-xl font-bold transition-all"
-                style="background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.25);color:#38bdf8;"
-                onmouseover="this.style.background='rgba(56,189,248,0.2)'" onmouseout="this.style.background='rgba(56,189,248,0.1)'">+</button>
+              <div class="progress-bar mt-1.5" style="height:4px;background:rgba(56,189,248,0.1);">
+                <div id="checkinWaterBar" class="progress-fill" style="width:0%;background:linear-gradient(90deg,#38bdf8,#7c3aed);border-radius:4px;transition:width 0.5s;"></div>
+              </div>
             </div>
-            <!-- Szybkie kroki wody -->
-            <div class="flex gap-2 mt-3 flex-wrap">
-              <button onclick="setWater(1.0)" class="chip text-xs" style="border-color:rgba(56,189,248,0.3);color:#38bdf8;">1L</button>
-              <button onclick="setWater(1.5)" class="chip text-xs" style="border-color:rgba(56,189,248,0.3);color:#38bdf8;">1.5L</button>
-              <button onclick="setWater(2.0)" class="chip text-xs" style="border-color:rgba(56,189,248,0.3);color:#38bdf8;">2L</button>
-              <button onclick="setWater(2.5)" class="chip text-xs" style="border-color:rgba(56,189,248,0.3);color:#38bdf8;">2.5L</button>
-              <button onclick="setWater(3.0)" class="chip text-xs" style="border-color:rgba(56,189,248,0.3);color:#38bdf8;">3L</button>
-            </div>
+            <button onclick="switchTab('mój dzień'); setTimeout(()=>document.getElementById('waterTrackerCard')?.scrollIntoView({behavior:'smooth'}),300)"
+                    class="btn-ghost flex-shrink-0 text-xs px-3 py-2 rounded-xl font-bold whitespace-nowrap">
+              + Dodaj
+            </button>
           </div>
 
           <!-- Waga + Pomiary -->
@@ -3442,10 +3430,15 @@ function updateDayProgress() {
   const day = state.days[state.currentDay];
   const k = _checkedKey(p.id, state.currentDay);
   const checked = state.dayChecked[k] || {};
-  const total = (p.dietPlan[day]||[]).length + (p.trainingPlan[day]||[]).length;
-  const done = Object.keys(checked).filter(k2=>checked[k2]).length;
+  const excl = p.exclusions || [];
+  // ── ZADANIE 4: Użyj przefiltrowanej listy (hidden items nie liczą się) ──────
+  const meals     = (p.dietPlan[day]    || []).filter(m => !m.hidden);
+  const exercises = (p.trainingPlan[day]|| []).filter(e => !e.hidden).slice(0, state.exerciseCount || 4);
+  const extras    = (state.extraItems && state.extraItems[p.id]) ? state.extraItems[p.id] : [];
+  const total = meals.length + exercises.length + extras.length;
+  const done  = Object.keys(checked).filter(k2 => checked[k2]).length;
   const el = document.getElementById('dayProgressLabel');
-  if (el) el.textContent = `${done} / ${total} ukończone`;
+  if (el) el.textContent = done + ' / ' + total + ' ukończone';
 }
 
 // ========== TODAY PLAN CHECKLIST ==========
@@ -4322,7 +4315,9 @@ async function submitCheckin() {
     sleep_quality: _checkinSliders.sleep,
     energy_level: _checkinSliders.energy,
     stress_level: _checkinSliders.stress,
-    water_liters: _waterValue > 0 ? _waterValue : null,
+    // Woda jest logowana osobno przez Smart Water Tracker (water.add → /app/water)
+    // Do check-inu przekazujemy aktualny stan z trackera (tylko do info, nie do zmiany)
+    water_liters: (typeof water !== 'undefined') ? Math.round(water.current / 1000 * 10000) / 10000 : null,
     waist_cm: parseFloat(document.getElementById('checkinWaist')?.value) || null,
     chest_cm: parseFloat(document.getElementById('checkinChest')?.value) || null,
     photo_path: document.getElementById('checkinPhoto')?.value?.trim() || null,
@@ -4362,25 +4357,69 @@ async function submitCheckin() {
       });
       if (r.ok) {
         const data = await r.json();
+        // ── ZADANIE 2: Odśwież dane po każdym check-inie ────────────────────
+        updateDashboard();
+        // Odśwież stats jeśli zakładka Postępy jest otwarta
+        if (document.getElementById('tab-postepy') && !document.getElementById('tab-postepy').classList.contains('hidden')) {
+          _statsData = null; // wymuś ponowne pobranie, nie tylko re-render
+          initCharts();
+        }
+        // ── Aktualizuj wskaźnik wody w check-inie ─────────────────────────
+        if (data.water_ml_today !== undefined) _syncCheckinWaterDisplay(data.water_ml_today);
+        // ── Aktualizuj XP jeśli jest w odpowiedzi ─────────────────────────
+        if (data.xp_earned) {
+          showToast('✅ Check-in zapisany! +' + data.xp_earned + ' XP 🔥 Streak: ' + (data.streak_days || 1) + ' dni', 'success');
+          _updateXpBar(data.total_xp);
+        } else {
+          showToast('✅ Check-in zapisany! Streak: ' + (data.streak_days || 1) + ' dni 🔥', 'success');
+        }
         if (feedback) {
-          feedback.textContent = '✅ Check-in zapisany! Streak: ' + (data.streak_days || 1) + ' dni 🔥';
+          feedback.textContent = '✅ Zapisano!';
           feedback.classList.remove('hidden');
-          setTimeout(() => feedback.classList.add('hidden'), 4000);
+          setTimeout(() => feedback.classList.add('hidden'), 3000);
         }
         return;
       }
-    } catch(e) { console.warn('API offline, saved locally', e); }
+    } catch(e) {
+      apiErrorToast(e, 'Check-in');
+      console.warn('API offline, saved locally', e);
+    }
   }
   // Offline success
+  updateDashboard();
   if (feedback) {
     feedback.textContent = '✅ Check-in zapisany lokalnie!';
     feedback.classList.remove('hidden');
     setTimeout(() => feedback.classList.add('hidden'), 3500);
   }
-  // Auto-refresh Postępy if visible
-  if (document.getElementById('tab-postepy') && !document.getElementById('tab-postepy').classList.contains('hidden')) {
-    initCharts();
-  }
+}
+
+/** Synchronizuje widok wody w check-inie z aktualną wartością z trackera/API */
+function _syncCheckinWaterDisplay(ml) {
+  const dispEl = document.getElementById('checkinWaterDisplay');
+  const barEl  = document.getElementById('checkinWaterBar');
+  const goalEl = document.getElementById('checkinWaterGoal');
+  const goalMl = (typeof water !== 'undefined' && water.state) ? water.state.goalMl : 2500;
+  if (goalEl) goalEl.textContent = goalMl;
+  if (dispEl) dispEl.textContent = ml >= 1000 ? (ml/1000).toFixed(1) + 'L' : ml;
+  if (barEl)  barEl.style.width = Math.min(Math.round(ml / goalMl * 100), 100) + '%';
+}
+
+/** Aktualizuje pasek XP na stronie bez przeładowania */
+function _updateXpBar(totalXp) {
+  const XP_PER_LEVEL = 100;
+  const level = Math.floor(totalXp / XP_PER_LEVEL) + 1;
+  const xpInLevel = totalXp % XP_PER_LEVEL;
+  const pct = xpInLevel;  // 0-100
+
+  const bar  = document.getElementById('xpProgressBar');
+  const lbl  = document.getElementById('xpLevelLabel');
+  const cur  = document.getElementById('xpCurrent');
+  const need = document.getElementById('xpNeeded');
+  if (bar)  { setTimeout(() => bar.style.width = pct + '%', 100); }
+  if (lbl)  lbl.textContent = 'Level ' + level;
+  if (cur)  cur.textContent = totalXp.toLocaleString() + ' XP';
+  if (need) need.textContent = 'jeszcze ' + (XP_PER_LEVEL - xpInLevel) + ' XP do lv' + (level + 1);
 }
 
 // Initialize slider display on tab load
@@ -4390,6 +4429,10 @@ function initCheckinSliders() {
     if (slider) updateCheckinSlider(type, slider.value);
   });
   _renderWater();
+  // Zsynchronizuj wyświetlanie wody z Smart Water Tracker
+  if (typeof water !== 'undefined' && water.state) {
+    _syncCheckinWaterDisplay(water.state.currentMl);
+  }
   // Load today's saved checkin if exists
   const p = getCurrentProfile();
   if (p && p.checkinHistory) {
@@ -6300,11 +6343,13 @@ function setStatsRange(days) {
   }
 }
 
+const _STATS_MIN_DAYS = 3;  // Minimum dni logowania dla sensownych wykresów (ZADANIE 5)
+
 async function initCharts() {
   const identityId = state.identityId || '';
   if (!identityId) {
     if (typeof renderActivityHeatmap === 'function') renderActivityHeatmap({ activity_days: [] });
-    // Show placeholder insights for local-only mode
+    _showStatsMinDaysHint(0);
     renderInsights([{icon:'📊',type:'info',text:'Zaloguj się lub podłącz backend, aby zobaczyć spersonalizowane wnioski AI.'}]);
     return;
   }
@@ -6315,16 +6360,86 @@ async function initCharts() {
     + '<span style="color:var(--muted);">Ładowanie wniosków AI…</span></div>';
   try {
     const r = await fetch(`${window.API_BASE || "http://localhost:8000"}/app/stats/${identityId}?days=9999`);
-    if (!r.ok) return;
+    if (!r.ok) {
+      apiErrorToast({ status: r.status }, 'Statystyki');
+      _showStatsMinDaysHint(0);
+      return;
+    }
     _statsData = await r.json();
+
+    // ── ZADANIE 5: Sprawdź czy użytkownik ma minimum _STATS_MIN_DAYS dni danych ──
+    const loggedDays = (_statsData.weight_entries || []).length
+      + (_statsData.training_volume || []).length;
+    const uniqueDays = new Set([
+      ...(_statsData.weight_entries || []).map(e => e.date),
+      ...(_statsData.training_volume || []).map(e => e.date),
+    ]).size;
+    _showStatsMinDaysHint(uniqueDays);
+
     renderCharts(_statsData, _statsRange);
     renderKPI(_statsData);
     if (typeof renderMeasurementsChart === 'function') renderMeasurementsChart(_statsData, _statsRange);
     if (typeof renderWellnessChart === 'function') renderWellnessChart(_statsData, _statsRange);
     if (typeof renderActivityHeatmap === 'function') renderActivityHeatmap(_statsData);
   } catch(e) {
-    console.warn('Stats fetch failed', e);
+    apiErrorToast(e, 'Ładowanie statystyk');
     if (typeof renderActivityHeatmap === 'function') renderActivityHeatmap({ activity_days: [] });
+    _showStatsMinDaysHint(0);
+  }
+}
+
+/**
+ * Wyświetla lub ukrywa baner informujący o minimalnej liczbie dni potrzebnych do wykresów.
+ * @param {number} daysLogged - liczba unikalnych dni z danymi
+ */
+function _showStatsMinDaysHint(daysLogged) {
+  // Znajdź lub utwórz banner
+  let banner = document.getElementById('statsMinDaysBanner');
+  if (!banner) {
+    const weightWrap = document.getElementById('weightChartWrap');
+    if (!weightWrap) return;
+    banner = document.createElement('div');
+    banner.id = 'statsMinDaysBanner';
+    banner.className = 'glass rounded-2xl p-5 flex items-start gap-4 mb-4';
+    banner.style.cssText = 'border-color:rgba(0,229,255,0.2);background:rgba(0,229,255,0.04);display:none;';
+    // Wstaw przed wykresem wagi
+    weightWrap.parentNode.insertBefore(banner, weightWrap);
+  }
+
+  if (daysLogged < _STATS_MIN_DAYS) {
+    const remaining = _STATS_MIN_DAYS - daysLogged;
+    banner.style.display = '';
+    banner.innerHTML = '';
+    const icon = document.createElement('span');
+    icon.textContent = '📈';
+    icon.style.cssText = 'font-size:2rem;flex-shrink:0;';
+    const text = document.createElement('div');
+    const title = document.createElement('p');
+    title.className = 'font-bold text-white text-sm mb-1';
+    title.style.fontFamily = "'Syne',sans-serif";
+    title.textContent = 'Wykresy pojawią się po ' + _STATS_MIN_DAYS + ' dniach logowania';
+    const desc = document.createElement('p');
+    desc.className = 'text-xs';
+    desc.style.color = 'var(--muted)';
+    desc.textContent = 'Zalogowano ' + daysLogged + ' z ' + _STATS_MIN_DAYS + ' wymaganych dni. '
+      + 'Pozostało: ' + remaining + (remaining === 1 ? ' dzień' : remaining < 5 ? ' dni' : ' dni') + '. '
+      + 'Rób dzienny check-in każdego dnia!';
+    // Progress dots
+    const dots = document.createElement('div');
+    dots.className = 'flex gap-2 mt-2';
+    for (let i = 0; i < _STATS_MIN_DAYS; i++) {
+      const dot = document.createElement('div');
+      dot.style.cssText = 'width:8px;height:8px;border-radius:50%;transition:background 0.3s;background:'
+        + (i < daysLogged ? '#00e5ff' : 'rgba(255,255,255,0.1)') + ';';
+      dots.appendChild(dot);
+    }
+    text.appendChild(title);
+    text.appendChild(desc);
+    text.appendChild(dots);
+    banner.appendChild(icon);
+    banner.appendChild(text);
+  } else {
+    banner.style.display = 'none';
   }
 }
 
@@ -6359,6 +6474,10 @@ function renderKPI(data) {
   // Streak
   const sEl = document.getElementById('kpiStreak');
   if (sEl) sEl.textContent = data.streak_days || 0;
+  // XP (ZADANIE 5 — aktualizuj pasek XP po załadowaniu statystyk)
+  if (data.xp && typeof _updateXpBar === 'function') {
+    _updateXpBar(data.xp.xp || 0);
+  }
   // Diet compliance ring
   const pct = data.diet_compliance_pct || 0;
   const ring = document.getElementById('dietComplianceRing');
@@ -7430,6 +7549,34 @@ const water = {
     this.current+=ml;
     this._render();
     this._toast('+'+ml+' ml');
+    // ── ZADANIE 2+3: Zsynchronizuj widok wody w check-inie i wyślij do API ──
+    if (typeof _syncCheckinWaterDisplay === 'function') {
+      _syncCheckinWaterDisplay(this.current);
+    }
+    this._syncWaterToApi(ml);
+  },
+
+  /** Wysyła inkrement wody do backendu POST /app/water */
+  async _syncWaterToApi(addedMl) {
+    const identityId = (typeof state !== 'undefined') ? state.identityId : null;
+    if (!identityId || !window.API_BASE) return;
+    try {
+      const r = await fetch(window.API_BASE + '/app/water', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ml: addedMl }),
+      });
+      if (r.ok) {
+        const data = await r.json();
+        // Aktualizuj XP jeśli serwer przyznał
+        if (data.xp_earned && typeof _updateXpBar === 'function') {
+          _updateXpBar(data.total_xp);
+          if (typeof showToast === 'function') showToast('+' + data.xp_earned + ' XP za nawodnienie! 💧', 'info', 2500);
+        }
+      }
+    } catch(e) {
+      console.warn('[FitAI Water] Sync offline — dane zapisane lokalnie', e);
+    }
   },
 
   addCustom() {

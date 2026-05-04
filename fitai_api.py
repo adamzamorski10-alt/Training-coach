@@ -19,7 +19,7 @@ import random
 import secrets
 import uuid as _uuid_mod
 from datetime import date, datetime, timedelta
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import groq as _groq_module
 import google.generativeai as genai
@@ -240,13 +240,25 @@ class UserDB(SQLModel, table=True):
     created_at: str = Field(default_factory=lambda: datetime.now().isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now().isoformat())
 
+    # ── Relacje ──────────────────────────────────────────────────────────────────
+    # Python 3.14: from __future__ import annotations zamienia WSZYSTKIE adnotacje
+    # na stringi. SQLAlchemy/SQLModel próbuje rozwiązać "list['DailyLogDB']" jako
+    # nazwę klasy → KeyError / InvalidRequestError.
+    #
+    # Rozwiązanie: back_populates i lazy przeniesione W CAŁOŚCI do sa_relationship_kwargs.
+    # SQLModel wtedy pomija ewaluację adnotacji przy budowie mappera i przekazuje
+    # argumenty bezpośrednio do sqlalchemy.orm.relationship().
     logs: list["DailyLogDB"] = Relationship(
-        back_populates="user",
-        sa_relationship_kwargs={"lazy": "select"},
+        sa_relationship_kwargs={
+            "back_populates": "user",
+            "lazy": "select",
+        }
     )
     exercise_results: list["ExerciseResultDB"] = Relationship(
-        back_populates="user",
-        sa_relationship_kwargs={"lazy": "select"},
+        sa_relationship_kwargs={
+            "back_populates": "user",
+            "lazy": "select",
+        }
     )
 
     # Helpers
@@ -326,8 +338,10 @@ class DailyLogDB(SQLModel, table=True):
     logged_at: str = Field(default_factory=lambda: datetime.now().isoformat())
 
     user: Optional["UserDB"] = Relationship(
-        back_populates="logs",
-        sa_relationship_kwargs={"lazy": "select"},
+        sa_relationship_kwargs={
+            "back_populates": "logs",
+            "lazy": "select",
+        }
     )
 
     def to_dict(self) -> dict:
@@ -361,8 +375,10 @@ class ExerciseResultDB(SQLModel, table=True):
     logged_at: str = Field(default_factory=lambda: datetime.now().isoformat())
 
     user: Optional["UserDB"] = Relationship(
-        back_populates="exercise_results",
-        sa_relationship_kwargs={"lazy": "select"},
+        sa_relationship_kwargs={
+            "back_populates": "exercise_results",
+            "lazy": "select",
+        }
     )
 
     def to_dict(self) -> dict:
@@ -1051,14 +1067,21 @@ def _suggest_drill_progression(
 
 # Progi XP dla kolejnych poziomów (index 0 = poziom 1 = 0 pkt)
 # Level N wymaga sumy: 0, 500, 1200, 2200, 3500, 5500, 8000, 11500, 16000, 22000 …
-_XP_THRESHOLDS = [0, 500, 1200, 2200, 3500, 5500, 8000, 11500, 16000, 22000, 30000]
+# Progi XP: każdy level wymaga 100 XP więcej niż poprzedni.
+# Poziom 1 = 0, Poziom 2 = 100, Poziom 3 = 200, ..., Poziom 20 = 1900
+# (zgodnie z wymogiem: 100 XP = Level Up)
+_XP_THRESHOLDS = [i * 100 for i in range(20)]  # [0, 100, 200, 300, ..., 1900]
 
 # XP per akcja
-_XP_CHECKIN = 20         # codzienne logowanie check-inu
-_XP_MEAL_LOGGED = 5      # zaznaczenie posiłku
-_XP_WEIGHT_LOGGED = 15   # wpis wagi
-_XP_WORKOUT_LOGGED = 30  # wpis treningu
-_XP_STREAK_BONUS = 10    # bonus za każdy dzień streaku (cumulatywnie)
+# ── Stałe XP (zgodne z wymaganiami projektu) ─────────────────────────────────
+# Progi specyfikowane przez produkt: 100 XP = awans o poziom (Level Up)
+# Stałe calibrowane tak, że aktywny użytkownik (3 akcje/dzień) awansuje co ~4-5 dni.
+_XP_CHECKIN        = 10   # codzienne logowanie check-inu
+_XP_MEAL_LOGGED    = 5    # zaznaczenie posiłku (max 25 XP/dzień)
+_XP_WEIGHT_LOGGED  = 15   # wpis wagi
+_XP_WORKOUT_LOGGED = 50   # wpis treningu (podwyższono wg specyfikacji)
+_XP_WATER_LOGGED   = 5    # zalogowanie min. 500ml wody (nowe)
+_XP_STREAK_BONUS   = 10   # bonus za każdy dzień streaku (max 100 XP)
 
 
 def _xp_to_level(total_xp: int) -> int:
@@ -1139,7 +1162,7 @@ def _check_overload(
     ).all())
 
     # Grupuj po nazwie ćwiczenia, zachowując kolejność dat
-    by_exercise: Dict[str, Dict[str, float]] = {}
+    by_exercise: dict[str, dict[str, float]] = {}
     for r in all_results:
         name = r.exercise_name
         if name not in by_exercise:
@@ -1662,7 +1685,7 @@ def _build_weekly_plan(user: UserDB) -> dict:
     rng_seed = hash(user.user_key + datetime.now().strftime("%Y-%W"))  # stały seed dla danego tygodnia
     rng = random.Random(rng_seed)
 
-    shuffled_meals: Dict[str, list] = {}
+    shuffled_meals: dict[str, list] = {}
     for slot in meal_slots:
         candidates = list(meal_catalog.get(slot, []))
         rng.shuffle(candidates)
@@ -1695,7 +1718,7 @@ def _build_weekly_plan(user: UserDB) -> dict:
     focus_iter = iter(day_focuses_pool)
 
     # ─── Przetasuj ćwiczenia wewnątrz każdej partii ───────────────────────────
-    shuffled_pool: Dict[str, list] = {}
+    shuffled_pool: dict[str, list] = {}
     for key, exercises in pool.items():
         ex_copy = list(exercises)
         rng.shuffle(ex_copy)
@@ -1898,18 +1921,47 @@ def _call_groq(system: str, user_msg: str, max_tokens: int) -> str:
 def _call_gemini(system: str, user_msg: str, max_tokens: int) -> str:
     """
     Wywołuje Google Gemini API (model gemini-1.5-flash).
-    Rzuca wyjątek przy każdym błędzie.
+    Rzuca wyjątek przy każdym błędzie — caller decyduje o fallbacku.
+
+    Obsługiwane błędy:
+      • google.api_core.exceptions.ResourceExhausted  → limit zapytań / quota
+      • google.api_core.exceptions.PermissionDenied   → nieprawidłowy klucz
+      • google.api_core.exceptions.GoogleAPIError     → ogólny błąd API
+      • ValueError                                    → pusta/blokowana odpowiedź (safety filter)
     """
     if not _gemini_ready:
         raise RuntimeError("Gemini client nie jest zainicjalizowany (brak GEMINI_API_KEY)")
 
-    model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash",
-        system_instruction=system,
-        generation_config=genai.GenerationConfig(max_output_tokens=max_tokens),
-    )
-    response = model.generate_content(user_msg)
-    return response.text
+    try:
+        from google.api_core import exceptions as _gapi_exc  # lazy — nie blokuje startu
+    except ImportError:
+        _gapi_exc = None  # type: ignore[assignment]
+
+    try:
+        model = genai.GenerativeModel(
+            model_name="gemini-1.5-flash",
+            system_instruction=system,
+            generation_config=genai.GenerationConfig(max_output_tokens=max_tokens),
+        )
+        response = model.generate_content(user_msg)
+
+        # Gemini może zwrócić pustą odpowiedź gdy safety filter zablokuje treść
+        if not response.text:
+            raise ValueError("Gemini zwrócił pustą odpowiedź (safety filter lub brak treści)")
+
+        return response.text
+
+    except Exception as exc:
+        # Przekaż z czytelną nazwą klasy błędu żeby ask_ai() mógł to zalogować
+        exc_type = type(exc).__name__
+        if _gapi_exc:
+            if isinstance(exc, _gapi_exc.ResourceExhausted):
+                raise RuntimeError(f"Gemini: limit zapytań (quota). {exc}") from exc
+            if isinstance(exc, _gapi_exc.PermissionDenied):
+                raise RuntimeError(f"Gemini: brak uprawnień (GEMINI_API_KEY?). {exc}") from exc
+            if isinstance(exc, _gapi_exc.GoogleAPIError):
+                raise RuntimeError(f"Gemini: błąd Google API ({exc_type}). {exc}") from exc
+        raise  # pozostałe wyjątki (ValueError, RuntimeError) propaguj bez zmian
 
 
 def ask_ai(system: str, user_msg: str, max_tokens: int = 800) -> str:
@@ -2229,12 +2281,18 @@ def add_log(user_id: str, log: DailyLog):
             .where(DailyLogDB.log_date == today)
         ).first()
         if existing:
-            session.delete(existing)
-            session.flush()
-        entry = DailyLogDB(
-            user_id=user.id, log_date=today,
-            food=log.food, workout=log.workout, mood=log.mood, weight=log.weight,
-        )
+            # ── Upsert (legacy endpoint) ──────────────────────────────────────
+            if log.food:    existing.food    = log.food
+            if log.workout: existing.workout = log.workout
+            if log.mood:    existing.mood    = log.mood
+            if log.weight is not None: existing.weight = log.weight
+            existing.logged_at = datetime.now().isoformat()
+            entry = existing
+        else:
+            entry = DailyLogDB(
+                user_id=user.id, log_date=today,
+                food=log.food, workout=log.workout, mood=log.mood, weight=log.weight,
+            )
         session.add(entry)
         if log.weight is not None:
             user.weight = log.weight
@@ -2384,26 +2442,55 @@ def app_daily_checkin(log: AppDailyCheckinRequest, user: UserDB = Depends(get_cu
             .where(DailyLogDB.user_id == user.id)
             .where(DailyLogDB.log_date == today)
         ).first()
+
         if existing:
-            session.delete(existing)
-            session.flush()
-        entry = DailyLogDB(
-            user_id=user.id, log_date=today,
-            food=log.food, workout=log.workout, mood=log.mood, weight=log.weight,
-            sleep_quality=getattr(log, "sleep_quality", None),
-            energy_level=getattr(log, "energy_level", None),
-            stress_level=getattr(log, "stress_level", None),
-            water_liters=getattr(log, "water_liters", None),
-            waist_cm=getattr(log, "waist_cm", None),
-            chest_cm=getattr(log, "chest_cm", None),
-            photo_path=getattr(log, "photo_path", None),
-        )
-        if hasattr(log, "eaten_meals") and log.eaten_meals:
-            entry.set_eaten_meals(log.eaten_meals)
+            # ── UPSERT: nadpisz istniejący wpis zamiast delete+insert ────────
+            # Zachowujemy stary id i water_liters (inkrementowane oddzielnie)
+            if log.food:         existing.food         = log.food
+            if log.workout:      existing.workout      = log.workout
+            if log.mood:         existing.mood         = log.mood
+            if log.weight is not None:  existing.weight = log.weight
+            sq = getattr(log, "sleep_quality", None)
+            el = getattr(log, "energy_level", None)
+            sl = getattr(log, "stress_level", None)
+            wl = getattr(log, "water_liters", None)
+            wc = getattr(log, "waist_cm", None)
+            cc = getattr(log, "chest_cm", None)
+            pp = getattr(log, "photo_path", None)
+            if sq is not None: existing.sleep_quality  = sq
+            if el is not None: existing.energy_level   = el
+            if sl is not None: existing.stress_level   = sl
+            if wl is not None: existing.water_liters   = wl   # nadpisz (tracker wysyła pełną wartość)
+            if wc is not None: existing.waist_cm       = wc
+            if cc is not None: existing.chest_cm       = cc
+            if pp is not None: existing.photo_path     = pp
+            if hasattr(log, "eaten_meals") and log.eaten_meals:
+                existing.set_eaten_meals(log.eaten_meals)
+            existing.logged_at = datetime.now().isoformat()
+            entry = existing
+        else:
+            # ── Nowy wpis ─────────────────────────────────────────────────────
+            entry = DailyLogDB(
+                user_id=user.id, log_date=today,
+                food=log.food, workout=log.workout, mood=log.mood, weight=log.weight,
+                sleep_quality=getattr(log, "sleep_quality", None),
+                energy_level=getattr(log, "energy_level", None),
+                stress_level=getattr(log, "stress_level", None),
+                water_liters=getattr(log, "water_liters", None),
+                waist_cm=getattr(log, "waist_cm", None),
+                chest_cm=getattr(log, "chest_cm", None),
+                photo_path=getattr(log, "photo_path", None),
+            )
+            if hasattr(log, "eaten_meals") and log.eaten_meals:
+                entry.set_eaten_meals(log.eaten_meals)
         session.add(entry)
 
         # ── XP awards ────────────────────────────────────────────────────────
         xp_earned = _XP_CHECKIN
+        # XP za wodę — 5 XP gdy zalogowano ≥ 500 ml (zgodnie z nowym systemem)
+        wl_val = getattr(log, "water_liters", None) or 0
+        if wl_val >= 0.5:
+            xp_earned += _XP_WATER_LOGGED
         if log.weight is not None:
             xp_earned += _XP_WEIGHT_LOGGED
             # Aktualizuj last_weight_change
@@ -2435,6 +2522,7 @@ def app_daily_checkin(log: AppDailyCheckinRequest, user: UserDB = Depends(get_cu
             xp_earned += streak_bonus
         user.updated_at = datetime.now().isoformat()
         session.commit()
+        water_ml_today = round((entry.water_liters or 0) * 1000)
         return {
             "status": "ok",
             "log": entry.to_dict(),
@@ -2443,6 +2531,8 @@ def app_daily_checkin(log: AppDailyCheckinRequest, user: UserDB = Depends(get_cu
             "xp_earned": xp_earned,
             "total_xp": user.total_xp,
             "level": _xp_to_level(user.total_xp),
+            "xp_to_next_level": _xp_to_next_level(user.total_xp),
+            "water_ml_today": water_ml_today,
         }
 
 
@@ -2473,6 +2563,7 @@ def app_log_water(body: dict, user: UserDB = Depends(get_current_user)):
             .where(DailyLogDB.log_date == today)
         ).first()
 
+        prev_total = existing.water_liters if existing else 0
         if existing:
             existing.water_liters = round((existing.water_liters or 0) + liters_to_add, 4)
             session.add(existing)
@@ -2488,11 +2579,27 @@ def app_log_water(body: dict, user: UserDB = Depends(get_current_user)):
 
         session.commit()
 
+    # ── XP za wodę (5 XP za każde zalogowanie wody, max raz dziennie) ────────
+    # Używamy prostego heurystiku: przyznaj XP jeśli to pierwsze dodanie (prev=0)
+    xp_info = {}
+    user_for_xp = None
+    if prev_total == 0:  # pierwsze logowanie wody dziś
+        with Session(engine) as xp_session:
+            try:
+                user_for_xp = _get_user_or_404(user_key, xp_session)
+                user_for_xp.total_xp = (user_for_xp.total_xp or 0) + _XP_WATER_LOGGED
+                xp_session.add(user_for_xp)
+                xp_session.commit()
+                xp_info = {"xp_earned": _XP_WATER_LOGGED, "total_xp": user_for_xp.total_xp}
+            except Exception:
+                pass
+
     return {
         "status": "ok",
         "added_ml": ml,
         "water_liters_today": total_liters,
         "water_ml_today": round(total_liters * 1000),
+        **xp_info,
     }
 
 
@@ -2704,7 +2811,7 @@ def get_drill_history(drill_name: Optional[str] = None, limit: int = 20, user: U
         results = list(session.exec(query).all())[:limit]
 
         # Dołącz progresję dla każdego unikalnego drilla
-        by_name: Dict[str, list] = {}
+        by_name: dict[str, list] = {}
         for r in results:
             by_name.setdefault(r.drill_name, []).append(r)
 
@@ -2801,7 +2908,7 @@ def ai_workout_plan(request: Request, req: AIRequest, user: UserDB = Depends(get
             .where(ExerciseResultDB.user_id == user.id)
             .order_by(ExerciseResultDB.session_date.desc())
         ).all())[:30]
-        by_name: Dict[str, list] = {}
+        by_name: dict[str, list] = {}
         for r in ex_results:
             by_name.setdefault(r.exercise_name, []).append(r)
         for name, hist in by_name.items():
