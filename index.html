@@ -3,6 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="./manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="FitAI">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
   <meta name="theme-color" content="#0a0b10">
   <title>FitAI — Ultimate SaaS Platform</title>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -6351,8 +6356,147 @@ async function refreshStats() { await initCharts(); }
 </script>
 
 <script>
+// ══════════════════════════════════════════════════════════════════════════════
+//  PWA — Service Worker Registration & Update Handling
+// ══════════════════════════════════════════════════════════════════════════════
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+
+  // Rejestracja z ścieżką względną (działa zarówno z serwera jak i file://)
+  navigator.serviceWorker.register('./sw.js', { scope: './' })
+    .then(registration => {
+      console.log('[PWA] SW zarejestrowany:', registration.scope);
+
+      // Nasłuchuj na nową wersję SW czekającą na instalację
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', () => {
+          // Nowy SW zainstalowany i gotowy → pokaż toast z przyciskiem
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            showPWAUpdateToast();
+          }
+        });
+      });
+
+      // Sprawdzaj aktualizacje co 30 minut (użytkownik może trzymać kartę otwartą cały dzień)
+      setInterval(() => registration.update(), 30 * 60 * 1000);
+    })
+    .catch(err => console.warn('[PWA] Rejestracja SW nieudana:', err));
+
+  // Odbieraj wiadomości od Service Workera
+  navigator.serviceWorker.addEventListener('message', event => {
+    const { type, version, synced } = event.data ?? {};
+
+    // SW_UPDATED — SW właśnie się zaktualizował (activate wysłał powiadomienie)
+    if (type === 'SW_UPDATED') {
+      console.log('[PWA] Nowa wersja SW aktywna:', version);
+      showPWAUpdateToast(version);
+    }
+
+    // SW_SYNC_DONE — background sync zakończony (offline logi zostały wysłane)
+    if (type === 'SW_SYNC_DONE' && synced > 0) {
+      showPWASyncToast(synced);
+    }
+
+    // CACHE_CLEARED — odpowiedź na żądanie wyczyszczenia cache
+    if (type === 'CACHE_CLEARED') {
+      showPWAToast('🗑️ Cache wyczyszczony', 'Strona odświeży się przy następnym otwarciu.', '#64748b');
+    }
+
+    // SW_VERSION — odpowiedź na GET_VERSION
+    if (type === 'SW_VERSION') {
+      console.log('[PWA] Wersja SW cache:', version);
+    }
+  });
+
+  // Jeśli kontroler zmienił się (nowy SW przejął kartę) → przeładuj stronę
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshing) return;
+    refreshing = true;
+    console.log('[PWA] Nowy SW przejął kontrolę — przeładowuję stronę...');
+    window.location.reload();
+  });
+}
+
+// ── Toast: aktualizacja dostępna ──────────────────────────────────────────────
+function showPWAUpdateToast(version = '') {
+  // Usuń poprzedni toast jeśli istnieje
+  document.getElementById('pwaUpdateToast')?.remove();
+
+  const toast = document.createElement('div');
+  toast.id = 'pwaUpdateToast';
+  toast.style.cssText = [
+    'position:fixed', 'bottom:88px', 'left:50%', 'transform:translateX(-50%)',
+    'z-index:9998', 'display:flex', 'align-items:center', 'gap:12px',
+    'background:rgba(10,11,16,0.97)', 'backdrop-filter:blur(20px)',
+    'border:1px solid rgba(0,229,255,0.3)', 'border-radius:16px',
+    'padding:12px 16px', 'box-shadow:0 8px 32px rgba(0,0,0,0.5)',
+    'max-width:340px', 'width:calc(100vw - 32px)',
+    'animation:pwaSlideUp 0.35s cubic-bezier(0.34,1.56,0.64,1)',
+  ].join(';');
+
+  toast.innerHTML = `
+    <span style="font-size:1.4rem;flex-shrink:0;">⚡</span>
+    <div style="flex:1;min-width:0;">
+      <p style="font-size:13px;font-weight:700;color:#fff;margin:0 0 1px;">
+        Nowa wersja FitAI${version ? ' ' + version : ''}
+      </p>
+      <p style="font-size:11px;color:#64748b;margin:0;">Kliknij Odśwież aby zaktualizować</p>
+    </div>
+    <button onclick="pwaForceUpdate()" style="
+      background:linear-gradient(135deg,#00e5ff,#7c3aed);
+      color:#000;border:none;border-radius:10px;
+      padding:7px 14px;font-size:12px;font-weight:800;
+      cursor:pointer;flex-shrink:0;white-space:nowrap;">
+      Odśwież
+    </button>
+    <button onclick="document.getElementById('pwaUpdateToast')?.remove()" style="
+      background:none;border:none;color:#475569;
+      cursor:pointer;font-size:18px;line-height:1;padding:2px;flex-shrink:0;">
+      ×
+    </button>`;
+
+  document.body.appendChild(toast);
+
+  // Auto-zamknij po 20 sekundach
+  setTimeout(() => toast?.remove(), 20_000);
+}
+
+// ── Toast: sync zakończony ────────────────────────────────────────────────────
+function showPWASyncToast(count) {
+  showPWAToast(
+    `✅ Zsynchronizowano ${count} log${count === 1 ? '' : 'ów'}`,
+    'Dane offline zostały wysłane do serwera.',
+    '#34d399'
+  );
+}
+
+// ── Uniwersalny mini-toast ────────────────────────────────────────────────────
+function showPWAToast(title, body, accentColor = '#00e5ff') {
+  const t = document.createElement('div');
+  t.style.cssText = [
+    'position:fixed', 'bottom:88px', 'left:50%', 'transform:translateX(-50%)',
+    'z-index:9997', 'background:rgba(10,11,16,0.95)', 'backdrop-filter:blur(16px)',
+    `border:1px solid ${accentColor}40`, 'border-radius:14px',
+    'padding:10px 16px', 'max-width:300px', 'text-align:center',
+    'animation:pwaSlideUp 0.3s ease',
+  ].join(';');
+  t.innerHTML = `<p style="font-size:13px;font-weight:700;color:#fff;margin:0 0 2px;">${title}</p>
+                 <p style="font-size:11px;color:#64748b;margin:0;">${body}</p>`;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+
+// ── Wymuś aktualizację — wysyła SKIP_WAITING do SW ───────────────────────────
+function pwaForceUpdate() {
+  document.getElementById('pwaUpdateToast')?.remove();
+  navigator.serviceWorker?.controller?.postMessage({ type: 'SKIP_WAITING' });
+}
+
+// ── Czyść cache na żądanie (np. z ustawień profilu) ───────────────────────────
+function pwaClearCache() {
+  navigator.serviceWorker?.controller?.postMessage({ type: 'CLEAR_CACHE' });
 }
 </script>
 
