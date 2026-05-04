@@ -209,7 +209,9 @@ self.addEventListener("push", (event) => {
   const options = {
     body:    data.body    ?? "Czas na trening!",
     icon:    data.icon    ?? "./icons/icon-192.png",
-    badge:   "./icons/badge-72.png",
+    badge:   "./icons/badge-72.png",  // Opcjonalne — mała ikona w pasku powiadomień (Android).
+                                       // Jeśli plik nie istnieje, system użyje icon-72.png jako fallbacku.
+                                       // Wymiary: 72×72px, plik PNG, tylko białe logo na przezroczystym tle.
     vibrate: [100, 50, 100],
     data:    { url: data.url ?? "/" },
     actions: [

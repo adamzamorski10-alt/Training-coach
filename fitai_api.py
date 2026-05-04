@@ -1525,6 +1525,8 @@ def _build_weekly_plan(user: UserDB) -> dict:
 
 # ─── AI helper ────────────────────────────────────────────────────────────────
 
+_AI_UNAVAILABLE_MSG = "Asystent AI jest chwilowo niedostępny. Spróbuj ponownie za chwilę."
+
 def ask_claude(system: str, user_msg: str, max_tokens: int = 800) -> str:
     try:
         message = ai_client.messages.create(
@@ -1534,8 +1536,24 @@ def ask_claude(system: str, user_msg: str, max_tokens: int = 800) -> str:
             messages=[{"role": "user", "content": user_msg}],
         )
         return message.content[0].text
-    except Exception as exc:
-        raise HTTPException(status_code=503, detail=f"AI tymczasowo niedostępne: {exc}") from exc
+    except anthropic.AuthenticationError as e:
+        print(f"[FitAI] Błąd API: nieprawidłowy klucz ANTHROPIC_API_KEY. {e}")
+        return _AI_UNAVAILABLE_MSG
+    except anthropic.PermissionDeniedError as e:
+        print(f"[FitAI] Błąd API: brak środków lub konto zablokowane. {e}")
+        return _AI_UNAVAILABLE_MSG
+    except anthropic.RateLimitError as e:
+        print(f"[FitAI] Błąd API: przekroczono limit zapytań. {e}")
+        return _AI_UNAVAILABLE_MSG
+    except anthropic.APIConnectionError as e:
+        print(f"[FitAI] Błąd API: brak połączenia z serwerem Anthropic. {e}")
+        return _AI_UNAVAILABLE_MSG
+    except anthropic.APIStatusError as e:
+        print(f"[FitAI] Błąd API: HTTP {e.status_code} — {e.message}")
+        return _AI_UNAVAILABLE_MSG
+    except Exception as e:
+        print(f"[FitAI] Błąd API: nieoczekiwany wyjątek {type(e).__name__}: {e}")
+        return _AI_UNAVAILABLE_MSG
 
 
 # ─── DB helpers ───────────────────────────────────────────────────────────────

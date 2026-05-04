@@ -1720,6 +1720,23 @@
 
 <script>
 // ========== STATE ==========
+// ─── Stałe ID urządzenia (persystentne między sesjami) ───────────────────────
+// Sprawdza localStorage → jeśli brak, generuje i zapisuje losowy identyfikator.
+(function initDeviceId() {
+  const STORAGE_KEY = 'fitai_user_id';
+  let id = localStorage.getItem(STORAGE_KEY);
+  if (!id) {
+    // Generuj: "user_" + timestamp + losowe 4 znaki → unikalny, czytelny ID
+    id = 'user_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+    localStorage.setItem(STORAGE_KEY, id);
+    console.log('[FitAI] Nowe ID urządzenia wygenerowane:', id);
+  }
+  // Udostępnij globalnie — używane przez water tracker, API calls, itp.
+  window.FITAI_USER_ID = id;
+  // Synchronizuj z state.identityId (state może jeszcze nie istnieć — ustawi się w initApp)
+  window._fitaiDeviceId = id;
+})();
+
 const state = {
   view: 'landing',
   currentProfile: null,
@@ -2183,6 +2200,9 @@ function createDefaultProfile(id, name, age=28, height=182, weight=84.5, gender=
 
 // ========== INIT ==========
 function initApp() {
+  // Ustaw identityId z persystentnego ID urządzenia
+  state.identityId = window.FITAI_USER_ID || window._fitaiDeviceId || 'user_fallback';
+
   const saved = localStorage.getItem('fitai_profiles_v3');
   const savedLogs = localStorage.getItem('fitai_logs_v3');
   const savedChecked = localStorage.getItem('fitai_checked_v3');
@@ -6331,129 +6351,9 @@ async function refreshStats() { await initCharts(); }
 </script>
 
 <script>
-// ─── Service Worker: rejestracja + wykrywanie aktualizacji ───────────────────
-(function () {
-  if (!('serviceWorker' in navigator)) return;
-
-  // ── Toast "Nowa wersja dostępna" ─────────────────────────────────────────
-  function showUpdateToast() {
-    if (document.getElementById('sw-update-toast')) return; // nie dubluj
-
-    const toast = document.createElement('div');
-    toast.id = 'sw-update-toast';
-    toast.innerHTML = `
-      <span style="flex:1;">🔄 Dostępna nowa wersja aplikacji.</span>
-      <button id="sw-reload-btn"
-        style="margin-left:12px;padding:6px 14px;border-radius:8px;
-               background:linear-gradient(135deg,#00e5ff,#7c3aed);
-               color:#000;font-weight:800;border:none;cursor:pointer;
-               font-size:12px;white-space:nowrap;font-family:inherit;">
-        Odśwież
-      </button>
-      <button id="sw-dismiss-btn"
-        style="margin-left:6px;background:none;border:none;color:#64748b;
-               cursor:pointer;font-size:16px;line-height:1;padding:0 4px;"
-        title="Zamknij">✕</button>
-    `;
-    toast.style.cssText = `
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%) translateY(30px);
-      opacity: 0;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      background: rgba(10, 11, 16, 0.97);
-      border: 1px solid rgba(0, 229, 255, 0.4);
-      color: #e2e8f0;
-      padding: 12px 16px;
-      border-radius: 16px;
-      font-size: 13px;
-      font-weight: 600;
-      font-family: "Plus Jakarta Sans", sans-serif;
-      z-index: 99999;
-      max-width: 420px;
-      width: calc(100vw - 48px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0,229,255,0.1);
-      backdrop-filter: blur(16px);
-      transition: opacity 0.35s ease, transform 0.35s ease;
-    `;
-
-    document.body.appendChild(toast);
-
-    // Animacja wejścia
-    requestAnimationFrame(() => {
-      toast.style.opacity = '1';
-      toast.style.transform = 'translateX(-50%) translateY(0)';
-    });
-
-    // Przycisk "Odśwież" — przeładuj stronę, nowy SW przejmie kontrolę
-    document.getElementById('sw-reload-btn').addEventListener('click', () => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateX(-50%) translateY(30px)';
-      setTimeout(() => window.location.reload(), 350);
-    });
-
-    // Przycisk "✕" — zamknij toast (użytkownik sam zdecyduje kiedy)
-    document.getElementById('sw-dismiss-btn').addEventListener('click', () => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateX(-50%) translateY(30px)';
-      setTimeout(() => toast.remove(), 400);
-    });
-
-    // Auto-ukrycie po 15 sekundach (nie blokuj na zawsze)
-    setTimeout(() => {
-      if (document.getElementById('sw-update-toast')) {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(-50%) translateY(30px)';
-        setTimeout(() => toast.remove(), 400);
-      }
-    }, 15000);
-  }
-
-  // ── Rejestracja SW ────────────────────────────────────────────────────────
-  window.addEventListener('load', async () => {
-    try {
-      const reg = await navigator.serviceWorker.register('./sw.js', { scope: './' });
-
-      // Nowy SW znaleziony podczas instalacji (pierwsza wizyta lub ręczna aktualizacja)
-      reg.addEventListener('updatefound', () => {
-        const newWorker = reg.installing;
-        if (!newWorker) return;
-
-        newWorker.addEventListener('statechange', () => {
-          // 'installed' + controller istnieje = aktualizacja (nie pierwsza instalacja)
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            console.log('[FitAI PWA] Nowa wersja SW zainstalowana — wyświetlam toast.');
-            showUpdateToast();
-          }
-        });
-      });
-
-      // Obsługa wiadomości postMessage z SW (activate wysyła SW_UPDATED)
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        if (event.data?.type === 'SW_UPDATED') {
-          console.log('[FitAI PWA] SW wysłał SW_UPDATED, wersja:', event.data.version);
-          showUpdateToast();
-        }
-      });
-
-      // Jeśli strona wróciła po nawigacji i kontroler się zmienił → przeładuj
-      let refreshing = false;
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!refreshing) {
-          refreshing = true;
-          // Nie przeładowujemy automatycznie — użytkownik kliknie "Odśwież" w toaście
-          console.log('[FitAI PWA] Kontroler SW zmieniony (nowa wersja aktywna).');
-        }
-      });
-
-    } catch (err) {
-      console.warn('[FitAI PWA] Błąd rejestracji Service Workera:', err);
-    }
-  });
-})();
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+}
 </script>
 
 <!-- ====== EDIT DIET MODAL ====== -->
@@ -6997,18 +6897,61 @@ const water = {
   },
 
   async fetchWeather() {
-    if (!navigator.geolocation) { this._weatherFallback(); return; }
-    navigator.geolocation.getCurrentPosition(async pos=>{
-      try {
-        const {latitude:lat,longitude:lon}=pos.coords;
-        const key='OPENWEATHER_API_KEY'; // ← wstaw własny klucz OpenWeatherMap
-        const r=await fetch('https://api.openweathermap.org/data/2.5/weather?lat='+lat+'&lon='+lon+'&appid='+key+'&units=metric&lang=pl');
-        if (!r.ok) { this._weatherFallback(); return; }
-        const d=await r.json();
-        const temp=Math.round(d.main?.temp||20), desc=d.weather?.[0]?.description||'';
-        this._applyWeather(temp,desc,temp>WATER_HOT_THRESHOLD);
-      } catch { this._weatherFallback(); }
-    },()=>this._weatherFallback());
+    const isSecure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
+    if (!isSecure) {
+      console.warn('[FitAI Weather] Geolokalizacja wymaga HTTPS. Używam domyślnej pogody (20°C).');
+      this._applyWeather(20, 'brak danych (HTTP)', false);
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      console.warn('[FitAI Weather] Przeglądarka nie obsługuje geolokalizacji. Używam domyślnej pogody (20°C).');
+      this._applyWeather(20, 'geolokalizacja niedostępna', false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async pos => {
+        try {
+          const { latitude: lat, longitude: lon } = pos.coords;
+
+          // Open-Meteo — darmowy, nie wymaga klucza API
+          const url = 'https://api.open-meteo.com/v1/forecast'
+            + '?latitude=' + lat
+            + '&longitude=' + lon
+            + '&current=temperature_2m,weathercode'
+            + '&timezone=auto';
+
+          const r = await fetch(url);
+          if (!r.ok) throw new Error('Open-Meteo HTTP ' + r.status);
+
+          const d = await r.json();
+          const temp = Math.round(d.current?.temperature_2m ?? 20);
+          const code = d.current?.weathercode ?? 0;
+
+          const desc = code === 0 ? 'bezchmurnie'
+            : code <= 3  ? 'częściowe zachmurzenie'
+            : code <= 49 ? 'mgła lub zamglenie'
+            : code <= 69 ? 'opady deszczu'
+            : code <= 79 ? 'opady śniegu'
+            : code <= 99 ? 'burza'
+            : 'zmienne warunki';
+
+          this._applyWeather(temp, desc, temp > WATER_HOT_THRESHOLD);
+        } catch (err) {
+          console.warn('[FitAI Weather] Błąd pobierania pogody:', err.message, '— używam domyślnych 20°C.');
+          this._applyWeather(20, 'błąd pobierania danych', false);
+        }
+      },
+      err => {
+        // Użytkownik zablokował lokalizację lub inny błąd geolokalizacji
+        const reasons = { 1: 'brak zgody użytkownika', 2: 'niedostępna pozycja', 3: 'timeout' };
+        console.warn('[FitAI Weather] Geolokalizacja zablokowana:', reasons[err.code] || err.message, '— używam domyślnych 20°C.');
+        this._applyWeather(20, 'lokalizacja niedostępna', false);
+      },
+      { timeout: 8000, maximumAge: 300000 }  // 8s timeout, cache 5min
+    );
   },
 
   _applyWeather(temp,desc,isHot) {
