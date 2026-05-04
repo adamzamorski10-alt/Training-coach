@@ -17,6 +17,7 @@ import json
 import os
 import random
 import secrets
+import uuid as _uuid_mod
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional
 
@@ -25,9 +26,45 @@ import jwt                          # PyJWT>=2.0
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
+from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
+from sqlalchemy import text as _text
 from sqlmodel import Field, Relationship, Session, SQLModel, create_engine, select
+
+
+# ─── Rate limiter setup ───────────────────────────────────────────────────────
+# Key function: prefer authenticated user ID over raw IP so shared NAT doesn't
+# penalise all users behind the same router.
+
+def _rate_limit_key(request: Request) -> str:
+    """Use Bearer sub (user UUID) if present, otherwise fall back to client IP."""
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]
+        try:
+            payload = jwt.decode(
+                token,
+                os.getenv("JWT_SECRET_KEY", ""),
+                algorithms=["HS256"],
+                options={"verify_exp": False},   # key only — expiry checked elsewhere
+            )
+            return f"user:{payload['sub']}"
+        except Exception:
+            pass
+    return get_remote_address(request)
+
+
+limiter = Limiter(key_func=_rate_limit_key)
+
+# Limits read from env so they can be tuned without a redeploy.
+# Defaults: 10 AI calls / minute per user, 50 / hour.
+AI_RATE_PER_MINUTE: str = os.getenv("AI_RATE_PER_MINUTE", "10/minute")
+AI_RATE_PER_HOUR:   str = os.getenv("AI_RATE_PER_HOUR",   "50/hour")
 
 load_dotenv()
 
@@ -57,17 +94,17 @@ def _verify_password(plain: str, stored: str) -> bool:
         _, algo, iterations, salt, stored_hex = stored.split(":")
         key = hashlib.pbkdf2_hmac(algo, plain.encode(), salt.encode(), int(iterations))
         return hmac.compare_digest(key.hex(), stored_hex)
-    except Exception:
+    except (ValueError, TypeError):
         return False
 
 
 # ─── JWT helpers ──────────────────────────────────────────────────────────────
 
-def _create_access_token(user_id: int, email: str, role: str) -> str:
+def _create_access_token(user_id: str, email: str, role: str) -> str:
     """Tworzy podpisany token JWT z payloadem użytkownika."""
     exp = datetime.utcnow() + timedelta(minutes=JWT_EXPIRE_MIN)
     payload = {
-        "sub": str(user_id),      # subject = primary key w DB
+        "sub": str(user_id),      # subject = primary key w DB (UUID)
         "email": email,
         "role": role,
         "exp": exp,
@@ -107,7 +144,7 @@ def get_current_user(
                             detail="Brak tokena autoryzacji",
                             headers={"WWW-Authenticate": "Bearer"})
     payload = _decode_token(credentials.credentials)
-    user_id = int(payload["sub"])
+    user_id = payload["sub"]   # UUID string
     with Session(engine) as session:
         user = session.get(UserDB, user_id)
     if not user:
@@ -151,10 +188,13 @@ def get_session():
 class UserDB(SQLModel, table=True):
     __tablename__ = "users"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: Optional[str] = Field(
+        default_factory=lambda: str(_uuid_mod.uuid4()),
+        primary_key=True,
+    )
     user_key: str = Field(unique=True, index=True)          # "web:<identity_id>" lub legacy user_id
-    identity_id: Optional[str] = None
-    email: Optional[str] = None
+    identity_id: Optional[str] = Field(default=None, index=True)
+    email: Optional[str] = Field(default=None, index=True)
     name: str
     age: int
     height: float
@@ -265,8 +305,11 @@ class UserDB(SQLModel, table=True):
 class DailyLogDB(SQLModel, table=True):
     __tablename__ = "daily_logs"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
-    user_id: int = Field(foreign_key="users.id", index=True)
+    id: Optional[str] = Field(
+        default_factory=lambda: str(_uuid_mod.uuid4()),
+        primary_key=True,
+    )
+    user_id: str = Field(foreign_key="users.id", index=True)
     log_date: str = Field(index=True)           # ISO date string
     food: str = ""
     workout: str = ""
@@ -293,8 +336,11 @@ class ExerciseResultDB(SQLModel, table=True):
     """Historyczne wyniki ćwiczeń – serce systemu progresji."""
     __tablename__ = "exercise_results"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
-    user_id: int = Field(foreign_key="users.id", index=True)
+    id: Optional[str] = Field(
+        default_factory=lambda: str(_uuid_mod.uuid4()),
+        primary_key=True,
+    )
+    user_id: str = Field(foreign_key="users.id", index=True)
     exercise_name: str = Field(index=True)
     session_date: str = Field(index=True)       # ISO date
     sets: int
@@ -324,8 +370,11 @@ class DrillResultDB(SQLModel, table=True):
     """Wyniki sesji drilli sportowych – serce systemu progresji sportowej."""
     __tablename__ = "drill_results"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
-    user_id: int = Field(foreign_key="users.id", index=True)
+    id: Optional[str] = Field(
+        default_factory=lambda: str(_uuid_mod.uuid4()),
+        primary_key=True,
+    )
+    user_id: str = Field(foreign_key="users.id", index=True)
     drill_name: str = Field(index=True)
     session_date: str = Field(index=True)       # ISO date
     success_count: int                          # trafienia / powtórzenia
@@ -350,11 +399,54 @@ class DrillResultDB(SQLModel, table=True):
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
+    _create_composite_indexes()
+
+
+def _create_composite_indexes():
+    """
+    Creates composite indexes that SQLModel cannot express via Field alone.
+    These are idempotent — IF NOT EXISTS guards prevent duplicate-index errors.
+
+    Why composite indexes?
+      - daily_logs(user_id, log_date)       → covers the most common filter pattern
+      - exercise_results(user_id, session_date) → accelerates progression queries
+      - drill_results(user_id, session_date)    → mirrors exercise pattern
+    """
+    ddl_statements = [
+        # daily_logs: the single most-queried pattern is user_id + date range/equality
+        """CREATE INDEX IF NOT EXISTS ix_daily_logs_user_date
+           ON daily_logs (user_id, log_date)""",
+        # exercise_results: progression queries always filter by user then scan by date
+        """CREATE INDEX IF NOT EXISTS ix_exercise_results_user_date
+           ON exercise_results (user_id, session_date)""",
+        # exercise_results: progression also queries by user + exercise name
+        """CREATE INDEX IF NOT EXISTS ix_exercise_results_user_name
+           ON exercise_results (user_id, exercise_name)""",
+        # drill_results: same pattern as exercise_results
+        """CREATE INDEX IF NOT EXISTS ix_drill_results_user_date
+           ON drill_results (user_id, session_date)""",
+    ]
+    try:
+        with engine.connect() as conn:
+            for stmt in ddl_statements:
+                conn.execute(_text(stmt))
+            conn.commit()
+    except OperationalError as exc:
+        # Non-fatal: indexes are a performance hint, not a correctness requirement
+        print(f"[FitAI] Ostrzeżenie: nie udało się utworzyć indeksu kompozytowego: {exc}")
 
 
 # ─── App setup ────────────────────────────────────────────────────────────────
 
 app = FastAPI(title="FitAI API", version="2.0")
+
+# ── slowapi: attach limiter so decorators can find it ────────────────────────
+app.state.limiter = limiter
+app.add_exception_handler(
+    RateLimitExceeded,
+    _rate_limit_exceeded_handler,   # returns 429 with Retry-After header
+)
+
 ai_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 CORS_ORIGINS = [
@@ -380,6 +472,26 @@ app.add_middleware(
 
 @app.on_event("startup")
 def on_startup():
+    # ── 1. Validate ANTHROPIC_API_KEY presence ────────────────────────────────
+    _api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+    if not _api_key:
+        raise RuntimeError(
+            "\n\n"
+            "══════════════════════════════════════════════════════\n"
+            "  BŁĄD KRYTYCZNY: brak zmiennej ANTHROPIC_API_KEY\n"
+            "  Ustaw ją w pliku .env lub jako zmienną środowiskową:\n"
+            "    ANTHROPIC_API_KEY=sk-ant-...\n"
+            "  Bez tego klucza endpointy /ai/* nie będą działać.\n"
+            "══════════════════════════════════════════════════════\n"
+        )
+    if not _api_key.startswith("sk-ant-"):
+        # Warn but don't block — key format may change; let Anthropic reject it.
+        print(
+            "[FitAI] OSTRZEŻENIE: ANTHROPIC_API_KEY nie zaczyna się od 'sk-ant-'. "
+            "Upewnij się, że klucz jest poprawny."
+        )
+
+    # ── 2. Database bootstrap ─────────────────────────────────────────────────
     create_db_and_tables()
     _migrate_json_to_sqlite()
 
@@ -396,7 +508,7 @@ def _migrate_json_to_sqlite():
     try:
         with open(json_path, "r", encoding="utf-8") as f:
             old_db: dict = json.load(f)
-    except Exception:
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
         return
 
     with Session(engine) as session:
@@ -489,7 +601,7 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_in: int = JWT_EXPIRE_MIN * 60   # sekundy
-    user_id: int
+    user_id: str
     name: str
     role: str
     plan: str
@@ -1682,7 +1794,81 @@ def _build_weekly_plan(user: UserDB) -> dict:
 
 _AI_UNAVAILABLE_MSG = "Asystent AI jest chwilowo niedostępny. Spróbuj ponownie za chwilę."
 
+# Sentinel used to distinguish "AI failed" from a real empty response,
+# so callers can decide whether to raise HTTP 503 or return a fallback.
+class _AIError(str):
+    """Subclass of str that signals an AI backend failure to callers."""
+    pass
+
+
+def _fallback_response(error_kind: str, system_hint: str) -> str:
+    """
+    Returns a contextual Polish fallback when the AI API is unavailable.
+    `system_hint` is the first 80 chars of the system prompt so we can
+    pick the most relevant canned response.
+    """
+    hint = system_hint.lower()
+
+    if "dietet" in hint or "diet" in hint or "posiłk" in hint or "meal" in hint:
+        return (
+            "⚠️ Asystent AI jest chwilowo niedostępny.\n\n"
+            "**Tymczasowe wskazówki dietetyczne (na podstawie Twojego profilu):**\n"
+            "• Trzymaj się ustalonych celów kalorycznych i białkowych.\n"
+            "• Postaw na produkty pełnoziarniste, chude białko i warzywa.\n"
+            "• Pij co najmniej 2 l wody dziennie.\n"
+            "• Spróbuj ponownie za kilka minut — spersonalizowany plan będzie dostępny."
+        )
+
+    if "trener" in hint or "workout" in hint or "trening" in hint or "ćwiczeni" in hint:
+        return (
+            "⚠️ Asystent AI jest chwilowo niedostępny.\n\n"
+            "**Tymczasowe wskazówki treningowe:**\n"
+            "• Skorzystaj z wygenerowanego planu tygodniowego dostępnego w zakładce 'Plan'.\n"
+            "• Ogranicz intensywność o 10–15%, jeśli odczuwasz zmęczenie.\n"
+            "• Pamiętaj o rozgrzewce (5–10 min) i rozciąganiu po treningu.\n"
+            "• Spróbuj ponownie za kilka minut — szczegółowy plan wróci wkrótce."
+        )
+
+    if "analiz" in hint or "raport" in hint or "log" in hint:
+        return (
+            "⚠️ Asystent AI jest chwilowo niedostępny.\n\n"
+            "**Wskazówka:** Twój dziennik został zapisany. Analiza będzie dostępna, "
+            "gdy połączenie z AI zostanie przywrócone. Spróbuj ponownie za kilka minut."
+        )
+
+    if "tygodniow" in hint or "weekly" in hint or "podsumow" in hint:
+        return (
+            "⚠️ Asystent AI jest chwilowo niedostępny.\n\n"
+            "**Wskazówka:** Sprawdź sekcję 'Postępy', aby zobaczyć wykresy wagi "
+            "i wolumenu treningowego za ostatnie tygodnie. Podsumowanie AI będzie "
+            "dostępne po przywróceniu połączenia."
+        )
+
+    if "przepis" in hint or "lodówk" in hint or "fridge" in hint or "chef" in hint:
+        return (
+            "⚠️ Asystent AI jest chwilowo niedostępny.\n\n"
+            "**Szybki posiłek bez AI:** Połącz dostępne białko (kurczak, jajka, twaróg) "
+            "z warzywami i źródłem węglowodanów (ryż, makaron, ziemniaki). "
+            "Dopraw oliwą, czosnkiem i ulubionymi ziołami. Spróbuj ponownie wkrótce."
+        )
+
+    # Generic fallback
+    return (
+        f"⚠️ Asystent AI jest chwilowo niedostępny ({error_kind}).\n\n"
+        "Spróbuj ponownie za kilka minut. Jeśli problem się powtarza, "
+        "sprawdź status serwisu lub skontaktuj się z pomocą techniczną."
+    )
+
+
 def ask_claude(system: str, user_msg: str, max_tokens: int = 800) -> str:
+    """
+    Calls the Anthropic API and returns the response text.
+
+    On failure returns a _AIError (subclass of str) with a contextual Polish
+    fallback message — never an empty string.  Callers that need to detect
+    failures can do: `if isinstance(result, _AIError): raise HTTP 503`.
+    """
+    system_hint = system[:80]
     try:
         message = ai_client.messages.create(
             model="claude-sonnet-4-20250514",
@@ -1691,24 +1877,32 @@ def ask_claude(system: str, user_msg: str, max_tokens: int = 800) -> str:
             messages=[{"role": "user", "content": user_msg}],
         )
         return message.content[0].text
+
     except anthropic.AuthenticationError as e:
         print(f"[FitAI] Błąd API: nieprawidłowy klucz ANTHROPIC_API_KEY. {e}")
-        return _AI_UNAVAILABLE_MSG
+        return _AIError(_fallback_response("błąd autoryzacji", system_hint))
+
     except anthropic.PermissionDeniedError as e:
+        # Typically: account out of credits or suspended
         print(f"[FitAI] Błąd API: brak środków lub konto zablokowane. {e}")
-        return _AI_UNAVAILABLE_MSG
+        return _AIError(_fallback_response("brak środków na koncie AI", system_hint))
+
     except anthropic.RateLimitError as e:
-        print(f"[FitAI] Błąd API: przekroczono limit zapytań. {e}")
-        return _AI_UNAVAILABLE_MSG
+        # Anthropic-side rate limit (different from our own user-level limit)
+        print(f"[FitAI] Błąd API: przekroczono limit zapytań po stronie Anthropic. {e}")
+        return _AIError(_fallback_response("chwilowe przeciążenie AI", system_hint))
+
     except anthropic.APIConnectionError as e:
         print(f"[FitAI] Błąd API: brak połączenia z serwerem Anthropic. {e}")
-        return _AI_UNAVAILABLE_MSG
+        return _AIError(_fallback_response("brak połączenia z AI", system_hint))
+
     except anthropic.APIStatusError as e:
         print(f"[FitAI] Błąd API: HTTP {e.status_code} — {e.message}")
-        return _AI_UNAVAILABLE_MSG
+        return _AIError(_fallback_response(f"błąd HTTP {e.status_code}", system_hint))
+
     except Exception as e:
         print(f"[FitAI] Błąd API: nieoczekiwany wyjątek {type(e).__name__}: {e}")
-        return _AI_UNAVAILABLE_MSG
+        return _AIError(_fallback_response("nieoczekiwany błąd", system_hint))
 
 
 # ─── DB helpers ───────────────────────────────────────────────────────────────
@@ -1825,8 +2019,21 @@ def auth_register(payload: RegisterRequest):
         user.calories_target = calc_calories(user)
         user.protein_target  = calc_protein(user)
         session.add(user)
-        session.commit()
-        session.refresh(user)
+        try:
+            session.commit()
+            session.refresh(user)
+        except IntegrityError:
+            session.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Konto z tym e-mailem już istnieje (race condition)",
+            )
+        except SQLAlchemyError as exc:
+            session.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Błąd bazy danych podczas rejestracji: {exc}",
+            )
 
         token = _create_access_token(user.id, user.email, user.role)
         return TokenResponse(
@@ -2483,7 +2690,9 @@ async def stripe_webhook(request: Request):
 # ─── AI endpoints ─────────────────────────────────────────────────────────────
 
 @app.post("/ai/diet", tags=["ai"])
-def ai_diet_plan(req: AIRequest, user: UserDB = Depends(get_current_user)):
+@limiter.limit(AI_RATE_PER_MINUTE)
+@limiter.limit(AI_RATE_PER_HOUR)
+def ai_diet_plan(request: Request, req: AIRequest, user: UserDB = Depends(get_current_user)):
     with Session(engine) as session:
         kcal = user.calories_target or calc_calories(user)
         protein = user.protein_target or calc_protein(user)
@@ -2514,7 +2723,9 @@ def ai_diet_plan(req: AIRequest, user: UserDB = Depends(get_current_user)):
 
 
 @app.post("/ai/workout", tags=["ai"])
-def ai_workout_plan(req: AIRequest, user: UserDB = Depends(get_current_user)):
+@limiter.limit(AI_RATE_PER_MINUTE)
+@limiter.limit(AI_RATE_PER_HOUR)
+def ai_workout_plan(request: Request, req: AIRequest, user: UserDB = Depends(get_current_user)):
     with Session(engine) as session:
         logs = list(session.exec(
             select(DailyLogDB).where(DailyLogDB.user_id == user.id).order_by(DailyLogDB.log_date.desc())
@@ -2556,7 +2767,9 @@ def ai_workout_plan(req: AIRequest, user: UserDB = Depends(get_current_user)):
 
 
 @app.post("/ai/analyze-log", tags=["ai"])
-def ai_analyze_log(req: AIRequest, user: UserDB = Depends(get_current_user)):
+@limiter.limit(AI_RATE_PER_MINUTE)
+@limiter.limit(AI_RATE_PER_HOUR)
+def ai_analyze_log(request: Request, req: AIRequest, user: UserDB = Depends(get_current_user)):
     with Session(engine) as session:
         today = date.today().isoformat()
         today_log = session.exec(
@@ -2588,7 +2801,9 @@ def ai_analyze_log(req: AIRequest, user: UserDB = Depends(get_current_user)):
 
 
 @app.post("/ai/weekly", tags=["ai"])
-def ai_weekly_summary(req: AIRequest, user: UserDB = Depends(get_current_user)):
+@limiter.limit(AI_RATE_PER_MINUTE)
+@limiter.limit(AI_RATE_PER_HOUR)
+def ai_weekly_summary(request: Request, req: AIRequest, user: UserDB = Depends(get_current_user)):
     with Session(engine) as session:
         logs = list(session.exec(
             select(DailyLogDB).where(DailyLogDB.user_id == user.id).order_by(DailyLogDB.log_date.desc())
@@ -2703,7 +2918,9 @@ Zasady odpowiedzi:
 
 
 @app.post("/app/fridge-chef", tags=["ai_chef"])
-def app_fridge_chef(req: FridgeChefRequest, user: UserDB = Depends(get_current_user)):
+@limiter.limit(AI_RATE_PER_MINUTE)
+@limiter.limit(AI_RATE_PER_HOUR)
+def app_fridge_chef(request: Request, req: FridgeChefRequest, user: UserDB = Depends(get_current_user)):
     """
     Na podstawie listy składników z lodówki generuje 1 optymalny przepis
     dopasowany do celu i limitu kalorycznego użytkownika.
@@ -2759,7 +2976,9 @@ def app_fridge_chef(req: FridgeChefRequest, user: UserDB = Depends(get_current_u
 
 
 @app.get("/app/meal-prep-plan", tags=["ai_chef"])
-def app_meal_prep_plan(days: int = 3, extra_context: Optional[str] = None, user: UserDB = Depends(get_current_user)):
+@limiter.limit(AI_RATE_PER_MINUTE)
+@limiter.limit(AI_RATE_PER_HOUR)
+def app_meal_prep_plan(request: Request, days: int = 3, extra_context: Optional[str] = None, user: UserDB = Depends(get_current_user)):
     """
     Analizuje wygenerowany plan posiłków użytkownika na N dni
     i zwraca zbiorczą listę zakupów + harmonogram batch-cooking.
@@ -2778,7 +2997,7 @@ def app_meal_prep_plan(days: int = 3, extra_context: Optional[str] = None, user:
         if user.weekly_plan_json:
             try:
                 weekly_plan = json.loads(user.weekly_plan_json)
-            except (json.JSONDecodeError, TypeError):
+            except (json.JSONDecodeError, TypeError, ValueError):
                 weekly_plan = {}
 
         # Spróbuj też wyciągnąć plan z najnowszych logów diety (DailyLogDB.food)
@@ -3029,7 +3248,7 @@ def get_version():
     try:
         with open("package.json", "r") as f:
             version = json.load(f).get("version", "2.0.0")
-    except Exception:
+    except (FileNotFoundError, json.JSONDecodeError, KeyError):
         version = "2.0.0"
     return {"version": version, "build_date": datetime.now().strftime("%Y-%m-%d"), "api_version": "2.0.0"}
 

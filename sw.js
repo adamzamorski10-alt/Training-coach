@@ -1,9 +1,9 @@
 /**
- * FitAI — Service Worker v3.0
+ * FitAI — Service Worker v3.2.0
  * ─────────────────────────────────────────────────────────────────────────────
  * Strategie cachowania:
  *   • HTML (nawigacja)        → Network-First + fallback do cache
- *   • API JSON /app/* dane    → Network-First + fallback do cache
+ *   • API JSON /app/* dane    → Network-First (timeout 4 s) + fallback do cache
  *   • AI / export endpointy   → Network-Only (nigdy nie cache'uj)
  *   • Fonty / CDN scripts     → Cache-First + Stale-While-Revalidate w tle
  *   • Obrazki / ikony         → Cache-First + inteligentny fallback
@@ -13,10 +13,20 @@
  *   • clients.claim() w activate → przejmuje wszystkie otwarte karty
  *   • postMessage SW_UPDATED    → index.html pokazuje toast "Nowa wersja"
  *   • Zmień CACHE_VERSION przy każdym deploymencie
+ *
+ * Zmiany v3.1.0 → v3.2.0:
+ *   • networkFirstJSON: dodany timeout 4 s (zapobiega zamrożeniu UI na LTE)
+ *   • networkFirstJSON: naprawiony non-OK passthrough (401/403 dociera do UI)
+ *   • networkFirstJSON: X-Cache-Age header (ile sekund ma cachedResponse)
+ *   • jsonOfflineResponse: przyjmuje parametr reason (timeout/error/no-cache)
+ *   • SHELL_ASSETS: dodano lucide-icons, animate.css, favicon, ikony PWA
+ *   • message:FORCE_UPDATE: nowy typ — czyści cache + skipWaiting atomowo
+ *   • message:CACHE_STATUS: nowy typ — zwraca diagnostykę bucketów cache
+ *   • message:CLEAR_CACHE: rozszerzony o selektywne czyszczenie bucketów
  */
 
 // ── Wersja — zmień przy każdym deploymencie ───────────────────────────────────
-const CACHE_VERSION = 'fitai-v3.1.0';
+const CACHE_VERSION = 'fitai-v3.2.0';
 
 // ── Nazwy bucketów cache ───────────────────────────────────────────────────────
 const CACHE = {
@@ -27,14 +37,58 @@ const CACHE = {
 const KNOWN_CACHES = new Set(Object.values(CACHE));
 
 // ── App Shell — pre-cache przy instalacji ──────────────────────────────────────
+//
+// AUDYT CDN (v3.1.0 → v3.2.0):
+//   Dodane brakujące zasoby, których brak powoduje "rozsypanie" UI offline:
+//   ✅ lucide-icons      — ikony używane w całym interfejsie
+//   ✅ animate.css       — animacje kart i modali
+//   ✅ favicon.ico       — bez niego przeglądarka robi dodatkowy request przy starcie
+//   ✅ ./icons/icon-192  — wymagany przez manifest jako PWA launcher icon
+//   ✅ ./icons/icon-512  — wymagany przez Chromium do instalacji PWA
+//   ✅ Google Fonts CSS  — zachowany; font-display:swap gwarantuje fallback systemowy
+//   ✅ Tailwind CDN      — zachowany z ostrzeżeniem: cdn.tailwindcss.com
+//                          jest narzędziem deweloperskim; produkcja wymaga
+//                          zbudowanego pliku CSS (np. tailwind.min.css)
+//   ✅ Chart.js 4.4.3    — zachowany
+//   ✅ jsPDF 2.5.1       — zachowany
+//
+// Uwaga o CORS dla CDN:
+//   Zasoby cross-origin muszą mieć CORS (Access-Control-Allow-Origin: *)
+//   żeby trafić do cache z credentials. Większość publicznych CDN to spełnia.
+//   cdn.tailwindcss.com MOŻE nie wysyłać CORS → fallback do opaque (pomijany).
 const SHELL_ASSETS = [
+  // ── Lokalne ──────────────────────────────────────────────────────────────
   './',
   './index.html',
   './manifest.json',
+  './favicon.ico',
+  './icons/icon-72.png',
+  './icons/icon-96.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+
+  // ── Google Fonts (CSS + preconnect) ─────────────────────────────────────
   'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap',
+  // Uwaga: fonty .woff2 są pobierane lazily przez przeglądarkę — SW cache'uje je
+  // automatycznie przez cacheFirstWithRevalidate gdy zostaną pierwszy raz użyte.
+
+  // ── Tailwind CSS ─────────────────────────────────────────────────────────
+  // ⚠ cdn.tailwindcss.com to CDN deweloperski (ładuje ~350 KB + runtime JS).
+  //   W produkcji zastąp poniższe statycznie zbudowanym plikiem CSS.
   'https://cdn.tailwindcss.com',
+
+  // ── Chart.js ─────────────────────────────────────────────────────────────
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js',
+
+  // ── jsPDF — generowanie PDF offline ─────────────────────────────────────
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+
+  // ── Lucide Icons — ikony używane w UI ────────────────────────────────────
+  // Wersja UMD (pojedynczy plik JS) — działa bez bundlera
+  'https://unpkg.com/lucide@latest/dist/umd/lucide.min.js',
+
+  // ── Animate.css — animacje kart, modali, toastów ─────────────────────────
+  'https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css',
 ];
 
 // ── API: Network-First + cache (dane z planem, profilem, statystykami) ─────────
@@ -183,32 +237,74 @@ async function networkOnly(request) {
 }
 
 /**
- * Network-First dla JSON API.
- * Sukces → zapisz do CACHE.api.
- * Błąd sieciowy → zwróć z cache z nagłówkiem X-Served-From.
+ * Network-First dla JSON API z timeoutem.
+ *
+ * Naprawione błędy względem v3.0:
+ *   1. TIMEOUT RACE (4 s) — na słabym LTE nie czekamy w nieskończoność;
+ *      po 4 s wygrywamy cache zamiast zawiesić interfejs.
+ *   2. NON-OK PASSTHROUGH — odpowiedzi 4xx/5xx też wracają do aplikacji
+ *      (błąd 401 musi dotrzeć do index.html, żeby przekierować na login).
+ *   3. OPAQUE RESPONSES — zasoby cross-origin z no-cors nie trafiają do cache
+ *      (nie możemy sprawdzić .ok, więc pomijamy opaque zamiast cache'ować 0-byte).
+ *   4. CACHE-HIT HEADERS — X-Served-From i X-Cache-Age informują UI o źródle.
  */
 async function networkFirstJSON(request) {
   const cache = await caches.open(CACHE.api);
-  try {
-    const response = await fetch(request);
-    if (response.ok) {
-      cache.put(request, response.clone()); // async, nie blokuje
-    }
-    return response;
-  } catch {
+
+  // Pomocnik: zwróć cachedResponse z nagłówkami diagnostycznymi
+  async function serveCached(reason) {
     const cached = await cache.match(request);
-    if (cached) {
-      const headers = new Headers(cached.headers);
-      headers.set('X-Served-From', 'sw-cache');
-      headers.set('X-Cache-Version', CACHE_VERSION);
-      return new Response(cached.body, {
-        status:     cached.status,
-        statusText: cached.statusText,
-        headers,
-      });
+    if (!cached) return jsonOfflineResponse(reason);
+
+    const headers = new Headers(cached.headers);
+    headers.set('X-Served-From', 'sw-cache');
+    headers.set('X-Cache-Version', CACHE_VERSION);
+    headers.set('X-Cache-Reason', reason);
+
+    // Oblicz wiek cachedResponse jeśli Date jest dostępny
+    const dateStr = cached.headers.get('Date');
+    if (dateStr) {
+      const ageSeconds = Math.round((Date.now() - new Date(dateStr).getTime()) / 1000);
+      headers.set('X-Cache-Age', String(ageSeconds));
     }
-    return jsonOfflineResponse();
+
+    return new Response(cached.body, {
+      status:     cached.status,
+      statusText: cached.statusText,
+      headers,
+    });
   }
+
+  // Race: fetch vs 4-sekundowy timeout → użytkownik zawsze dostaje odpowiedź
+  const NETWORK_TIMEOUT_MS = 4000;
+  const timeoutPromise = new Promise(resolve =>
+    setTimeout(() => resolve(null), NETWORK_TIMEOUT_MS)
+  );
+
+  let response;
+  try {
+    response = await Promise.race([fetch(request), timeoutPromise]);
+  } catch {
+    // Błąd sieciowy (np. offline, DNS failure)
+    return serveCached('network-error');
+  }
+
+  // Timeout wygrał — serwuj cache ze wskazówką dla UI
+  if (response === null) {
+    console.warn(`[SW] Timeout ${NETWORK_TIMEOUT_MS}ms dla ${request.url} — serwuję z cache`);
+    return serveCached('network-timeout');
+  }
+
+  // Opaque response (cross-origin no-cors) — nie cache'uj, zwróć jak jest
+  if (response.type === 'opaque') return response;
+
+  // Odpowiedzi 4xx/5xx muszą dotrzeć do aplikacji (np. 401 → redirect do loginu)
+  // Cache'ujemy TYLKO 200 OK
+  if (response.ok) {
+    cache.put(request, response.clone()); // nie blokuje — fire-and-forget
+  }
+
+  return response;
 }
 
 /**
@@ -318,18 +414,20 @@ async function fetchAndCache(url, cache) {
   return null;
 }
 
-function jsonOfflineResponse() {
+function jsonOfflineResponse(reason = 'offline') {
   return new Response(
     JSON.stringify({
       error:       'offline',
       detail:      'Brak połączenia. Ostatnie znane dane z cache.',
       served_from: 'sw-offline-fallback',
+      reason,
     }),
     {
       status:  503,
       headers: {
         'Content-Type': 'application/json',
         'X-Served-From': 'sw-offline-fallback',
+        'X-Cache-Reason': reason,
       },
     }
   );
@@ -492,28 +590,119 @@ self.addEventListener('notificationclick', event => {
 // ══════════════════════════════════════════════════════════════════════════════
 //  WIADOMOŚCI OD KLIENTÓW (index.html → SW)
 // ══════════════════════════════════════════════════════════════════════════════
+//
+// Obsługiwane typy wiadomości:
+//
+//  ┌─────────────────┬──────────────────────────────────────────────────────┐
+//  │ SKIP_WAITING    │ Natychmiastowa aktywacja nowego SW (bez reloadu karty)│
+//  │ FORCE_UPDATE    │ Usuń WSZYSTKIE cache, aktywuj SW, przeładuj stronę   │
+//  │ GET_VERSION     │ Zwróć aktualną wersję SW                             │
+//  │ CACHE_STATUS    │ Zwróć listę bucketów cache i ich rozmiary            │
+//  │ CLEAR_CACHE     │ Wyczyść wybrane lub wszystkie buckety cache FitAI    │
+//  └─────────────────┴──────────────────────────────────────────────────────┘
 self.addEventListener('message', event => {
-  const { type } = event.data ?? {};
+  const { type, payload } = event.data ?? {};
 
-  // index.html prosi o natychmiastową aktywację (przycisk "Zaktualizuj teraz")
+  // ── SKIP_WAITING ───────────────────────────────────────────────────────────
+  // index.html prosi o natychmiastową aktywację (przycisk "Zaktualizuj teraz").
+  // Nie usuwa cache — to robi activate automatycznie (stale filter).
   if (type === 'SKIP_WAITING') {
     console.log('[SW] SKIP_WAITING → skipWaiting()');
     self.skipWaiting();
     return;
   }
 
-  // Zwróć aktualną wersję SW
-  if (type === 'GET_VERSION') {
-    event.source?.postMessage({ type: 'SW_VERSION', version: CACHE_VERSION });
+  // ── FORCE_UPDATE ───────────────────────────────────────────────────────────
+  // Wymuś pełną aktualizację: usuń WSZYSTKIE cache tej aplikacji, aktywuj
+  // nowego SW, a po aktywacji powiadom klientów żeby przeładowali stronę.
+  //
+  // Kiedy używać: gdy użytkownik klika "Zaktualizuj i wyczyść" w ustawieniach,
+  // lub gdy doszło do błędu cache corruption i dane się "rozsypały".
+  //
+  // Sekwencja:
+  //   1. Usuń wszystkie buckety fitai-*
+  //   2. skipWaiting() → nowy SW wchodzi jako active
+  //   3. Po activate (clients.claim) → SW wyśle SW_UPDATED do klientów
+  //   4. Klienci przeładowują stronę → nowy shell pobierany ze świeżej sieci
+  if (type === 'FORCE_UPDATE') {
+    console.log('[SW] FORCE_UPDATE — czyszczę cache i aktywuję nową wersję');
+    event.waitUntil((async () => {
+      // 1. Wyczyść wszystkie fitai-* buckety (w tym stary shell i api cache)
+      const allKeys = await caches.keys();
+      const fitaiKeys = allKeys.filter(k => k.startsWith('fitai-'));
+      await Promise.all(fitaiKeys.map(k => caches.delete(k)));
+      console.log(`[SW] FORCE_UPDATE: usunięto ${fitaiKeys.length} bucketów cache`);
+
+      // 2. Potwierdzenie do wywołującego klienta (przed skipWaiting)
+      event.source?.postMessage({
+        type:          'FORCE_UPDATE_ACK',
+        deleted_caches: fitaiKeys,
+        version:       CACHE_VERSION,
+        timestamp:     Date.now(),
+      });
+
+      // 3. Aktywuj nowy SW — activate wyśle SW_UPDATED do wszystkich klientów
+      await self.skipWaiting();
+    })());
     return;
   }
 
-  // Ręczne czyszczenie wszystkich cache (przycisk "Wyczyść dane")
+  // ── GET_VERSION ────────────────────────────────────────────────────────────
+  if (type === 'GET_VERSION') {
+    event.source?.postMessage({
+      type:      'SW_VERSION',
+      version:   CACHE_VERSION,
+      timestamp: Date.now(),
+    });
+    return;
+  }
+
+  // ── CACHE_STATUS ───────────────────────────────────────────────────────────
+  // Zwraca listę aktywnych bucketów cache z liczbą wpisów.
+  // UI może wyświetlić panel diagnostyczny "ile danych mam offline".
+  if (type === 'CACHE_STATUS') {
+    event.waitUntil((async () => {
+      const allKeys = await caches.keys();
+      const buckets = await Promise.all(
+        allKeys
+          .filter(k => k.startsWith('fitai-'))
+          .map(async (k) => {
+            const c = await caches.open(k);
+            const entries = await c.keys();
+            return { name: k, entries: entries.length };
+          })
+      );
+      event.source?.postMessage({
+        type:      'CACHE_STATUS_RESULT',
+        buckets,
+        version:   CACHE_VERSION,
+        timestamp: Date.now(),
+      });
+    })());
+    return;
+  }
+
+  // ── CLEAR_CACHE ────────────────────────────────────────────────────────────
+  // payload.buckets: string[] — konkretne nazwy bucketów do wyczyszczenia.
+  // Brak payload → czyści WSZYSTKIE fitai-* buckety.
   if (type === 'CLEAR_CACHE') {
-    caches.keys()
-      .then(keys => Promise.all(
-        keys.filter(k => k.startsWith('fitai-')).map(k => caches.delete(k))
-      ))
-      .then(() => event.source?.postMessage({ type: 'CACHE_CLEARED' }));
+    event.waitUntil((async () => {
+      const allKeys = await caches.keys();
+      const fitaiKeys = allKeys.filter(k => k.startsWith('fitai-'));
+
+      // Jeśli podano konkretne buckety — czyść tylko je; w przeciwnym razie wszystkie
+      const targetKeys = Array.isArray(payload?.buckets)
+        ? fitaiKeys.filter(k => payload.buckets.includes(k))
+        : fitaiKeys;
+
+      await Promise.all(targetKeys.map(k => caches.delete(k)));
+
+      event.source?.postMessage({
+        type:           'CACHE_CLEARED',
+        deleted_caches: targetKeys,
+        timestamp:      Date.now(),
+      });
+    })());
+    return;
   }
 });
