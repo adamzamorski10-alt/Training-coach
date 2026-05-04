@@ -2937,23 +2937,75 @@ function refreshExercisesForSlider(count) {
   trainingContainer.style.opacity = '0';
   trainingContainer.style.transform = 'translateY(8px)';
 
-  trainingContainer.innerHTML = exercises.map((e, idx) => {
-    if (e.hidden) return '<div class="p-3 rounded-xl text-xs text-gray-600 italic">🚫 ' + e.name + ' — ukryto</div>';
+  // ── Secure training card rendering ─────────────────────────────────────────
+  trainingContainer.innerHTML = '';
+  const MUSCLE_COLORS = {klatka:'#00e5ff',plecy:'#7c3aed',nogi:'#f59e0b',ramiona:'#10b981',kardio:'#ef4444',core:'#8b5cf6',brzuch:'#8b5cf6',biceps:'#06b6d4',triceps:'#6366f1'};
+  exercises.forEach((e, idx) => {
+    if (e.hidden) {
+      const hd = document.createElement('div');
+      hd.className = 'p-3 rounded-xl text-xs text-gray-600 italic';
+      hd.textContent = '🚫 ' + e.name + ' — ukryto';
+      trainingContainer.appendChild(hd);
+      return;
+    }
     const isDone = !!checked['ex_'+idx];
     const meta = [e.sets > 0 ? e.sets + ' serii' : '', e.reps > 1 ? e.reps + ' powt.' : '', e.weight > 0 ? e.weight + 'kg' : 'BW'].filter(Boolean).join(' · ');
-    const muscleColor = {klatka:'#00e5ff', plecy:'#7c3aed', nogi:'#f59e0b', ramiona:'#10b981', kardio:'#ef4444', core:'#8b5cf6', brzuch:'#8b5cf6', biceps:'#06b6d4', triceps:'#6366f1'}[e.muscles?.split(',')[0]?.trim()] || '#64748b';
-    return '<div class="glass rounded-xl p-4 cursor-pointer hover:border-cyan-500/30 transition-all ' + (isDone ? 'opacity-50' : '') + '" style="animation:slideUp 0.3s ease both;animation-delay:' + (idx * 0.05) + 's" onclick="openExpandByIndex(&quot;training&quot;,' + idx + ')">'
-      + '<div class="flex items-start gap-3">'
-      + '<div class="check-circle flex-shrink-0 mt-0.5 ' + (isDone ? 'checked' : '') + '" onclick="event.stopPropagation();togglePlanCheck(&#39;ex_' + idx + '&#39;,&#39;' + p.id + '&#39;,&#39;' + day + '&#39;)"></div>'
-      + '<div class="flex-1 min-w-0">'
-      + '<div class="flex items-start justify-between gap-2 mb-1">'
-      + '<p class="font-semibold text-white text-sm leading-tight ' + (isDone ? 'line-through text-gray-500' : '') + '">' + (idx + 1) + '. ' + e.name + '</p>'
-      + '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style="background:' + muscleColor + '22;color:' + muscleColor + ';border:1px solid ' + muscleColor + '44;">' + (e.muscles?.split(',')[0] || '—') + '</span>'
-      + '</div>'
-      + '<p class="text-xs text-gray-500">' + meta + '</p>'
-      + (e.tags?.length ? '<div class="flex gap-1 mt-1.5">' + e.tags.map(t => '<span class="text-[9px] bg-white/5 px-1.5 py-0.5 rounded text-gray-600">#' + t + '</span>').join('') + '</div>' : '')
-      + '</div></div></div>';
-  }).join('');
+    const primaryMuscle = (e.muscles || '').split(',')[0].trim();
+    const muscleColor = MUSCLE_COLORS[primaryMuscle] || '#64748b';
+
+    const card = document.createElement('div');
+    card.className = 'glass rounded-xl p-4 cursor-pointer hover:border-cyan-500/30 transition-all' + (isDone ? ' opacity-50' : '');
+    card.style.cssText = 'animation:slideUp 0.3s ease both;animation-delay:' + (idx * 0.05) + 's';
+    card.addEventListener('click', (function(i){ return function(){ openExpandByIndex('training', i); }; })(idx));
+
+    const row = document.createElement('div');
+    row.className = 'flex items-start gap-3';
+
+    const chk = document.createElement('div');
+    chk.className = 'check-circle flex-shrink-0 mt-0.5' + (isDone ? ' checked' : '');
+    chk.addEventListener('click', (function(i,pid,d){ return function(ev){ ev.stopPropagation(); togglePlanCheck('ex_'+i, pid, d); }; })(idx, String(p.id), day));
+
+    const inner = document.createElement('div');
+    inner.className = 'flex-1 min-w-0';
+
+    // Name row + muscle badge
+    const nameRow = document.createElement('div');
+    nameRow.className = 'flex items-start justify-between gap-2 mb-1';
+    const nameEl = document.createElement('p');
+    nameEl.className = 'font-semibold text-white text-sm leading-tight' + (isDone ? ' line-through text-gray-500' : '');
+    nameEl.textContent = (idx + 1) + '. ' + e.name;   // textContent — safe
+    const muscleBadge = document.createElement('span');
+    muscleBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0';
+    muscleBadge.style.cssText = 'background:' + muscleColor + '22;color:' + muscleColor + ';border:1px solid ' + muscleColor + '44;';
+    muscleBadge.textContent = primaryMuscle || '—';    // textContent — safe
+    nameRow.appendChild(nameEl);
+    nameRow.appendChild(muscleBadge);
+
+    const metaEl = document.createElement('p');
+    metaEl.className = 'text-xs text-gray-500';
+    metaEl.textContent = meta;
+
+    inner.appendChild(nameRow);
+    inner.appendChild(metaEl);
+
+    // Tags
+    if (e.tags && e.tags.length) {
+      const tagsDiv = document.createElement('div');
+      tagsDiv.className = 'flex gap-1 mt-1.5';
+      e.tags.forEach(t => {
+        const tspan = document.createElement('span');
+        tspan.className = 'text-[9px] bg-white/5 px-1.5 py-0.5 rounded text-gray-600';
+        tspan.textContent = '#' + t;               // textContent — safe
+        tagsDiv.appendChild(tspan);
+      });
+      inner.appendChild(tagsDiv);
+    }
+
+    row.appendChild(chk);
+    row.appendChild(inner);
+    card.appendChild(row);
+    trainingContainer.appendChild(card);
+  });
 
   // Fade in
   requestAnimationFrame(() => {
@@ -3278,23 +3330,72 @@ function loadPlanForDay() {
     const effectiveChecked = isToday
       ? (state.dayChecked[_todayCheckedKey(p.id)] || {})
       : checked;
-    dietContainer.innerHTML = meals.length ? meals.map((m, idx) => {
-      if (m.hidden) return `<div class="p-3 rounded-xl text-xs text-gray-600 bg-white/2 border border-white/5 italic flex items-center gap-2"><span>🚫</span> ${m.name} — ukryto (wykluczenie)</div>`;
-      const isDone = !!effectiveChecked['meal_'+idx];
-      return `<div class="glass rounded-xl p-4 cursor-pointer hover:border-cyan-500/30 transition-all ${isDone?'meal-eaten':''}" onclick="openExpandByIndex('diet',${idx})">
-        <div class="flex justify-between items-start mb-2">
-          <div class="flex items-center gap-2">
-            <div class="check-circle ${isDone?'checked':''}" onclick="event.stopPropagation();togglePlanCheck('meal_${idx}','${p.id}','${day}')"></div>
-            <p class="font-medium text-white text-sm meal-name-text ${isDone?'line-through text-gray-500':''}">${m.name}</p>
-          </div>
-          <div class="flex items-center gap-2">
-            ${isDone ? '<span class="meal-eaten-badge">✓ Zjedzone</span>' : ''}
-            <span class="text-xs bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded">${m.kcal} kcal</span>
-          </div>
-        </div>
-        <div class="flex gap-3 text-xs text-gray-500 pl-7"><span>P: ${m.protein}g</span><span>W: ${m.carbs}g</span><span>T: ${m.fat}g</span></div>
-      </div>`;
-    }).join('') : '<p class="text-sm text-gray-600 italic text-center py-4">Brak zaplanowanych posiłków</p>';
+    // ── Secure meal rendering — no innerHTML with user/API data ────────────────
+    dietContainer.innerHTML = '';
+    if (!meals.length) {
+      dietContainer.appendChild(safePara('text-sm text-gray-600 italic text-center py-4', 'Brak zaplanowanych posiłków'));
+    } else {
+      meals.forEach((m, idx) => {
+        if (m.hidden) {
+          const hd = document.createElement('div');
+          hd.className = 'p-3 rounded-xl text-xs text-gray-600 bg-white/2 border border-white/5 italic flex items-center gap-2';
+          hd.appendChild(document.createTextNode('🚫 '));
+          const hn = document.createElement('span');
+          hn.textContent = m.name + ' — ukryto (wykluczenie)';
+          hd.appendChild(hn);
+          dietContainer.appendChild(hd);
+          return;
+        }
+        const isDone = !!effectiveChecked['meal_'+idx];
+        const card = document.createElement('div');
+        card.className = 'glass rounded-xl p-4 cursor-pointer hover:border-cyan-500/30 transition-all' + (isDone ? ' meal-eaten' : '');
+        card.addEventListener('click', (function(i){ return function(){ openExpandByIndex('diet', i); }; })(idx));
+
+        // Row 1: check + name | badge + kcal
+        const row1 = document.createElement('div');
+        row1.className = 'flex justify-between items-start mb-2';
+
+        const leftDiv = document.createElement('div');
+        leftDiv.className = 'flex items-center gap-2';
+        const chk = document.createElement('div');
+        chk.className = 'check-circle' + (isDone ? ' checked' : '');
+        chk.addEventListener('click', (function(i,pid,d){ return function(ev){ ev.stopPropagation(); togglePlanCheck('meal_'+i, pid, d); }; })(idx, String(p.id), day));
+        const nameP = document.createElement('p');
+        nameP.className = 'font-medium text-white text-sm meal-name-text' + (isDone ? ' line-through text-gray-500' : '');
+        nameP.textContent = m.name;          // textContent — XSS-safe
+        leftDiv.appendChild(chk);
+        leftDiv.appendChild(nameP);
+
+        const rightDiv = document.createElement('div');
+        rightDiv.className = 'flex items-center gap-2';
+        if (isDone) {
+          const badge = document.createElement('span');
+          badge.className = 'meal-eaten-badge';
+          badge.textContent = '✓ Zjedzone';
+          rightDiv.appendChild(badge);
+        }
+        const kcalSpan = document.createElement('span');
+        kcalSpan.className = 'text-xs bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded';
+        kcalSpan.textContent = (m.kcal || 0) + ' kcal';
+        rightDiv.appendChild(kcalSpan);
+
+        row1.appendChild(leftDiv);
+        row1.appendChild(rightDiv);
+
+        // Row 2: macros
+        const macroDiv = document.createElement('div');
+        macroDiv.className = 'flex gap-3 text-xs text-gray-500 pl-7';
+        ['P: ' + (m.protein || 0) + 'g', 'W: ' + (m.carbs || 0) + 'g', 'T: ' + (m.fat || 0) + 'g'].forEach(t => {
+          const s = document.createElement('span');
+          s.textContent = t;
+          macroDiv.appendChild(s);
+        });
+
+        card.appendChild(row1);
+        card.appendChild(macroDiv);
+        dietContainer.appendChild(card);
+      });
+    }
   }
 
   if (state.planSubtab === 'training') {
@@ -3392,33 +3493,75 @@ function loadTodayPlanChecklist() {
     return;
   }
 
-  let html = '';
+  // ── Secure checklist rendering ──────────────────────────────────────────────
+  container.innerHTML = '';
   if (meals.length) {
-    html += '<p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">🍽️ Posiłki</p>';
-    html += meals.map((m, i) => {
+    const mLabel = document.createElement('p');
+    mLabel.className = 'text-xs font-bold text-gray-500 uppercase tracking-wider mb-3';
+    mLabel.textContent = '🍽️ Posiłki';
+    container.appendChild(mLabel);
+    meals.forEach((m, i) => {
       const isDone = !!checked['meal_'+i];
-      return '<div class="checklist-item flex items-center gap-3 glass rounded-xl p-3 mb-2 transition-all ' + (isDone?'done':'') + '">'
-        + '<div class="check-circle flex-shrink-0 ' + (isDone?'checked':'') + '" onclick="toggleCheckAndRefresh(\u0027meal_' + i + '\u0027,\u0027' + p.id + '\u0027,\u0027' + day + '\u0027)"></div>'
-        + '<div class="flex-1 min-w-0"><p class="text-sm font-medium text-white item-name truncate">' + m.name + '</p>'
-        + '<p class="text-xs text-gray-500 mt-0.5">' + m.kcal + ' kcal · P:' + m.protein + 'g · W:' + m.carbs + 'g · T:' + m.fat + 'g</p></div>'
-        + (isDone ? '<span class="text-xs text-cyan-400 font-bold flex-shrink-0">✓</span>' : '')
-        + '</div>';
-    }).join('');
+      const item = document.createElement('div');
+      item.className = 'checklist-item flex items-center gap-3 glass rounded-xl p-3 mb-2 transition-all' + (isDone ? ' done' : '');
+      const chk = document.createElement('div');
+      chk.className = 'check-circle flex-shrink-0' + (isDone ? ' checked' : '');
+      chk.addEventListener('click', (function(k,pid,d){ return function(){ toggleCheckAndRefresh(k, pid, d); }; })('meal_'+i, String(p.id), day));
+      const info = document.createElement('div');
+      info.className = 'flex-1 min-w-0';
+      const nameP = document.createElement('p');
+      nameP.className = 'text-sm font-medium text-white item-name truncate';
+      nameP.textContent = m.name;         // textContent — safe
+      const macroP = document.createElement('p');
+      macroP.className = 'text-xs text-gray-500 mt-0.5';
+      macroP.textContent = (m.kcal || 0) + ' kcal · P:' + (m.protein||0) + 'g · W:' + (m.carbs||0) + 'g · T:' + (m.fat||0) + 'g';
+      info.appendChild(nameP);
+      info.appendChild(macroP);
+      item.appendChild(chk);
+      item.appendChild(info);
+      if (isDone) {
+        const tick = document.createElement('span');
+        tick.className = 'text-xs text-cyan-400 font-bold flex-shrink-0';
+        tick.textContent = '✓';
+        item.appendChild(tick);
+      }
+      container.appendChild(item);
+    });
   }
   if (exercises.length) {
-    html += '<p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 mt-5">💪 Trening</p>';
-    html += exercises.map((e, i) => {
+    const eLabel = document.createElement('p');
+    eLabel.className = 'text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 mt-5';
+    eLabel.textContent = '💪 Trening';
+    container.appendChild(eLabel);
+    exercises.forEach((e, i) => {
       const isDone = !!checked['ex_'+i];
       const meta = [e.sets?e.sets+' sety':'', e.reps>1?e.reps+' powt.':'', e.weight>0?e.weight+'kg':''].filter(Boolean).join(' · ');
-      return '<div class="checklist-item flex items-center gap-3 glass rounded-xl p-3 mb-2 transition-all ' + (isDone?'done':'') + '">'
-        + '<div class="check-circle flex-shrink-0 ' + (isDone?'checked':'') + '" onclick="toggleCheckAndRefresh(\u0027ex_' + i + '\u0027,\u0027' + p.id + '\u0027,\u0027' + day + '\u0027)"></div>'
-        + '<div class="flex-1 min-w-0"><p class="text-sm font-medium text-white item-name">' + e.name + '</p>'
-        + '<p class="text-xs text-gray-500 mt-0.5">' + (meta||'Własne tempo') + '</p></div>'
-        + (isDone ? '<span class="text-xs text-cyan-400 font-bold flex-shrink-0">✓</span>' : '')
-        + '</div>';
-    }).join('');
+      const item = document.createElement('div');
+      item.className = 'checklist-item flex items-center gap-3 glass rounded-xl p-3 mb-2 transition-all' + (isDone ? ' done' : '');
+      const chk = document.createElement('div');
+      chk.className = 'check-circle flex-shrink-0' + (isDone ? ' checked' : '');
+      chk.addEventListener('click', (function(k,pid,d){ return function(){ toggleCheckAndRefresh(k, pid, d); }; })('ex_'+i, String(p.id), day));
+      const info = document.createElement('div');
+      info.className = 'flex-1 min-w-0';
+      const nameP = document.createElement('p');
+      nameP.className = 'text-sm font-medium text-white item-name';
+      nameP.textContent = e.name;         // textContent — safe
+      const metaP = document.createElement('p');
+      metaP.className = 'text-xs text-gray-500 mt-0.5';
+      metaP.textContent = meta || 'Własne tempo';
+      info.appendChild(nameP);
+      info.appendChild(metaP);
+      item.appendChild(chk);
+      item.appendChild(info);
+      if (isDone) {
+        const tick = document.createElement('span');
+        tick.className = 'text-xs text-cyan-400 font-bold flex-shrink-0';
+        tick.textContent = '✓';
+        item.appendChild(tick);
+      }
+      container.appendChild(item);
+    });
   }
-  container.innerHTML = html;
   updateDayProgress();
   updateDaySummaryCounters();
 }
@@ -3510,32 +3653,126 @@ function openExpandModal(type, itemId, name, data) {
   state.expandedItem = {type, itemId, name, data};
   const content = document.getElementById('expandContent');
   
-  if (type==='diet' && data) {
-    const alternatives = getAlternatives('diet', data);
-    content.innerHTML = `
-      <div class="grid grid-cols-4 gap-3 text-center">
-        <div class="glass rounded-xl p-3"><p class="text-xs text-gray-500 mb-1">Kalorie</p><p class="text-xl font-bold text-white" style="font-family:'Syne',sans-serif;">${data.kcal||'—'}</p><p class="text-xs text-gray-600">kcal</p></div>
-        <div class="glass rounded-xl p-3"><p class="text-xs text-gray-500 mb-1">Białko</p><p class="text-xl font-bold text-cyan-400" style="font-family:'Syne',sans-serif;">${data.protein||0}g</p></div>
-        <div class="glass rounded-xl p-3"><p class="text-xs text-gray-500 mb-1">Węgle</p><p class="text-xl font-bold text-yellow-400" style="font-family:'Syne',sans-serif;">${data.carbs||0}g</p></div>
-        <div class="glass rounded-xl p-3"><p class="text-xs text-gray-500 mb-1">Tłuszcz</p><p class="text-xl font-bold text-orange-400" style="font-family:'Syne',sans-serif;">${data.fat||0}g</p></div>
-      </div>
-      ${(data.ingredients||[]).length ? `<div><h6 class="text-sm font-bold text-white mb-2">📝 Składniki</h6><div class="space-y-1">${data.ingredients.map(ing=>`<div class="flex justify-between text-sm"><span class="text-gray-300">${ing.item}</span><span class="text-cyan-400 font-medium">${ing.amount}</span></div>`).join('')}</div></div>` : ''}
-      ${data.recipe ? `<div><h6 class="text-sm font-bold text-white mb-2">👨‍🍳 Przepis</h6><p class="text-sm text-gray-400 leading-relaxed">${data.recipe}</p></div>` : ''}
-      <div><h6 class="text-sm font-bold text-white mb-2">Tagi</h6><div>${(data.tags||[]).map(t=>`<span class="chip text-xs">${t}</span>`).join('')||'Brak tagów'}</div></div>
-      <div id="alternativesSection"></div>
-    `;
-  } else if (type==='training' && data) {
-    content.innerHTML = `
-      <div class="grid grid-cols-3 gap-3 text-center">
-        <div class="glass rounded-xl p-3"><p class="text-xs text-gray-500 mb-1">Serie</p><p class="text-2xl font-bold text-cyan-400" style="font-family:'Syne',sans-serif;">${data.sets||'—'}</p></div>
-        <div class="glass rounded-xl p-3"><p class="text-xs text-gray-500 mb-1">Powtórzenia</p><p class="text-2xl font-bold text-violet-400" style="font-family:'Syne',sans-serif;">${data.reps||'—'}</p></div>
-        <div class="glass rounded-xl p-3"><p class="text-xs text-gray-500 mb-1">Ciężar</p><p class="text-2xl font-bold text-yellow-400" style="font-family:'Syne',sans-serif;">${data.weight>0?data.weight+'kg':'BW'}</p></div>
-      </div>
-      <div><h6 class="text-sm font-bold text-white mb-2">Mięśnie</h6><p class="text-sm text-gray-400">${data.muscles||'—'}</p></div>
-      ${data.desc ? `<div><h6 class="text-sm font-bold text-white mb-2">🎯 Technika</h6><p class="text-sm text-gray-400 leading-relaxed">${data.desc}</p></div>` : ''}
-      <div id="alternativesSection"></div>
-    `;
+  // ── Secure expand modal — no innerHTML with API data ────────────────────────
+  content.innerHTML = '';
+
+  function _makeStatCard(label, value, color) {
+    const d = document.createElement('div');
+    d.className = 'glass rounded-xl p-3 text-center';
+    const lp = document.createElement('p');
+    lp.className = 'text-xs text-gray-500 mb-1';
+    lp.textContent = label;
+    const vp = document.createElement('p');
+    vp.className = 'text-xl font-bold';
+    vp.style.fontFamily = 'Syne, sans-serif';
+    if (color) vp.style.color = color;
+    vp.textContent = String(value);
+    d.appendChild(lp);
+    d.appendChild(vp);
+    return d;
   }
+  function _makeSection(title) {
+    const d = document.createElement('div');
+    const h = document.createElement('h6');
+    h.className = 'text-sm font-bold text-white mb-2';
+    h.textContent = title;
+    d.appendChild(h);
+    return d;
+  }
+
+  if (type==='diet' && data) {
+    // Stats grid
+    const grid = document.createElement('div');
+    grid.className = 'grid grid-cols-4 gap-3 text-center';
+    grid.appendChild(_makeStatCard('Kalorie', data.kcal || '—', '#f1f5f9'));
+    grid.appendChild(_makeStatCard('Białko', (data.protein||0)+'g', '#00e5ff'));
+    grid.appendChild(_makeStatCard('Węgle', (data.carbs||0)+'g', '#fbbf24'));
+    grid.appendChild(_makeStatCard('Tłuszcz', (data.fat||0)+'g', '#fb923c'));
+    const kcalSub = grid.children[0].appendChild(document.createElement('p'));
+    kcalSub.className = 'text-xs text-gray-600';
+    kcalSub.textContent = 'kcal';
+    content.appendChild(grid);
+
+    // Ingredients
+    if ((data.ingredients||[]).length) {
+      const sec = _makeSection('📝 Składniki');
+      const ingDiv = document.createElement('div');
+      ingDiv.className = 'space-y-1';
+      data.ingredients.forEach(ing => {
+        const row = document.createElement('div');
+        row.className = 'flex justify-between text-sm';
+        const itemSpan = document.createElement('span');
+        itemSpan.className = 'text-gray-300';
+        itemSpan.textContent = ing.item;        // textContent — safe
+        const amtSpan = document.createElement('span');
+        amtSpan.className = 'text-cyan-400 font-medium';
+        amtSpan.textContent = ing.amount;       // textContent — safe
+        row.appendChild(itemSpan);
+        row.appendChild(amtSpan);
+        ingDiv.appendChild(row);
+      });
+      sec.appendChild(ingDiv);
+      content.appendChild(sec);
+    }
+
+    // Recipe
+    if (data.recipe) {
+      const sec = _makeSection('👨‍🍳 Przepis');
+      const rp = document.createElement('p');
+      rp.className = 'text-sm text-gray-400 leading-relaxed';
+      rp.textContent = data.recipe;             // textContent — safe
+      sec.appendChild(rp);
+      content.appendChild(sec);
+    }
+
+    // Tags
+    const tagSec = _makeSection('Tagi');
+    const tagDiv = document.createElement('div');
+    if ((data.tags||[]).length) {
+      data.tags.forEach(t => {
+        const chip = document.createElement('span');
+        chip.className = 'chip text-xs';
+        chip.textContent = t;                   // textContent — safe
+        tagDiv.appendChild(chip);
+      });
+    } else {
+      tagDiv.textContent = 'Brak tagów';
+    }
+    tagSec.appendChild(tagDiv);
+    content.appendChild(tagSec);
+
+  } else if (type==='training' && data) {
+    // Stats grid
+    const grid = document.createElement('div');
+    grid.className = 'grid grid-cols-3 gap-3 text-center';
+    grid.appendChild(_makeStatCard('Serie', data.sets||'—', '#00e5ff'));
+    grid.appendChild(_makeStatCard('Powtórzenia', data.reps||'—', '#a78bfa'));
+    grid.appendChild(_makeStatCard('Ciężar', data.weight>0 ? data.weight+'kg' : 'BW', '#fbbf24'));
+    content.appendChild(grid);
+
+    // Muscles
+    const muscleSec = _makeSection('Mięśnie');
+    const muscleP = document.createElement('p');
+    muscleP.className = 'text-sm text-gray-400';
+    muscleP.textContent = data.muscles || '—';  // textContent — safe
+    muscleSec.appendChild(muscleP);
+    content.appendChild(muscleSec);
+
+    // Technique / desc
+    if (data.desc) {
+      const sec = _makeSection('🎯 Technika');
+      const dp = document.createElement('p');
+      dp.className = 'text-sm text-gray-400 leading-relaxed';
+      dp.textContent = data.desc;               // textContent — safe
+      sec.appendChild(dp);
+      content.appendChild(sec);
+    }
+  }
+
+  // Alternatives placeholder — always added, populated by swapItem()
+  const altDiv = document.createElement('div');
+  altDiv.id = 'alternativesSection';
+  content.appendChild(altDiv);
   modal.classList.remove('hidden');
 }
 
@@ -3561,29 +3798,62 @@ function swapItem() {
   const altSection = document.getElementById('alternativesSection');
   if (!altSection) return;
 
-  let html = '<div class="p-3 rounded-xl" style="background:rgba(0,229,255,0.05);border:1px solid var(--border-cyan);">'
-    + '<p class="text-xs font-bold text-cyan-400 mb-3">🔄 Alternatywy ' + (type==='diet'?'posiłku':'ćwiczenia') + ': ' + name + '</p>'
-    + '<div class="space-y-2">';
+  // ── Secure alternatives rendering ───────────────────────────────────────────
+  const altWrapper = document.createElement('div');
+  altWrapper.style.cssText = 'background:rgba(0,229,255,0.05);border:1px solid var(--border-cyan);border-radius:12px;padding:12px;';
+
+  const altTitle = document.createElement('p');
+  altTitle.className = 'text-xs font-bold text-cyan-400 mb-3';
+  altTitle.textContent = '🔄 Alternatywy ' + (type==='diet'?'posiłku':'ćwiczenia') + ': ' + name;
+  altWrapper.appendChild(altTitle);
+
+  const altList = document.createElement('div');
+  altList.className = 'space-y-2';
 
   if (alternatives.length) {
     alternatives.forEach((a, i) => {
-      if (type === 'diet') {
-        html += '<div class="alt-item" onclick="confirmSwapMeal(state._currentAlternatives[' + i + '])">'
-          + '<div class="flex justify-between items-center"><span class="text-sm text-white font-medium">' + a.name + '</span><span class="text-xs text-cyan-400 font-bold">Zamień →</span></div>'
-          + '<div class="flex gap-3 text-xs text-gray-500 mt-1"><span>P:' + a.protein + 'g</span><span>W:' + a.carbs + 'g</span><span>T:' + a.fat + 'g</span><span>' + a.kcal + 'kcal</span></div>'
-          + '</div>';
-      } else {
-        html += '<div class="alt-item" onclick="confirmSwapExercise(state._currentAlternatives[' + i + '])">'
-          + '<div class="flex justify-between items-center"><span class="text-sm text-white font-medium">' + a.name + '</span><span class="text-xs text-cyan-400 font-bold">Zamień →</span></div>'
-          + '<div class="flex gap-2 text-xs text-gray-500 mt-1"><span>' + (a.sets||4) + '×' + (a.reps||10) + '</span><span>' + (a.muscles||'') + '</span></div>'
-          + '</div>';
-      }
+      const altItem = document.createElement('div');
+      altItem.className = 'alt-item';
+      altItem.setAttribute('onclick', type==='diet'
+        ? 'confirmSwapMeal(state._currentAlternatives[' + i + '])'
+        : 'confirmSwapExercise(state._currentAlternatives[' + i + '])');
+
+      const topRow = document.createElement('div');
+      topRow.className = 'flex justify-between items-center';
+      const altName = document.createElement('span');
+      altName.className = 'text-sm text-white font-medium';
+      altName.textContent = a.name;             // textContent — safe
+      const swapBtn = document.createElement('span');
+      swapBtn.className = 'text-xs text-cyan-400 font-bold';
+      swapBtn.textContent = 'Zamień →';
+      topRow.appendChild(altName);
+      topRow.appendChild(swapBtn);
+
+      const metaRow = document.createElement('div');
+      metaRow.className = 'flex gap-3 text-xs text-gray-500 mt-1';
+      const metaParts = type==='diet'
+        ? ['P:' + (a.protein||0) + 'g', 'W:' + (a.carbs||0) + 'g', 'T:' + (a.fat||0) + 'g', (a.kcal||0) + 'kcal']
+        : [(a.sets||4) + '×' + (a.reps||10), a.muscles||''];
+      metaParts.forEach(txt => {
+        const s = document.createElement('span');
+        s.textContent = txt;                    // textContent — safe
+        metaRow.appendChild(s);
+      });
+
+      altItem.appendChild(topRow);
+      altItem.appendChild(metaRow);
+      altList.appendChild(altItem);
     });
   } else {
-    html += '<p class="text-xs text-gray-500">Brak alternatyw w bazie</p>';
+    const noAlt = document.createElement('p');
+    noAlt.className = 'text-xs text-gray-500';
+    noAlt.textContent = 'Brak alternatyw w bazie';
+    altList.appendChild(noAlt);
   }
-  html += '</div></div>';
-  altSection.innerHTML = html;
+
+  altWrapper.appendChild(altList);
+  altSection.innerHTML = '';
+  altSection.appendChild(altWrapper);
 }
 
 function confirmSwapMeal(altObj) {
@@ -3769,22 +4039,40 @@ function generateShoppingList() {
     catArrays[catIdx].push({ item, amount, count });
   }
 
-  let html = '<p class="text-xs text-gray-500 mb-4">Wygenerowano na podstawie ' + state.days.length + ' dni planu · ' + ingredientsMap.size + ' pozycji</p>';
+  // Secure: build shopping list with textContent only
+  const shopEl = document.getElementById('shoppingContent');
+  shopEl.innerHTML = '';
+  const introP = document.createElement('p');
+  introP.className = 'text-xs text-gray-500 mb-4';
+  introP.textContent = 'Wygenerowano na podstawie ' + state.days.length + ' dni planu · ' + ingredientsMap.size + ' pozycji';
+  shopEl.appendChild(introP);
+
   catNames.forEach((cat, i) => {
     if (!catArrays[i].length) return;
-    html += '<div class="shop-category mb-4">'
-      + '<h6 class="text-sm font-bold text-white mb-2">' + catIcons[i] + ' ' + cat + '</h6>'
-      + '<div class="space-y-1">'
-      + catArrays[i].map(it =>
-          '<div class="flex justify-between text-sm py-1.5 border-b border-white/5">'
-          + '<span class="text-gray-300">' + it.item + '</span>'
-          + '<span class="text-cyan-400 font-medium">' + it.amount + (it.count > 1 ? ' ×' + it.count : '') + '</span>'
-          + '</div>'
-        ).join('')
-      + '</div></div>';
+    const catDiv = document.createElement('div');
+    catDiv.className = 'shop-category mb-4';
+    const catH = document.createElement('h6');
+    catH.className = 'text-sm font-bold text-white mb-2';
+    catH.textContent = catIcons[i] + ' ' + cat;   // static emoji + static label
+    const itemsDiv = document.createElement('div');
+    itemsDiv.className = 'space-y-1';
+    catArrays[i].forEach(it => {
+      const row = document.createElement('div');
+      row.className = 'flex justify-between text-sm py-1.5 border-b border-white/5';
+      const itemSpan = document.createElement('span');
+      itemSpan.className = 'text-gray-300';
+      itemSpan.textContent = it.item;              // textContent — safe
+      const amtSpan = document.createElement('span');
+      amtSpan.className = 'text-cyan-400 font-medium';
+      amtSpan.textContent = it.amount + (it.count > 1 ? ' ×' + it.count : '');
+      row.appendChild(itemSpan);
+      row.appendChild(amtSpan);
+      itemsDiv.appendChild(row);
+    });
+    catDiv.appendChild(catH);
+    catDiv.appendChild(itemsDiv);
+    shopEl.appendChild(catDiv);
   });
-
-  document.getElementById('shoppingContent').innerHTML = html;
   document.getElementById('shoppingModal').classList.remove('hidden');
 }
 
@@ -3875,7 +4163,10 @@ async function sendAIMessage() {
   const msg = input.value.trim();
   if (!msg) return;
   const messages = document.getElementById('aiChatMessages');
-  messages.insertAdjacentHTML('beforeend', `<div class="msg-user">${escapeHTML(msg)}</div>`);
+  const _userEl = document.createElement('div');
+  _userEl.className = 'msg-user';
+  _userEl.textContent = msg;     // textContent — safe by definition
+  messages.appendChild(_userEl);
   input.value = '';
   messages.scrollTop = messages.scrollHeight;
   
@@ -3902,7 +4193,10 @@ async function sendAIMessage() {
     const data = await res.json();
     document.getElementById(loadId)?.remove();
     const reply = data.content?.[0]?.text || 'Przepraszam, nie udało się uzyskać odpowiedzi.';
-    messages.insertAdjacentHTML('beforeend', `<div class="msg-ai">${escapeHTML(reply)}</div>`);
+    const _aiEl = document.createElement('div');
+    _aiEl.className = 'msg-ai';
+    _aiEl.textContent = reply;    // textContent is inherently safe — no escaping needed
+    messages.appendChild(_aiEl);
   } catch (err) {
     document.getElementById(loadId)?.remove();
     // Fallback to local responses
@@ -3913,13 +4207,48 @@ async function sendAIMessage() {
       `Twoje wykluczenia są uwzględnione w planie. Każda zamiana jest dopasowana do preferencji.`,
     ];
     const resp = localResponses[Math.floor(Math.random()*localResponses.length)];
-    messages.insertAdjacentHTML('beforeend', `<div class="msg-ai">${resp}</div>`);
+    const _fbEl = document.createElement('div');
+    _fbEl.className = 'msg-ai';
+    _fbEl.textContent = resp;
+    messages.appendChild(_fbEl);
   }
   messages.scrollTop = messages.scrollHeight;
 }
 
+// ── Security: canonical HTML-escape — used for ALL user/API data ────────────
 function escapeHTML(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/`/g, '&#x60;');
+}
+
+// ── Security: safe DOM helpers ───────────────────────────────────────────────
+// Creates a text node — zero XSS risk.
+function safeText(str) {
+  const el = document.createTextNode(str == null ? '' : String(str));
+  return el;
+}
+
+// Appends a <div class="cls"> with .textContent = text to parent.
+function appendSafeDiv(parent, cls, text) {
+  const d = document.createElement('div');
+  if (cls) d.className = cls;
+  d.textContent = text == null ? '' : String(text);
+  parent.appendChild(d);
+  return d;
+}
+
+// Safe <p> builder — returns element, does NOT use innerHTML.
+function safePara(cls, text) {
+  const p = document.createElement('p');
+  if (cls) p.className = cls;
+  p.textContent = text == null ? '' : String(text);
+  return p;
 }
 
 
@@ -3954,7 +4283,8 @@ function _updateCheckinHint() {
   if (_checkinSliders.energy <= 3) msgs.push('⚡ Niska energia — skróć sesję lub wybierz ćwiczenia o mniejszej intensywności.');
   if (_checkinSliders.stress >= 8) msgs.push('🧠 Wysoki stres — kortyzol hamuje regenerację. Priorytet: sen i aktywna regeneracja.');
   if (msgs.length) {
-    hint.innerHTML = '⚠️ <strong>Autoregulacja:</strong> ' + msgs.join(' ');
+    // Secure: textContent for autoregulation hint (defence-in-depth)
+    hint.textContent = '⚠️ Autoregulacja: ' + msgs.join(' ');
     hint.classList.remove('hidden');
   } else {
     hint.classList.add('hidden');
@@ -5120,22 +5450,41 @@ function epRenderCatalog() {
     bar.style.cssText = `width:3px;height:36px;border-radius:2px;flex-shrink:0;background:${isSport ? '#ff6b35' : col};opacity:${inPlan ? '0.5' : '0.8'};`;
     row.appendChild(bar);
 
-    // Name + muscles
+    // Name + muscles — secure: textContent only for user-influenced data
     const info = document.createElement('div');
     info.className = 'flex-1 min-w-0';
-    const groupLabel = isSport ? `<span style="color:#ff6b35;font-size:10px;font-weight:700;background:rgba(255,107,53,0.12);padding:1px 6px;border-radius:4px;">SPORT</span>` 
-                               : `<span style="color:${col};font-size:10px;font-weight:700;background:${col}18;padding:1px 6px;border-radius:4px;text-transform:uppercase;">${muscleFirst}</span>`;
-    info.innerHTML = `<p class="text-sm font-semibold truncate mb-1" style="color:${inPlan ? '#6b7280' : '#f1f5f9'};line-height:1.2;">${ex.name}</p>
-      <div class="flex items-center gap-1.5 flex-wrap">${groupLabel}<span style="color:#374151;font-size:10px;">${ex.sets} serie × ${ex.reps} pow.${ex.weight ? ' · ' + ex.weight + ' kg' : ''}</span></div>`;
+
+    const nameP = document.createElement('p');
+    nameP.className = 'text-sm font-semibold truncate mb-1';
+    nameP.style.cssText = 'color:' + (inPlan ? '#6b7280' : '#f1f5f9') + ';line-height:1.2;';
+    nameP.textContent = ex.name;                   // textContent — safe
+
+    const metaRow = document.createElement('div');
+    metaRow.className = 'flex items-center gap-1.5 flex-wrap';
+
+    const groupBadge = document.createElement('span');
+    groupBadge.style.cssText = isSport
+      ? 'color:#ff6b35;font-size:10px;font-weight:700;background:rgba(255,107,53,0.12);padding:1px 6px;border-radius:4px;'
+      : 'color:' + col + ';font-size:10px;font-weight:700;background:' + col + '18;padding:1px 6px;border-radius:4px;text-transform:uppercase;';
+    groupBadge.textContent = isSport ? 'SPORT' : muscleFirst;  // textContent — safe
+
+    const metaSpan = document.createElement('span');
+    metaSpan.style.cssText = 'color:#374151;font-size:10px;';
+    metaSpan.textContent = ex.sets + ' serie × ' + ex.reps + ' pow.' + (ex.weight ? ' · ' + ex.weight + ' kg' : '');
+
+    metaRow.appendChild(groupBadge);
+    metaRow.appendChild(metaSpan);
+    info.appendChild(nameP);
+    info.appendChild(metaRow);
     row.appendChild(info);
 
-    // Add / already-added badge
+    // Add / already-added badge (SVG is static, not user data — safe as innerHTML)
     const btn = document.createElement('div');
     btn.style.cssText = 'flex-shrink:0;';
     if (inPlan) {
-      btn.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:rgba(0,229,255,0.15);border:1px solid rgba(0,229,255,0.3);display:flex;align-items:center;justify-content:center;"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="#00e5ff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>`;
+      btn.innerHTML = '<div style="width:28px;height:28px;border-radius:50%;background:rgba(0,229,255,0.15);border:1px solid rgba(0,229,255,0.3);display:flex;align-items:center;justify-content:center;"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="#00e5ff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>';
     } else {
-      btn.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:rgba(0,229,255,0.1);border:1px solid rgba(0,229,255,0.25);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#00e5ff;transition:all .15s;">+</div>`;
+      btn.innerHTML = '<div style="width:28px;height:28px;border-radius:50%;background:rgba(0,229,255,0.1);border:1px solid rgba(0,229,255,0.25);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#00e5ff;transition:all .15s;">+</div>';
       row.addEventListener('click', () => !inPlan && epAddFromDB(ex));
       row.addEventListener('mouseenter', () => {
         row.style.background = 'rgba(0,229,255,0.06)';
@@ -5319,11 +5668,20 @@ function edRenderMealList() {
 
     const info = document.createElement('div');
     info.style.cssText = 'flex:1;min-width:0;';
-    info.innerHTML = `<p style="font-size:13px;font-weight:700;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;">${m.name}</p>
-      <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
-        <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:${col}18;color:${col};text-transform:uppercase;">${typeLabel}</span>
-        <span style="font-size:10px;color:#4b5563;">${m.kcal} kcal · B:${m.protein}g W:${m.carbs}g T:${m.fat}g</span>
-      </div>`;
+    // Secure: meal name and macros — textContent only
+    var mNameP2 = document.createElement('p');
+    mNameP2.style.cssText = 'font-size:13px;font-weight:700;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;';
+    mNameP2.textContent = m.name;
+    var mMetaRow2 = document.createElement('div');
+    mMetaRow2.style.cssText = 'display:flex;align-items:center;gap:6px;margin-top:3px;';
+    var typeBadge2 = document.createElement('span');
+    typeBadge2.style.cssText = 'font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:' + col + '18;color:' + col + ';text-transform:uppercase;';
+    typeBadge2.textContent = typeLabel;
+    var macroSpan2 = document.createElement('span');
+    macroSpan2.style.cssText = 'font-size:10px;color:#4b5563;';
+    macroSpan2.textContent = (m.kcal||0) + ' kcal \u00b7 B:' + (m.protein||0) + 'g W:' + (m.carbs||0) + 'g T:' + (m.fat||0) + 'g';
+    mMetaRow2.appendChild(typeBadge2); mMetaRow2.appendChild(macroSpan2);
+    info.appendChild(mNameP2); info.appendChild(mMetaRow2);
     top.appendChild(info);
 
     const del = document.createElement('button');
@@ -5441,23 +5799,38 @@ function edRenderCatalog() {
     bar.style.cssText = `width:3px;height:36px;border-radius:2px;flex-shrink:0;background:${col};opacity:${inPlan?'0.4':'0.75'};`;
     row.appendChild(bar);
 
-    // Info
+    // Info — secure: textContent only for m.name, m.kcal etc. from DB/user data
     const info = document.createElement('div');
     info.style.cssText = 'flex:1;min-width:0;';
-    info.innerHTML = `<p style="font-size:13px;font-weight:700;color:${inPlan?'#6b7280':'#f1f5f9'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;">${m.name}</p>
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-        <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:${col}18;color:${col};text-transform:uppercase;">${typeLabel}</span>
-        <span style="font-size:10px;color:#374151;">${m.kcal} kcal · B:${m.protein}g W:${m.carbs}g T:${m.fat}g</span>
-      </div>`;
+
+    const mNameP = document.createElement('p');
+    mNameP.style.cssText = 'font-size:13px;font-weight:700;color:' + (inPlan ? '#6b7280' : '#f1f5f9') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;';
+    mNameP.textContent = m.name;               // textContent — safe
+
+    const mMetaRow = document.createElement('div');
+    mMetaRow.style.cssText = 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;';
+
+    const typeBadge = document.createElement('span');
+    typeBadge.style.cssText = 'font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:' + col + '18;color:' + col + ';text-transform:uppercase;';
+    typeBadge.textContent = typeLabel;         // static/enum value — safe
+
+    const macroSpan = document.createElement('span');
+    macroSpan.style.cssText = 'font-size:10px;color:#374151;';
+    macroSpan.textContent = (m.kcal||0) + ' kcal · B:' + (m.protein||0) + 'g W:' + (m.carbs||0) + 'g T:' + (m.fat||0) + 'g';
+
+    mMetaRow.appendChild(typeBadge);
+    mMetaRow.appendChild(macroSpan);
+    info.appendChild(mNameP);
+    info.appendChild(mMetaRow);
     row.appendChild(info);
 
-    // Add button
+    // Add button (SVG is static — safe as innerHTML)
     const btn = document.createElement('div');
     btn.style.cssText = 'flex-shrink:0;';
     if (inPlan) {
-      btn.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:rgba(0,229,255,0.15);border:1px solid rgba(0,229,255,0.3);display:flex;align-items:center;justify-content:center;"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="#00e5ff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>`;
+      btn.innerHTML = '<div style="width:28px;height:28px;border-radius:50%;background:rgba(0,229,255,0.15);border:1px solid rgba(0,229,255,0.3);display:flex;align-items:center;justify-content:center;"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="#00e5ff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>';
     } else {
-      btn.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:rgba(0,229,255,0.1);border:1px solid rgba(0,229,255,0.25);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#00e5ff;transition:all .15s;">+</div>`;
+      btn.innerHTML = '<div style="width:28px;height:28px;border-radius:50%;background:rgba(0,229,255,0.1);border:1px solid rgba(0,229,255,0.25);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#00e5ff;transition:all .15s;">+</div>';
       row.addEventListener('click', () => edAddMeal(m));
       row.addEventListener('mouseenter', () => {
         row.style.background='rgba(0,229,255,0.06)';
@@ -5576,12 +5949,20 @@ function fridgeRemoveTag(val) {
 function fridgeRenderTags() {
   const container = document.getElementById('fridgeTagsContainer');
   if (!container) return;
-  container.innerHTML = _kitchen.fridgeTags.map(tag => `
-    <span class="flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium"
-      style="background:rgba(0,229,255,0.12);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);">
-      ${tag}
-      <button onclick="fridgeRemoveTag('${tag.replace(/'/g,"\\'")}'))" style="opacity:0.6;font-size:14px;line-height:1;">&times;</button>
-    </span>`).join('');
+  // Secure: fridge tags are user-typed text — use textContent + event listeners
+  container.innerHTML = '';
+  _kitchen.fridgeTags.forEach(function(tag) {
+    var pill = document.createElement('span');
+    pill.className = 'flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium';
+    pill.style.cssText = 'background:rgba(0,229,255,0.12);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);';
+    pill.appendChild(document.createTextNode(tag));
+    var removeBtn = document.createElement('button');
+    removeBtn.style.cssText = 'opacity:0.6;font-size:14px;line-height:1;background:none;border:none;cursor:pointer;color:inherit;';
+    removeBtn.textContent = '\u00d7';
+    (function(t){ removeBtn.addEventListener('click', function() { fridgeRemoveTag(t); }); })(tag);
+    pill.appendChild(removeBtn);
+    container.appendChild(pill);
+  });
 }
 
 const FRIDGE_LOADING_MSGS = [
@@ -5697,18 +6078,30 @@ function fridgeRenderMacroPills(recipeText, meta) {
 function fridgeRenderHistory() {
   const histEl = document.getElementById('fridgeHistory');
   if (!histEl || _kitchen.fridgeHistory.length === 0) return;
-  histEl.innerHTML = _kitchen.fridgeHistory.slice(0, 4).map((item, idx) => `
-    <div class="rounded-xl p-3 cursor-pointer transition-all"
-         style="background:rgba(255,255,255,0.03);border:1px solid var(--border);"
-         onmouseenter="this.style.borderColor='rgba(0,229,255,0.2)'"
-         onmouseleave="this.style.borderColor='var(--border)'"
-         onclick="fridgeShowHistoryItem(${idx})">
-      <div class="flex items-center justify-between mb-1">
-        <p class="text-xs font-bold text-white">${item.tags.slice(0,3).join(', ')}${item.tags.length > 3 ? ' +' + (item.tags.length-3) : ''}</p>
-        <span class="text-xs" style="color:var(--muted);">${item.ts}</span>
-      </div>
-      <p class="text-xs truncate" style="color:var(--muted);">${item.recipe.split('\n')[0].replace(/[#*]/g,'').trim()}</p>
-    </div>`).join('');
+  // Secure: item.tags (user-typed) and item.recipe (AI text) — textContent only
+  histEl.innerHTML = '';
+  _kitchen.fridgeHistory.slice(0, 4).forEach(function(item, idx) {
+    var card = document.createElement('div');
+    card.className = 'rounded-xl p-3 cursor-pointer transition-all';
+    card.style.cssText = 'background:rgba(255,255,255,0.03);border:1px solid var(--border);';
+    card.addEventListener('mouseenter', function() { this.style.borderColor='rgba(0,229,255,0.2)'; });
+    card.addEventListener('mouseleave', function() { this.style.borderColor='var(--border)'; });
+    (function(i){ card.addEventListener('click', function() { fridgeShowHistoryItem(i); }); })(idx);
+    var topRow = document.createElement('div');
+    topRow.className = 'flex items-center justify-between mb-1';
+    var tagsP = document.createElement('p');
+    tagsP.className = 'text-xs font-bold text-white';
+    tagsP.textContent = item.tags.slice(0,3).join(', ') + (item.tags.length > 3 ? ' +' + (item.tags.length-3) : '');
+    var tsSpan = document.createElement('span');
+    tsSpan.className = 'text-xs'; tsSpan.style.color = 'var(--muted)';
+    tsSpan.textContent = item.ts;
+    topRow.appendChild(tagsP); topRow.appendChild(tsSpan);
+    var recipeP = document.createElement('p');
+    recipeP.className = 'text-xs truncate'; recipeP.style.color = 'var(--muted)';
+    recipeP.textContent = (item.recipe || '').split('\n')[0].replace(/[#*]/g,'').trim();
+    card.appendChild(topRow); card.appendChild(recipeP);
+    histEl.appendChild(card);
+  });
 }
 
 function fridgeShowHistoryItem(idx) {
@@ -5779,14 +6172,27 @@ function renderMealPrepProfile() {
   if (!p) { el.innerHTML = '<span>Brak profilu</span>'; return; }
   const tdee = p.tdee || 2000;
   const prot = p.protein || 120;
-  el.innerHTML = `
-    <div class="flex justify-between"><span>Cel:</span><span class="text-white font-semibold">${p.goal || '—'}</span></div>
-    <div class="flex justify-between"><span>Dieta:</span><span class="text-white font-semibold">${p.dietType || p.diet || '—'}</span></div>
-    <div class="flex justify-between"><span>Kcal/dzień:</span><span class="text-white font-semibold">${tdee} kcal</span></div>
-    <div class="flex justify-between"><span>Białko/dzień:</span><span class="text-white font-semibold">${prot}g</span></div>
-    <div class="flex justify-between"><span>Posiłki/dzień:</span><span class="text-white font-semibold">${p.mealsPerDay || 5}</span></div>
-    <div class="flex justify-between"><span>Alergie:</span><span class="text-white font-semibold">${p.allergies || 'brak'}</span></div>
-  `;
+  // Secure: build profile summary with textContent only
+  el.innerHTML = '';
+  [
+    ['Cel:', p.goal || '—'],
+    ['Dieta:', p.dietType || p.diet || '—'],
+    ['Kcal/dzień:', tdee + ' kcal'],
+    ['Białko/dzień:', prot + 'g'],
+    ['Posiłki/dzień:', String(p.mealsPerDay || 5)],
+    ['Alergie:', p.allergies || 'brak'],
+  ].forEach(([label, value]) => {
+    const row = document.createElement('div');
+    row.className = 'flex justify-between';
+    const lSpan = document.createElement('span');
+    lSpan.textContent = label;
+    const vSpan = document.createElement('span');
+    vSpan.className = 'text-white font-semibold';
+    vSpan.textContent = value;                  // textContent — safe
+    row.appendChild(lSpan);
+    row.appendChild(vSpan);
+    el.appendChild(row);
+  });
 }
 
 const MEAL_PREP_LOADING_MSGS = [
@@ -5966,17 +6372,26 @@ function renderKPI(data) {
 function renderInsights(insights) {
   const container = document.getElementById('aiInsightsList');
   if (!container || !insights.length) return;
-  var bgMap = { success: 'rgba(52,211,153,0.08)', warning: 'rgba(251,146,60,0.08)', info: 'rgba(0,229,255,0.06)' };
-  var brMap = { success: 'rgba(52,211,153,0.25)', warning: 'rgba(251,146,60,0.25)', info: 'rgba(0,229,255,0.2)' };
-  var html = insights.map(function(item) {
-    var bg = bgMap[item.type] || bgMap.info;
-    var br = brMap[item.type] || brMap.info;
-    return '<div class="flex items-start gap-3 rounded-xl px-4 py-3 text-sm"'
-      + ' style="background:' + bg + ';border:1px solid ' + br + ';animation:slideUp 0.3s ease;">'
-      + '<span class="text-lg flex-shrink-0 mt-0.5">' + item.icon + '</span>'
-      + '<span style="color:#e2e8f0;line-height:1.5;">' + item.text + '</span></div>';
-  }).join('');
-  container.innerHTML = html;
+  // Secure: build each insight card via DOM API — no innerHTML with API strings
+  const bgMap = { success:'rgba(52,211,153,0.08)', warning:'rgba(251,146,60,0.08)', info:'rgba(0,229,255,0.06)' };
+  const brMap = { success:'rgba(52,211,153,0.25)', warning:'rgba(251,146,60,0.25)', info:'rgba(0,229,255,0.2)' };
+  container.innerHTML = '';
+  insights.forEach(function(item) {
+    const bg = bgMap[item.type] || bgMap.info;
+    const br = brMap[item.type] || brMap.info;
+    const card = document.createElement('div');
+    card.className = 'flex items-start gap-3 rounded-xl px-4 py-3 text-sm';
+    card.style.cssText = 'background:' + bg + ';border:1px solid ' + br + ';animation:slideUp 0.3s ease;';
+    const icon = document.createElement('span');
+    icon.className = 'text-lg flex-shrink-0 mt-0.5';
+    icon.textContent = item.icon || '';         // textContent — safe (emojis are text)
+    const text = document.createElement('span');
+    text.style.cssText = 'color:#e2e8f0;line-height:1.5;';
+    text.textContent = item.text || '';         // textContent — safe (AI text sanitised)
+    card.appendChild(icon);
+    card.appendChild(text);
+    container.appendChild(card);
+  });
 }
 
 function renderCharts(data, days) {
@@ -6482,8 +6897,15 @@ function showPWAToast(title, body, accentColor = '#00e5ff') {
     'padding:10px 16px', 'max-width:300px', 'text-align:center',
     'animation:pwaSlideUp 0.3s ease',
   ].join(';');
-  t.innerHTML = `<p style="font-size:13px;font-weight:700;color:#fff;margin:0 0 2px;">${title}</p>
-                 <p style="font-size:11px;color:#64748b;margin:0;">${body}</p>`;
+  // Secure: build toast with textContent only
+  const _tp = document.createElement('p');
+  _tp.style.cssText = 'font-size:13px;font-weight:700;color:#fff;margin:0 0 2px;';
+  _tp.textContent = title;                      // textContent — safe
+  const _tb = document.createElement('p');
+  _tb.style.cssText = 'font-size:11px;color:#64748b;margin:0;';
+  _tb.textContent = body;                       // textContent — safe
+  t.appendChild(_tp);
+  t.appendChild(_tb);
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 4000);
 }
@@ -6930,7 +7352,15 @@ function _pcRenderStagnation(data) {
   if (!el) return;
   if (data.stagnation_detected && data.stagnation) {
     const s=data.stagnation;
-    el.innerHTML='<span class="text-lg">📉</span><div class="flex-1"><p class="text-sm font-bold text-yellow-300">Wykryto stagnację wagową</p><p class="text-xs mt-0.5" style="color:var(--muted);">'+s.message+' (Δ'+(s.delta_kg>0?'+':'')+s.delta_kg+' kg / 7 dni)</p></div>';
+    // Secure: build stagnation banner with textContent only
+    el.innerHTML = '';
+    const _sIcon = document.createElement('span'); _sIcon.className='text-lg'; _sIcon.textContent='📉';
+    const _sFlex = document.createElement('div'); _sFlex.className='flex-1';
+    const _sTitle = document.createElement('p'); _sTitle.className='text-sm font-bold text-yellow-300'; _sTitle.textContent='Wykryto stagnację wagową';
+    const _sBody = document.createElement('p'); _sBody.className='text-xs mt-0.5'; _sBody.style.color='var(--muted)';
+    _sBody.textContent = (s.message || '') + ' (Δ' + (s.delta_kg>0?'+':'') + s.delta_kg + ' kg / 7 dni)';
+    _sFlex.appendChild(_sTitle); _sFlex.appendChild(_sBody);
+    el.appendChild(_sIcon); el.appendChild(_sFlex);
     el.classList.remove('hidden');
   } else { el.classList.add('hidden'); }
 }
@@ -6941,7 +7371,15 @@ function _pcRenderOverload(data) {
   const ov=data.overload||{};
   if (ov.overload_detected) {
     const ex=(ov.exercises||[]).filter(e=>e.overloaded);
-    el.innerHTML='<span class="text-lg">🔴</span><div class="flex-1"><p class="text-sm font-bold text-red-400">Uwaga: przeciążenie treningowe</p><p class="text-xs mt-0.5" style="color:var(--muted);">'+ex.slice(0,3).map(e=>e.name+' (+'+e.increase_pct+'%)').join(', ')+'</p></div>';
+    // Secure: build overload banner with textContent only
+    el.innerHTML = '';
+    const _oIcon = document.createElement('span'); _oIcon.className='text-lg'; _oIcon.textContent='🔴';
+    const _oFlex = document.createElement('div'); _oFlex.className='flex-1';
+    const _oTitle = document.createElement('p'); _oTitle.className='text-sm font-bold text-red-400'; _oTitle.textContent='Uwaga: przeciążenie treningowe';
+    const _oBody = document.createElement('p'); _oBody.className='text-xs mt-0.5'; _oBody.style.color='var(--muted)';
+    _oBody.textContent = ex.slice(0,3).map(e => (e.name||'') + ' (+' + (e.increase_pct||0) + '%)').join(', ');
+    _oFlex.appendChild(_oTitle); _oFlex.appendChild(_oBody);
+    el.appendChild(_oIcon); el.appendChild(_oFlex);
     el.classList.remove('hidden');
   } else { el.classList.add('hidden'); }
 }
