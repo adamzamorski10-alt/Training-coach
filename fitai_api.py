@@ -406,24 +406,35 @@ class DrillResultDB(SQLModel, table=True):
     user_id: str = Field(foreign_key="users.id", index=True)
     drill_name: str = Field(index=True)
     session_date: str = Field(index=True)       # ISO date
-    success_count: int                          # trafienia / powtórzenia
-    total_attempts: int                         # łączna liczba prób
+    success_count: int = 0                      # trafienia / powtórzenia (rzuty)
+    total_attempts: int = 0                     # łączna liczba prób (rzuty)
     rpe: int = Field(ge=1, le=10)              # 1 = bardzo lekko, 10 = maksymalny wysiłek
     notes: str = ""
+    # ─── Pola dla typów drilli bieg/sprint ───────────────────────────────────
+    time_seconds: Optional[float] = None        # czas w sekundach (Bieg/Sprint)
+    distance_meters: Optional[float] = None     # dystans w metrach (Bieg/Sprint)
     logged_at: str = Field(default_factory=lambda: datetime.now().isoformat())
 
     def to_dict(self) -> dict:
-        return {
+        base = {
             "id": self.id,
             "drill_name": self.drill_name,
             "session_date": self.session_date,
-            "success_count": self.success_count,
-            "total_attempts": self.total_attempts,
-            "accuracy_pct": round(self.success_count / self.total_attempts * 100) if self.total_attempts else 0,
             "rpe": self.rpe,
             "notes": self.notes,
             "logged_at": self.logged_at,
         }
+        # Rzuty: pola success/attempts
+        if self.total_attempts:
+            base["success_count"]  = self.success_count
+            base["total_attempts"] = self.total_attempts
+            base["accuracy_pct"]   = round(self.success_count / self.total_attempts * 100)
+        # Bieg/Sprint: pola time/distance
+        if self.time_seconds is not None:
+            base["time_seconds"]   = self.time_seconds
+        if self.distance_meters is not None:
+            base["distance_meters"] = self.distance_meters
+        return base
 
 
 def create_db_and_tables():
@@ -756,13 +767,22 @@ class PlanSwapRequest(BaseModel):
 
 
 class DrillResultRequest(BaseModel):
-    """Wynik sesji drilla sportowego z oceną RPE."""
+    """Wynik sesji drilla sportowego z oceną RPE.
+    
+    Pola zależą od typu drilla:
+    - Rzuty: success_count + total_attempts
+    - Bieg/Sprint: time_seconds + distance_meters
+    """
     drill_name: str
-    success_count: int
-    total_attempts: int
     rpe: int = Field(ge=1, le=10, description="Rate of Perceived Exertion 1-10")
     notes: str = ""
-    session_date: Optional[str] = None  # ISO date; jeśli brak → today
+    session_date: Optional[str] = None          # ISO date; jeśli brak → today
+    # Rzuty
+    success_count: int = 0
+    total_attempts: int = 0
+    # Bieg / Sprint
+    time_seconds: Optional[float] = Field(default=None, gt=0, description="Czas w sekundach")
+    distance_meters: Optional[float] = Field(default=None, gt=0, description="Dystans w metrach")
 
 
 class SportConfigRequest(BaseModel):
@@ -959,12 +979,14 @@ SPORT_DRILLS_DB: dict[str, dict[str, list[dict]]] = {
                 "total_attempts": 20,
                 "description": "Standardowe rzuty wolne z linii rzutów osobistych.",
                 "progression_tip": "Cel: ≥15/20 (75%) przez 2 sesje z rzędu → zwiększ do 25 prób.",
+                "video_url": "https://www.youtube.com/embed/SYqEkm83i-s",
             },
             {
                 "name": "Rzuty za 3 punkty",
                 "total_attempts": 20,
                 "description": "5 rzutów z 4 różnych pozycji za łukiem (corners, wings, top).",
                 "progression_tip": "Cel: ≥10/20 (50%) → dodaj 5 prób lub utrudnij pozycje.",
+                "video_url": "https://www.youtube.com/embed/SfTLSvFkFak",
             },
             {
                 "name": "Rzuty z odchylenia",
@@ -977,6 +999,7 @@ SPORT_DRILLS_DB: dict[str, dict[str, list[dict]]] = {
                 "total_attempts": 40,
                 "description": "Naprzemienne layupy z obu stron tablicy (20 z lewej + 20 z prawej).",
                 "progression_tip": "Cel: ≥34/40 (85%) → przejdź do Power Mikan (po zbiórce).",
+                "video_url": "https://www.youtube.com/embed/pJCGCEol1K0",
             },
         ],
         "drybling": [
@@ -2747,6 +2770,75 @@ def set_sport_config(payload: SportConfigRequest, user: UserDB = Depends(get_cur
         }
 
 
+@app.get("/app/sport-suggest-day", tags=["sport"])
+def sport_suggest_day(user: UserDB = Depends(get_current_user)):
+    """
+    GET /app/sport-suggest-day
+
+    Analizuje tygodniowy plan użytkownika i zwraca sugestię:
+    który z zarejestrowanych dni treningowych ma najmniejszą objętość
+    (najmniej ćwiczeń/serii) i może przyjąć nowe drille sportowe.
+
+    Odpowiedź:
+        {
+          "suggested_day": "Środa",
+          "reason": "Najniższa objętość treningowa (2 ćwiczenia)",
+          "day_volumes": {"Poniedziałek": 4, "Środa": 2, "Piątek": 3},
+          "training_days": ["Poniedziałek", "Środa", "Piątek"]
+        }
+    """
+    plan = user.get_dict("weekly_plan_json")
+    sport_days = set(user.get_list("sport_training_days_json"))
+
+    ALL_DAYS_PL = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"]
+
+    # Oblicz objętość każdego dnia (liczba ćwiczeń × serie)
+    day_volumes: dict[str, int] = {}
+    if plan and "days" in plan:
+        for day_entry in plan["days"]:
+            day_name = day_entry.get("day", "")
+            exercises = day_entry.get("workout", {}).get("exercises", [])
+            # Objętość = suma serii; fallback: liczba ćwiczeń
+            volume = 0
+            for ex in exercises:
+                sets_raw = ex.get("sets", "3")
+                try:
+                    volume += int(str(sets_raw).split()[0])
+                except (ValueError, TypeError):
+                    volume += 3  # zakładamy 3 serie
+            day_volumes[day_name] = volume
+    else:
+        # Brak wygenerowanego planu — wszystkie dni mają volume=0
+        for d in ALL_DAYS_PL:
+            day_volumes[d] = 0
+
+    # Kandydaci: dni treningowe użytkownika (nie dni sportowe, nie niedziela)
+    training_days = user.get_list("sport_training_days_json")
+    if not training_days:
+        # Fallback: wszystkie dni poza niedzielą i dniami sportowymi
+        training_days = [d for d in ALL_DAYS_PL if d not in sport_days and d != "Niedziela"]
+
+    if not training_days:
+        return {
+            "suggested_day": None,
+            "reason": "Brak skonfigurowanych dni treningowych. Ustaw trening w profilu sportowym.",
+            "day_volumes": day_volumes,
+            "training_days": [],
+        }
+
+    # Wybierz dzień z najmniejszą objętością
+    best_day = min(training_days, key=lambda d: day_volumes.get(d, 0))
+    best_volume = day_volumes.get(best_day, 0)
+    ex_count = best_volume // 3 or best_volume  # przybliżona liczba ćwiczeń
+
+    return {
+        "suggested_day": best_day,
+        "reason": f"Najniższa objętość treningowa ({ex_count} ćwiczeń) — idealny dzień na drille.",
+        "day_volumes": {d: day_volumes.get(d, 0) for d in training_days},
+        "training_days": training_days,
+    }
+
+
 @app.get("/app/sport-drills", tags=["sport"])
 def list_sport_drills(sport: str = "koszykówka", specialization: str = ""):
     """Zwraca dostępne drille dla danego sportu i specjalizacji."""
@@ -2765,7 +2857,12 @@ def list_sport_drills(sport: str = "koszykówka", specialization: str = ""):
 
 @app.post("/app/drill-result", tags=["sport"])
 def log_drill_result(payload: DrillResultRequest, user: UserDB = Depends(get_current_user)):
-    """Zapisuje wynik drilla sportowego i zwraca sugestię progresji."""
+    """Zapisuje wynik drilla sportowego i zwraca sugestię progresji.
+    
+    Obsługuje dwa typy drilli:
+    - Rzuty (success_count + total_attempts)
+    - Bieg/Sprint (time_seconds + distance_meters)
+    """
     session_date = payload.session_date or date.today().isoformat()
 
     with Session(engine) as session:
@@ -2778,6 +2875,8 @@ def log_drill_result(payload: DrillResultRequest, user: UserDB = Depends(get_cur
             total_attempts=payload.total_attempts,
             rpe=payload.rpe,
             notes=payload.notes,
+            time_seconds=payload.time_seconds,
+            distance_meters=payload.distance_meters,
         )
         session.add(result)
         session.commit()

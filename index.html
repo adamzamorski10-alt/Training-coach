@@ -1269,6 +1269,8 @@
           <button onclick="closeAddToPlanModal()" class="text-gray-500 hover:text-white text-xl">✕</button>
         </div>
         <div id="addToPlanDrillName" class="text-sm text-cyan-400 font-semibold"></div>
+        <!-- AI sugestia najlżejszego dnia -->
+        <div id="addToPlanAiSuggest" class="hidden"></div>
         <div>
           <p class="text-xs text-gray-400 mb-3">Wybierz dzień tygodnia:</p>
           <div class="grid grid-cols-4 gap-2" id="addToPlanDayGrid"></div>
@@ -4638,10 +4640,10 @@ const SPORT_DRILLS = {
     'rzuty': {
       emoji:'🎯', label:'Rzuty',
       drills: [
-        { name:'Rzuty osobiste', duration:'15 min', total_attempts:20, description:'Standardowe rzuty wolne z linii rzutów osobistych. Skup się na powtarzalności mechaniki rzutu.', progression_tip:'Cel: ≥15/20 (75%) przez 2 sesje z rzędu → zwiększ do 25 prób.', target_pct:75, sets:'3 serie po 20', muscle_group:'ramiona, koncentracja' },
-        { name:'Rzuty za 3 punkty', duration:'20 min', total_attempts:20, description:'5 rzutów z 4 różnych pozycji za łukiem (corners, wings, top). Zaznacz pozycje taśmą.', progression_tip:'Cel: ≥10/20 (50%) → dodaj 5 prób lub utrudnij pozycje.', target_pct:50, sets:'4 pozycje × 5 rzutów', muscle_group:'nogi, ramiona' },
+        { name:'Rzuty osobiste', duration:'15 min', total_attempts:20, description:'Standardowe rzuty wolne z linii rzutów osobistych. Skup się na powtarzalności mechaniki rzutu.', progression_tip:'Cel: ≥15/20 (75%) przez 2 sesje z rzędu → zwiększ do 25 prób.', target_pct:75, sets:'3 serie po 20', muscle_group:'ramiona, koncentracja', video_url:'https://www.youtube.com/embed/SYqEkm83i-s' },
+        { name:'Rzuty za 3 punkty', duration:'20 min', total_attempts:20, description:'5 rzutów z 4 różnych pozycji za łukiem (corners, wings, top). Zaznacz pozycje taśmą.', progression_tip:'Cel: ≥10/20 (50%) → dodaj 5 prób lub utrudnij pozycje.', target_pct:50, sets:'4 pozycje × 5 rzutów', muscle_group:'nogi, ramiona', video_url:'https://www.youtube.com/embed/SfTLSvFkFak' },
         { name:'Rzuty z odchylenia', duration:'15 min', total_attempts:15, description:'Mid-range pull-up jump shot po jednym lub dwóch krokach dryblingu.', progression_tip:'Cel: ≥10/15 (67%) → dodaj obrońcę lub skróć czas wykonania.', target_pct:67, sets:'3 serie po 5', muscle_group:'nogi, eksplozywność' },
-        { name:'Mikan Drill', duration:'10 min', total_attempts:40, description:'Naprzemienne layupy z obu stron tablicy (20 z lewej + 20 z prawej). Bez zatrzymywania.', progression_tip:'Cel: ≥34/40 (85%) → przejdź do Power Mikan (po zbiórce).', target_pct:85, sets:'2 serie po 20 z każdej strony', muscle_group:'nogi, koordynacja' },
+        { name:'Mikan Drill', duration:'10 min', total_attempts:40, description:'Naprzemienne layupy z obu stron tablicy (20 z lewej + 20 z prawej). Bez zatrzymywania.', progression_tip:'Cel: ≥34/40 (85%) → przejdź do Power Mikan (po zbiórce).', target_pct:85, sets:'2 serie po 20 z każdej strony', muscle_group:'nogi, koordynacja', video_url:'https://www.youtube.com/embed/pJCGCEol1K0' },
         { name:'Catch & Shoot', duration:'15 min', total_attempts:25, description:'Rzuty po podaniu od partnera z różnych pozycji. Skup się na czasie wykonania od odbioru piłki.', progression_tip:'Cel: ≥17/25 (68%) → skróć okno czasowe lub dodaj screen.', target_pct:68, sets:'5 rzutów z 5 pozycji', muscle_group:'ramiona, szybkość reakcji' },
       ]
     },
@@ -4911,11 +4913,14 @@ function renderSportDrills() {
       const last = history[0];
       const lastPct = last ? Math.round(last.success_count / last.total_attempts * 100) : null;
       const metTarget = lastPct !== null && lastPct >= (drill.target_pct || 70);
+      const videoId = `drill-video-${catKey}-${di}`;
+      const hasVideo = !!drill.video_url;
       return `<div class="drill-row">
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 mb-1 flex-wrap">
             <span class="text-sm font-bold text-white">${drill.name}</span>
             ${metTarget ? '<span class="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">✅ Cel osiągnięty</span>' : ''}
+            ${hasVideo ? `<button onclick="toggleDrillVideo('${videoId}')" class="text-xs px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/25 hover:bg-red-500/25 transition-colors font-semibold">▶ Video</button>` : ''}
           </div>
           <p class="text-xs text-gray-400 leading-snug mb-2">${drill.description}</p>
           <div class="flex items-center gap-4 flex-wrap text-xs text-gray-500">
@@ -4926,6 +4931,18 @@ function renderSportDrills() {
           </div>
           ${last ? `<div class="progress-bar mt-2" style="height:4px;"><div class="progress-fill ${metTarget ? 'bg-gradient-to-r from-cyan-500 to-green-400' : 'bg-gradient-to-r from-yellow-500 to-cyan-500'}" style="width:${Math.min(lastPct,100)}%"></div></div>` : ''}
           <div class="alert-neon text-xs py-1.5 px-3 mt-2 leading-snug">💡 ${drill.progression_tip}</div>
+          ${hasVideo ? `<div id="${videoId}" class="hidden mt-3">
+            <div style="position:relative;padding-bottom:56.25%;height:0;border-radius:10px;overflow:hidden;border:1px solid rgba(239,68,68,0.3);">
+              <iframe
+                src="${drill.video_url}?rel=0&modestbranding=1"
+                style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen
+                loading="lazy"
+                title="Instrukcja: ${drill.name}">
+              </iframe>
+            </div>
+          </div>` : ''}
         </div>
         <div class="flex flex-col gap-2 shrink-0">
           <button class="drill-add-btn js-drill-add-btn"
@@ -4936,7 +4953,8 @@ function renderSportDrills() {
           </button>
           <button class="drill-add-btn js-drill-log-btn" style="background:rgba(255,255,255,0.04);border-color:var(--border);color:var(--muted);"
             data-drill="${drill.name.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}"
-            data-attempts="${drill.total_attempts}">
+            data-attempts="${drill.total_attempts}"
+            data-type="${drill.drill_type || 'rzuty'}">
             📝 Loguj
           </button>
         </div>
@@ -4981,7 +4999,7 @@ function renderSportDrills() {
       openAddToPlanModal(addBtn.dataset.drill, addBtn.dataset.cat, addBtn.dataset.sport);
     } else if (logBtn) {
       e.stopPropagation();
-      quickLogDrill(logBtn.dataset.drill, Number(logBtn.dataset.attempts));
+      quickLogDrill(logBtn.dataset.drill, Number(logBtn.dataset.attempts), logBtn.dataset.type || 'rzuty');
     } else if (catBtn) {
       e.stopPropagation();
       openAddToPlanModal(null, catBtn.dataset.cat, catBtn.dataset.sport, true);
@@ -5021,7 +5039,56 @@ function openAddToPlanModal(drillName, catKey, sportId, wholeCategory = false) {
     <button class="day-pick-btn text-sm" onclick="selectAddToPlanDay(this, '${d}')">${d}</button>
   `).join('');
 
+  // ── AI Sugestia najlżejszego dnia ────────────────────────────────────────
+  const suggestEl = document.getElementById('addToPlanAiSuggest');
+  if (suggestEl) {
+    suggestEl.innerHTML = '<span class="text-gray-500 italic text-xs">🤖 Analizuję plan...</span>';
+    suggestEl.classList.remove('hidden');
+
+    const token = window._fitaiToken || null;
+    fetch(`${window.API_BASE || 'http://localhost:8000'}/app/sport-suggest-day`, {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+    })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (!data?.suggested_day) {
+        suggestEl.innerHTML = '';
+        return;
+      }
+      const dayShortMap = {
+        'Poniedziałek':'Pon','Wtorek':'Wt','Środa':'Śr',
+        'Czwartek':'Czw','Piątek':'Pt','Sobota':'Sob','Niedziela':'Niedz'
+      };
+      const shortDay = dayShortMap[data.suggested_day] || data.suggested_day;
+      suggestEl.innerHTML = `
+        <div class="flex items-center gap-2 p-2 rounded-xl" style="background:rgba(0,229,255,0.07);border:1px solid rgba(0,229,255,0.2);">
+          <span class="text-base">🤖</span>
+          <div class="flex-1 text-xs" style="color:var(--muted);">
+            <span class="font-bold" style="color:var(--cyan);">AI sugeruje: ${data.suggested_day}</span>
+            <br>${data.reason}
+          </div>
+          <button onclick="selectAddToPlanDayByName('${shortDay}')"
+            class="text-xs px-3 py-1 rounded-lg font-bold"
+            style="background:rgba(0,229,255,0.15);border:1px solid rgba(0,229,255,0.3);color:var(--cyan);">
+            Wybierz
+          </button>
+        </div>`;
+    })
+    .catch(() => { suggestEl.innerHTML = ''; });
+  }
+
   modal.classList.remove('hidden');
+}
+
+function selectAddToPlanDayByName(shortDay) {
+  const btn = document.querySelector(`#addToPlanDayGrid .day-pick-btn:is([onclick*="'${shortDay}'"],[onclick*='"${shortDay}"'])`);
+  if (btn) { selectAddToPlanDay(btn, shortDay); }
+  else {
+    // fallback: find by text content
+    document.querySelectorAll('#addToPlanDayGrid .day-pick-btn').forEach(b => {
+      if (b.textContent.trim() === shortDay) selectAddToPlanDay(b, shortDay);
+    });
+  }
 }
 
 function selectAddToPlanDay(btn, day) {
@@ -5143,15 +5210,176 @@ function showSportSubtab(tab) {
 function loadDrills() { renderSportDrills(); }
 function filterDrillsBySpec() { renderSportDrills(); }
 
-function quickLogDrill(drillName, defaultAttempts) {
-  showSportSubtab('log');
-  setTimeout(() => {
-    const sel = document.getElementById('logDrillName');
-    if (sel) { for (const opt of sel.options) { if (opt.value === drillName) { sel.value = drillName; break; } } }
-    const att = document.getElementById('logTotalAttempts');
-    if (att && defaultAttempts) att.value = defaultAttempts;
-    updateAccuracyPreview();
-  }, 80);
+// ── Toggle video iframe visibility ──────────────────────────────────────────
+function toggleDrillVideo(videoId) {
+  const el = document.getElementById(videoId);
+  if (!el) return;
+  el.classList.toggle('hidden');
+}
+
+// ── Dynamiczny modal logowania — wykrywa typ drilla i pokazuje właściwe pola ─
+let _drillLogCtx = null;
+
+function quickLogDrill(drillName, defaultAttempts, drillType) {
+  // Wykryj typ drilla po nazwie jeśli nie przekazano
+  if (!drillType) {
+    const lower = (drillName || '').toLowerCase();
+    if (lower.includes('bieg') || lower.includes('sprint') || lower.includes('speed') ||
+        lower.includes('17s') || lower.includes('suicid') || lower.includes('full-court')) {
+      drillType = 'bieg';
+    } else {
+      drillType = 'rzuty';
+    }
+  }
+  _drillLogCtx = { drillName, defaultAttempts, drillType };
+
+  // Zbuduj i pokaż modal
+  const existing = document.getElementById('drillLogModal');
+  if (existing) existing.remove();
+
+  const isBieg = drillType === 'bieg';
+  const modal = document.createElement('div');
+  modal.id = 'drillLogModal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);';
+  modal.innerHTML = `
+    <div class="glass rounded-3xl w-full max-w-sm p-6 space-y-4" style="border-color:var(--border-cyan)!important;">
+      <div class="flex justify-between items-center">
+        <h5 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">
+          ${isBieg ? '🏃 Loguj wynik — Bieg' : '🎯 Loguj wynik — Rzuty'}
+        </h5>
+        <button onclick="document.getElementById('drillLogModal').remove()" class="text-gray-500 hover:text-white text-xl">✕</button>
+      </div>
+      <p class="text-sm font-semibold" style="color:var(--cyan);">${drillName}</p>
+
+      ${isBieg ? `
+        <!-- Pola: Bieg / Sprint -->
+        <div class="space-y-3">
+          <div>
+            <label class="text-xs text-gray-400 block mb-1">⏱ Czas (sekundy)</label>
+            <input id="dlTimeSeconds" type="number" min="1" step="0.1" placeholder="np. 54.3"
+              class="w-full rounded-xl px-3 py-2 text-sm text-white"
+              style="background:rgba(255,255,255,0.05);border:1px solid var(--border);">
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 block mb-1">📏 Dystans (metry)</label>
+            <input id="dlDistanceMeters" type="number" min="1" step="1" placeholder="np. 400"
+              class="w-full rounded-xl px-3 py-2 text-sm text-white"
+              style="background:rgba(255,255,255,0.05);border:1px solid var(--border);">
+          </div>
+        </div>
+      ` : `
+        <!-- Pola: Rzuty -->
+        <div class="space-y-3">
+          <div class="flex gap-3">
+            <div class="flex-1">
+              <label class="text-xs text-gray-400 block mb-1">✅ Celne</label>
+              <input id="dlSuccessCount" type="number" min="0" value="0"
+                class="w-full rounded-xl px-3 py-2 text-sm text-white"
+                style="background:rgba(255,255,255,0.05);border:1px solid var(--border);"
+                oninput="updateDrillAccuracy()">
+            </div>
+            <div class="flex-1">
+              <label class="text-xs text-gray-400 block mb-1">🔁 Oddane</label>
+              <input id="dlTotalAttempts" type="number" min="1" value="${defaultAttempts || 20}"
+                class="w-full rounded-xl px-3 py-2 text-sm text-white"
+                style="background:rgba(255,255,255,0.05);border:1px solid var(--border);"
+                oninput="updateDrillAccuracy()">
+            </div>
+          </div>
+          <div id="dlAccuracyRow" class="hidden text-center">
+            <span class="text-2xl font-black" id="dlAccuracyPct" style="color:var(--cyan);">0%</span>
+            <span class="text-xs text-gray-500 ml-2">skuteczność</span>
+            <div class="progress-bar mt-2"><div id="dlAccuracyBar" class="progress-fill" style="width:0%"></div></div>
+          </div>
+        </div>
+      `}
+
+      <!-- RPE -->
+      <div>
+        <label class="text-xs text-gray-400 block mb-1">💪 RPE (wysiłek 1-10)</label>
+        <div class="flex items-center gap-3">
+          <input id="dlRpe" type="range" min="1" max="10" value="6" class="flex-1" oninput="document.getElementById('dlRpeVal').textContent=this.value">
+          <span id="dlRpeVal" class="text-sm font-bold w-4" style="color:var(--cyan);">6</span>
+        </div>
+      </div>
+
+      <!-- Notatki -->
+      <div>
+        <label class="text-xs text-gray-400 block mb-1">📝 Notatki (opcjonalne)</label>
+        <input id="dlNotes" type="text" placeholder="Uwagi do sesji..."
+          class="w-full rounded-xl px-3 py-2 text-sm text-white"
+          style="background:rgba(255,255,255,0.05);border:1px solid var(--border);">
+      </div>
+
+      <div id="dlFeedback" class="hidden text-xs text-center"></div>
+
+      <div class="flex gap-3 pt-1">
+        <button onclick="submitDrillLogModal()" class="flex-1 btn-neon py-2.5 rounded-xl font-bold text-sm">✅ Zapisz</button>
+        <button onclick="document.getElementById('drillLogModal').remove()" class="flex-1 btn-ghost py-2.5 rounded-xl text-sm">Anuluj</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+function updateDrillAccuracy() {
+  const s = parseInt(document.getElementById('dlSuccessCount')?.value) || 0;
+  const t = parseInt(document.getElementById('dlTotalAttempts')?.value) || 0;
+  const row = document.getElementById('dlAccuracyRow');
+  const pctEl = document.getElementById('dlAccuracyPct');
+  const barEl = document.getElementById('dlAccuracyBar');
+  if (!row) return;
+  if (t > 0) {
+    row.classList.remove('hidden');
+    const pct = Math.min(Math.round(s / t * 100), 100);
+    if (pctEl) pctEl.textContent = pct + '%';
+    if (barEl) barEl.style.width = pct + '%';
+  } else {
+    row.classList.add('hidden');
+  }
+}
+
+async function submitDrillLogModal() {
+  if (!_drillLogCtx) return;
+  const { drillName, drillType } = _drillLogCtx;
+  const isBieg = drillType === 'bieg';
+  const rpe = parseInt(document.getElementById('dlRpe')?.value) || 6;
+  const notes = document.getElementById('dlNotes')?.value || '';
+  const fb = document.getElementById('dlFeedback');
+
+  const payload = { drill_name: drillName, rpe, notes, session_date: new Date().toISOString().split('T')[0] };
+
+  if (isBieg) {
+    const t = parseFloat(document.getElementById('dlTimeSeconds')?.value);
+    const d = parseFloat(document.getElementById('dlDistanceMeters')?.value);
+    if (!t && !d) { if (fb) { fb.textContent = '⚠️ Podaj czas lub dystans'; fb.className = 'text-xs text-yellow-400'; fb.classList.remove('hidden'); } return; }
+    if (t) payload.time_seconds = t;
+    if (d) payload.distance_meters = d;
+  } else {
+    const success = parseInt(document.getElementById('dlSuccessCount')?.value) || 0;
+    const total   = parseInt(document.getElementById('dlTotalAttempts')?.value) || 0;
+    if (total < 1) { if (fb) { fb.textContent = '⚠️ Podaj liczbę prób'; fb.className = 'text-xs text-yellow-400'; fb.classList.remove('hidden'); } return; }
+    payload.success_count  = success;
+    payload.total_attempts = total;
+  }
+
+  // Zapisz lokalnie
+  const st = loadSportState();
+  if (!st.drill_history) st.drill_history = [];
+  st.drill_history.unshift({ drill_name: drillName, date: payload.session_date, ...payload, logged_at: new Date().toISOString() });
+  saveSportState(st);
+
+  // Wyślij do backendu (fire-and-forget)
+  const token = window._fitaiToken || null;
+  fetch(`${window.API_BASE || 'http://localhost:8000'}/app/drill-result`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+    body: JSON.stringify(payload),
+  }).catch(err => console.warn('[FitAI Sport] Błąd zapisu drilla:', err));
+
+  document.getElementById('drillLogModal')?.remove();
+  _drillLogCtx = null;
+  renderSportDrills();
+  showToast(`✅ Wynik zapisany: ${drillName}`);
 }
 
 function prepareLogForm() {
