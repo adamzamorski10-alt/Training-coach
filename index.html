@@ -375,7 +375,7 @@
       <a href="#" onclick="showTab('home');return false;" data-tab="home" class="nav-item active flex items-center gap-3 p-3 text-sm font-medium text-cyan-400"><span>🏠</span><span>Home</span></a>
       <a href="#" onclick="showTab('my-day');return false;" data-tab="my-day" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>📋</span><span>Mój Dzień</span></a>
       <a href="#" onclick="showTab('plan');return false;" data-tab="plan" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>📅</span><span>Plan</span></a>
-      <a href="#" onclick="showTab('sport');return false;" data-tab="sport" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>🏀</span><span>Sport</span></a>
+
       <a href="#" onclick="showTab('postepy');return false;" data-tab="postepy" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>📈</span><span>Postępy</span></a>
       <a href="#" onclick="showTab('profile');return false;" data-tab="profile" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>👤</span><span>Profil</span></a>
       <a href="#" onclick="showTab('contact');return false;" data-tab="contact" class="nav-item flex items-center gap-3 p-3 text-sm font-medium text-gray-400 hover:text-white"><span>💬</span><span>Kontakt</span></a>
@@ -748,9 +748,10 @@
         <h3 class="text-3xl font-bold" style="font-family:'Syne',sans-serif;">Plan Tygodniowy</h3>
         <div class="flex items-center gap-3">
           <!-- Plan Subtabs -->
-          <div class="flex gap-2 glass p-1 rounded-xl">
-            <button onclick="switchPlanSubtab('diet')" id="subtab-diet" class="plan-subtab active px-4 py-2 rounded-xl text-sm font-bold transition-all border border-transparent">🍽️ Dieta</button>
-            <button onclick="switchPlanSubtab('training')" id="subtab-training" class="plan-subtab px-4 py-2 rounded-xl text-sm font-bold transition-all border border-transparent text-gray-400">💪 Trening</button>
+          <div class="flex gap-2 glass p-1 rounded-xl flex-wrap">
+            <button onclick="switchPlanSubtab('myplan')"  id="subtab-myplan"   class="plan-subtab active px-4 py-2 rounded-xl text-sm font-bold transition-all border border-transparent">📅 Mój Plan</button>
+            <button onclick="switchPlanSubtab('dietdb')"  id="subtab-dietdb"   class="plan-subtab px-4 py-2 rounded-xl text-sm font-bold transition-all border border-transparent text-gray-400">🥦 Baza Diety</button>
+            <button onclick="switchPlanSubtab('sport')"   id="subtab-sport"    class="plan-subtab px-4 py-2 rounded-xl text-sm font-bold transition-all border border-transparent text-gray-400">🏀 Trening &amp; Sport</button>
           </div>
           <button onclick="generateShoppingList()" class="btn-outline-cyan px-4 py-2 rounded-xl text-xs font-bold">🛒 Lista Zakupów</button>
           <div class="flex items-center gap-2">
@@ -825,29 +826,213 @@
         <div id="mealSliderInfo" class="text-xs text-gray-500 text-center mt-2">Zmień liczbę i dieta zaktualizuje się automatycznie</div>
       </div>
 
-      <!-- Diet Plan -->
-      <div id="planDietPanel" class="space-y-4">
-        <div class="glass p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h4 class="text-xl font-bold text-white" style="font-family:'Syne',sans-serif;">🍽️ Zaplanowana Dieta</h4>
-            <button id="editDietBtn" onclick="openEditDietModal()" class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all" style="background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.25);color:#00e5ff;">
-              ✏️ Edytuj dietę
-            </button>
+      <!-- ═══════════ SUB-TAB: MÓJ PLAN ═══════════ -->
+      <div id="planMyplanPanel" class="space-y-4">
+
+        <!-- Diet -->
+        <div id="planDietPanel" class="space-y-4">
+          <div class="glass p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h4 class="text-xl font-bold text-white" style="font-family:'Syne',sans-serif;">🍽️ Zaplanowana Dieta</h4>
+              <div class="flex gap-2">
+                <span id="carbCyclingBadge" class="hidden text-xs px-3 py-1 rounded-full font-bold" style="background:rgba(251,191,36,0.15);color:#fbbf24;border:1px solid rgba(251,191,36,0.3);">⚡ Carb Cycling</span>
+                <button id="editDietBtn" onclick="openEditDietModal()" class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all" style="background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.25);color:#00e5ff;">✏️ Edytuj</button>
+              </div>
+            </div>
+            <div id="planDietContainer" class="space-y-3"></div>
           </div>
-          <div id="planDietContainer" class="space-y-3"></div>
+        </div>
+
+        <!-- Training -->
+        <div id="planTrainingPanel" class="space-y-4">
+          <div class="glass p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h4 class="text-xl font-bold text-white" style="font-family:'Syne',sans-serif;">💪 Zaplanowany Trening</h4>
+              <button id="editPlanBtn" onclick="openEditPlanModal()" class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all" style="background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.25);color:#00e5ff;">✏️ Edytuj</button>
+            </div>
+            <div id="planTrainingContainer" class="space-y-3"></div>
+          </div>
         </div>
       </div>
 
-      <!-- Training Plan -->
-      <div id="planTrainingPanel" class="hidden space-y-4">
-        <div class="glass p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h4 class="text-xl font-bold text-white" style="font-family:'Syne',sans-serif;">💪 Zaplanowany Trening</h4>
-            <button id="editPlanBtn" onclick="openEditPlanModal()" class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all" style="background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.25);color:#00e5ff;">
-              ✏️ Edytuj plan
-            </button>
+      <!-- ═══════════ SUB-TAB: BAZA DIETY ═══════════ -->
+      <div id="planDietdbPanel" class="hidden space-y-5">
+
+        <!-- Search + filter bar -->
+        <div class="glass p-4 rounded-2xl flex flex-wrap gap-3 items-center">
+          <input id="dietDbSearch" type="text" placeholder="🔍 Szukaj potrawy…"
+            oninput="dietDbFilter()"
+            class="flex-1 min-w-[180px] bg-transparent border rounded-xl px-4 py-2 text-sm text-white placeholder-gray-600 outline-none"
+            style="border-color:var(--border);">
+          <div class="flex gap-2 flex-wrap" id="dietDbCategoryBtns">
+            <button onclick="dietDbSetCategory('all')" data-cat="all"
+              class="diet-cat-btn active text-xs px-3 py-1.5 rounded-full font-bold transition-all"
+              style="background:rgba(0,229,255,0.15);color:var(--cyan);border:1px solid rgba(0,229,255,0.3);">Wszystkie</button>
+            <button onclick="dietDbSetCategory('śniadanie')" data-cat="śniadanie"
+              class="diet-cat-btn text-xs px-3 py-1.5 rounded-full font-bold transition-all"
+              style="background:rgba(255,255,255,0.05);color:var(--muted);border:1px solid var(--border);">☀️ Śniadania</button>
+            <button onclick="dietDbSetCategory('obiad')" data-cat="obiad"
+              class="diet-cat-btn text-xs px-3 py-1.5 rounded-full font-bold transition-all"
+              style="background:rgba(255,255,255,0.05);color:var(--muted);border:1px solid var(--border);">🍲 Obiady</button>
+            <button onclick="dietDbSetCategory('kolacja')" data-cat="kolacja"
+              class="diet-cat-btn text-xs px-3 py-1.5 rounded-full font-bold transition-all"
+              style="background:rgba(255,255,255,0.05);color:var(--muted);border:1px solid var(--border);">🌙 Kolacje</button>
+            <button onclick="dietDbSetCategory('przekąska')" data-cat="przekąska"
+              class="diet-cat-btn text-xs px-3 py-1.5 rounded-full font-bold transition-all"
+              style="background:rgba(255,255,255,0.05);color:var(--muted);border:1px solid var(--border);">🍎 Przekąski</button>
           </div>
-          <div id="planTrainingContainer" class="space-y-3"></div>
+          <span id="dietDbCount" class="text-xs ml-auto" style="color:var(--muted);"></span>
+        </div>
+
+        <!-- Meal cards grid -->
+        <div id="dietDbGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+
+        <!-- Add-to-plan modal (inline) -->
+        <div id="dietDbAddModal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4" style="background:rgba(0,0,0,0.85);backdrop-filter:blur(12px);">
+          <div class="glass rounded-3xl w-full max-w-md p-6 space-y-5">
+            <div class="flex justify-between items-center">
+              <h5 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">+ Dodaj do planu</h5>
+              <button onclick="closeDietDbModal()" class="text-gray-500 hover:text-white text-2xl leading-none">×</button>
+            </div>
+            <div id="dietDbModalMealName" class="font-bold" style="color:var(--cyan);"></div>
+            <div id="dietDbModalMacros" class="flex gap-3 flex-wrap text-xs"></div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="text-xs font-semibold block mb-2" style="color:var(--muted);">Typ posiłku</label>
+                <select id="dietDbModalMealType" class="w-full text-sm">
+                  <option value="śniadanie">☀️ Śniadanie</option>
+                  <option value="przekąska">🍎 Przekąska</option>
+                  <option value="obiad">🍲 Obiad</option>
+                  <option value="kolacja">🌙 Kolacja</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-xs font-semibold block mb-2" style="color:var(--muted);">Dzień tygodnia</label>
+                <select id="dietDbModalDay" class="w-full text-sm">
+                  <option value="Pon">Poniedziałek</option>
+                  <option value="Wt">Wtorek</option>
+                  <option value="Śr">Środa</option>
+                  <option value="Czw">Czwartek</option>
+                  <option value="Pt">Piątek</option>
+                  <option value="Sob">Sobota</option>
+                  <option value="Niedz">Niedziela</option>
+                </select>
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <button onclick="dietDbConfirmAdd()"
+                class="flex-1 py-3 rounded-xl font-extrabold text-sm"
+                style="background:linear-gradient(135deg,var(--cyan),var(--violet));color:#000;">
+                ✅ Dodaj do planu
+              </button>
+              <button onclick="closeDietDbModal()" class="px-5 py-3 rounded-xl text-sm font-bold" style="background:rgba(255,255,255,0.05);color:var(--muted);">
+                Anuluj
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ═══════════ SUB-TAB: TRENING & SPORT ═══════════ -->
+      <div id="planSportPanel" class="hidden space-y-6">
+        <!-- SPORT CONTENT IS MOVED HERE - see below -->
+        <div id="sportInnerContainer">
+
+          <!-- HEADER -->
+          <div>
+            <h3 class="text-2xl font-bold text-white" style="font-family:'Syne',sans-serif;">🏀 Sport</h3>
+            <p class="text-sm mt-1" style="color:var(--muted);">Wybierz sport, przeglądaj ćwiczenia i dodawaj drille do planu</p>
+          </div>
+
+          <!-- Sport selector -->
+          <div class="glass p-5 rounded-2xl mt-4">
+            <p class="text-xs font-bold uppercase mb-3" style="color:var(--muted);">Wybierz sport</p>
+            <div id="sportSelectorGrid" class="grid grid-cols-4 sm:grid-cols-8 gap-3"></div>
+          </div>
+
+          <!-- Sport sub-subtabs -->
+          <div class="flex gap-2 flex-wrap mt-4">
+            <button onclick="showSportSubtab('drills')" id="sporttab-drills" class="plan-subtab active px-4 py-2 rounded-xl text-sm font-bold border border-transparent transition-all">🎯 Drille</button>
+            <button onclick="showSportSubtab('log')"    id="sporttab-log"    class="plan-subtab px-4 py-2 rounded-xl text-sm font-bold border border-transparent transition-all text-gray-400">📝 Loguj wynik</button>
+            <button onclick="showSportSubtab('history')" id="sporttab-history" class="plan-subtab px-4 py-2 rounded-xl text-sm font-bold border border-transparent transition-all text-gray-400">📊 Historia</button>
+          </div>
+
+          <!-- Drills -->
+          <div id="sport-drills" class="space-y-4 mt-2">
+            <div id="sportDrillsContainer">
+              <div class="glass p-6 text-center text-gray-500 italic">Wybierz sport powyżej aby zobaczyć ćwiczenia</div>
+            </div>
+          </div>
+
+          <!-- Log result -->
+          <div id="sport-log" class="hidden space-y-5 mt-2">
+            <div class="glass p-6">
+              <h4 class="text-lg font-bold text-white mb-5" style="font-family:'Syne',sans-serif;">📝 Zaloguj wynik drilla</h4>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs text-gray-400 mb-1">Drill *</label>
+                  <select id="logDrillName" class="w-full text-sm"><option value="">Wybierz drill…</option></select>
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-400 mb-1">Data sesji</label>
+                  <input type="date" id="logDrillDate" class="w-full text-sm">
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-400 mb-1">Trafienia (sukcesy)</label>
+                  <input type="number" id="logSuccessCount" placeholder="np. 15" min="0" class="w-full text-sm">
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-400 mb-1">Łączna liczba prób</label>
+                  <input type="number" id="logTotalAttempts" placeholder="np. 20" min="1" class="w-full text-sm">
+                </div>
+                <div class="md:col-span-2">
+                  <label class="block text-xs text-gray-400 mb-2">RPE — Ocena wysiłku (1–10)</label>
+                  <div class="flex items-center gap-4">
+                    <span class="text-xs text-gray-600 w-4">1</span>
+                    <input type="range" id="logRPE" min="1" max="10" value="6" oninput="updateRPELabel(this.value)" class="flex-1">
+                    <span class="text-xs text-gray-600 w-4">10</span>
+                    <span id="rpeLabel" class="text-cyan-400 font-bold text-lg w-8 text-right" style="font-family:'Syne',sans-serif;">6</span>
+                  </div>
+                  <div id="rpeDesc" class="text-xs text-gray-500 mt-1">Umiarkowany wysiłek</div>
+                </div>
+                <div class="md:col-span-2">
+                  <label class="block text-xs text-gray-400 mb-1">Notatki (opcjonalnie)</label>
+                  <textarea id="logDrillNotes" placeholder="np. Słaba forma w rzutach z lewej strony..." class="w-full text-sm" rows="2"></textarea>
+                </div>
+              </div>
+              <div class="flex gap-3 mt-5">
+                <button onclick="submitDrillResult()" class="btn-neon px-6 py-2.5 rounded-xl font-bold text-sm">✅ Zapisz wynik</button>
+                <button onclick="showSportSubtab('drills')" class="btn-ghost px-6 py-2.5 rounded-xl text-sm">Anuluj</button>
+              </div>
+            </div>
+            <div id="accuracyPreview" class="glass p-5 hidden">
+              <h5 class="text-sm font-bold text-white mb-3">Podgląd skuteczności</h5>
+              <div class="flex items-center gap-6">
+                <div class="text-center">
+                  <div class="text-4xl font-bold text-cyan-400" style="font-family:'Syne',sans-serif;" id="previewAccuracy">—</div>
+                  <div class="text-xs text-gray-500 mt-1">Skuteczność</div>
+                </div>
+                <div class="flex-1">
+                  <div class="progress-bar" style="height:10px;"><div id="previewBar" class="progress-fill bg-gradient-to-r from-cyan-500 to-violet-500" style="width:0%"></div></div>
+                  <div class="flex justify-between text-xs text-gray-600 mt-1"><span>0%</span><span id="previewTarget" class="text-cyan-400">Cel: 70%</span><span>100%</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- History -->
+          <div id="sport-history" class="hidden space-y-5 mt-2">
+            <div class="flex justify-between items-center">
+              <h4 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">📊 Historia drilli</h4>
+              <button onclick="clearDrillHistory()" class="btn-danger px-4 py-1.5 rounded-xl text-xs font-bold">🗑️ Wyczyść</button>
+            </div>
+            <div id="drillSummaryCards" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
+            <div id="drillHistoryList" class="space-y-4">
+              <p class="text-sm text-gray-500 italic text-center py-8">Brak historii. Zaloguj pierwszy wynik →</p>
+            </div>
+          </div>
+
         </div>
       </div>
     </section>
@@ -1076,105 +1261,6 @@
     </section>
 
     <!-- ====== TAB: SPORT ====== -->
-    <section id="tab-sport" class="hidden space-y-6">
-
-      <!-- HEADER -->
-      <div>
-        <h3 class="text-3xl font-bold" style="font-family:'Syne',sans-serif;">🏀 Sport</h3>
-        <p class="text-sm text-gray-500 mt-1">Wybierz sport, przeglądaj kategorie ćwiczeń i dodawaj drille bezpośrednio do planu tygodniowego</p>
-      </div>
-
-      <!-- ① SPORT SELECTOR — wizualne kafelki -->
-      <div class="glass p-5 rounded-2xl">
-        <p class="text-xs font-bold text-gray-500 uppercase mb-3">Wybierz sport</p>
-        <div id="sportSelectorGrid" class="grid grid-cols-4 sm:grid-cols-8 gap-3"></div>
-      </div>
-
-      <!-- ② SUBTABS — Drille / Loguj / Historia -->
-      <div class="flex gap-2 flex-wrap">
-        <button onclick="showSportSubtab('drills')" id="sporttab-drills" class="plan-subtab active px-4 py-2 rounded-xl text-sm font-bold border border-transparent transition-all">🎯 Drille</button>
-        <button onclick="showSportSubtab('log')" id="sporttab-log" class="plan-subtab px-4 py-2 rounded-xl text-sm font-bold border border-transparent transition-all text-gray-400">📝 Loguj wynik</button>
-        <button onclick="showSportSubtab('history')" id="sporttab-history" class="plan-subtab px-4 py-2 rounded-xl text-sm font-bold border border-transparent transition-all text-gray-400">📊 Historia</button>
-      </div>
-
-      <!-- ---- DRILLES SUB-TAB ---- -->
-      <div id="sport-drills" class="space-y-4">
-        <!-- Categories + drills rendered by renderSportDrills() -->
-        <div id="sportDrillsContainer">
-          <div class="glass p-6 text-center text-gray-500 italic">Wybierz sport powyżej aby zobaczyć ćwiczenia</div>
-        </div>
-      </div>
-
-      <!-- ---- LOG RESULT SUB-TAB ---- -->
-      <div id="sport-log" class="hidden space-y-5">
-        <div class="glass p-6">
-          <h4 class="text-lg font-bold text-white mb-5" style="font-family:'Syne',sans-serif;">📝 Zaloguj wynik drilla</h4>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs text-gray-400 mb-1">Drill *</label>
-              <select id="logDrillName" class="w-full text-sm"><option value="">Wybierz drill…</option></select>
-            </div>
-            <div>
-              <label class="block text-xs text-gray-400 mb-1">Data sesji</label>
-              <input type="date" id="logDrillDate" class="w-full text-sm">
-            </div>
-            <div>
-              <label class="block text-xs text-gray-400 mb-1">Trafienia (sukcesy)</label>
-              <input type="number" id="logSuccessCount" placeholder="np. 15" min="0" class="w-full text-sm">
-            </div>
-            <div>
-              <label class="block text-xs text-gray-400 mb-1">Łączna liczba prób</label>
-              <input type="number" id="logTotalAttempts" placeholder="np. 20" min="1" class="w-full text-sm">
-            </div>
-            <div class="md:col-span-2">
-              <label class="block text-xs text-gray-400 mb-2">RPE — Ocena wysiłku (1–10)</label>
-              <div class="flex items-center gap-4">
-                <span class="text-xs text-gray-600 w-4">1</span>
-                <input type="range" id="logRPE" min="1" max="10" value="6" oninput="updateRPELabel(this.value)" class="flex-1">
-                <span class="text-xs text-gray-600 w-4">10</span>
-                <span id="rpeLabel" class="text-cyan-400 font-bold text-lg w-8 text-right" style="font-family:'Syne',sans-serif;">6</span>
-              </div>
-              <div id="rpeDesc" class="text-xs text-gray-500 mt-1">Umiarkowany wysiłek</div>
-            </div>
-            <div class="md:col-span-2">
-              <label class="block text-xs text-gray-400 mb-1">Notatki (opcjonalnie)</label>
-              <textarea id="logDrillNotes" placeholder="np. Słaba forma w rzutach z lewej strony..." class="w-full text-sm" rows="2"></textarea>
-            </div>
-          </div>
-          <div class="flex gap-3 mt-5">
-            <button onclick="submitDrillResult()" class="btn-neon px-6 py-2.5 rounded-xl font-bold text-sm">✅ Zapisz wynik</button>
-            <button onclick="showSportSubtab('drills')" class="btn-ghost px-6 py-2.5 rounded-xl text-sm">Anuluj</button>
-          </div>
-        </div>
-        <div id="accuracyPreview" class="glass p-5 hidden">
-          <h5 class="text-sm font-bold text-white mb-3">Podgląd skuteczności</h5>
-          <div class="flex items-center gap-6">
-            <div class="text-center">
-              <div class="text-4xl font-bold text-cyan-400" style="font-family:'Syne',sans-serif;" id="previewAccuracy">—</div>
-              <div class="text-xs text-gray-500 mt-1">Skuteczność</div>
-            </div>
-            <div class="flex-1">
-              <div class="progress-bar" style="height:10px;"><div id="previewBar" class="progress-fill bg-gradient-to-r from-cyan-500 to-violet-500" style="width:0%"></div></div>
-              <div class="flex justify-between text-xs text-gray-600 mt-1"><span>0%</span><span id="previewTarget" class="text-cyan-400">Cel: 70%</span><span>100%</span></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ---- HISTORY SUB-TAB ---- -->
-      <div id="sport-history" class="hidden space-y-5">
-        <div class="flex justify-between items-center">
-          <h4 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">📊 Historia drilli</h4>
-          <button onclick="clearDrillHistory()" class="btn-danger px-4 py-1.5 rounded-xl text-xs font-bold">🗑️ Wyczyść</button>
-        </div>
-        <div id="drillSummaryCards" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
-        <div id="drillHistoryList" class="space-y-4">
-          <p class="text-sm text-gray-500 italic text-center py-8">Brak historii. Zaloguj pierwszy wynik →</p>
-        </div>
-      </div>
-
-    </section>
-
     <!-- ---- MODAL: Wybierz dzień do planu ---- -->
     <div id="addToPlanModal" class="hidden fixed inset-0 z-[110] flex items-center justify-center p-4 modal-backdrop">
       <div class="glass rounded-3xl w-full max-w-sm p-6 space-y-5" style="border-color:var(--border-cyan)!important;">
@@ -1742,7 +1828,8 @@ const state = {
   dayChecked: {}, // tracks checked state by profileId + day
   extraItems: {}, // manually added items {profileId: [{type,name,kcal,protein,...}]}
   aiOpen: false,
-  planSubtab: 'diet',
+  planSubtab: 'myplan',
+  planView: 'diet',  // 'diet' | 'training'
   exerciseCount: 4,
   addOtherType: 'diet',
 };
@@ -1992,8 +2079,25 @@ const PLAN_TEMPLATES = {
   }
 };
 
-function generateMealsForDay(mealsCount, exclusions, profile) {
-  // Meal type sequence adapted to number of meals
+// ─── Deterministyczny shuffle per dzień ─────────────────────────────────────
+function _dayShuffle(arr, seed) {
+  const a = [...arr];
+  let s = (seed * 1664525 + 1013904223) & 0x7fffffff;
+  for (let i = a.length - 1; i > 0; i--) {
+    s = (s * 1664525 + 1013904223) & 0x7fffffff;
+    const j = s % (i + 1);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Seed per dzień tygodnia — gwarantuje różne posiłki każdego dnia
+const _DAY_SEEDS = { 'Pon':1,'Wt':37,'Śr':71,'Czw':113,'Pt':157,'Sob':199,'Niedz':241 };
+
+// Dni treningowe dla szablonów — używane do carb cycling
+const _TRAINING_DAYS_DEFAULT = new Set(['Pon','Wt','Śr','Pt','Sob']);
+
+function generateMealsForDay(mealsCount, exclusions, profile, dayKey) {
   const mealSequences = {
     2: ['śniadanie','kolacja'],
     3: ['śniadanie','obiad','kolacja'],
@@ -2006,43 +2110,53 @@ function generateMealsForDay(mealsCount, exclusions, profile) {
   const used = new Set();
   const result = [];
 
-  // Determine diet preferences from profile
   const dietType = (profile && profile.dietType) || 'standard';
   const goal = ((profile && profile.goal) || '').toLowerCase();
   const isHighProtein = dietType === 'highprotein' || goal.includes('masa') || goal.includes('musku') || goal.includes('siła');
-  const isVegan = dietType === 'vegan';
-  const isKeto = dietType === 'keto';
+  const isVegan     = dietType === 'vegan';
+  const isKeto      = dietType === 'keto';
   const isReduction = goal.includes('redukcj') || goal.includes('odchudzani') || goal.includes('schud');
 
-  // Tag exclusions based on diet
+  // ── Carb Cycling: redukcja + dzień bez treningu → -15% węglowodanów ────────
+  // Dzień treningowy: normalne makra; dzień odpoczynku: preferuj posiłki o niższych węglach
+  const trainingDays = profile.trainingDays || _TRAINING_DAYS_DEFAULT;
+  const isRestDay = dayKey && !trainingDays.has(dayKey);
+  const carbCyclingActive = isReduction && isRestDay;
+
   const dietTagExclusions = [];
   if (isVegan) dietTagExclusions.push('kurczak','jajka','nabiał','ryby');
-  if (isKeto) dietTagExclusions.push('ryż','owies','gluten');
-
+  if (isKeto)  dietTagExclusions.push('ryż','owies','gluten');
   const allExclusions = [...(exclusions||[]), ...dietTagExclusions];
 
-  // Score meals based on profile goals
-  const scoreMeal = (m) => {
-    let score = Math.random(); // base randomness
-    if (isHighProtein && m.protein >= 25) score += 1.5;
-    if (isHighProtein && m.protein >= 35) score += 1.0;
-    if (isReduction && m.kcal < 300) score += 1.0;
-    if (isReduction && m.kcal > 450) score -= 0.5;
-    if (isKeto && m.fat > 15 && m.carbs < 10) score += 1.5;
-    if (isVegan && !m.tags.some(t => ['kurczak','jajka','nabiał','ryby'].includes(t))) score += 1.0;
+  // Seed deterministyczny: różne posiłki każdego dnia tygodnia
+  const daySeed = (_DAY_SEEDS[dayKey] || 1) + mealsCount * 7;
+
+  const scoreMeal = (m, shuffleRank) => {
+    let score = shuffleRank; // base: pozycja po shufflu (deterministyczna)
+    if (isHighProtein && m.protein >= 25) score += 3.0;
+    if (isHighProtein && m.protein >= 35) score += 2.0;
+    if (isReduction   && m.kcal < 300)   score += 2.0;
+    if (isReduction   && m.kcal > 480)   score -= 1.5;
+    if (isKeto   && m.fat > 15 && m.carbs < 10) score += 3.0;
+    if (isVegan  && !m.tags.some(t => ['kurczak','jajka','nabiał','ryby'].includes(t))) score += 2.0;
+    // Carb cycling: dzień odpoczynku → promuj posiłki z < 30g węglowodanów
+    if (carbCyclingActive && m.carbs !== undefined && m.carbs < 30)  score += 2.5;
+    if (carbCyclingActive && m.carbs !== undefined && m.carbs > 55)  score -= 2.0;
     return score;
   };
 
   for (let i = 0; i < types.length; i++) {
-    const type = types[i];
-    const pool = (MEAL_DB[type] || MEAL_DB.przekąska)
-      .filter(m => {
-        const hidden = allExclusions.some(ex => (m.tags||[]).some(t => t.includes(ex) || ex.includes(t)));
-        return !hidden && !used.has(m.name);
-      })
-      .sort((a, b) => scoreMeal(b) - scoreMeal(a));
-    const meal = pool[0] || (MEAL_DB[type]||[])[0]; // fallback ignoring diet filters
-    if (meal) { used.add(meal.name); result.push({...meal, id: 'm'+i, type}); }
+    const type  = types[i];
+    const rawPool = (MEAL_DB[type] || MEAL_DB.przekąska).filter(m => {
+      const hidden = allExclusions.some(ex => (m.tags||[]).some(t => t.includes(ex) || ex.includes(t)));
+      return !hidden && !used.has(m.name);
+    });
+    // Deterministyczny shuffle (różny dla każdego dnia) przed scoringiem
+    const shuffled = _dayShuffle(rawPool, daySeed + i * 13);
+    const scored   = shuffled.map((m, idx) => ({ m, s: scoreMeal(m, shuffled.length - idx) }))
+                             .sort((a, b) => b.s - a.s);
+    const meal = scored[0]?.m || (MEAL_DB[type]||[])[0];
+    if (meal) { used.add(meal.name); result.push({...meal, id:'m'+i, type, carbCycling: carbCyclingActive}); }
   }
   return result;
 }
@@ -2165,11 +2279,18 @@ function generateFullPlanForProfile(profile) {
   }[freq] || state.exerciseCount;
 
   // ---- PLAN GENERATION ----
+  // Determine which days are training days (non-empty template) for carb cycling
+  const trainingDays = new Set(
+    Object.keys(template).filter(d => (template[d]||[]).length > 0)
+  );
+  const profileWithDays = { ...profile, trainingDays };
+
   const dietPlan = {}, trainingPlan = {};
   for (const day of ['Pon','Wt','Śr','Czw','Pt','Sob','Niedz']) {
-    dietPlan[day] = generateMealsForDay(mealsN, excl, profile);
+    // Pass dayKey for deterministyczny seed (różne posiłki każdego dnia)
+    dietPlan[day] = generateMealsForDay(mealsN, excl, profileWithDays, day);
     const muscles = template[day] || [];
-    trainingPlan[day] = generateExercisesForDay(muscles, equip, excl, freqExerciseCount);
+    trainingPlan[day] = generateExercisesForDay(muscles, equip, excl, freqExerciseCount, day);
   }
   return { dietPlan, trainingPlan };
 }
@@ -2755,7 +2876,7 @@ function showTab(tabId) {
     renderDayCarousel();
     loadPlanForDay();
     // Sync slider value if we're on training subtab
-    if (state.planSubtab === 'training') {
+    if (state.planSubtab === 'training' || (state.planSubtab === 'myplan' && state.planView === 'training')) {
       const slider = document.getElementById('exerciseCountSlider');
       if (slider) slider.value = state.exerciseCount;
       updateExerciseSlider(state.exerciseCount);
@@ -2769,11 +2890,16 @@ function showTab(tabId) {
   if (tabId==='home') updateDashboard();
   if (tabId==='my-day') { loadTodayPlanChecklist(); renderExtraItems(); initCheckinSliders(); }
   if (tabId==='sport') {
-    renderSportSelector();
-    renderSportDrills();
-    showSportSubtab('drills');
+    // Sport is now inside Plan tab
+    showTab('plan');
+    switchPlanSubtab('sport');
+    return;
   }
   if (tabId==='postepy') initCharts();
+  if (tabId==='plan') {
+    // Default to myplan on first open
+    if (!state.planSubtab || state.planSubtab === 'diet') switchPlanSubtab('myplan');
+  }
   if (tabId==='kuchnia') { kitchenInit(); }
   document.getElementById('mainContent').scrollTop = 0;
 }
@@ -2781,14 +2907,32 @@ function showTab(tabId) {
 // ========== PLAN SUBTAB ==========
 function switchPlanSubtab(sub) {
   state.planSubtab = sub;
-  document.getElementById('subtab-diet').classList.toggle('active', sub==='diet');
-  document.getElementById('subtab-training').classList.toggle('active', sub==='training');
-  document.getElementById('subtab-diet').classList.toggle('text-gray-400', sub!=='diet');
-  document.getElementById('subtab-training').classList.toggle('text-gray-400', sub!=='training');
-  document.getElementById('planDietPanel').classList.toggle('hidden', sub!=='diet');
-  document.getElementById('planTrainingPanel').classList.toggle('hidden', sub!=='training');
-  document.getElementById('exerciseSliderRow').classList.toggle('hidden', sub!=='training');
-  document.getElementById('mealSliderRow').classList.toggle('hidden', sub!=='diet');
+  // Update subtab button styles
+  ['myplan','dietdb','sport'].forEach(t => {
+    const btn = document.getElementById('subtab-'+t);
+    if (!btn) return;
+    const active = (t === sub) || (sub === 'diet' && t === 'myplan') || (sub === 'training' && t === 'myplan');
+    btn.classList.toggle('active', active);
+    btn.classList.toggle('text-gray-400', !active);
+  });
+  // Handle legacy sub values
+  if (sub === 'diet' || sub === 'training') sub = 'myplan';
+  state.planSubtab = sub;
+  // Show/hide main 3 panels
+  document.getElementById('planMyplanPanel').classList.toggle('hidden', sub !== 'myplan');
+  document.getElementById('planDietdbPanel').classList.toggle('hidden', sub !== 'dietdb');
+  document.getElementById('planSportPanel').classList.toggle('hidden', sub !== 'sport');
+  // Within Mój Plan: diet vs training view controlled by state.planView
+  const inMyPlan = (sub === 'myplan');
+  const isTrainingView = state.planView === 'training';
+  document.getElementById('planDietPanel').classList.toggle('hidden', !inMyPlan || isTrainingView);
+  document.getElementById('planTrainingPanel').classList.toggle('hidden', !inMyPlan || !isTrainingView);
+  document.getElementById('mealSliderRow').classList.toggle('hidden', !inMyPlan || isTrainingView);
+  document.getElementById('exerciseSliderRow').classList.toggle('hidden', !inMyPlan || !isTrainingView);
+  // Init sport panel when switching to it
+  if (sub === 'sport') { renderSportSelector(); renderSportDrills(); showSportSubtab('drills'); }
+  // Render diet db on first open
+  if (sub === 'dietdb') renderDietDb();
 
   if (sub === 'training') {
     // Sync slider to current count and init pip dots
@@ -2866,7 +3010,7 @@ function updateMealSlider(val, regenerate=true) {
     // Regenerate meals for current day
     const day = state.days[state.currentDay];
     const excl = p.exclusions || [];
-    p.dietPlan[day] = generateMealsForDay(count, excl, p);
+    p.dietPlan[day] = generateMealsForDay(count, excl, p, day);
     saveState();
     loadPlanForDay();
   }
@@ -3308,7 +3452,19 @@ function loadPlanForDay() {
   const checkedKey = _checkedKey(p.id, state.currentDay);
   const checked = state.dayChecked[checkedKey] || {};
 
-  if (state.planSubtab === 'diet' || !state.planSubtab) {
+  // Determine plan view from state (diet vs training within Mój Plan)
+  const activePlanView = state.planView || 'diet';
+
+  // Carb cycling badge
+  const ccBadge = document.getElementById('carbCyclingBadge');
+  if (ccBadge) {
+    const isReduction = (p.goal||'').toLowerCase().match(/redukcj|odchudzani|schud/);
+    const trainingDays = p.trainingDays || _TRAINING_DAYS_DEFAULT;
+    const isRestDay = !trainingDays.has(day);
+    ccBadge.classList.toggle('hidden', !(isReduction && isRestDay));
+  }
+
+  if (state.planSubtab === 'diet' || state.planSubtab === 'myplan' || !state.planSubtab) {
     const rawMeals = p.dietPlan[day] || [];
     const meals = planFilter(rawMeals, excl);
     state._planMeals = meals;
@@ -3386,7 +3542,7 @@ function loadPlanForDay() {
     }
   }
 
-  if (state.planSubtab === 'training') {
+  if (state.planSubtab === 'training' || (state.planSubtab === 'myplan' && state.planView === 'training')) {
     // Delegate entirely to refreshExercisesForSlider so slider always works correctly
     refreshExercisesForSlider(state.exerciseCount);
   }
@@ -5916,6 +6072,189 @@ window.addEventListener('beforeunload', saveState);
 </script>
 
 <script>
+// ====== BAZA DIETY ======
+
+let _dietDbCategory = 'all';
+let _dietDbPendingMeal = null;
+
+function dietDbSetCategory(cat) {
+  _dietDbCategory = cat;
+  document.querySelectorAll('.diet-cat-btn').forEach(b => {
+    const active = b.dataset.cat === cat;
+    b.style.background  = active ? 'rgba(0,229,255,0.15)' : 'rgba(255,255,255,0.05)';
+    b.style.color       = active ? 'var(--cyan)' : 'var(--muted)';
+    b.style.borderColor = active ? 'rgba(0,229,255,0.3)' : 'var(--border)';
+  });
+  renderDietDb();
+}
+
+function dietDbFilter() {
+  renderDietDb();
+}
+
+function renderDietDb() {
+  const grid     = document.getElementById('dietDbGrid');
+  const countEl  = document.getElementById('dietDbCount');
+  const query    = (document.getElementById('dietDbSearch')?.value || '').toLowerCase().trim();
+  const cat      = _dietDbCategory;
+
+  if (!grid) return;
+
+  // Build flat list from MEAL_DB
+  const allMeals = [];
+  Object.entries(MEAL_DB).forEach(([type, meals]) => {
+    meals.forEach(m => allMeals.push({ ...m, _type: type }));
+  });
+
+  const filtered = allMeals.filter(m => {
+    const matchCat = (cat === 'all') || (m._type === cat);
+    const matchQ   = !query || m.name.toLowerCase().includes(query)
+                            || (m.ingredients||[]).some(i => i.item?.toLowerCase().includes(query));
+    return matchCat && matchQ;
+  });
+
+  if (countEl) countEl.textContent = `${filtered.length} posiłków`;
+
+  if (!filtered.length) {
+    grid.innerHTML = '';
+    const emp = document.createElement('div');
+    emp.className = 'col-span-full text-center py-12';
+    emp.innerHTML = '<div style="font-size:2.5rem">🔍</div><p class="text-sm mt-2" style="color:var(--muted);">Brak wyników dla: <strong>' + (query || cat) + '</strong></p>';
+    grid.appendChild(emp);
+    return;
+  }
+
+  // Type label map
+  const TYPE_LABELS = { śniadanie:'☀️ Śniadanie', obiad:'🍲 Obiad', kolacja:'🌙 Kolacja', przekąska:'🍎 Przekąska' };
+  const TYPE_COLORS = { śniadanie:'#fbbf24', obiad:'#34d399', kolacja:'#a78bfa', przekąska:'#f97316' };
+
+  grid.innerHTML = '';
+  filtered.forEach(m => {
+    const card = document.createElement('div');
+    card.className = 'glass rounded-2xl p-4 flex flex-col gap-3 transition-all';
+    card.style.cssText = 'border:1px solid var(--border);cursor:default;';
+    card.onmouseenter = () => { card.style.borderColor = 'rgba(0,229,255,0.25)'; card.style.transform = 'translateY(-2px)'; };
+    card.onmouseleave = () => { card.style.borderColor = 'var(--border)'; card.style.transform = ''; };
+
+    // Type badge
+    const badgeColor = TYPE_COLORS[m._type] || '#64748b';
+    const badgeLabel = TYPE_LABELS[m._type] || m._type;
+
+    // Macro pills
+    const macros = [
+      { label: 'Kcal', val: m.kcal,    color: 'var(--cyan)' },
+      { label: 'B',    val: m.protein+'g', color: '#a78bfa' },
+      { label: 'W',    val: (m.carbs !== undefined ? m.carbs+'g' : '—'), color: '#fbbf24' },
+      { label: 'T',    val: (m.fat   !== undefined ? m.fat+'g'   : '—'), color: '#34d399' },
+    ];
+
+    const macroHtml = macros.map(mg =>
+      `<span style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
+              border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700;color:${mg.color};">
+         ${mg.label}: ${mg.val}
+       </span>`
+    ).join('');
+
+    // Ingredients preview
+    const ingPrev = (m.ingredients||[]).slice(0,3).map(i => i.item).join(', ');
+    const ingMore = (m.ingredients||[]).length > 3 ? ` +${(m.ingredients||[]).length - 3}` : '';
+
+    card.innerHTML = `
+      <div class="flex items-start justify-between gap-2">
+        <h4 class="font-extrabold text-white text-sm leading-tight">${m.name}</h4>
+        <span style="background:rgba(${hexToRgb ? '' : ''}255,255,255,0.06);color:${badgeColor};
+                     border:1px solid rgba(255,255,255,0.1);border-radius:999px;
+                     padding:2px 10px;font-size:10px;font-weight:700;white-space:nowrap;"
+              >${badgeLabel}</span>
+      </div>
+      <div class="flex flex-wrap gap-1.5">${macroHtml}</div>
+      ${ingPrev ? `<p class="text-xs" style="color:var(--muted);">${ingPrev}${ingMore}</p>` : ''}
+      <button onclick='dietDbOpenModal(${JSON.stringify(m).replace(/'/g,"\\'")})'
+        class="mt-auto w-full py-2 rounded-xl text-xs font-extrabold transition-all"
+        style="background:rgba(0,229,255,0.1);color:var(--cyan);
+               border:1px solid rgba(0,229,255,0.2);">
+        + Dodaj do planu
+      </button>`;
+    grid.appendChild(card);
+  });
+}
+
+function dietDbOpenModal(meal) {
+  _dietDbPendingMeal = meal;
+  const modal   = document.getElementById('dietDbAddModal');
+  const nameEl  = document.getElementById('dietDbModalMealName');
+  const macrosEl = document.getElementById('dietDbModalMacros');
+  const typeEl  = document.getElementById('dietDbModalMealType');
+  const dayEl   = document.getElementById('dietDbModalDay');
+
+  if (!modal) return;
+  if (nameEl) nameEl.textContent = meal.name;
+
+  // Macros in modal
+  const macros = [
+    { label:'🔥 Kcal', val: meal.kcal,           color:'var(--cyan)' },
+    { label:'💪 Białko', val: meal.protein+'g',   color:'#a78bfa'    },
+    { label:'🌾 Węgle',  val: (meal.carbs !== undefined ? meal.carbs+'g' : '—'), color:'#fbbf24' },
+    { label:'🥑 Tłuszcze', val: (meal.fat !== undefined ? meal.fat+'g'   : '—'), color:'#34d399' },
+  ];
+  if (macrosEl) macrosEl.innerHTML = macros.map(mg =>
+    `<span style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
+            border-radius:999px;padding:4px 12px;font-weight:700;color:${mg.color};">
+       ${mg.label}: ${mg.val}
+     </span>`
+  ).join('');
+
+  // Pre-select type from meal's category
+  if (typeEl && meal._type) typeEl.value = meal._type;
+
+  // Pre-select current day
+  const days = ['Pon','Wt','Śr','Czw','Pt','Sob','Niedz'];
+  if (dayEl) dayEl.value = days[state.currentDay] || 'Pon';
+
+  modal.classList.remove('hidden');
+}
+
+function closeDietDbModal() {
+  document.getElementById('dietDbAddModal')?.classList.add('hidden');
+  _dietDbPendingMeal = null;
+}
+
+function dietDbConfirmAdd() {
+  if (!_dietDbPendingMeal) return;
+  const p       = state.profiles[state.activeProfileIdx || 0];
+  const dayEl   = document.getElementById('dietDbModalDay');
+  const typeEl  = document.getElementById('dietDbModalMealType');
+  if (!p || !dayEl || !typeEl) return;
+
+  const day  = dayEl.value;
+  const type = typeEl.value;
+
+  // Add meal to the diet plan for selected day
+  if (!p.dietPlan) p.dietPlan = {};
+  if (!p.dietPlan[day]) p.dietPlan[day] = [];
+
+  const meal = { ..._dietDbPendingMeal, id: 'm' + Date.now(), type };
+  p.dietPlan[day].push(meal);
+  saveState();
+  closeDietDbModal();
+
+  // Toast confirmation
+  const toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;bottom:88px;left:50%;transform:translateX(-50%);' +
+    'background:rgba(0,229,255,0.12);color:var(--cyan);' +
+    'border:1px solid rgba(0,229,255,0.3);padding:8px 20px;border-radius:12px;' +
+    'font-size:13px;font-weight:700;z-index:9999;backdrop-filter:blur(12px);';
+  const dayNames = { Pon:'Pon', Wt:'Wt', Śr:'Śr', Czw:'Czw', Pt:'Pt', Sob:'Sob', Niedz:'Niedz' };
+  toast.textContent = `✅ Dodano do ${dayNames[day] || day} (${type})`;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2800);
+
+  // If we're on that day's plan, refresh
+  const days = ['Pon','Wt','Śr','Czw','Pt','Sob','Niedz'];
+  if (days[state.currentDay] === day) updateDashboard();
+}
+
+
 // ====== KUCHNIA AI ======
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -7892,6 +8231,10 @@ document.addEventListener('DOMContentLoaded',()=>{
       _origST(tabId);
       if (tabId==='my-day') water._render();
       if (tabId==='postepy') initCharts();
+  if (tabId==='plan') {
+    // Default to myplan on first open
+    if (!state.planSubtab || state.planSubtab === 'diet') switchPlanSubtab('myplan');
+  }
   if (tabId==='kuchnia') { kitchenInit(); }
     };
   }
