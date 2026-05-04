@@ -11,20 +11,126 @@ Uruchomienie: uvicorn fitai_api:app --reload --port 8000
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import os
 import random
-from datetime import date, datetime
+import secrets
+from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 import anthropic
+import jwt                          # PyJWT>=2.0
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pydantic import BaseModel, EmailStr
 from sqlmodel import Field, Relationship, Session, SQLModel, create_engine, select
 
 load_dotenv()
+
+# ─── JWT / Auth configuration ─────────────────────────────────────────────────
+
+# Klucz tajny — w produkcji ustaw w zmiennej środowiskowej JWT_SECRET_KEY
+# Generuj: python -c "import secrets; print(secrets.token_hex(32))"
+JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", secrets.token_hex(32))
+JWT_ALGORITHM  = "HS256"
+JWT_EXPIRE_MIN = int(os.getenv("JWT_EXPIRE_MIN", "10080"))   # 7 dni domyślnie
+
+_bearer_scheme = HTTPBearer(auto_error=False)
+
+
+# ─── Password hashing (stdlib — brak zależności zewnętrznych) ─────────────────
+
+def _hash_password(plain: str) -> str:
+    """SHA-256 PBKDF2 z losową solą — bezpieczne bez bcrypt."""
+    salt = secrets.token_hex(16)
+    key  = hashlib.pbkdf2_hmac("sha256", plain.encode(), salt.encode(), 260_000)
+    return f"pbkdf2:sha256:260000:{salt}:{key.hex()}"
+
+
+def _verify_password(plain: str, stored: str) -> bool:
+    """Weryfikuje hasło względem przechowywanego hasha."""
+    try:
+        _, algo, iterations, salt, stored_hex = stored.split(":")
+        key = hashlib.pbkdf2_hmac(algo, plain.encode(), salt.encode(), int(iterations))
+        return hmac.compare_digest(key.hex(), stored_hex)
+    except Exception:
+        return False
+
+
+# ─── JWT helpers ──────────────────────────────────────────────────────────────
+
+def _create_access_token(user_id: int, email: str, role: str) -> str:
+    """Tworzy podpisany token JWT z payloadem użytkownika."""
+    exp = datetime.utcnow() + timedelta(minutes=JWT_EXPIRE_MIN)
+    payload = {
+        "sub": str(user_id),      # subject = primary key w DB
+        "email": email,
+        "role": role,
+        "exp": exp,
+        "iat": datetime.utcnow(),
+        "jti": secrets.token_hex(8),   # unikalny ID tokena (do blacklistowania)
+    }
+    return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+
+
+def _decode_token(token: str) -> dict:
+    """Dekoduje i weryfikuje token JWT. Rzuca HTTPException przy błędzie."""
+    try:
+        return jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Token wygasł — zaloguj się ponownie",
+                            headers={"WWW-Authenticate": "Bearer"})
+    except jwt.InvalidTokenError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail=f"Nieprawidłowy token: {exc}",
+                            headers={"WWW-Authenticate": "Bearer"})
+
+
+def get_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(_bearer_scheme),
+) -> "UserDB":
+    """
+    FastAPI Dependency — wyciąga użytkownika z Bearer tokena.
+
+    Użycie w endpointach:
+        @app.get("/app/profile")
+        def profile(user: UserDB = Depends(get_current_user)):
+            return user.to_profile_dict()
+    """
+    if credentials is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Brak tokena autoryzacji",
+                            headers={"WWW-Authenticate": "Bearer"})
+    payload = _decode_token(credentials.credentials)
+    user_id = int(payload["sub"])
+    with Session(engine) as session:
+        user = session.get(UserDB, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Użytkownik z tokena nie istnieje")
+    return user
+
+
+def get_current_pro_user(user: "UserDB" = Depends(get_current_user)) -> "UserDB":
+    """Dependency — wymaga planu PRO."""
+    if user.role not in ("pro_user", "admin"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Ta funkcja wymaga planu PRO")
+    return user
+
+
+def get_current_admin(user: "UserDB" = Depends(get_current_user)) -> "UserDB":
+    """Dependency — wymaga roli admin."""
+    if user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Brak uprawnień administratora")
+    return user
+
 
 # ─── Database setup ───────────────────────────────────────────────────────────
 
@@ -83,6 +189,9 @@ class UserDB(SQLModel, table=True):
     sport_focus: Optional[str] = None                  # np. "koszykówka"
     sport_specialization: Optional[str] = None         # np. "rzuty"
     sport_training_days_json: str = "[]"               # np. ["Środa", "Sobota"]
+    # ─── Auth (dodane w v2.1) ───────────────────────────────────────────────
+    hashed_password: Optional[str] = None             # None = konto Netlify Identity (stare)
+    is_active: bool = True                             # możliwość blokowania konta
     # ─── Gamification & safety ───────────────────────────────────────────────
     total_xp: int = 0                                  # łączne punkty XP
     injuries: str = ""                                 # przecinkowy string: "kolano lewe,bark"
@@ -350,6 +459,52 @@ def _migrate_json_to_sqlite():
 
 
 # ─── Pydantic request/response models ────────────────────────────────────────
+
+# ─── Auth request/response models ────────────────────────────────────────────
+
+class RegisterRequest(BaseModel):
+    email: str
+    password: str
+    name: str
+    age: int
+    height: float
+    weight: float
+    target_weight: float
+    gender: str = "mężczyzna"
+    goal: str = "Utrzymanie wagi"
+    frequency: str = "3-4 razy w tygodniu"
+    diet: str = "Brak preferencji"
+
+    @classmethod
+    def __get_validators__(cls):
+        yield cls
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int = JWT_EXPIRE_MIN * 60   # sekundy
+    user_id: int
+    name: str
+    role: str
+    plan: str
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+    @classmethod
+    def validate_new(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("Hasło musi mieć co najmniej 8 znaków")
+        return v
+
 
 class UserProfile(BaseModel):
     name: str
@@ -1632,6 +1787,152 @@ def _upsert_user_from_profile(
     return user
 
 
+# ─── Auth endpoints ──────────────────────────────────────────────────────────
+
+@app.post("/auth/register", response_model=TokenResponse, tags=["auth"])
+def auth_register(payload: RegisterRequest):
+    """
+    Rejestracja nowego użytkownika z hasłem.
+    Zwraca JWT gotowy do użycia w nagłówku Authorization: Bearer <token>.
+    """
+    with Session(engine) as session:
+        # Sprawdź unikalność e-maila
+        existing = session.exec(
+            select(UserDB).where(UserDB.email == payload.email.lower().strip())
+        ).first()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Konto z tym e-mailem już istnieje",
+            )
+
+        user = UserDB(
+            user_key=f"native:{payload.email.lower().strip()}",
+            email=payload.email.lower().strip(),
+            hashed_password=_hash_password(payload.password),
+            name=payload.name,
+            age=payload.age,
+            height=payload.height,
+            weight=payload.weight,
+            start_weight=payload.weight,
+            target_weight=payload.target_weight,
+            gender=payload.gender,
+            goal=payload.goal,
+            frequency=payload.frequency,
+            diet=payload.diet,
+            is_active=True,
+        )
+        user.calories_target = calc_calories(user)
+        user.protein_target  = calc_protein(user)
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+
+        token = _create_access_token(user.id, user.email, user.role)
+        return TokenResponse(
+            access_token=token,
+            user_id=user.id,
+            name=user.name,
+            role=user.role,
+            plan=user.plan,
+        )
+
+
+@app.post("/auth/login", response_model=TokenResponse, tags=["auth"])
+def auth_login(payload: LoginRequest):
+    """
+    Logowanie email + hasło. Zwraca JWT.
+    Endpoint publiczny — nie wymaga tokena.
+    """
+    with Session(engine) as session:
+        user = session.exec(
+            select(UserDB).where(UserDB.email == payload.email.lower().strip())
+        ).first()
+
+        # Celowo jednolity komunikat błędu — nie ujawniamy czy email istnieje
+        _INVALID = HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Nieprawidłowy e-mail lub hasło",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+        if not user:
+            raise _INVALID
+        if not user.hashed_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="To konto używa logowania zewnętrznego (Netlify Identity). "
+                       "Użyj oryginalnego dostawcy.",
+            )
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Konto zostało zablokowane. Skontaktuj się z pomocą techniczną.",
+            )
+        if not _verify_password(payload.password, user.hashed_password):
+            raise _INVALID
+
+        token = _create_access_token(user.id, user.email, user.role)
+        return TokenResponse(
+            access_token=token,
+            user_id=user.id,
+            name=user.name,
+            role=user.role,
+            plan=user.plan,
+        )
+
+
+@app.get("/auth/me", tags=["auth"])
+def auth_me(user: UserDB = Depends(get_current_user)):
+    """Zwraca profil aktualnie zalogowanego użytkownika."""
+    return user.to_profile_dict()
+
+
+@app.post("/auth/change-password", tags=["auth"])
+def auth_change_password(
+    payload: ChangePasswordRequest,
+    user: UserDB = Depends(get_current_user),
+):
+    """Zmiana hasła — wymaga podania aktualnego hasła."""
+    if not user.hashed_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Konto zewnętrzne — zmień hasło u dostawcy identity.",
+        )
+    if not _verify_password(payload.current_password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Aktualne hasło jest nieprawidłowe",
+        )
+    if len(payload.new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Nowe hasło musi mieć co najmniej 8 znaków",
+        )
+    with Session(engine) as session:
+        db_user = session.get(UserDB, user.id)
+        db_user.hashed_password = _hash_password(payload.new_password)
+        db_user.updated_at = datetime.now().isoformat()
+        session.commit()
+    return {"status": "ok", "message": "Hasło zostało zmienione"}
+
+
+@app.post("/auth/refresh", response_model=TokenResponse, tags=["auth"])
+def auth_refresh(user: UserDB = Depends(get_current_user)):
+    """
+    Odświeżenie tokena — klient wysyła stary (wciąż ważny) token,
+    dostaje nowy z przesuniętym `exp`. Bezpieczne zastępstwo refresh tokenów
+    dla aplikacji SPA bez backendu sesji.
+    """
+    token = _create_access_token(user.id, user.email, user.role)
+    return TokenResponse(
+        access_token=token,
+        user_id=user.id,
+        name=user.name,
+        role=user.role,
+        plan=user.plan,
+    )
+
+
 # ─── /users/ endpoints (legacy + Discord bot compat) ─────────────────────────
 
 @app.post("/users/{user_id}")
@@ -1689,15 +1990,13 @@ def get_logs(user_id: str, limit: int = 30):
 
 # ─── Exercise Results & Progression endpoints ─────────────────────────────────
 
-@app.post("/app/exercise-result/{identity_id}")
-def log_exercise_result(identity_id: str, payload: ExerciseResultRequest):
+@app.post("/app/exercise-result", tags=["exercise"])
+def log_exercise_result(payload: ExerciseResultRequest, user: UserDB = Depends(get_current_user)):
     """
     Rejestruje wynik ćwiczenia z oceną RPE.
     Na podstawie historii RPE sugeruje progresję na kolejną sesję.
     """
-    user_key = _web_user_key(identity_id)
     with Session(engine) as session:
-        user = _get_user_or_404(user_key, session)
         session_date = payload.session_date or date.today().isoformat()
         result = ExerciseResultDB(
             user_id=user.id,
@@ -1729,12 +2028,10 @@ def log_exercise_result(identity_id: str, payload: ExerciseResultRequest):
         }
 
 
-@app.get("/app/exercise-history/{identity_id}")
-def get_exercise_history(identity_id: str, exercise_name: Optional[str] = None, limit: int = 20):
+@app.get("/app/exercise-history", tags=["exercise"])
+def get_exercise_history(exercise_name: Optional[str] = None, limit: int = 20, user: UserDB = Depends(get_current_user)):
     """Zwraca historię wyników ćwiczeń z sugestią progresji."""
-    user_key = _web_user_key(identity_id)
     with Session(engine) as session:
-        user = _get_user_or_404(user_key, session)
         query = select(ExerciseResultDB).where(ExerciseResultDB.user_id == user.id)
         if exercise_name:
             query = query.where(ExerciseResultDB.exercise_name == exercise_name)
@@ -1748,12 +2045,10 @@ def get_exercise_history(identity_id: str, exercise_name: Optional[str] = None, 
         return {"results": data, "progression": progression}
 
 
-@app.get("/app/progression-summary/{identity_id}")
-def get_progression_summary(identity_id: str):
+@app.get("/app/progression-summary", tags=["exercise"])
+def get_progression_summary(user: UserDB = Depends(get_current_user)):
     """Zwraca podsumowanie progresji dla wszystkich ćwiczeń użytkownika."""
-    user_key = _web_user_key(identity_id)
     with Session(engine) as session:
-        user = _get_user_or_404(user_key, session)
         # Pobierz unikalne nazwy ćwiczeń
         all_results = list(session.exec(
             select(ExerciseResultDB)
@@ -1799,40 +2094,21 @@ def app_onboarding(payload: AppOnboardingRequest):
         }
 
 
-@app.get("/app/profile/{identity_id}")
-def app_get_profile(identity_id: str):
-    user_key = _web_user_key(identity_id)
-    with Session(engine) as session:
-        user = session.exec(select(UserDB).where(UserDB.user_key == user_key)).first()
-        if not user:
-            return {
-                "name": "", "age": "", "height": "", "weight": "", "target_weight": "",
-                "gender": "mężczyzna", "goal": "Redukcja tkanki tłuszczowej",
-                "frequency": "3-4 razy w tygodniu", "sports": [], "training_focus": [],
-                "improvement_areas": [], "diet": "Brak preferencji", "allergies": "",
-                "preferred_foods": [], "avoid_foods": [], "available_equipment": [],
-                "avoid_exercises": [], "meals_per_day": 5, "notes": "",
-                "plan": "free", "role": "free_user",
-            }
-        return user.to_profile_dict()
+@app.get("/app/profile", tags=["profile"])
+def app_get_profile(user: UserDB = Depends(get_current_user)):
+    return user.to_profile_dict()
 
 
-@app.get("/app/dashboard/{identity_id}")
-def app_dashboard(identity_id: str):
-    user_key = _web_user_key(identity_id)
+@app.get("/app/dashboard", tags=["profile"])
+def app_dashboard(user: UserDB = Depends(get_current_user)):
     with Session(engine) as session:
-        user = session.exec(select(UserDB).where(UserDB.user_key == user_key)).first()
-        if not user:
-            return {"streak_days": 0, "workout_consistency_pct": 0, "targets": {"calories": "-", "protein": "-"}, "weight_series": []}
         logs = _get_user_logs(user, session)
         return _build_dashboard(user, logs)
 
 
-@app.post("/app/checkin/{identity_id}")
-def app_daily_checkin(identity_id: str, log: AppDailyCheckinRequest):
-    user_key = _web_user_key(identity_id)
+@app.post("/app/checkin", tags=["checkin"])
+def app_daily_checkin(log: AppDailyCheckinRequest, user: UserDB = Depends(get_current_user)):
     with Session(engine) as session:
-        user = _get_user_or_404(user_key, session)
         today = date.today().isoformat()
         existing = session.exec(
             select(DailyLogDB)
@@ -1901,8 +2177,8 @@ def app_daily_checkin(identity_id: str, log: AppDailyCheckinRequest):
         }
 
 
-@app.post("/app/water/{identity_id}")
-def app_log_water(identity_id: str, body: dict):
+@app.post("/app/water", tags=["checkin"])
+def app_log_water(body: dict, user: UserDB = Depends(get_current_user)):
     """
     POST /app/water/{identity_id}
     Body: { "ml": 250 }
@@ -1916,7 +2192,6 @@ def app_log_water(identity_id: str, body: dict):
     if ml > 5000:
         raise HTTPException(status_code=400, detail="Maksymalna jednorazowa porcja to 5000 ml.")
 
-    user_key = _web_user_key(identity_id)
     liters_to_add = round(ml / 1000, 4)
 
     with Session(engine) as session:
@@ -1963,19 +2238,14 @@ def app_link_discord(payload: DiscordLinkRequest):
         return {"status": "ok", "linked_discord_id": payload.discord_user_id}
 
 
-@app.get("/app/reminders/{identity_id}")
-def app_get_reminders(identity_id: str):
-    user_key = _web_user_key(identity_id)
-    with Session(engine) as session:
-        user = _get_user_or_404(user_key, session)
-        return user.get_dict("reminders_json")
+@app.get("/app/reminders", tags=["reminders"])
+def app_get_reminders(user: UserDB = Depends(get_current_user)):
+    return user.get_dict("reminders_json")
 
 
-@app.post("/app/reminders/{identity_id}")
-def app_set_reminders(identity_id: str, prefs: ReminderPrefsRequest):
-    user_key = _web_user_key(identity_id)
+@app.post("/app/reminders", tags=["reminders"])
+def app_set_reminders(prefs: ReminderPrefsRequest, user: UserDB = Depends(get_current_user)):
     with Session(engine) as session:
-        user = _get_user_or_404(user_key, session)
         user.set_dict("reminders_json", prefs.model_dump())
         user.updated_at = datetime.now().isoformat()
         session.commit()
@@ -2009,21 +2279,16 @@ def app_reminders_due():
         return {"due": due, "count": len(due)}
 
 
-@app.get("/app/plan/{identity_id}")
-def app_get_plan(identity_id: str):
-    user_key = _web_user_key(identity_id)
-    with Session(engine) as session:
-        user = session.exec(select(UserDB).where(UserDB.user_key == user_key)).first()
-        if not user or not user.weekly_plan_json:
-            return {"days": [], "generated_at": None, "weekly_goal": None}
-        return user.get_dict("weekly_plan_json")
+@app.get("/app/plan", tags=["plan"])
+def app_get_plan(user: UserDB = Depends(get_current_user)):
+    if not user.weekly_plan_json:
+        return {"days": [], "generated_at": None, "weekly_goal": None}
+    return user.get_dict("weekly_plan_json")
 
 
-@app.post("/app/plan/{identity_id}/generate")
-def app_generate_plan(identity_id: str, payload: PlanGenerateRequest):
-    user_key = _web_user_key(identity_id)
+@app.post("/app/plan/generate", tags=["plan"])
+def app_generate_plan(payload: PlanGenerateRequest, user: UserDB = Depends(get_current_user)):
     with Session(engine) as session:
-        user = _get_user_or_404(user_key, session)
         if not _is_profile_ready_for_plan(user):
             raise HTTPException(status_code=400, detail="Najpierw uzupełnij pełny onboarding")
         if payload.force or not user.weekly_plan_json:
@@ -2040,11 +2305,9 @@ def app_generate_plan(identity_id: str, payload: PlanGenerateRequest):
         return {"status": "ok", "plan": user.get_dict("weekly_plan_json")}
 
 
-@app.post("/app/plan/{identity_id}/swap")
-def app_swap_plan_item(identity_id: str, payload: PlanSwapRequest):
-    user_key = _web_user_key(identity_id)
+@app.post("/app/plan/swap", tags=["plan"])
+def app_swap_plan_item(payload: PlanSwapRequest, user: UserDB = Depends(get_current_user)):
     with Session(engine) as session:
-        user = _get_user_or_404(user_key, session)
         if not user.weekly_plan_json:
             raise HTTPException(status_code=404, detail="Plan nie został jeszcze wygenerowany")
         plan = user.get_dict("weekly_plan_json")
@@ -2090,12 +2353,10 @@ def app_swap_plan_item(identity_id: str, payload: PlanSwapRequest):
 
 # ─── Sports Module endpoints ──────────────────────────────────────────────────
 
-@app.post("/app/sport-config/{identity_id}")
-def set_sport_config(identity_id: str, payload: SportConfigRequest):
+@app.post("/app/sport-config", tags=["sport"])
+def set_sport_config(payload: SportConfigRequest, user: UserDB = Depends(get_current_user)):
     """Konfiguruje moduł sportowy: sport, specjalizacja i dni treningowe."""
-    user_key = _web_user_key(identity_id)
     with Session(engine) as session:
-        user = _get_user_or_404(user_key, session)
         user.sport_focus = payload.sport_focus.strip() or None
         user.sport_specialization = payload.sport_specialization.strip() or None
         user.set_list("sport_training_days_json", payload.sport_training_days)
@@ -2110,7 +2371,7 @@ def set_sport_config(identity_id: str, payload: SportConfigRequest):
         }
 
 
-@app.get("/app/sport-drills")
+@app.get("/app/sport-drills", tags=["sport"])
 def list_sport_drills(sport: str = "koszykówka", specialization: str = ""):
     """Zwraca dostępne drille dla danego sportu i specjalizacji."""
     sport_lower = sport.lower().strip()
@@ -2126,14 +2387,12 @@ def list_sport_drills(sport: str = "koszykówka", specialization: str = ""):
     return {"sport": sport, "specializations": list(spec_map.keys()), "all_drills": spec_map}
 
 
-@app.post("/app/drill-result/{identity_id}")
-def log_drill_result(identity_id: str, payload: DrillResultRequest):
+@app.post("/app/drill-result", tags=["sport"])
+def log_drill_result(payload: DrillResultRequest, user: UserDB = Depends(get_current_user)):
     """Zapisuje wynik drilla sportowego i zwraca sugestię progresji."""
-    user_key = _web_user_key(identity_id)
     session_date = payload.session_date or date.today().isoformat()
 
     with Session(engine) as session:
-        user = _get_user_or_404(user_key, session)
 
         result = DrillResultDB(
             user_id=user.id,
@@ -2165,12 +2424,10 @@ def log_drill_result(identity_id: str, payload: DrillResultRequest):
         }
 
 
-@app.get("/app/drill-history/{identity_id}")
-def get_drill_history(identity_id: str, drill_name: Optional[str] = None, limit: int = 20):
+@app.get("/app/drill-history", tags=["sport"])
+def get_drill_history(drill_name: Optional[str] = None, limit: int = 20, user: UserDB = Depends(get_current_user)):
     """Pobiera historię wyników drilli dla użytkownika."""
-    user_key = _web_user_key(identity_id)
     with Session(engine) as session:
-        user = _get_user_or_404(user_key, session)
         query = select(DrillResultDB).where(DrillResultDB.user_id == user.id)
         if drill_name:
             query = query.where(DrillResultDB.drill_name == drill_name)
@@ -2195,11 +2452,9 @@ def get_drill_history(identity_id: str, drill_name: Optional[str] = None, limit:
 
 # ─── Billing endpoints ────────────────────────────────────────────────────────
 
-@app.post("/billing/plan/{identity_id}")
-def billing_set_plan(identity_id: str, payload: PlanUpdateRequest):
-    user_key = _web_user_key(identity_id)
+@app.post("/billing/plan", tags=["billing"])
+def billing_set_plan(payload: PlanUpdateRequest, user: UserDB = Depends(get_current_user)):
     with Session(engine) as session:
-        user = _get_user_or_404(user_key, session)
         plan = _normalize_plan(payload.plan)
         user.plan = plan
         user.role = _role_for_plan(plan)
@@ -2208,7 +2463,7 @@ def billing_set_plan(identity_id: str, payload: PlanUpdateRequest):
         return {"status": "ok", "plan": plan, "role": user.role}
 
 
-@app.post("/billing/stripe/webhook")
+@app.post("/billing/stripe/webhook", tags=["billing"])
 async def stripe_webhook(request: Request):
     payload = await request.json()
     identity_id = payload.get("identity_id")
@@ -2227,10 +2482,9 @@ async def stripe_webhook(request: Request):
 
 # ─── AI endpoints ─────────────────────────────────────────────────────────────
 
-@app.post("/ai/diet")
-def ai_diet_plan(req: AIRequest):
+@app.post("/ai/diet", tags=["ai"])
+def ai_diet_plan(req: AIRequest, user: UserDB = Depends(get_current_user)):
     with Session(engine) as session:
-        user = _get_user_or_404(req.user_id, session)
         kcal = user.calories_target or calc_calories(user)
         protein = user.protein_target or calc_protein(user)
         day_of_week = datetime.now().strftime("%A")
@@ -2259,10 +2513,9 @@ def ai_diet_plan(req: AIRequest):
         return {"plan": ask_claude(system, user_msg, 1000), "calories_target": kcal, "protein_target": protein, "macros": macros}
 
 
-@app.post("/ai/workout")
-def ai_workout_plan(req: AIRequest):
+@app.post("/ai/workout", tags=["ai"])
+def ai_workout_plan(req: AIRequest, user: UserDB = Depends(get_current_user)):
     with Session(engine) as session:
-        user = _get_user_or_404(req.user_id, session)
         logs = list(session.exec(
             select(DailyLogDB).where(DailyLogDB.user_id == user.id).order_by(DailyLogDB.log_date.desc())
         ).all())[:7]
@@ -2302,10 +2555,9 @@ def ai_workout_plan(req: AIRequest):
         return {"plan": ask_claude(system, user_msg, 900)}
 
 
-@app.post("/ai/analyze-log")
-def ai_analyze_log(req: AIRequest):
+@app.post("/ai/analyze-log", tags=["ai"])
+def ai_analyze_log(req: AIRequest, user: UserDB = Depends(get_current_user)):
     with Session(engine) as session:
-        user = _get_user_or_404(req.user_id, session)
         today = date.today().isoformat()
         today_log = session.exec(
             select(DailyLogDB)
@@ -2335,10 +2587,9 @@ def ai_analyze_log(req: AIRequest):
         return {"analysis": ask_claude(system, user_msg, 1000)}
 
 
-@app.post("/ai/weekly")
-def ai_weekly_summary(req: AIRequest):
+@app.post("/ai/weekly", tags=["ai"])
+def ai_weekly_summary(req: AIRequest, user: UserDB = Depends(get_current_user)):
     with Session(engine) as session:
-        user = _get_user_or_404(req.user_id, session)
         logs = list(session.exec(
             select(DailyLogDB).where(DailyLogDB.user_id == user.id).order_by(DailyLogDB.log_date.desc())
         ).all())[:7]
@@ -2361,25 +2612,20 @@ class InjuryUpdateRequest(BaseModel):
     injuries: List[str] = []   # lista kontuzji, np. ["kolano lewe", "bark prawy"]
 
 
-@app.get("/app/xp/{identity_id}")
-def app_get_xp(identity_id: str):
+@app.get("/app/xp", tags=["gamification"])
+def app_get_xp(user: UserDB = Depends(get_current_user)):
     """Zwraca poziom XP, level i postęp do następnego poziomu."""
-    user_key = _web_user_key(identity_id)
-    with Session(engine) as session:
-        user = _get_user_or_404(user_key, session)
-        return {
-            "total_xp": user.total_xp,
-            **_xp_to_next_level(user.total_xp),
-            "injuries": [i.strip() for i in (user.injuries or "").split(",") if i.strip()],
-        }
+    return {
+        "total_xp": user.total_xp,
+        **_xp_to_next_level(user.total_xp),
+        "injuries": [i.strip() for i in (user.injuries or "").split(",") if i.strip()],
+    }
 
 
-@app.post("/app/injuries/{identity_id}")
-def app_update_injuries(identity_id: str, payload: InjuryUpdateRequest):
+@app.post("/app/injuries", tags=["safety"])
+def app_update_injuries(payload: InjuryUpdateRequest, user: UserDB = Depends(get_current_user)):
     """Aktualizuje listę kontuzji użytkownika."""
-    user_key = _web_user_key(identity_id)
     with Session(engine) as session:
-        user = _get_user_or_404(user_key, session)
         user.injuries = ", ".join(i.strip() for i in payload.injuries if i.strip())
         user.updated_at = datetime.now().isoformat()
         session.commit()
@@ -2389,18 +2635,15 @@ def app_update_injuries(identity_id: str, payload: InjuryUpdateRequest):
         }
 
 
-@app.get("/app/overload/{identity_id}")
-def app_check_overload(identity_id: str, threshold_pct: float = 20.0):
+@app.get("/app/overload", tags=["safety"])
+def app_check_overload(threshold_pct: float = 20.0, user: UserDB = Depends(get_current_user)):
     """
     Sprawdza przeciążenie treningowe: porównuje wolumen (sets×reps×weight)
     dwóch ostatnich sesji dla każdego ćwiczenia.
     threshold_pct: próg wzrostu wolumenu w % (domyślnie 20%).
     """
-    user_key = _web_user_key(identity_id)
     with Session(engine) as session:
-        user = _get_user_or_404(user_key, session)
-        result = _check_overload(user.id, session, threshold_pct=threshold_pct / 100)
-        return result
+        return _check_overload(user.id, session, threshold_pct=threshold_pct / 100)
 
 
 # ─── Fridge Chef & Meal Prep endpoints ───────────────────────────────────────
@@ -2412,7 +2655,6 @@ class FridgeChefRequest(BaseModel):
 
 
 class MealPrepRequest(BaseModel):
-    identity_id: str
     days: int = 3                           # ile dni planu uwzględnić (1-7)
     extra_context: Optional[str] = None
 
@@ -2460,8 +2702,8 @@ Zasady odpowiedzi:
 """
 
 
-@app.post("/app/fridge-chef")
-def app_fridge_chef(req: FridgeChefRequest):
+@app.post("/app/fridge-chef", tags=["ai_chef"])
+def app_fridge_chef(req: FridgeChefRequest, user: UserDB = Depends(get_current_user)):
     """
     Na podstawie listy składników z lodówki generuje 1 optymalny przepis
     dopasowany do celu i limitu kalorycznego użytkownika.
@@ -2471,9 +2713,7 @@ def app_fridge_chef(req: FridgeChefRequest):
     if len(req.ingredients) > 30:
         raise HTTPException(status_code=422, detail="Maksymalnie 30 składników naraz.")
 
-    user_key = _web_user_key(req.identity_id)
     with Session(engine) as session:
-        user = _get_user_or_404(user_key, session)
 
         kcal_target   = user.calories_target or calc_calories(user)
         protein_target = user.protein_target or calc_protein(user)
@@ -2518,8 +2758,8 @@ def app_fridge_chef(req: FridgeChefRequest):
         }
 
 
-@app.get("/app/meal-prep-plan/{identity_id}")
-def app_meal_prep_plan(identity_id: str, days: int = 3, extra_context: Optional[str] = None):
+@app.get("/app/meal-prep-plan", tags=["ai_chef"])
+def app_meal_prep_plan(days: int = 3, extra_context: Optional[str] = None, user: UserDB = Depends(get_current_user)):
     """
     Analizuje wygenerowany plan posiłków użytkownika na N dni
     i zwraca zbiorczą listę zakupów + harmonogram batch-cooking.
@@ -2527,7 +2767,6 @@ def app_meal_prep_plan(identity_id: str, days: int = 3, extra_context: Optional[
     if not 1 <= days <= 7:
         raise HTTPException(status_code=422, detail="Parametr days musi być między 1 a 7.")
 
-    user_key = _web_user_key(identity_id)
     with Session(engine) as session:
         user = _get_user_or_404(user_key, session)
 
@@ -2615,8 +2854,8 @@ def app_meal_prep_plan(identity_id: str, days: int = 3, extra_context: Optional[
 
 # ─── Stats / Progress endpoint ───────────────────────────────────────────────
 
-@app.get("/app/stats/{identity_id}")
-def app_get_stats(identity_id: str, days: int = 30):
+@app.get("/app/stats", tags=["stats"])
+def app_get_stats(days: int = 30, user: UserDB = Depends(get_current_user)):
     """
     Agreguje dane postępów użytkownika z DailyLogDB i ExerciseResultDB.
     Zwraca:
@@ -2626,16 +2865,7 @@ def app_get_stats(identity_id: str, days: int = 30):
       - streak_days: aktualny streak (dni z rzędu z aktywnością)
       - kpi: zmienność wagi, średnie RPE (7d), prognozowana data celu
     """
-    user_key = _web_user_key(identity_id)
     with Session(engine) as session:
-        user = session.exec(select(UserDB).where(UserDB.user_key == user_key)).first()
-        if not user:
-            return {
-                "weight_entries": [], "training_volume": [],
-                "diet_compliance_pct": 0, "streak_days": 0,
-                "kpi": {"weight_delta": 0, "avg_rpe_7d": None, "goal_date_estimate": None},
-                "target_weight": None,
-            }
 
         # ── Daily logs ────────────────────────────────────────────────────────
         all_logs = list(session.exec(
