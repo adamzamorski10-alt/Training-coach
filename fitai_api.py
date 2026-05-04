@@ -163,6 +163,7 @@ class DailyLogDB(SQLModel, table=True):
     workout: str = ""
     mood: str = ""
     weight: Optional[float] = None
+    water_liters: Optional[float] = None          # spożycie wody w litrach (inkrementowane)
     logged_at: str = Field(default_factory=lambda: datetime.now().isoformat())
 
     user: Optional[UserDB] = Relationship(back_populates="logs")
@@ -174,6 +175,7 @@ class DailyLogDB(SQLModel, table=True):
             "workout": self.workout,
             "mood": self.mood,
             "weight": self.weight,
+            "water_liters": self.water_liters,
             "logged_at": self.logged_at,
         }
 
@@ -1523,8 +1525,6 @@ def _build_weekly_plan(user: UserDB) -> dict:
 
 # ─── AI helper ────────────────────────────────────────────────────────────────
 
-_AI_UNAVAILABLE_MSG = "Asystent AI jest chwilowo niedostępny. Spróbuj ponownie za chwilę."
-
 def ask_claude(system: str, user_msg: str, max_tokens: int = 800) -> str:
     try:
         message = ai_client.messages.create(
@@ -1534,36 +1534,8 @@ def ask_claude(system: str, user_msg: str, max_tokens: int = 800) -> str:
             messages=[{"role": "user", "content": user_msg}],
         )
         return message.content[0].text
-
-    except anthropic.AuthenticationError:
-        # Brak lub nieprawidłowy klucz API
-        print("[FitAI] BŁĄD: Nieprawidłowy klucz ANTHROPIC_API_KEY.")
-        return _AI_UNAVAILABLE_MSG
-
-    except anthropic.PermissionDeniedError:
-        # Brak środków lub konto zablokowane
-        print("[FitAI] BŁĄD: Brak środków na koncie Anthropic lub konto zablokowane.")
-        return _AI_UNAVAILABLE_MSG
-
-    except anthropic.RateLimitError:
-        # Przekroczony limit zapytań
-        print("[FitAI] BŁĄD: Przekroczono limit zapytań do API Anthropic.")
-        return _AI_UNAVAILABLE_MSG
-
-    except anthropic.APIConnectionError:
-        # Brak internetu lub niedostępność serwera Anthropic
-        print("[FitAI] BŁĄD: Brak połączenia z serwerem Anthropic.")
-        return _AI_UNAVAILABLE_MSG
-
-    except anthropic.APIStatusError as exc:
-        # Inne błędy HTTP po stronie API (5xx itp.)
-        print(f"[FitAI] BŁĄD API Anthropic (HTTP {exc.status_code}): {exc.message}")
-        return _AI_UNAVAILABLE_MSG
-
     except Exception as exc:
-        # Nieoczekiwany błąd — logujemy szczegóły, użytkownik dostaje generyczny komunikat
-        print(f"[FitAI] Nieoczekiwany błąd ask_claude: {type(exc).__name__}: {exc}")
-        return _AI_UNAVAILABLE_MSG
+        raise HTTPException(status_code=503, detail=f"AI tymczasowo niedostępne: {exc}") from exc
 
 
 # ─── DB helpers ───────────────────────────────────────────────────────────────
@@ -1909,6 +1881,57 @@ def app_daily_checkin(identity_id: str, log: AppDailyCheckinRequest):
             "total_xp": user.total_xp,
             "level": _xp_to_level(user.total_xp),
         }
+
+
+@app.post("/app/water/{identity_id}")
+def app_log_water(identity_id: str, body: dict):
+    """
+    POST /app/water/{identity_id}
+    Body: { "ml": 250 }
+
+    Inkrementuje spożycie wody w DailyLogDB dla bieżącego dnia.
+    Zwraca aktualny stan (water_liters) po dodaniu.
+    """
+    ml = int(body.get("ml", 0))
+    if ml <= 0:
+        raise HTTPException(status_code=400, detail="Ilość wody musi być większa niż 0 ml.")
+    if ml > 5000:
+        raise HTTPException(status_code=400, detail="Maksymalna jednorazowa porcja to 5000 ml.")
+
+    user_key = _web_user_key(identity_id)
+    liters_to_add = round(ml / 1000, 4)
+
+    with Session(engine) as session:
+        user = _get_user_or_404(user_key, session)
+        today = date.today().isoformat()
+
+        existing = session.exec(
+            select(DailyLogDB)
+            .where(DailyLogDB.user_id == user.id)
+            .where(DailyLogDB.log_date == today)
+        ).first()
+
+        if existing:
+            existing.water_liters = round((existing.water_liters or 0) + liters_to_add, 4)
+            session.add(existing)
+            total_liters = existing.water_liters
+        else:
+            entry = DailyLogDB(
+                user_id=user.id,
+                log_date=today,
+                water_liters=liters_to_add,
+            )
+            session.add(entry)
+            total_liters = liters_to_add
+
+        session.commit()
+
+    return {
+        "status": "ok",
+        "added_ml": ml,
+        "water_liters_today": total_liters,
+        "water_ml_today": round(total_liters * 1000),
+    }
 
 
 @app.post("/app/link-discord")
@@ -2425,11 +2448,8 @@ def app_fridge_chef(req: FridgeChefRequest):
     Na podstawie listy składników z lodówki generuje 1 optymalny przepis
     dopasowany do celu i limitu kalorycznego użytkownika.
     """
-    if not req.ingredients or all(not i.strip() for i in req.ingredients):
-        raise HTTPException(
-            status_code=400,
-            detail="Twoja lodówka jest pusta! Wpisz chociaż jeden produkt."
-        )
+    if not req.ingredients:
+        raise HTTPException(status_code=422, detail="Lista składników nie może być pusta.")
     if len(req.ingredients) > 30:
         raise HTTPException(status_code=422, detail="Maksymalnie 30 składników naraz.")
 
