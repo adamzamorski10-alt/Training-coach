@@ -1,60 +1,39 @@
 @echo off
-TITLE FitAI v3.3 - Stable Launcher
-SETLOCAL EnableDelayedExpansion
-
-:: Ustawienie kodowania znaków na UTF-8
+TITLE FitAI v3.5 - Emergency Repair
 chcp 65001 >nul
 
 echo ======================================================
-echo           FitAI - SYSTEM STARTOWY v3.3
+echo           FitAI - TRYB NAPRAWCZY v3.5
 echo ======================================================
 echo.
 
-:: 1. Zamykanie starych procesów
-echo [1/4] Porządkowanie procesów...
-taskkill /IM uvicorn.exe /F 2>nul
-echo ✅ Gotowe.
+:: 1. Wymuszenie instalacji bibliotek (raz a dobrze)
+echo [1/3] Instalowanie/Aktualizacja bibliotek...
+python -m pip install groq google-generativeai fastapi uvicorn sqlmodel python-dotenv pyjwt cryptography slowapi
 
-:: 2. Wdrażanie zmian backendowych (jeśli plik istnieje)
-echo [2/4] Wdrażanie zmian...
-if exist deploy_backend.py (
-    python deploy_backend.py
-) else (
-    echo ℹ️ Pominięto deploy_backend.py.
-)
-
-:: 3. Uruchamianie serwera API
-echo [3/4] Uruchamianie serwera API...
-if not exist fitai_api.py (
-    echo ❌ BŁĄD: Nie znaleziono pliku fitai_api.py!
+if %ERRORLEVEL% NEQ 0 (
+    echo.
+    echo ❌ BŁĄD: Instalacja nie powiodła się. 
+    echo Spróbuj uruchomić ten plik jako Administrator.
     pause
     exit /b
 )
 
-:: Uruchamiamy serwer w nowym, osobnym oknie, żebyś widział błędy jeśli wystąpią
-echo 🚀 Startuję uvicorn...
-start "FitAI API Server" cmd /k "python -m uvicorn fitai_api:app --host 0.0.0.0 --port 8000"
+:: 2. Uruchamianie serwera
+echo.
+echo [2/3] Uruchamianie API...
+:: Używamy 'start' bez /B, żeby otworzyło się w nowym oknie i było widać błędy
+start "FitAI_Server" cmd /k "python -m uvicorn fitai_api:app --host 0.0.0.0 --port 8000"
 
-:: Czekamy 5 sekund na start bazy danych
-echo ⏳ Czekam na utworzenie bazy danych...
-timeout /t 5 /nobreak >nul
+echo ⏳ Czekam 5 sekund na start serwera...
+timeout /t 5 >nul
 
-:: Sprawdzenie czy baza powstała
-if exist fitai.db (
-    echo ✅ Baza danych fitai.db została znaleziona/utworzona.
-) else (
-    echo ⚠️ Uwaga: Plik fitai.db jeszcze się nie pojawił. Sprawdź drugie okno konsoli.
-)
-
-:: 4. Otwieranie strony WWW
-echo [4/4] Otwieranie panelu sterowania...
-if exist index.html (
-    start index.html
-    echo ✅ Aplikacja otwarta w przeglądarce.
-)
+:: 3. Otwieranie strony
+echo [3/3] Otwieranie przeglądarki...
+start index.html
 
 echo.
-echo ======================================================
-echo System wystartował. Nie zamykaj okna "FitAI API Server"!
-echo ======================================================
+echo ✅ Jeśli wszystko poszło dobrze, serwer działa w drugim oknie.
+echo Jeśli tamto okno jest czerwone lub ma błędy - skopiuj je tutaj.
+echo.
 pause

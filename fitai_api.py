@@ -19,7 +19,7 @@ import random
 import secrets
 import uuid as _uuid_mod
 from datetime import date, datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import groq as _groq_module
 import google.generativeai as genai
@@ -240,8 +240,14 @@ class UserDB(SQLModel, table=True):
     created_at: str = Field(default_factory=lambda: datetime.now().isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now().isoformat())
 
-    logs: List["DailyLogDB"] = Relationship(back_populates="user")
-    exercise_results: List["ExerciseResultDB"] = Relationship(back_populates="user")
+    logs: list["DailyLogDB"] = Relationship(
+        back_populates="user",
+        sa_relationship_kwargs={"lazy": "select"},
+    )
+    exercise_results: list["ExerciseResultDB"] = Relationship(
+        back_populates="user",
+        sa_relationship_kwargs={"lazy": "select"},
+    )
 
     # Helpers
     def get_list(self, field: str) -> list:
@@ -319,7 +325,10 @@ class DailyLogDB(SQLModel, table=True):
     water_liters: Optional[float] = None          # spożycie wody w litrach (inkrementowane)
     logged_at: str = Field(default_factory=lambda: datetime.now().isoformat())
 
-    user: Optional[UserDB] = Relationship(back_populates="logs")
+    user: Optional["UserDB"] = Relationship(
+        back_populates="logs",
+        sa_relationship_kwargs={"lazy": "select"},
+    )
 
     def to_dict(self) -> dict:
         return {
@@ -351,7 +360,10 @@ class ExerciseResultDB(SQLModel, table=True):
     notes: str = ""
     logged_at: str = Field(default_factory=lambda: datetime.now().isoformat())
 
-    user: Optional[UserDB] = Relationship(back_populates="exercise_results")
+    user: Optional["UserDB"] = Relationship(
+        back_populates="exercise_results",
+        sa_relationship_kwargs={"lazy": "select"},
+    )
 
     def to_dict(self) -> dict:
         return {
@@ -644,15 +656,15 @@ class UserProfile(BaseModel):
     gender: str = "mężczyzna"
     goal: str
     frequency: str
-    training_focus: List[str] = []
-    improvement_areas: List[str] = []
-    sports: List[str] = []
+    training_focus: list[str] = []
+    improvement_areas: list[str] = []
+    sports: list[str] = []
     diet: str
     allergies: str = ""
-    preferred_foods: List[str] = []
-    avoid_foods: List[str] = []
-    available_equipment: List[str] = []
-    avoid_exercises: List[str] = []
+    preferred_foods: list[str] = []
+    avoid_foods: list[str] = []
+    available_equipment: list[str] = []
+    avoid_exercises: list[str] = []
     substitutes_history: dict = {}
     meals_per_day: int = 4
     notes: str = ""
@@ -681,15 +693,15 @@ class AppOnboardingRequest(BaseModel):
     gender: str
     goal: str
     frequency: str
-    sports: List[str] = []
-    training_focus: List[str] = []
-    improvement_areas: List[str] = []
+    sports: list[str] = []
+    training_focus: list[str] = []
+    improvement_areas: list[str] = []
     diet: str
     allergies: str = ""
-    preferred_foods: List[str] = []
-    avoid_foods: List[str] = []
-    available_equipment: List[str] = []
-    avoid_exercises: List[str] = []
+    preferred_foods: list[str] = []
+    avoid_foods: list[str] = []
+    available_equipment: list[str] = []
+    avoid_exercises: list[str] = []
     meals_per_day: int = 4
     notes: str = ""
 
@@ -741,7 +753,7 @@ class SportConfigRequest(BaseModel):
     """Konfiguracja modułu sportowego użytkownika."""
     sport_focus: str                            # np. "koszykówka"
     sport_specialization: str = ""             # np. "rzuty"
-    sport_training_days: List[str] = []        # np. ["Środa", "Sobota"]
+    sport_training_days: list[str] = []        # np. ["Środa", "Sobota"]
 
 
 class ExerciseResultRequest(BaseModel):
@@ -864,7 +876,7 @@ _REPS_INCREMENT = 1
 
 def _suggest_progression(
     exercise_name: str,
-    recent_results: List[ExerciseResultDB],
+    recent_results: list[ExerciseResultDB],
 ) -> dict:
     """
     Analyzes last 3 sessions for a given exercise and returns a progression suggestion.
@@ -923,7 +935,7 @@ def _enrich_exercises_with_progression(
 
 # ─── Sports Drills Database ───────────────────────────────────────────────────
 
-SPORT_DRILLS_DB: Dict[str, Dict[str, List[dict]]] = {
+SPORT_DRILLS_DB: dict[str, dict[str, list[dict]]] = {
     "koszykówka": {
         "rzuty": [
             {
@@ -983,7 +995,7 @@ _DRILL_ATTEMPTS_INCREMENT = 5  # Ile prób dodajemy przy progresji
 
 def _suggest_drill_progression(
     drill_name: str,
-    recent_results: List[DrillResultDB],
+    recent_results: list[DrillResultDB],
 ) -> dict:
     """
     Analizuje historię drilli i sugeruje progresję.
@@ -1175,7 +1187,7 @@ def _check_overload(
     }
 
 
-def _compute_streak_days_from_logs(logs: List[DailyLogDB]) -> int:
+def _compute_streak_days_from_logs(logs: list[DailyLogDB]) -> int:
     if not logs:
         return 0
     unique_days = sorted({l.log_date for l in logs if l.log_date}, reverse=True)
@@ -1196,7 +1208,7 @@ def _compute_streak_days_from_logs(logs: List[DailyLogDB]) -> int:
 
 # ─── Dashboard builder ────────────────────────────────────────────────────────
 
-def _build_dashboard(user: UserDB, logs: List[DailyLogDB]) -> dict:
+def _build_dashboard(user: UserDB, logs: list[DailyLogDB]) -> dict:
     sorted_logs = sorted(logs, key=lambda l: l.log_date)
     calories_target = user.calories_target or calc_calories(user)
     protein_target = user.protein_target or calc_protein(user)
@@ -1628,7 +1640,7 @@ def _build_weekly_plan(user: UserDB) -> dict:
     sport_spec = (user.sport_specialization or "").lower().strip()
     sport_days = {d.strip() for d in user.get_list("sport_training_days_json")}
 
-    _sport_drills: List[dict] = []
+    _sport_drills: list[dict] = []
     if sport_focus and sport_focus in SPORT_DRILLS_DB:
         spec_map = SPORT_DRILLS_DB[sport_focus]
         if sport_spec in spec_map:
@@ -1964,7 +1976,7 @@ def _get_user_or_404(user_key: str, session: Session) -> UserDB:
     return user
 
 
-def _get_user_logs(user: UserDB, session: Session) -> List[DailyLogDB]:
+def _get_user_logs(user: UserDB, session: Session) -> list[DailyLogDB]:
     return list(session.exec(
         select(DailyLogDB).where(DailyLogDB.user_id == user.id).order_by(DailyLogDB.log_date)
     ).all())
@@ -2313,7 +2325,7 @@ def get_progression_summary(user: UserDB = Depends(get_current_user)):
             .order_by(ExerciseResultDB.session_date.desc())
         ).all())
 
-        by_exercise: Dict[str, List[ExerciseResultDB]] = {}
+        by_exercise: dict[str, list[ExerciseResultDB]] = {}
         for r in all_results:
             by_exercise.setdefault(r.exercise_name, []).append(r)
 
@@ -2874,7 +2886,7 @@ def ai_weekly_summary(request: Request, req: AIRequest, user: UserDB = Depends(g
 # ─── XP / Injuries endpoints ─────────────────────────────────────────────────
 
 class InjuryUpdateRequest(BaseModel):
-    injuries: List[str] = []   # lista kontuzji, np. ["kolano lewe", "bark prawy"]
+    injuries: list[str] = []   # lista kontuzji, np. ["kolano lewe", "bark prawy"]
 
 
 @app.get("/app/xp", tags=["gamification"])
@@ -2915,7 +2927,7 @@ def app_check_overload(threshold_pct: float = 20.0, user: UserDB = Depends(get_c
 
 class FridgeChefRequest(BaseModel):
     identity_id: str
-    ingredients: List[str]                  # np. ["kurczak 300g", "brokuły", "jajka"]
+    ingredients: list[str]                  # np. ["kurczak 300g", "brokuły", "jajka"]
     extra_context: Optional[str] = None     # np. "jestem po treningu siłowym"
 
 
