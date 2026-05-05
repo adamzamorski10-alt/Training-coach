@@ -34,6 +34,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
+from sqlalchemy.orm import relationship
 from sqlalchemy import text as _text
 from sqlmodel import Field, Relationship, Session, SQLModel, create_engine, select
 
@@ -241,24 +242,19 @@ class UserDB(SQLModel, table=True):
     updated_at: str = Field(default_factory=lambda: datetime.now().isoformat())
 
     # ── Relacje ──────────────────────────────────────────────────────────────────
-    # Python 3.14: from __future__ import annotations zamienia WSZYSTKIE adnotacje
-    # na stringi. SQLAlchemy/SQLModel próbuje rozwiązać "list['DailyLogDB']" jako
-    # nazwę klasy → KeyError / InvalidRequestError.
-    #
-    # Rozwiązanie: back_populates i lazy przeniesione W CAŁOŚCI do sa_relationship_kwargs.
-    # SQLModel wtedy pomija ewaluację adnotacji przy budowie mappera i przekazuje
-    # argumenty bezpośrednio do sqlalchemy.orm.relationship().
     logs: list["DailyLogDB"] = Relationship(
-        sa_relationship_kwargs={
-            "back_populates": "user",
-            "lazy": "select",
-        }
+        sa_relationship=relationship(
+            "DailyLogDB",
+            back_populates="user",
+            lazy="select",
+        )
     )
     exercise_results: list["ExerciseResultDB"] = Relationship(
-        sa_relationship_kwargs={
-            "back_populates": "user",
-            "lazy": "select",
-        }
+        sa_relationship=relationship(
+            "ExerciseResultDB",
+            back_populates="user",
+            lazy="select",
+        )
     )
 
     # Helpers
@@ -337,11 +333,12 @@ class DailyLogDB(SQLModel, table=True):
     water_liters: Optional[float] = None          # spożycie wody w litrach (inkrementowane)
     logged_at: str = Field(default_factory=lambda: datetime.now().isoformat())
 
-    user: Optional["UserDB"] = Relationship(
-        sa_relationship_kwargs={
-            "back_populates": "logs",
-            "lazy": "select",
-        }
+    user: "UserDB" = Relationship(
+        sa_relationship=relationship(
+            "UserDB",
+            back_populates="logs",
+            lazy="select",
+        )
     )
 
     def to_dict(self) -> dict:
@@ -375,10 +372,11 @@ class ExerciseResultDB(SQLModel, table=True):
     logged_at: str = Field(default_factory=lambda: datetime.now().isoformat())
 
     user: Optional["UserDB"] = Relationship(
-        sa_relationship_kwargs={
-            "back_populates": "exercise_results",
-            "lazy": "select",
-        }
+        sa_relationship=relationship(
+            "UserDB",
+            back_populates="exercise_results",
+            lazy="select",
+        )
     )
 
     def to_dict(self) -> dict:
@@ -530,10 +528,10 @@ def on_startup():
     _groq_key = os.getenv("GROQ_API_KEY", "").strip()
     if _groq_key:
         _groq_client = _groq_module.Groq(api_key=_groq_key)
-        print("[FitAI] ✅ Groq: klient zainicjalizowany (primary AI).")
+        print("[FitAI] OK Groq: klient zainicjalizowany (primary AI).")
     else:
         print(
-            "[FitAI] ⚠️  GROQ_API_KEY nie jest ustawiony. "
+            "[FitAI] WARN GROQ_API_KEY nie jest ustawiony. "
             "Endpointy AI będą używać wyłącznie Gemini (fallback). "
             "Dodaj GROQ_API_KEY do pliku .env, aby włączyć primary AI."
         )
@@ -543,17 +541,17 @@ def on_startup():
     if _gemini_key:
         genai.configure(api_key=_gemini_key)
         _gemini_ready = True
-        print("[FitAI] ✅ Gemini: klient zainicjalizowany (fallback AI).")
+        print("[FitAI] OK Gemini: klient zainicjalizowany (fallback AI).")
     else:
         print(
-            "[FitAI] ⚠️  GEMINI_API_KEY nie jest ustawiony. "
+            "[FitAI] WARN GEMINI_API_KEY nie jest ustawiony. "
             "Fallback AI jest wyłączony. "
             "Dodaj GEMINI_API_KEY do pliku .env, aby aktywować fallback."
         )
 
     if not _groq_key and not _gemini_key:
         print(
-            "[FitAI] ❌ ŻADEN klucz AI nie jest ustawiony (GROQ_API_KEY, GEMINI_API_KEY). "
+            "[FitAI] ERROR ŻADEN klucz AI nie jest ustawiony (GROQ_API_KEY, GEMINI_API_KEY). "
             "Endpointy /ai/* i /app/plan/generate zwrócą komunikaty zastępcze."
         )
 
@@ -1969,14 +1967,14 @@ def _fallback_response(error_kind: str, system_hint: str) -> str:
 
 def _call_groq(system: str, user_msg: str, max_tokens: int) -> str:
     """
-    Wywołuje Groq API (model llama-3-70b-versatile).
+    Wywołuje Groq API (model llama-3.3-70b-versatile).
     Rzuca wyjątek przy każdym błędzie — caller decyduje o fallbacku.
     """
     if _groq_client is None:
         raise RuntimeError("Groq client nie jest zainicjalizowany (brak GROQ_API_KEY)")
 
     completion = _groq_client.chat.completions.create(
-        model="llama3-70b-8192",      # aktualny identyfikator modelu w Groq API
+        model="llama-3.3-70b-versatile",
         max_tokens=max_tokens,
         messages=[
             {"role": "system", "content": system},
@@ -1988,7 +1986,7 @@ def _call_groq(system: str, user_msg: str, max_tokens: int) -> str:
 
 def _call_gemini(system: str, user_msg: str, max_tokens: int) -> str:
     """
-    Wywołuje Google Gemini API (model gemini-1.5-flash).
+    Wywołuje Google Gemini API (model gemini-2.5-flash).
     Rzuca wyjątek przy każdym błędzie — caller decyduje o fallbacku.
 
     Obsługiwane błędy:
@@ -2006,12 +2004,21 @@ def _call_gemini(system: str, user_msg: str, max_tokens: int) -> str:
         _gapi_exc = None  # type: ignore[assignment]
 
     try:
+        generation_kwargs: dict[str, Any] = {
+            "max_output_tokens": max_tokens,
+            "temperature": 0.2,
+        }
+        if "json" in f"{system}\n{user_msg}".lower():
+            generation_kwargs["response_mime_type"] = "application/json"
+
         model = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
+            model_name="gemini-2.5-flash",
             system_instruction=system,
-            generation_config=genai.GenerationConfig(max_output_tokens=max_tokens),
         )
-        response = model.generate_content(user_msg)
+        response = model.generate_content(
+            user_msg,
+            generation_config=genai.GenerationConfig(**generation_kwargs),
+        )
 
         # Gemini może zwrócić pustą odpowiedź gdy safety filter zablokuje treść
         if not response.text:
@@ -2037,9 +2044,9 @@ def ask_ai(system: str, user_msg: str, max_tokens: int = 800) -> str:
     Główna funkcja AI z architekturą Groq → Gemini fallback.
 
     Sekwencja:
-      1. Próbuje Groq (llama3-70b-8192) — szybki, darmowy tier.
+      1. Próbuje Groq (llama-3.3-70b-versatile) — szybki, darmowy tier.
       2. Jeśli Groq zwróci błąd (limit zapytań, brak klucza, błąd sieci)
-         → automatycznie przechodzi na Gemini (gemini-1.5-flash).
+         → automatycznie przechodzi na Gemini (gemini-2.5-flash).
       3. Jeśli oba zawiodą → zwraca _AIError z kontekstowym komunikatem PL.
 
     Callerzy wykrywający błąd AI:
@@ -2053,7 +2060,7 @@ def ask_ai(system: str, user_msg: str, max_tokens: int = 800) -> str:
     if _groq_client is not None:
         try:
             text = _call_groq(system, user_msg, max_tokens)
-            print("[FitAI] AI: odpowiedź z Groq ✅")
+            print("[FitAI] AI: odpowiedź z Groq OK")
             return text
         except _groq_module.RateLimitError as e:
             print(f"[FitAI] Groq: limit zapytań — przełączam na Gemini. ({e})")
@@ -2072,7 +2079,7 @@ def ask_ai(system: str, user_msg: str, max_tokens: int = 800) -> str:
     if _gemini_ready:
         try:
             text = _call_gemini(system, user_msg, max_tokens)
-            print("[FitAI] AI: odpowiedź z Gemini (fallback) ✅")
+            print("[FitAI] AI: odpowiedź z Gemini (fallback) OK")
             return text
         except Exception as e:
             print(f"[FitAI] Gemini: błąd ({type(e).__name__}: {e}) — serwuję odpowiedź lokalną.")
@@ -3608,7 +3615,7 @@ def app_fridge_chef(request: Request, req: FridgeChefRequest, user: UserDB = Dep
                     detail=f"Błąd serwisu AI: {str(recipe_text)}"
                 )
 
-            print("[FridgeChef] Recipe generated successfully ✓")
+            print("[FridgeChef] Recipe generated successfully OK")
             return {
                 "recipe": recipe_text,
                 "meta": {
@@ -3700,11 +3707,12 @@ Przepisy muszą być:
 - Praktyczne i szybkie do przygotowania (max 30 minut)
 - Pyszne i zróżnicowane (różne style/kuchnie)
 - Zgodne z profilem użytkownika
-- OK dla {{user_goal}} - {{user_diet}} diety
-- Bez alergenów: {{allergies}}
-- Bez unikanych produktów: {{avoid_str}}
-- Preferować: {{preferred_str}}
-- Około {{meal_kcal}} kcal na porcję
+- OK dla celu: {user.goal}
+- Dieta: {user.diet}
+- Bez alergenów: {user.allergies or 'brak'}
+- Bez unikanych produktów: {avoid_str}
+- Preferować: {preferred_str}
+- Około {meal_kcal} kcal na porcję
 """
 
             user_msg = (
@@ -3726,7 +3734,7 @@ Przepisy muszą być:
 
             print("[KitchenGenerate] Calling ask_claude()...")
             try:
-                response_text = ask_claude(system_prompt, user_msg, max_tokens=2400)
+                response_text = ask_claude(system_prompt, user_msg, max_tokens=4096)
                 
                 # Check if ask_claude returned _AIError
                 if isinstance(response_text, _AIError):
@@ -3751,7 +3759,7 @@ Przepisy muszą być:
                     json_str = json_str.strip()
                     
                     recipes = json.loads(json_str)
-                    print(f"[KitchenGenerate] Parsed {len(recipes)} recipes successfully ✓")
+                    print(f"[KitchenGenerate] Parsed {len(recipes)} recipes successfully OK")
                     
                     # Validate structure
                     if not isinstance(recipes, list):
@@ -3772,7 +3780,7 @@ Przepisy muszą być:
                                 print(f"[KitchenGenerate] WARNING: Recipe {i} missing field '{req_field}'")
                                 recipe[req_field] = "" if req_field != "kalorie" else 0
                     
-                    print("[KitchenGenerate] Recipes validated successfully ✓")
+                    print("[KitchenGenerate] Recipes validated successfully OK")
                     return {"recipes": recipes}
                     
                 except json.JSONDecodeError as json_err:
@@ -3904,7 +3912,7 @@ def app_meal_prep_plan(request: Request, days: int = 3, extra_context: Optional[
                     detail=f"Błąd serwisu AI: {str(meal_prep_text)}"
                 )
 
-            print("[MealPrepPlan] Plan generated successfully ✓")
+            print("[MealPrepPlan] Plan generated successfully OK")
             return {
                 "meal_prep_plan": meal_prep_text,
                 "meta": {

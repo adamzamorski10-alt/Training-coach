@@ -8779,7 +8779,7 @@
       }, 1800);
 
       let controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 45000); // AI fallback can take longer than Groq
 
       try {
         const _apiBase = window.API_BASE || "http://localhost:8000";
@@ -8916,8 +8916,8 @@
           hideEl('fridgeLoading');
           showEl('fridgeError');
           const errEl = document.getElementById('fridgeErrorMsg');
-          if (errEl) errEl.textContent = '⏱️ Żądanie przekroczyło czas oczekiwania (10s). Serwer może być przeciążony.';
-          showToast('⏱️ Przekroczono limit czasu (10 sekund)');
+          if (errEl) errEl.textContent = '⏱️ Żądanie przekroczyło czas oczekiwania (45s). Serwer może być przeciążony.';
+          showToast('⏱️ Przekroczono limit czasu (45 sekund)');
           console.error('[KitchenGenerate] Request timeout');
         } else {
           hideEl('fridgeLoading');
