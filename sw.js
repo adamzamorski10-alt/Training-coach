@@ -186,7 +186,7 @@ self.addEventListener('fetch', event => {
   if (url.protocol === 'chrome-extension:') return;
 
   const isLocalApi = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
-  const isProductionApi = url.hostname === 'training-coach-api.onrender.com';
+  const isProductionApi = url.hostname === 'fitai-api-v83w.onrender.com';
   const isApi = isLocalApi || isProductionApi;
   const path = url.pathname;
 

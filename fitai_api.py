@@ -506,6 +506,7 @@ CORS_ORIGINS = [
     "null",                    # file:// origin (lokalne otwarcie index.html)
     "https://adamzamorski10-alt.github.io",
     "https://training-coach-app.netlify.app",
+    "https://fitai-api-v83w.onrender.com",
     "https://training-coach-api.onrender.com",
 ]
 custom_origins = os.getenv("CORS_ORIGINS", "").strip()
