@@ -504,6 +504,7 @@ CORS_ORIGINS = [
     "http://localhost:5500",   # VS Code Live Server
     "http://127.0.0.1:5500",
     "null",                    # file:// origin (lokalne otwarcie index.html)
+    "https://adamzamorski10-alt.github.io",
     "https://training-coach-app.netlify.app",
     "https://training-coach-api.onrender.com",
 ]
