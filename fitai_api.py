@@ -636,6 +636,38 @@ def _migrate_json_to_sqlite():
     print("[FitAI] Migration from JSON completed.")
 
 
+# ─── Health check endpoint ───────────────────────────────────────────────────
+
+@app.get("/health", tags=["health"])
+def health_check():
+    """
+    Proste sprawdzenie zdrowia serwera.
+    Używane przez frontend do weryfikacji, że backend jest dostępny.
+    
+    Odpowiedź: 200 OK z JSON { "status": "ok" }
+    """
+    try:
+        # Podstawowa weryfikacja: czy baza danych jest osiągalna
+        with Session(engine) as session:
+            session.exec(select(UserDB).limit(1))
+        
+        return {
+            "status": "ok",
+            "version": "2.0",
+            "database": "ok",
+            "ai_groq": "ok" if _groq_client is not None else "disabled",
+            "ai_gemini": "ok" if _gemini_ready else "disabled",
+        }
+    except Exception as e:
+        print(f"[Health] Database check failed: {e}")
+        return {
+            "status": "degraded",
+            "version": "2.0",
+            "database": "error",
+            "error": str(e),
+        }
+
+
 # ─── Pydantic request/response models ────────────────────────────────────────
 
 # ─── Auth request/response models ────────────────────────────────────────────
@@ -3510,66 +3542,93 @@ def app_fridge_chef(request: Request, req: FridgeChefRequest, user: UserDB = Dep
     Na podstawie listy składników z lodówki generuje 1 optymalny przepis
     dopasowany do celu i limitu kalorycznego użytkownika.
     """
+    print(f"[FridgeChef] Incoming request: {len(req.ingredients)} ingredients, strict_mode={req.strict_mode}")
+    
     if not req.ingredients:
+        print("[FridgeChef] ERROR: Empty ingredients list")
         raise HTTPException(status_code=422, detail="Lista składników nie może być pusta.")
     if len(req.ingredients) > 30:
+        print(f"[FridgeChef] ERROR: Too many ingredients ({len(req.ingredients)} > 30)")
         raise HTTPException(status_code=422, detail="Maksymalnie 30 składników naraz.")
 
-    with Session(engine) as session:
+    try:
+        with Session(engine) as session:
 
-        kcal_target   = user.calories_target or calc_calories(user)
-        protein_target = user.protein_target or calc_protein(user)
-        avoid_foods   = user.get_list("avoid_foods_json")
-        preferred     = user.get_list("preferred_foods_json")
+            kcal_target   = user.calories_target or calc_calories(user)
+            protein_target = user.protein_target or calc_protein(user)
+            avoid_foods   = user.get_list("avoid_foods_json")
+            preferred     = user.get_list("preferred_foods_json")
 
-        # Jeden posiłek ≈ 1/meals_per_day całodobowego limitu (±20%)
-        meals_n    = max(user.meals_per_day, 1)
-        meal_kcal  = int(kcal_target / meals_n)
+            # Jeden posiłek ≈ 1/meals_per_day całodobowego limitu (±20%)
+            meals_n    = max(user.meals_per_day, 1)
+            meal_kcal  = int(kcal_target / meals_n)
 
-        ingredients_str = ", ".join(req.ingredients)
-        avoid_str       = ", ".join(avoid_foods) if avoid_foods else "brak"
-        preferred_str   = ", ".join(preferred)   if preferred   else "brak"
+            ingredients_str = ", ".join(req.ingredients)
+            avoid_str       = ", ".join(avoid_foods) if avoid_foods else "brak"
+            preferred_str   = ", ".join(preferred)   if preferred   else "brak"
 
-        # Select system prompt based on strict_mode
-        system_prompt = _FRIDGE_SYSTEM_STRICT if req.strict_mode else _FRIDGE_SYSTEM_BASE
+            print(f"[FridgeChef] User: {user.name}, kcal_target: {kcal_target}, meal_kcal: {meal_kcal}")
 
-        mode_instruction = (
-            "Używaj WYŁĄCZNIE podanych składników — żadnych dodatków spoza listy. "
-            "Jeśli nie można stworzyć 4 pełnych dań, zwróć TYLKO: Error01"
-            if req.strict_mode else
-            "Generuj 4 dania na bazie tych składników. Dopuszczalne są standardowe dodatki "
-            "(sól, pieprz, oliwa, podstawowe przyprawy) spoza listy."
+            # Select system prompt based on strict_mode
+            system_prompt = _FRIDGE_SYSTEM_STRICT if req.strict_mode else _FRIDGE_SYSTEM_BASE
+
+            mode_instruction = (
+                "Używaj WYŁĄCZNIE podanych składników — żadnych dodatków spoza listy. "
+                "Jeśli nie można stworzyć 4 pełnych dań, zwróć TYLKO: Error01"
+                if req.strict_mode else
+                "Generuj 4 dania na bazie tych składników. Dopuszczalne są standardowe dodatki "
+                "(sól, pieprz, oliwa, podstawowe przyprawy) spoza listy."
+            )
+
+            user_msg = (
+                f"Profil użytkownika:\n"
+                f"  Imię: {user.name}\n"
+                f"  Cel: {user.goal}\n"
+                f"  Dieta: {user.diet}\n"
+                f"  Cel kaloryczny/dzień: {kcal_target} kcal | białko: {protein_target}g\n"
+                f"  Docelowy kcal na 1 posiłek: ~{meal_kcal} kcal (±20%)\n"
+                f"  Alergie/wykluczenia: {user.allergies or 'brak'}\n"
+                f"  Unikane produkty: {avoid_str}\n"
+                f"  Preferowane smaki/produkty: {preferred_str}\n"
+                f"  Kontuzje (unikaj ciężkostrawnych potraw): {user.injuries or 'brak'}\n\n"
+                f"Składniki dostępne: {ingredients_str}\n\n"
+                f"Kontekst dodatkowy: {req.extra_context or 'brak'}\n\n"
+                f"Tryb: {mode_instruction}\n\n"
+                "Wygeneruj 4 przepisy zgodnie z instrukcjami systemowymi."
+            )
+
+            print("[FridgeChef] Calling ask_claude()...")
+            recipe_text = ask_claude(system_prompt, user_msg, max_tokens=2400)
+
+            # Check if ask_claude returned _AIError (fallback response)
+            if isinstance(recipe_text, _AIError):
+                print(f"[FridgeChef] AI Error: {recipe_text}")
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"Błąd serwisu AI: {str(recipe_text)}"
+                )
+
+            print("[FridgeChef] Recipe generated successfully ✓")
+            return {
+                "recipe": recipe_text,
+                "meta": {
+                    "ingredients_used": req.ingredients,
+                    "kcal_target_per_meal": meal_kcal,
+                    "protein_target_g":     protein_target,
+                    "user_goal":            user.goal,
+                    "user_diet":            user.diet,
+                },
+            }
+
+    except HTTPException as http_err:
+        print(f"[FridgeChef] HTTP Exception: {http_err.detail}")
+        raise
+    except Exception as err:
+        print(f"[FridgeChef] Unexpected Error: {type(err).__name__}: {err}")
+        raise HTTPException(
+            status_code=500,
+            detail="Nieoczekiwany błąd podczas generowania przepisu. Spróbuj ponownie."
         )
-
-        user_msg = (
-            f"Profil użytkownika:\n"
-            f"  Imię: {user.name}\n"
-            f"  Cel: {user.goal}\n"
-            f"  Dieta: {user.diet}\n"
-            f"  Cel kaloryczny/dzień: {kcal_target} kcal | białko: {protein_target}g\n"
-            f"  Docelowy kcal na 1 posiłek: ~{meal_kcal} kcal (±20%)\n"
-            f"  Alergie/wykluczenia: {user.allergies or 'brak'}\n"
-            f"  Unikane produkty: {avoid_str}\n"
-            f"  Preferowane smaki/produkty: {preferred_str}\n"
-            f"  Kontuzje (unikaj ciężkostrawnych potraw): {user.injuries or 'brak'}\n\n"
-            f"Składniki dostępne: {ingredients_str}\n\n"
-            f"Kontekst dodatkowy: {req.extra_context or 'brak'}\n\n"
-            f"Tryb: {mode_instruction}\n\n"
-            "Wygeneruj 4 przepisy zgodnie z instrukcjami systemowymi."
-        )
-
-        recipe_text = ask_claude(system_prompt, user_msg, max_tokens=2400)
-
-        return {
-            "recipe": recipe_text,
-            "meta": {
-                "ingredients_used": req.ingredients,
-                "kcal_target_per_meal": meal_kcal,
-                "protein_target_g":     protein_target,
-                "user_goal":            user.goal,
-                "user_diet":            user.diet,
-            },
-        }
 
 
 @app.get("/app/meal-prep-plan", tags=["ai_chef"])
@@ -3580,92 +3639,119 @@ def app_meal_prep_plan(request: Request, days: int = 3, extra_context: Optional[
     Analizuje wygenerowany plan posiłków użytkownika na N dni
     i zwraca zbiorczą listę zakupów + harmonogram batch-cooking.
     """
+    print(f"[MealPrepPlan] Incoming request: days={days}, user={user.name}")
+    
     if not 1 <= days <= 7:
+        print(f"[MealPrepPlan] ERROR: Invalid days parameter ({days})")
         raise HTTPException(status_code=422, detail="Parametr days musi być między 1 a 7.")
 
-    with Session(engine) as session:
-        user = _get_user_or_404(user_key, session)
+    try:
+        with Session(engine) as session:
+            # Refresh user from session to ensure we have latest data
+            user = session.merge(user)
 
-        kcal_target    = user.calories_target or calc_calories(user)
-        protein_target = user.protein_target  or calc_protein(user)
+            kcal_target    = user.calories_target or calc_calories(user)
+            protein_target = user.protein_target  or calc_protein(user)
 
-        # ── Pobierz wygenerowany plan tygodniowy użytkownika ────────────────
-        weekly_plan: dict = {}
-        if user.weekly_plan_json:
-            try:
-                weekly_plan = json.loads(user.weekly_plan_json)
-            except (json.JSONDecodeError, TypeError, ValueError):
-                weekly_plan = {}
+            print(f"[MealPrepPlan] User targets: {kcal_target} kcal, {protein_target}g protein")
 
-        # Spróbuj też wyciągnąć plan z najnowszych logów diety (DailyLogDB.food)
-        recent_logs = list(session.exec(
-            select(DailyLogDB)
-            .where(DailyLogDB.user_id == user.id)
-            .order_by(DailyLogDB.log_date.desc())
-        ).all())[:days]
+            # ── Pobierz wygenerowany plan tygodniowy użytkownika ────────────────
+            weekly_plan: dict = {}
+            if user.weekly_plan_json:
+                try:
+                    weekly_plan = json.loads(user.weekly_plan_json)
+                except (json.JSONDecodeError, TypeError, ValueError):
+                    weekly_plan = {}
 
-        diet_log_summary = []
-        for log in reversed(recent_logs):
-            if log.food:
-                diet_log_summary.append(f"  {log.log_date}: {log.food}")
+            # Spróbuj też wyciągnąć plan z najnowszych logów diety (DailyLogDB.food)
+            recent_logs = list(session.exec(
+                select(DailyLogDB)
+                .where(DailyLogDB.user_id == user.id)
+                .order_by(DailyLogDB.log_date.desc())
+            ).all())[:days]
 
-        # ── Zbuduj opis planu posiłków ────────────────────────────────────
-        # Preferuj weekly_plan jeśli istnieje, fallback do logów
-        plan_description = ""
-        if weekly_plan:
-            day_names = ["Poniedziałek","Wtorek","Środa","Czwartek","Piątek","Sobota","Niedziela"]
-            pl_map    = {"Pon":"Poniedziałek","Wt":"Wtorek","Śr":"Środa",
-                         "Czw":"Czwartek","Pt":"Piątek","Sob":"Sobota","Niedz":"Niedziela"}
-            lines = []
-            for day_key, day_full in pl_map.items():
-                if len(lines) >= days:
-                    break
-                diet_day = weekly_plan.get("diet", {}).get(day_key, [])
-                if diet_day:
-                    meals_str = "; ".join(
-                        f"{m.get('name','?')} ({m.get('kcal',0)} kcal, B:{m.get('protein',0)}g)"
-                        for m in diet_day
-                    )
-                    lines.append(f"  {day_full}: {meals_str}")
-            plan_description = "\n".join(lines)
-        elif diet_log_summary:
-            plan_description = "\n".join(diet_log_summary)
-        else:
-            # Brak danych — poproś AI o wygenerowanie na bazie profilu
-            plan_description = (
-                f"Brak zapisanego planu. Wygeneruj optymalny meal-prep dla osoby:\n"
-                f"  Cel: {user.goal}, dieta: {user.diet}, "
-                f"  {kcal_target} kcal/dzień, {protein_target}g białka/dzień, "
-                f"  {user.meals_per_day} posiłków/dzień.\n"
-                f"  Upodobania: {', '.join(user.get_list('preferred_foods_json')) or 'brak danych'}"
+            diet_log_summary = []
+            for log in reversed(recent_logs):
+                if log.food:
+                    diet_log_summary.append(f"  {log.log_date}: {log.food}")
+
+            # ── Zbuduj opis planu posiłków ────────────────────────────────────
+            # Preferuj weekly_plan jeśli istnieje, fallback do logów
+            plan_description = ""
+            if weekly_plan:
+                day_names = ["Poniedziałek","Wtorek","Środa","Czwartek","Piątek","Sobota","Niedziela"]
+                pl_map    = {"Pon":"Poniedziałek","Wt":"Wtorek","Śr":"Środa",
+                             "Czw":"Czwartek","Pt":"Piątek","Sob":"Sobota","Niedz":"Niedziela"}
+                lines = []
+                for day_key, day_full in pl_map.items():
+                    if len(lines) >= days:
+                        break
+                    diet_day = weekly_plan.get("diet", {}).get(day_key, [])
+                    if diet_day:
+                        meals_str = "; ".join(
+                            f"{m.get('name','?')} ({m.get('kcal',0)} kcal, B:{m.get('protein',0)}g)"
+                            for m in diet_day
+                        )
+                        lines.append(f"  {day_full}: {meals_str}")
+                plan_description = "\n".join(lines)
+            elif diet_log_summary:
+                plan_description = "\n".join(diet_log_summary)
+            else:
+                # Brak danych — poproś AI o wygenerowanie na bazie profilu
+                plan_description = (
+                    f"Brak zapisanego planu. Wygeneruj optymalny meal-prep dla osoby:\n"
+                    f"  Cel: {user.goal}, dieta: {user.diet}, "
+                    f"  {kcal_target} kcal/dzień, {protein_target}g białka/dzień, "
+                    f"  {user.meals_per_day} posiłków/dzień.\n"
+                    f"  Upodobania: {', '.join(user.get_list('preferred_foods_json')) or 'brak danych'}"
+                )
+
+            user_msg = (
+                f"Profil użytkownika:\n"
+                f"  Imię: {user.name} | Cel: {user.goal} | Dieta: {user.diet}\n"
+                f"  Dzienny limit: {kcal_target} kcal | Białko: {protein_target}g\n"
+                f"  Liczba posiłków/dzień: {user.meals_per_day}\n"
+                f"  Alergie: {user.allergies or 'brak'}\n"
+                f"  Unikane produkty: {', '.join(user.get_list('avoid_foods_json')) or 'brak'}\n"
+                f"  Sprzęt kuchenny: standardowy (piekarnik, patelnia, garnek, blender)\n\n"
+                f"Plan posiłków na {days} {'dzień' if days == 1 else 'dni' if days < 5 else 'dni'}:\n"
+                f"{plan_description}\n\n"
+                f"Kontekst dodatkowy: {extra_context or 'brak'}\n\n"
+                f"Wygeneruj kompletny plan meal-prep na {days} dni zgodnie z instrukcjami systemowymi."
             )
 
-        user_msg = (
-            f"Profil użytkownika:\n"
-            f"  Imię: {user.name} | Cel: {user.goal} | Dieta: {user.diet}\n"
-            f"  Dzienny limit: {kcal_target} kcal | Białko: {protein_target}g\n"
-            f"  Liczba posiłków/dzień: {user.meals_per_day}\n"
-            f"  Alergie: {user.allergies or 'brak'}\n"
-            f"  Unikane produkty: {', '.join(user.get_list('avoid_foods_json')) or 'brak'}\n"
-            f"  Sprzęt kuchenny: standardowy (piekarnik, patelnia, garnek, blender)\n\n"
-            f"Plan posiłków na {days} {'dzień' if days == 1 else 'dni' if days < 5 else 'dni'}:\n"
-            f"{plan_description}\n\n"
-            f"Kontekst dodatkowy: {extra_context or 'brak'}\n\n"
-            f"Wygeneruj kompletny plan meal-prep na {days} dni zgodnie z instrukcjami systemowymi."
+            print("[MealPrepPlan] Calling ask_claude()...")
+            meal_prep_text = ask_claude(_MEAL_PREP_SYSTEM, user_msg, max_tokens=1400)
+
+            # Check if ask_claude returned _AIError
+            if isinstance(meal_prep_text, _AIError):
+                print(f"[MealPrepPlan] AI Error: {meal_prep_text}")
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"Błąd serwisu AI: {str(meal_prep_text)}"
+                )
+
+            print("[MealPrepPlan] Plan generated successfully ✓")
+            return {
+                "meal_prep_plan": meal_prep_text,
+                "meta": {
+                    "days":            days,
+                    "kcal_target":     kcal_target,
+                    "protein_target":  protein_target,
+                    "plan_source":     "weekly_plan" if weekly_plan else ("diet_logs" if diet_log_summary else "ai_generated"),
+                    "meals_per_day":   user.meals_per_day,
+                },
+            }
+
+    except HTTPException as http_err:
+        print(f"[MealPrepPlan] HTTP Exception: {http_err.detail}")
+        raise
+    except Exception as err:
+        print(f"[MealPrepPlan] Unexpected Error: {type(err).__name__}: {err}")
+        raise HTTPException(
+            status_code=500,
+            detail="Nieoczekiwany błąd podczas generowania meal-prep. Spróbuj ponownie."
         )
-
-        meal_prep_text = ask_claude(_MEAL_PREP_SYSTEM, user_msg, max_tokens=1400)
-
-        return {
-            "meal_prep_plan": meal_prep_text,
-            "meta": {
-                "days":            days,
-                "kcal_target":     kcal_target,
-                "protein_target":  protein_target,
-                "plan_source":     "weekly_plan" if weekly_plan else ("diet_logs" if diet_log_summary else "ai_generated"),
-                "meals_per_day":   user.meals_per_day,
-            },
-        }
 
 
 # ─── Stats / Progress endpoint ───────────────────────────────────────────────

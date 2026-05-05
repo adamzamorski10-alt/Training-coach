@@ -8724,19 +8724,37 @@
       const identityId = state.identityId || state.profiles[0]?.id || '';
       // Get JWT token for Authorization header
       const token = state.token || localStorage.getItem('fitai_token') || '';
-      if (!identityId && !token) { alert('Zaloguj się aby korzystać z Kuchni AI'); return; }
+      if (!identityId && !token) { showToast('⚠️ Zaloguj się aby korzystać z Kuchni AI'); return; }
       if (_kitchen.fridgeTags.length === 0) {
+        showToast('⚠️ Dodaj co najmniej jeden składnik');
         document.getElementById('fridgeIngredientInput')?.focus();
         return;
       }
 
-      // UI: loading
+      // ── Test ping before sending request ──
+      const btn = document.getElementById('fridgeGenerateBtn');
+      const originalBtnText = btn.innerHTML;
       const showEl = id => { const e = document.getElementById(id); if (e) { e.classList.remove('hidden'); e.style.display = 'flex'; } };
       const hideEl = id => { const e = document.getElementById(id); if (e) { e.classList.add('hidden'); e.style.display = 'none'; } };
+
+      try {
+        // Test API connectivity
+        const _apiBase = window.API_BASE || "http://localhost:8000";
+        const pingRes = await fetch(`${_apiBase}/health`, { method: 'GET', signal: AbortSignal.timeout(5000) }).catch(() => null);
+        if (!pingRes) {
+          showToast('❌ Serwer nie odpowiada. Sprawdź połączenie internetowe.');
+          return;
+        }
+      } catch (e) {
+        showToast('❌ Serwer niedostępny. Spróbuj ponownie za chwilę.');
+        return;
+      }
+
+      // UI: loading
       hideEl('fridgeEmptyState'); hideEl('fridgeResult'); hideEl('fridgeError');
       showEl('fridgeLoading');
-      document.getElementById('fridgeGenerateBtn').disabled = true;
-      document.getElementById('fridgeGenerateBtn').style.opacity = '0.5';
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Generuję...';
 
       // Cycle loading messages
       let msgIdx = 0;
@@ -8744,6 +8762,9 @@
       const msgInterval = setInterval(() => {
         if (msgEl) msgEl.textContent = FRIDGE_LOADING_MSGS[msgIdx++ % FRIDGE_LOADING_MSGS.length];
       }, 1800);
+
+      let controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
       try {
         const _apiBase = window.API_BASE || "http://localhost:8000";
@@ -8761,12 +8782,30 @@
             extra_context: document.getElementById('fridgeContext')?.value || '',
             strict_mode: _kitchen.strictMode,
           }),
+          signal: controller.signal,
         });
         clearInterval(msgInterval);
+        clearTimeout(timeoutId);
 
+        // ── Detailed error handling ──
         if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.detail || `HTTP ${res.status}`);
+          let errDetail = `HTTP ${res.status}`;
+          try {
+            const err = await res.json();
+            errDetail = err.detail || err.message || errDetail;
+            console.error('[FridgeGenerate] Server error:', err);
+          } catch (e) {
+            console.error('[FridgeGenerate] Could not parse error response:', e);
+          }
+
+          hideEl('fridgeLoading');
+          showEl('fridgeError');
+          const errEl = document.getElementById('fridgeErrorMsg');
+          if (errEl) {
+            errEl.innerHTML = `<strong>Błąd serwera:</strong> ${errDetail}`;
+          }
+          showToast(`❌ Błąd: ${errDetail}`);
+          throw new Error(errDetail);
         }
         const data = await res.json();
 
@@ -8776,6 +8815,7 @@
           showEl('fridgeError');
           const errEl = document.getElementById('fridgeErrorMsg');
           if (errEl) errEl.textContent = '🥕 Zbyt mało składników, by stworzyć pełne dania. Dodaj coś więcej!';
+          showToast('⚠️ Zbyt mało składników');
           return;
         }
 
@@ -8808,15 +8848,32 @@
         _kitchen.fridgeHistory.unshift(historyItem);
         fridgeRenderHistory();
 
+        showToast('✅ Przepis wygenerowany!');
+
       } catch (err) {
         clearInterval(msgInterval);
-        hideEl('fridgeLoading');
-        showEl('fridgeError');
-        const errEl = document.getElementById('fridgeErrorMsg');
-        if (errEl) errEl.textContent = err.message || 'Wystąpił błąd połączenia. Sprawdź czy serwer działa.';
+        clearTimeout(timeoutId);
+
+        // Handle AbortController timeout
+        if (err.name === 'AbortError') {
+          hideEl('fridgeLoading');
+          showEl('fridgeError');
+          const errEl = document.getElementById('fridgeErrorMsg');
+          if (errEl) errEl.textContent = '⏱️ Żądanie przekroczyło czas oczekiwania (10s). Serwer może być przeciążony.';
+          showToast('⏱️ Przekroczono limit czasu (10 sekund)');
+          console.error('[FridgeGenerate] Request timeout');
+        } else {
+          hideEl('fridgeLoading');
+          showEl('fridgeError');
+          const errEl = document.getElementById('fridgeErrorMsg');
+          const msg = err.message || 'Nieznany błąd połączenia';
+          if (errEl) errEl.innerHTML = `<strong>Błąd:</strong> ${msg}`;
+          showToast(`❌ ${msg}`);
+          console.error('[FridgeGenerate] Error:', err);
+        }
       } finally {
-        document.getElementById('fridgeGenerateBtn').disabled = false;
-        document.getElementById('fridgeGenerateBtn').style.opacity = '1';
+        btn.disabled = false;
+        btn.innerHTML = originalBtnText;
       }
     }
 
@@ -8979,14 +9036,31 @@
 
     async function mealPrepGenerate() {
       const identityId = state.identityId || state.profiles[0]?.id || '';
-      if (!identityId) { alert('Zaloguj się aby korzystać z Kuchni AI'); return; }
+      const token = state.token || localStorage.getItem('fitai_token') || '';
+      if (!identityId && !token) { showToast('⚠️ Zaloguj się aby korzystać z Kuchni AI'); return; }
 
+      const btn = document.getElementById('mealPrepGenerateBtn');
+      const originalBtnText = btn.innerHTML;
       const showEl = id => { const e = document.getElementById(id); if (e) { e.classList.remove('hidden'); e.style.display = 'flex'; } };
       const hideEl = id => { const e = document.getElementById(id); if (e) { e.classList.add('hidden'); e.style.display = 'none'; } };
+
+      // ── Test ping before sending request ──
+      try {
+        const _apiBase = window.API_BASE || "http://localhost:8000";
+        const pingRes = await fetch(`${_apiBase}/health`, { method: 'GET', signal: AbortSignal.timeout(5000) }).catch(() => null);
+        if (!pingRes) {
+          showToast('❌ Serwer nie odpowiada. Sprawdź połączenie internetowe.');
+          return;
+        }
+      } catch (e) {
+        showToast('❌ Serwer niedostępny. Spróbuj ponownie za chwilę.');
+        return;
+      }
+
       hideEl('mealPrepEmptyState'); hideEl('mealPrepResult'); hideEl('mealPrepError');
       showEl('mealPrepLoading');
-      document.getElementById('mealPrepGenerateBtn').disabled = true;
-      document.getElementById('mealPrepGenerateBtn').style.opacity = '0.5';
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Generuję...';
 
       let msgIdx = 0;
       const msgEl = document.getElementById('mealPrepLoadingMsg');
@@ -8994,16 +9068,42 @@
         if (msgEl) msgEl.textContent = MEAL_PREP_LOADING_MSGS[msgIdx++ % MEAL_PREP_LOADING_MSGS.length];
       }, 1800);
 
+      let controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
       try {
         const ctx = encodeURIComponent(document.getElementById('mealPrepContext')?.value || '');
         const _apiBase = window.API_BASE || "http://localhost:8000";
-        const url = `${_apiBase}/app/meal-prep-plan/${identityId}?days=${_kitchen.mealPrepDays}${ctx ? '&extra_context=' + ctx : ''}`;
-        const res = await fetch(url);
-        clearInterval(msgInterval);
+        const url = `${_apiBase}/app/meal-prep-plan?days=${_kitchen.mealPrepDays}${ctx ? '&extra_context=' + ctx : ''}`;
 
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const res = await fetch(url, {
+          method: 'GET',
+          headers,
+          signal: controller.signal,
+        });
+        clearInterval(msgInterval);
+        clearTimeout(timeoutId);
+
+        // ── Detailed error handling ──
         if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.detail || `HTTP ${res.status}`);
+          let errDetail = `HTTP ${res.status}`;
+          try {
+            const err = await res.json();
+            errDetail = err.detail || err.message || errDetail;
+            console.error('[MealPrepGenerate] Server error:', err);
+          } catch (e) {
+            console.error('[MealPrepGenerate] Could not parse error response:', e);
+          }
+
+          hideEl('mealPrepLoading');
+          showEl('mealPrepError');
+          const errEl = document.getElementById('mealPrepErrorMsg');
+          if (errEl) errEl.innerHTML = `<strong>Błąd serwera:</strong> ${errDetail}`;
+          showToast(`❌ Błąd: ${errDetail}`);
+          throw new Error(errDetail);
         }
         const data = await res.json();
         _kitchen.lastMealPrepPlan = data.meal_prep_plan;
@@ -9017,15 +9117,32 @@
         const badge = document.getElementById('mealPrepDaysBadge');
         if (badge) badge.textContent = `${data.meta?.days} dni • ${data.meta?.kcal_target} kcal/dzień`;
 
+        showToast('✅ Plan meal prep wygenerowany!');
+
       } catch (err) {
         clearInterval(msgInterval);
-        hideEl('mealPrepLoading');
-        showEl('mealPrepError');
-        const errEl = document.getElementById('mealPrepErrorMsg');
-        if (errEl) errEl.textContent = err.message || 'Wystąpił błąd. Spróbuj ponownie.';
+        clearTimeout(timeoutId);
+
+        // Handle AbortController timeout
+        if (err.name === 'AbortError') {
+          hideEl('mealPrepLoading');
+          showEl('mealPrepError');
+          const errEl = document.getElementById('mealPrepErrorMsg');
+          if (errEl) errEl.textContent = '⏱️ Żądanie przekroczyło czas oczekiwania (10s). Serwer może być przeciążony.';
+          showToast('⏱️ Przekroczono limit czasu (10 sekund)');
+          console.error('[MealPrepGenerate] Request timeout');
+        } else {
+          hideEl('mealPrepLoading');
+          showEl('mealPrepError');
+          const errEl = document.getElementById('mealPrepErrorMsg');
+          const msg = err.message || 'Nieznany błąd połączenia';
+          if (errEl) errEl.innerHTML = `<strong>Błąd:</strong> ${msg}`;
+          showToast(`❌ ${msg}`);
+          console.error('[MealPrepGenerate] Error:', err);
+        }
       } finally {
-        document.getElementById('mealPrepGenerateBtn').disabled = false;
-        document.getElementById('mealPrepGenerateBtn').style.opacity = '1';
+        btn.disabled = false;
+        btn.innerHTML = originalBtnText;
       }
     }
 
