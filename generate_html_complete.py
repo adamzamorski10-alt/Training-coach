@@ -1145,6 +1145,7 @@ const getIdentityId = () => state.identityId || 'demo_user_001';
 // ─────────────────────────────────────────────────────────────────────────────
 const state = {
   identityId: localStorage.getItem('fitai_identity_id') || 'demo_user_001',
+  token: localStorage.getItem('fitai_token') || '', // JWT token from login
   profile: null,
   weeklyPlan: null,         // Full plan from API { days: [...] }
   currentDay: 0,

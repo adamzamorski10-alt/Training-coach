@@ -3645,12 +3645,14 @@ def app_fridge_chef(request: Request, req: FridgeChefRequest, user: UserDB = Dep
 @app.post("/app/kitchen/generate", tags=["ai_chef"])
 @limiter.limit(AI_RATE_PER_MINUTE)
 @limiter.limit(AI_RATE_PER_HOUR)
-def app_kitchen_generate(request: Request, req: FridgeChefRequest, user: UserDB = Depends(get_current_user)):
+def app_kitchen_generate(request: Request, req: FridgeChefRequest):
     """
     Generuje 4 przepisy na podstawie wybranych składników.
     Zwraca JSON tablica 4 obiektów: { nazwa, składniki, opis, kalorie }
+    
+    Uwaga: Zamiast JWT, używa identity_id z payloadu do identyfikacji użytkownika.
     """
-    print(f"[KitchenGenerate] Incoming request: {len(req.ingredients)} ingredients, strict_mode={req.strict_mode}")
+    print(f"[KitchenGenerate] Incoming request: identity_id={req.identity_id}, {len(req.ingredients)} ingredients, strict_mode={req.strict_mode}")
     
     if not req.ingredients:
         print("[KitchenGenerate] ERROR: Empty ingredients list")
@@ -3661,6 +3663,18 @@ def app_kitchen_generate(request: Request, req: FridgeChefRequest, user: UserDB 
 
     try:
         with Session(engine) as session:
+            # ─ Znalezienie user'a po identity_id ─
+            user = session.exec(
+                select(UserDB).where(UserDB.identity_id == req.identity_id)
+            ).first()
+            
+            if not user:
+                print(f"[KitchenGenerate] ERROR: User not found for identity_id={req.identity_id}")
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Użytkownik z identity_id='{req.identity_id}' nie znaleziony. Proszę się zalogować."
+                )
+            
             kcal_target   = user.calories_target or calc_calories(user)
             protein_target = user.protein_target or calc_protein(user)
             avoid_foods   = user.get_list("avoid_foods_json")
