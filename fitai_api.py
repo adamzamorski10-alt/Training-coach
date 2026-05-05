@@ -2852,6 +2852,264 @@ def sport_suggest_day(user: UserDB = Depends(get_current_user)):
     }
 
 
+@app.get("/app/training-load/{user_id}", tags=["plan"])
+def get_training_load(user_id: str, user: UserDB = Depends(get_current_user)):
+    """
+    GET /app/training-load/{user_id}
+
+    Oblicza tygodniowy Workload (obciążenie) dla każdego dnia z bieżącego planu.
+    Workload = suma (serie × powtórzenia) dla każdego ćwiczenia w danym dniu.
+
+    Odpowiedź:
+        {
+          "workload": {
+            "Poniedziałek": {"sets": 12, "reps": 96, "workload": 288, "exercise_count": 4},
+            "Środa":        {"sets": 9,  "reps": 72, "workload": 216, "exercise_count": 3},
+            ...
+          },
+          "suggested_day": "Środa",
+          "suggested_reason": "Najniższy Workload (216 pkt) — idealny dzień na nowe ćwiczenie.",
+          "total_weekly_workload": 504
+        }
+
+    Parametr `user_id` jest ignorowany na rzecz tokena JWT (bezpieczeństwo).
+    Endpoint wymaga autoryzacji Bearer.
+    """
+    ALL_DAYS_PL = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"]
+
+    plan = user.get_dict("weekly_plan_json")
+    workload: dict[str, dict] = {}
+
+    if plan and "days" in plan:
+        for day_entry in plan["days"]:
+            day_name = day_entry.get("day", "")
+            exercises = day_entry.get("workout", {}).get("exercises", [])
+            day_sets = 0
+            day_reps = 0
+            for ex in exercises:
+                # Parsuj serie — może być "3 serie" lub "3"
+                sets_raw = str(ex.get("sets", "3")).split()[0]
+                reps_raw = str(ex.get("reps", "10")).split()[0]
+                try:
+                    s = int(sets_raw)
+                except ValueError:
+                    s = 3
+                try:
+                    r = int(reps_raw)
+                except ValueError:
+                    r = 10
+                day_sets += s
+                day_reps += r
+            workload[day_name] = {
+                "sets": day_sets,
+                "reps": day_reps,
+                "workload": day_sets * day_reps,
+                "exercise_count": len(exercises),
+                "is_rest": day_entry.get("workout", {}).get("rest", False),
+            }
+    else:
+        # Brak planu — wszystkie dni mają zerowy workload
+        for d in ALL_DAYS_PL:
+            workload[d] = {"sets": 0, "reps": 0, "workload": 0, "exercise_count": 0, "is_rest": False}
+
+    # Uzupełnij brakujące dni (np. dni odpoczynku nieobecne w planie)
+    for d in ALL_DAYS_PL:
+        if d not in workload:
+            workload[d] = {"sets": 0, "reps": 0, "workload": 0, "exercise_count": 0, "is_rest": False}
+
+    # Wybierz najlepszy dzień (najmniejszy workload, nie dzień odpoczynku)
+    active_days = {d: v for d, v in workload.items() if not v.get("is_rest", False)}
+    if active_days:
+        best_day = min(active_days, key=lambda d: active_days[d]["workload"])
+        best_wl = active_days[best_day]["workload"]
+        best_count = active_days[best_day]["exercise_count"]
+        suggested_reason = (
+            f"Najniższy Workload ({best_wl} pkt, {best_count} ćwiczeń) — "
+            "idealny dzień na dodanie nowego ćwiczenia."
+        )
+    else:
+        best_day = None
+        suggested_reason = "Brak aktywnych dni treningowych w planie."
+
+    total_workload = sum(v["workload"] for v in workload.values())
+
+    return {
+        "workload": workload,
+        "suggested_day": best_day,
+        "suggested_reason": suggested_reason,
+        "total_weekly_workload": total_workload,
+        "has_plan": bool(plan and "days" in plan),
+    }
+
+
+@app.post("/app/plan/regenerate-ai", tags=["plan"])
+@limiter.limit(AI_RATE_PER_MINUTE)
+@limiter.limit(AI_RATE_PER_HOUR)
+def regenerate_plan_with_ai(request: Request, user: UserDB = Depends(get_current_user)):
+    """
+    POST /app/plan/regenerate-ai
+
+    Wysyła obecny tygodniowy plan użytkownika do modelu LLM z prośbą
+    o optymalne rozmieszczenie wszystkich ćwiczeń w tygodniu,
+    tak aby uniknąć przetrenowania i zapewnić właściwą regenerację.
+
+    Algorytm:
+      1. Zbiera wszystkie ćwiczenia ze wszystkich dni z obecnego planu.
+      2. Buduje prompt opisujący ćwiczenia, grupy mięśniowe i profil użytkownika.
+      3. Prosi LLM o optymalną dystrybucję między dniami (JSON).
+      4. Aplikuje zwrócony rozkład do planu — zachowując oryginalne obiekty ćwiczeń.
+      5. Zapisuje zaktualizowany plan do bazy.
+
+    Zwraca:
+        {"status": "ok", "plan": <zaktualizowany plan>, "ai_note": "<komentarz AI>"}
+    """
+    if not user.weekly_plan_json:
+        raise HTTPException(status_code=404, detail="Brak planu do zregenerowania. Najpierw wygeneruj plan.")
+
+    plan = user.get_dict("weekly_plan_json")
+    days = plan.get("days", [])
+
+    ALL_DAYS_PL = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"]
+
+    # ── 1. Zbierz wszystkie ćwiczenia z całego planu ─────────────────────────
+    all_exercises: list[dict] = []
+    for day_entry in days:
+        for ex in day_entry.get("workout", {}).get("exercises", []):
+            muscles = ex.get("muscles", ex.get("muscle_group", "ogólne"))
+            all_exercises.append({
+                "name": ex.get("name", "Ćwiczenie"),
+                "sets": ex.get("sets", 3),
+                "reps": ex.get("reps", 10),
+                "muscles": muscles,
+                "_original": ex,  # zachowaj pełny obiekt do późniejszego mapowania
+            })
+
+    if not all_exercises:
+        raise HTTPException(status_code=400, detail="Plan nie zawiera żadnych ćwiczeń do reorganizacji.")
+
+    # ── 2. Buduj prompt ────────────────────────────────────────────────────────
+    exercise_list_str = "\n".join(
+        f"- {e['name']} ({e['sets']} serie × {e['reps']} powt., mięśnie: {e['muscles']})"
+        for e in all_exercises
+    )
+
+    goal = user.goal or "ogólna sprawność"
+    frequency = user.frequency or "3-4 razy w tygodniu"
+    injuries = user.injuries or "brak"
+    sport_focus = user.sport_focus or "brak"
+    training_days_raw = user.get_list("sport_training_days_json")
+    training_days_str = ", ".join(training_days_raw) if training_days_raw else "dowolne"
+
+    system_prompt = (
+        "Jesteś ekspertem planowania treningów. Twoim zadaniem jest optymalne "
+        "rozmieszczenie zestawu ćwiczeń na dni tygodnia, aby unikać przetrenowania "
+        "tych samych grup mięśniowych w kolejnych dniach i zapewnić właściwą regenerację. "
+        "Odpowiadaj WYŁĄCZNIE w formacie JSON, bez żadnego tekstu poza JSON."
+    )
+
+    user_msg = f"""Profil użytkownika:
+- Cel: {goal}
+- Częstotliwość: {frequency}
+- Sport: {sport_focus}
+- Preferowane dni treningowe: {training_days_str}
+- Kontuzje/ograniczenia: {injuries}
+
+Ćwiczenia do rozmieszczenia ({len(all_exercises)} łącznie):
+{exercise_list_str}
+
+Dostępne dni tygodnia: {', '.join(ALL_DAYS_PL)}
+
+Zadanie: Przypisz każde ćwiczenie do optymalnego dnia tygodnia. Zasady:
+1. Nie trenuj tej samej grupy mięśni w 2 kolejnych dniach.
+2. Zostaw przynajmniej 1 dzień odpoczynku w tygodniu (Niedziela lub Sobota).
+3. Jeśli są preferowane dni treningowe, priorytetyzuj je.
+4. Zbalansuj obciążenie — unikaj przeładowania jednego dnia.
+5. Ćwiczenia sportowe (_sport: true) umieszczaj w preferowanych dniach sportowych.
+
+Odpowiedź MUSI być w tym dokładnym formacie JSON (bez żadnego tekstu poza JSON):
+{{
+  "schedule": {{
+    "Poniedziałek": ["NazwaĆwiczenia1", "NazwaĆwiczenia2"],
+    "Wtorek": [],
+    "Środa": ["NazwaĆwiczenia3"],
+    "Czwartek": [],
+    "Piątek": ["NazwaĆwiczenia4", "NazwaĆwiczenia5"],
+    "Sobota": [],
+    "Niedziela": []
+  }},
+  "ai_note": "Krótkie (1-2 zdania) wyjaśnienie strategii podziału."
+}}"""
+
+    ai_result = ask_ai(system_prompt, user_msg, max_tokens=1000)
+    if isinstance(ai_result, _AIError):
+        raise HTTPException(status_code=503, detail=str(ai_result))
+
+    # ── 3. Parsuj odpowiedź JSON ───────────────────────────────────────────────
+    try:
+        # Wyczyść ewentualne backticks z odpowiedzi
+        clean = ai_result.strip()
+        if clean.startswith("```"):
+            clean = clean.split("```")[1]
+            if clean.startswith("json"):
+                clean = clean[4:]
+        ai_data = json.loads(clean.strip())
+        schedule: dict[str, list[str]] = ai_data.get("schedule", {})
+        ai_note: str = ai_data.get("ai_note", "Plan zoptymalizowany przez AI.")
+    except (json.JSONDecodeError, KeyError, ValueError) as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"AI zwróciło niepoprawny JSON: {exc}. Spróbuj ponownie."
+        )
+
+    # ── 4. Aplikuj nowy rozkład — mapuj nazwy → oryginalne obiekty ćwiczeń ───
+    exercise_by_name: dict[str, dict] = {e["name"]: e["_original"] for e in all_exercises}
+
+    # Buduj nowe dni na podstawie harmonogramu AI
+    new_days: list[dict] = []
+    for day_name in ALL_DAYS_PL:
+        ex_names_for_day = schedule.get(day_name, [])
+        exercises_for_day = [
+            exercise_by_name[n] for n in ex_names_for_day if n in exercise_by_name
+        ]
+
+        # Znajdź oryginalne dane dnia (meals, itp.) lub utwórz pusty szablon
+        original_day = next((d for d in days if d.get("day") == day_name), None)
+        if original_day:
+            new_day = dict(original_day)
+            new_day["workout"] = dict(original_day.get("workout", {}))
+            new_day["workout"]["exercises"] = exercises_for_day
+            new_day["workout"]["rest"] = len(exercises_for_day) == 0
+        else:
+            new_day = {
+                "day": day_name,
+                "workout": {
+                    "exercises": exercises_for_day,
+                    "rest": len(exercises_for_day) == 0,
+                },
+                "meals": [],
+            }
+        new_days.append(new_day)
+
+    # ── 5. Zapisz zaktualizowany plan ─────────────────────────────────────────
+    plan["days"] = new_days
+    plan["ai_regenerated_at"] = datetime.now().isoformat()
+    plan["ai_note"] = ai_note
+
+    with Session(engine) as session:
+        db_user = session.get(UserDB, user.id)
+        if db_user:
+            db_user.set_dict("weekly_plan_json", plan)
+            db_user.updated_at = datetime.now().isoformat()
+            session.commit()
+
+    return {
+        "status": "ok",
+        "plan": plan,
+        "ai_note": ai_note,
+        "exercises_redistributed": len(all_exercises),
+    }
+
+
 @app.get("/app/sport-drills", tags=["sport"])
 def list_sport_drills(sport: str = "koszykówka", specialization: str = ""):
     """Zwraca dostępne drille dla danego sportu i specjalizacji."""
