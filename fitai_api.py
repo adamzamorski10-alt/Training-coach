@@ -3631,6 +3631,179 @@ def app_fridge_chef(request: Request, req: FridgeChefRequest, user: UserDB = Dep
         )
 
 
+# ─── Nowy endpoint Kitchen Generate ──────────────────────────────────────────
+
+@app.post("/app/kitchen/generate", tags=["ai_chef"])
+@limiter.limit(AI_RATE_PER_MINUTE)
+@limiter.limit(AI_RATE_PER_HOUR)
+def app_kitchen_generate(request: Request, req: FridgeChefRequest, user: UserDB = Depends(get_current_user)):
+    """
+    Generuje 4 przepisy na podstawie wybranych składników.
+    Zwraca JSON tablica 4 obiektów: { nazwa, składniki, opis, kalorie }
+    """
+    print(f"[KitchenGenerate] Incoming request: {len(req.ingredients)} ingredients, strict_mode={req.strict_mode}")
+    
+    if not req.ingredients:
+        print("[KitchenGenerate] ERROR: Empty ingredients list")
+        raise HTTPException(status_code=422, detail="Lista składników nie może być pusta.")
+    if len(req.ingredients) > 30:
+        print(f"[KitchenGenerate] ERROR: Too many ingredients ({len(req.ingredients)} > 30)")
+        raise HTTPException(status_code=422, detail="Maksymalnie 30 składników naraz.")
+
+    try:
+        with Session(engine) as session:
+            kcal_target   = user.calories_target or calc_calories(user)
+            protein_target = user.protein_target or calc_protein(user)
+            avoid_foods   = user.get_list("avoid_foods_json")
+            preferred     = user.get_list("preferred_foods_json")
+
+            meals_n    = max(user.meals_per_day, 1)
+            meal_kcal  = int(kcal_target / meals_n)
+
+            ingredients_str = ", ".join(req.ingredients)
+            avoid_str       = ", ".join(avoid_foods) if avoid_foods else "brak"
+            preferred_str   = ", ".join(preferred)   if preferred   else "brak"
+
+            print(f"[KitchenGenerate] User: {user.name}, kcal_target: {kcal_target}, meal_kcal: {meal_kcal}")
+            print(f"[KitchenGenerate] Ingredients: {ingredients_str}")
+            print(f"[KitchenGenerate] Avoid foods: {avoid_str}")
+
+            mode_instruction = (
+                "Używaj WYŁĄCZNIE podanych składników — żadnych dodatków spoza listy. "
+                "Jeśli nie można stworzyć 4 pełnych dań, zwróć JSON z pustą tablicą []. "
+                "Format JSON obowiązkowy!"
+                if req.strict_mode else
+                "Generuj 4 dania na bazie tych składników. Dopuszczalne są standardowe dodatki "
+                "(sól, pieprz, oliwa, podstawowe przyprawy) spoza listy. Format JSON obowiązkowy!"
+            )
+
+            # JSON format: każdy element ma: { "nazwa": string, "składniki": list, "opis": string, "kalorie": number }
+            system_prompt = f"""Jesteś kulinarzem AI FitAI. Generujesz przepisy na podstawie dostępnych składników.
+
+ZAWSZE odpowiadaj WYŁĄCZNIE ważnym, prawidłowo sformatowanym JSON. Nie dodawaj tekstu przed lub po JSON.
+
+Zwróć dokładnie taką strukturę - tablica JSON z 4 przepisami:
+[
+  {{
+    "nazwa": "Nazwa przepisu",
+    "składniki": ["składnik1", "składnik2", "składnik3"],
+    "opis": "Krótki opis przygotowania i wyglądu dania",
+    "kalorie": 350,
+    "białko": 35,
+    "węglowodany": 40,
+    "tłuszcze": 8
+  }},
+  ... (3 więcej przepisów)
+]
+
+Przepisy muszą być:
+- Praktyczne i szybkie do przygotowania (max 30 minut)
+- Pyszne i zróżnicowane (różne style/kuchnie)
+- Zgodne z profilem użytkownika
+- OK dla {{user_goal}} - {{user_diet}} diety
+- Bez alergenów: {{allergies}}
+- Bez unikanych produktów: {{avoid_str}}
+- Preferować: {{preferred_str}}
+- Około {{meal_kcal}} kcal na porcję
+"""
+
+            user_msg = (
+                f"Profil użytkownika:\n"
+                f"  Imię: {user.name}\n"
+                f"  Cel: {user.goal}\n"
+                f"  Dieta: {user.diet}\n"
+                f"  Cel kaloryczny/dzień: {kcal_target} kcal | białko: {protein_target}g\n"
+                f"  Docelowy kcal na 1 posiłek: ~{meal_kcal} kcal\n"
+                f"  Alergie/wykluczenia: {user.allergies or 'brak'}\n"
+                f"  Unikane produkty: {avoid_str}\n"
+                f"  Preferowane smaki/produkty: {preferred_str}\n"
+                f"  Kontuzje: {user.injuries or 'brak'}\n\n"
+                f"Składniki dostępne:\n{ingredients_str}\n\n"
+                f"Kontekst: {req.extra_context or 'brak'}\n\n"
+                f"Tryb: {mode_instruction}\n\n"
+                f"Wygeneruj 4 przepisy w formacie JSON. TYLKO JSON."
+            )
+
+            print("[KitchenGenerate] Calling ask_claude()...")
+            try:
+                response_text = ask_claude(system_prompt, user_msg, max_tokens=2400)
+                
+                # Check if ask_claude returned _AIError
+                if isinstance(response_text, _AIError):
+                    print(f"[KitchenGenerate] AI Error: {response_text}")
+                    raise HTTPException(
+                        status_code=503,
+                        detail=f"Błąd serwisu AI: {str(response_text)}"
+                    )
+                
+                print(f"[KitchenGenerate] Raw AI response (first 200 chars): {response_text[:200]}")
+                
+                # Try to parse JSON
+                try:
+                    # Clean up response - remove markdown code blocks if present
+                    json_str = response_text.strip()
+                    if json_str.startswith("```json"):
+                        json_str = json_str[7:]
+                    if json_str.startswith("```"):
+                        json_str = json_str[3:]
+                    if json_str.endswith("```"):
+                        json_str = json_str[:-3]
+                    json_str = json_str.strip()
+                    
+                    recipes = json.loads(json_str)
+                    print(f"[KitchenGenerate] Parsed {len(recipes)} recipes successfully ✓")
+                    
+                    # Validate structure
+                    if not isinstance(recipes, list):
+                        print("[KitchenGenerate] ERROR: Response is not a list")
+                        raise ValueError("Response must be a list of recipes")
+                    
+                    if len(recipes) == 0:
+                        print("[KitchenGenerate] WARNING: Empty recipes list")
+                    
+                    # Validate each recipe
+                    for i, recipe in enumerate(recipes):
+                        if not isinstance(recipe, dict):
+                            print(f"[KitchenGenerate] ERROR: Recipe {i} is not a dict")
+                            raise ValueError(f"Recipe {i} must be a dict")
+                        required = ["nazwa", "składniki", "opis", "kalorie"]
+                        for req_field in required:
+                            if req_field not in recipe:
+                                print(f"[KitchenGenerate] WARNING: Recipe {i} missing field '{req_field}'")
+                                recipe[req_field] = "" if req_field != "kalorie" else 0
+                    
+                    print("[KitchenGenerate] Recipes validated successfully ✓")
+                    return {"recipes": recipes}
+                    
+                except json.JSONDecodeError as json_err:
+                    print(f"[KitchenGenerate] JSON Parse Error: {json_err}")
+                    print(f"[KitchenGenerate] Raw response was: {response_text[:500]}")
+                    raise HTTPException(
+                        status_code=502,
+                        detail=f"AI zwróciło nieprawidłowy format JSON. Spróbuj ponownie."
+                    )
+            except HTTPException:
+                raise
+            except Exception as ai_err:
+                print(f"[KitchenGenerate] AI call error: {type(ai_err).__name__}: {ai_err}")
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"Błąd połączenia z AI: {str(ai_err)}"
+                )
+    
+    except HTTPException as http_err:
+        print(f"[KitchenGenerate] HTTP Exception: {http_err.detail}")
+        raise
+    except Exception as err:
+        print(f"[KitchenGenerate] Unexpected Error: {type(err).__name__}: {err}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail="Nieoczekiwany błąd podczas generowania przepisów. Spróbuj ponownie."
+        )
+
+
 @app.get("/app/meal-prep-plan", tags=["ai_chef"])
 @limiter.limit(AI_RATE_PER_MINUTE)
 @limiter.limit(AI_RATE_PER_HOUR)

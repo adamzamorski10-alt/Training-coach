@@ -2159,7 +2159,7 @@
                           </button>
                         </div>
 
-                        <button id="fridgeGenerateBtn" onclick="fridgeGenerate()"
+                        <button id="fridgeGenerateBtn" onclick="kitchenGenerate()"
                           class="w-full py-3 rounded-xl font-extrabold text-sm transition-all"
                           style="background:linear-gradient(135deg,var(--cyan),var(--violet));color:#000;">
                           🍳 Generuj 4 przepisy
@@ -8717,6 +8717,220 @@
         thumb.style.background = '#888';
         thumb.style.transform = 'translateX(0)';
         btn.setAttribute('aria-pressed', 'false');
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // KITCHEN GENERATE — Nowa funkcja generująca przepisy w formacie JSON
+    // ═══════════════════════════════════════════════════════════════════════
+    async function kitchenGenerate() {
+      const identityId = state.identityId || state.profiles[0]?.id || '';
+      const token = state.token || localStorage.getItem('fitai_token') || '';
+
+      // Debug logging
+      console.log('🔍 Składniki:', _kitchen.fridgeTags);
+      console.log('📝 Identity ID:', identityId);
+      console.log('🔐 Token present:', !!token);
+
+      if (!identityId && !token) {
+        showToast('⚠️ Zaloguj się aby korzystać z Kuchni AI');
+        return;
+      }
+      if (_kitchen.fridgeTags.length === 0) {
+        showToast('⚠️ Dodaj co najmniej jeden składnik');
+        document.getElementById('fridgeIngredientInput')?.focus();
+        return;
+      }
+
+      const btn = document.getElementById('fridgeGenerateBtn');
+      const originalBtnText = btn.innerHTML;
+      const showEl = id => { const e = document.getElementById(id); if (e) { e.classList.remove('hidden'); e.style.display = 'flex'; } };
+      const hideEl = id => { const e = document.getElementById(id); if (e) { e.classList.add('hidden'); e.style.display = 'none'; } };
+
+      try {
+        // Test API connectivity
+        const _apiBase = window.API_BASE || "http://localhost:8000";
+        console.log('🌐 API Base:', _apiBase);
+
+        const pingRes = await fetch(`${_apiBase}/health`, { method: 'GET', signal: AbortSignal.timeout(5000) }).catch(() => null);
+        if (!pingRes) {
+          showToast('❌ Serwer nie odpowiada. Sprawdź połączenie internetowe.');
+          console.error('[KitchenGenerate] Health check failed');
+          return;
+        }
+        console.log('✅ Health check passed');
+      } catch (e) {
+        showToast('❌ Serwer niedostępny. Spróbuj ponownie za chwilę.');
+        console.error('[KitchenGenerate] Health check error:', e);
+        return;
+      }
+
+      // UI: loading
+      hideEl('fridgeEmptyState'); hideEl('fridgeResult'); hideEl('fridgeError');
+      showEl('fridgeLoading');
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Generuję...';
+
+      // Cycle loading messages
+      let msgIdx = 0;
+      const msgEl = document.getElementById('fridgeLoadingMsg');
+      const msgInterval = setInterval(() => {
+        if (msgEl) msgEl.textContent = FRIDGE_LOADING_MSGS[msgIdx++ % FRIDGE_LOADING_MSGS.length];
+      }, 1800);
+
+      let controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      try {
+        const _apiBase = window.API_BASE || "http://localhost:8000";
+
+        // Build headers with Authorization
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+          console.log('[KitchenGenerate] Authorization header added');
+        } else {
+          console.warn('[KitchenGenerate] WARNING: No token available!');
+        }
+
+        const payload = {
+          identity_id: identityId,
+          ingredients: _kitchen.fridgeTags,
+          extra_context: document.getElementById('fridgeContext')?.value || '',
+          strict_mode: _kitchen.strictMode,
+        };
+
+        console.log('[KitchenGenerate] Sending request to /app/kitchen/generate');
+        console.log('[KitchenGenerate] Payload:', payload);
+
+        const res = await fetch(`${_apiBase}/app/kitchen/generate`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+        clearInterval(msgInterval);
+        clearTimeout(timeoutId);
+
+        console.log('[KitchenGenerate] Response status:', res.status);
+
+        // ── Detailed error handling ──
+        if (!res.ok) {
+          let errDetail = `HTTP ${res.status}`;
+          try {
+            const err = await res.json();
+            errDetail = err.detail || err.message || errDetail;
+            console.error('[KitchenGenerate] Server error:', err);
+          } catch (e) {
+            console.error('[KitchenGenerate] Could not parse error response:', e);
+            const text = await res.text();
+            console.error('[KitchenGenerate] Raw response:', text.substring(0, 500));
+          }
+
+          hideEl('fridgeLoading');
+          showEl('fridgeError');
+          const errEl = document.getElementById('fridgeErrorMsg');
+          if (errEl) {
+            errEl.innerHTML = `<strong>Błąd serwera (${res.status}):</strong> ${errDetail}`;
+          }
+          showToast(`❌ Błąd: ${errDetail}`);
+          throw new Error(errDetail);
+        }
+
+        const data = await res.json();
+        console.log('[KitchenGenerate] Response data:', data);
+
+        if (!data.recipes || !Array.isArray(data.recipes)) {
+          throw new Error('Nieprawidłowy format odpowiedzi - brak tablicy przepisów');
+        }
+
+        if (data.recipes.length === 0) {
+          hideEl('fridgeLoading');
+          showEl('fridgeError');
+          const errEl = document.getElementById('fridgeErrorMsg');
+          if (errEl) errEl.textContent = '🥕 Zbyt mało składników do stworzenia pełnych dań. Dodaj coś więcej!';
+          showToast('⚠️ Zbyt mało składników');
+          return;
+        }
+
+        _kitchen.lastFridgeRecipe = data.recipes;
+
+        // Show result
+        hideEl('fridgeLoading');
+        showEl('fridgeResult');
+
+        const contentEl = document.getElementById('fridgeRecipeContent');
+        if (contentEl) {
+          // Render recipes as structured HTML
+          let html = '<div style="display:flex;flex-direction:column;gap:16px;">';
+          data.recipes.forEach((recipe, idx) => {
+            html += `
+              <div style="background:rgba(0,229,255,0.05);border:1px solid rgba(0,229,255,0.2);border-radius:12px;padding:12px;gap:8px;">
+                <div style="font-weight:bold;font-size:16px;color:var(--cyan);">🍽️ Przepis ${idx + 1}: ${recipe.nazwa || 'Bez nazwy'}</div>
+                <div style="margin-top:8px;">
+                  <strong>Składniki:</strong> ${(recipe.składniki || []).join(', ') || 'brak danych'}
+                </div>
+                <div style="margin-top:8px;">
+                  <strong>Opis:</strong> ${recipe.opis || 'brak opisu'}
+                </div>
+                <div style="margin-top:8px;display:flex;gap:12px;flex-wrap:wrap;">
+                  <span style="background:rgba(0,229,255,0.1);padding:4px 8px;border-radius:6px;font-size:12px;">
+                    ${recipe.kalorie || 0} kcal
+                  </span>
+                  <span style="background:rgba(124,58,237,0.1);padding:4px 8px;border-radius:6px;font-size:12px;">
+                    B: ${recipe.białko || 0}g
+                  </span>
+                  <span style="background:rgba(255,200,0,0.1);padding:4px 8px;border-radius:6px;font-size:12px;">
+                    W: ${recipe.węglowodany || 0}g
+                  </span>
+                  <span style="background:rgba(255,100,0,0.1);padding:4px 8px;border-radius:6px;font-size:12px;">
+                    T: ${recipe.tłuszcze || 0}g
+                  </span>
+                </div>
+              </div>
+            `;
+          });
+          html += '</div>';
+          contentEl.innerHTML = html;
+        }
+
+        // Save to history
+        const historyItem = {
+          tags: [..._kitchen.fridgeTags],
+          recipes: data.recipes,
+          ts: new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }),
+          strictMode: _kitchen.strictMode,
+        };
+        _kitchen.fridgeHistory.unshift(historyItem);
+        fridgeRenderHistory();
+
+        showToast('✅ Przepisy wygenerowane!');
+        console.log('[KitchenGenerate] SUCCESS ✓');
+
+      } catch (err) {
+        clearInterval(msgInterval);
+        clearTimeout(timeoutId);
+
+        // Handle AbortController timeout
+        if (err.name === 'AbortError') {
+          hideEl('fridgeLoading');
+          showEl('fridgeError');
+          const errEl = document.getElementById('fridgeErrorMsg');
+          if (errEl) errEl.textContent = '⏱️ Żądanie przekroczyło czas oczekiwania (10s). Serwer może być przeciążony.';
+          showToast('⏱️ Przekroczono limit czasu (10 sekund)');
+          console.error('[KitchenGenerate] Request timeout');
+        } else {
+          hideEl('fridgeLoading');
+          showEl('fridgeError');
+          const errEl = document.getElementById('fridgeErrorMsg');
+          const msg = err.message || 'Nieznany błąd połączenia';
+          if (errEl) errEl.innerHTML = `<strong>Błąd:</strong> ${msg}`;
+          showToast(`❌ ${msg}`);
+          console.error('[KitchenGenerate] Error:', err);
+        }
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalBtnText;
       }
     }
 
