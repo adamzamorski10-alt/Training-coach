@@ -589,6 +589,15 @@
             <p id="weatherAdvice" class="text-xs mt-0.5" style="color:var(--muted);"></p>
           </div>
         </div>
+        <!-- Location + Temperature info strip -->
+        <div id="waterLocationStrip" class="mt-3 rounded-xl px-4 py-2.5 flex items-center justify-between gap-2"
+          style="background:rgba(0,229,255,0.04);border:1px solid rgba(0,229,255,0.12);">
+          <span id="waterLocationText" class="text-xs font-semibold flex items-center gap-1.5" style="color:var(--muted);">
+            <span class="animate-pulse" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--cyan);opacity:0.5;"></span>
+            Pobieranie lokalizacji…
+          </span>
+          <span id="waterTempText" class="text-xs font-extrabold" style="color:var(--cyan);font-family:'Syne',sans-serif;letter-spacing:0.03em;opacity:0.5;">—°C</span>
+        </div>
       </div>
 
       <div class="glass p-6">
@@ -665,27 +674,8 @@
         <!-- Divider -->
         <div style="height:1px;background:var(--border);"></div>
 
-        <!-- Row 2: Water + Weight + Measurements -->
-        <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
-
-          <!-- Woda — tylko podsumowanie z Smart Water Tracker (brak edycji tutaj) -->
-          <div class="glass rounded-2xl p-4 flex items-center gap-4" style="border-color:rgba(56,189,248,0.2);background:rgba(56,189,248,0.04);">
-            <span class="text-3xl flex-shrink-0">💧</span>
-            <div class="flex-1 min-w-0">
-              <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">Spożycie wody (dziś)</p>
-              <div class="flex items-baseline gap-1.5">
-                <span id="checkinWaterDisplay" class="text-xl font-extrabold" style="font-family:'Syne',sans-serif;color:#38bdf8;">0</span>
-                <span class="text-xs" style="color:var(--muted);">ml / <span id="checkinWaterGoal">2500</span> ml</span>
-              </div>
-              <div class="progress-bar mt-1.5" style="height:4px;background:rgba(56,189,248,0.1);">
-                <div id="checkinWaterBar" class="progress-fill" style="width:0%;background:linear-gradient(90deg,#38bdf8,#7c3aed);border-radius:4px;transition:width 0.5s;"></div>
-              </div>
-            </div>
-            <button onclick="switchTab('mój dzień'); setTimeout(()=>document.getElementById('waterTrackerCard')?.scrollIntoView({behavior:'smooth'}),300)"
-                    class="btn-ghost flex-shrink-0 text-xs px-3 py-2 rounded-xl font-bold whitespace-nowrap">
-              + Dodaj
-            </button>
-          </div>
+        <!-- Row 2: Weight + Measurements (woda obsługiwana przez Smart Water Tracker) -->
+        <div class="grid grid-cols-1 gap-5">
 
           <!-- Waga + Pomiary -->
           <div class="space-y-3">
@@ -8315,12 +8305,14 @@ const water = {
     if (!isSecure) {
       console.warn('[FitAI Weather] Geolokalizacja wymaga HTTPS. Używam domyślnej pogody (20°C).');
       this._applyWeather(20, 'brak danych (HTTP)', false);
+      this._updateLocationStrip('Lokalizacja niedostępna', 20);
       return;
     }
 
     if (!navigator.geolocation) {
       console.warn('[FitAI Weather] Przeglądarka nie obsługuje geolokalizacji. Używam domyślnej pogody (20°C).');
       this._applyWeather(20, 'geolokalizacja niedostępna', false);
+      this._updateLocationStrip('Geolokalizacja niedostępna', 20);
       return;
     }
 
@@ -8352,9 +8344,27 @@ const water = {
             : 'zmienne warunki';
 
           this._applyWeather(temp, desc, temp > WATER_HOT_THRESHOLD);
+
+          // Reverse geocoding — pobierz nazwę miasta (Open-Meteo geocoding)
+          try {
+            const geoUrl = 'https://nominatim.openstreetmap.org/reverse'
+              + '?lat=' + lat + '&lon=' + lon
+              + '&format=json&zoom=10&accept-language=pl';
+            const gr = await fetch(geoUrl, { headers: { 'Accept-Language': 'pl' } });
+            if (gr.ok) {
+              const gd = await gr.json();
+              const city = gd.address?.city || gd.address?.town || gd.address?.village || gd.address?.county || 'Twoja lokalizacja';
+              this._updateLocationStrip(city, temp);
+            } else {
+              this._updateLocationStrip('Twoja lokalizacja', temp);
+            }
+          } catch(_) {
+            this._updateLocationStrip('Twoja lokalizacja', temp);
+          }
         } catch (err) {
           console.warn('[FitAI Weather] Błąd pobierania pogody:', err.message, '— używam domyślnych 20°C.');
           this._applyWeather(20, 'błąd pobierania danych', false);
+          this._updateLocationStrip('Błąd pobierania', 20);
         }
       },
       err => {
@@ -8362,9 +8372,33 @@ const water = {
         const reasons = { 1: 'brak zgody użytkownika', 2: 'niedostępna pozycja', 3: 'timeout' };
         console.warn('[FitAI Weather] Geolokalizacja zablokowana:', reasons[err.code] || err.message, '— używam domyślnych 20°C.');
         this._applyWeather(20, 'lokalizacja niedostępna', false);
+        this._updateLocationStrip('Lokalizacja zablokowana', 20);
       },
       { timeout: 8000, maximumAge: 300000 }  // 8s timeout, cache 5min
     );
+  },
+
+  _updateLocationStrip(cityName, temp) {
+    const locEl = document.getElementById('waterLocationText');
+    const tempEl = document.getElementById('waterTempText');
+    const strip = document.getElementById('waterLocationStrip');
+    if (locEl) {
+      const dot = temp > WATER_HOT_THRESHOLD ? '🔴' : temp < 10 ? '🔵' : '🟢';
+      locEl.innerHTML = `<span style="margin-right:2px;">${dot}</span> 📍 ${cityName}`;
+      locEl.style.color = 'var(--text)';
+    }
+    if (tempEl) {
+      tempEl.textContent = '🌡️ ' + temp + '°C';
+      tempEl.style.opacity = '1';
+      tempEl.style.color = temp > WATER_HOT_THRESHOLD ? '#fb923c' : temp < 10 ? '#93c5fd' : 'var(--cyan)';
+    }
+    if (strip) {
+      strip.style.borderColor = temp > WATER_HOT_THRESHOLD
+        ? 'rgba(251,146,60,0.25)'
+        : temp < 10
+          ? 'rgba(147,197,253,0.2)'
+          : 'rgba(0,229,255,0.2)';
+    }
   },
 
   _applyWeather(temp,desc,isHot) {
