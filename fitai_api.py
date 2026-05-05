@@ -413,6 +413,9 @@ class DrillResultDB(SQLModel, table=True):
     # ─── Pola dla typów drilli bieg/sprint ───────────────────────────────────
     time_seconds: Optional[float] = None        # czas w sekundach (Bieg/Sprint)
     distance_meters: Optional[float] = None     # dystans w metrach (Bieg/Sprint)
+    # ─── Pola ogólne (Skill/Drill i Cardio/Sport) ─────────────────────────────
+    duration_seconds: Optional[int] = None      # czas trwania ćwiczenia/meczu [s]
+    weight_kg: Optional[float] = None           # obciążenie [kg] (np. weighted drill)
     logged_at: str = Field(default_factory=lambda: datetime.now().isoformat())
 
     def to_dict(self) -> dict:
@@ -434,6 +437,10 @@ class DrillResultDB(SQLModel, table=True):
             base["time_seconds"]   = self.time_seconds
         if self.distance_meters is not None:
             base["distance_meters"] = self.distance_meters
+        if self.duration_seconds is not None:
+            base["duration_seconds"] = self.duration_seconds
+        if self.weight_kg is not None:
+            base["weight_kg"] = self.weight_kg
         return base
 
 
@@ -786,6 +793,9 @@ class DrillResultRequest(BaseModel):
     # Bieg / Sprint
     time_seconds: Optional[float] = Field(default=None, gt=0, description="Czas w sekundach")
     distance_meters: Optional[float] = Field(default=None, gt=0, description="Dystans w metrach")
+    # Ogólne
+    duration_seconds: Optional[int] = Field(default=None, ge=0, description="Czas trwania [s]")
+    weight_kg: Optional[float] = Field(default=None, ge=0, description="Obciążenie [kg]")
 
 
 class SportConfigRequest(BaseModel):
@@ -2870,17 +2880,39 @@ def log_drill_result(payload: DrillResultRequest, user: UserDB = Depends(get_cur
 
     with Session(engine) as session:
 
-        result = DrillResultDB(
-            user_id=user.id,
-            drill_name=payload.drill_name,
-            session_date=session_date,
-            success_count=payload.success_count,
-            total_attempts=payload.total_attempts,
-            rpe=payload.rpe,
-            notes=payload.notes,
-            time_seconds=payload.time_seconds,
-            distance_meters=payload.distance_meters,
-        )
+        # ── UPSERT: jeden rekord per (user, drill, dzień) ──────────────────────
+        existing_dr = session.exec(
+            select(DrillResultDB)
+            .where(DrillResultDB.user_id == user.id)
+            .where(DrillResultDB.drill_name == payload.drill_name)
+            .where(DrillResultDB.session_date == session_date)
+        ).first()
+
+        if existing_dr:
+            # Aktualizacja istniejącego rekordu drilla
+            if payload.success_count    is not None: existing_dr.success_count    = payload.success_count
+            if payload.total_attempts   is not None: existing_dr.total_attempts   = payload.total_attempts
+            if payload.rpe              is not None: existing_dr.rpe              = payload.rpe
+            if payload.notes            is not None: existing_dr.notes            = payload.notes
+            if payload.time_seconds     is not None: existing_dr.time_seconds     = payload.time_seconds
+            if payload.distance_meters  is not None: existing_dr.distance_meters  = payload.distance_meters
+            if payload.duration_seconds is not None: existing_dr.duration_seconds = payload.duration_seconds
+            if payload.weight_kg        is not None: existing_dr.weight_kg        = payload.weight_kg
+            result = existing_dr
+        else:
+            result = DrillResultDB(
+                user_id=user.id,
+                drill_name=payload.drill_name,
+                session_date=session_date,
+                success_count=payload.success_count,
+                total_attempts=payload.total_attempts,
+                rpe=payload.rpe,
+                notes=payload.notes,
+                time_seconds=payload.time_seconds,
+                distance_meters=payload.distance_meters,
+                duration_seconds=payload.duration_seconds,
+                weight_kg=payload.weight_kg,
+            )
         session.add(result)
         session.commit()
         session.refresh(result)
@@ -2899,6 +2931,7 @@ def log_drill_result(payload: DrillResultRequest, user: UserDB = Depends(get_cur
             "status": "ok",
             "result": result.to_dict(),
             "progression": progression,
+            "upserted": existing_dr is not None,
         }
 
 

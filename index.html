@@ -2615,7 +2615,10 @@ function updateDashboard() {
   const dayMeals = (p.dietPlan[state.days[state.currentDay]] || []).filter(m => !m.hidden);
   const dayExercises = p.trainingPlan[state.days[state.currentDay]] || [];
   const totalItems = dayMeals.length + dayExercises.length;
-  const doneItems = Object.keys(checked).filter(k=>checked[k]).length;
+  // Count only checkboxes that belong to today's actual items (avoid stale keys)
+  let doneItems = 0;
+  dayMeals.forEach((_, i) => { if (checked['meal_' + i]) doneItems++; });
+  dayExercises.forEach((_, i) => { if (checked['ex_' + i]) doneItems++; });
   const consistency = totalItems > 0 ? Math.round(doneItems/totalItems*100) : 0;
   
   document.getElementById('kpiConsistency').textContent = consistency+'%';
@@ -3137,16 +3140,47 @@ function refreshExercisesForSlider(count) {
     inner.appendChild(nameRow);
     inner.appendChild(metaEl);
 
-    // Tags
-    if (e.tags && e.tags.length) {
+    // Tags + conditional Video button
+    const hasVideoUrl = !!(e.video_url && e.video_url.trim());
+    if ((e.tags && e.tags.length) || hasVideoUrl) {
       const tagsDiv = document.createElement('div');
-      tagsDiv.className = 'flex gap-1 mt-1.5';
-      e.tags.forEach(t => {
-        const tspan = document.createElement('span');
-        tspan.className = 'text-[9px] bg-white/5 px-1.5 py-0.5 rounded text-gray-600';
-        tspan.textContent = '#' + t;               // textContent — safe
-        tagsDiv.appendChild(tspan);
-      });
+      tagsDiv.className = 'flex flex-wrap gap-1 mt-1.5';
+
+      // Regular tags
+      if (e.tags && e.tags.length) {
+        e.tags.forEach(t => {
+          const tspan = document.createElement('span');
+          tspan.className = 'text-[9px] bg-white/5 px-1.5 py-0.5 rounded text-gray-600';
+          tspan.textContent = '#' + t;             // textContent — safe
+          tagsDiv.appendChild(tspan);
+        });
+      }
+
+      // Video tag — ONLY when video_url is non-empty
+      if (hasVideoUrl) {
+        const vtag = document.createElement('button');
+        vtag.className = 'text-[9px] px-1.5 py-0.5 rounded font-semibold transition-colors';
+        vtag.style.cssText = 'background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);';
+        vtag.textContent = '▶ Video';
+        vtag.title = 'Obejrzyj wideo instruktażowe';
+        vtag.addEventListener('click', (function(url){ return function(ev){
+          ev.stopPropagation();
+          // Open in lightbox or new tab
+          if (url.includes('embed')) {
+            const modal = document.createElement('div');
+            modal.style.cssText='position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.92);';
+            modal.innerHTML = `<div style="width:min(90vw,720px);position:relative;">
+              <button onclick="this.closest('[style]').remove()" style="position:absolute;top:-36px;right:0;background:none;border:none;color:#fff;font-size:24px;cursor:pointer;">✕</button>
+              <iframe src="${url}?autoplay=1&rel=0&modestbranding=1" style="width:100%;aspect-ratio:16/9;border:none;border-radius:12px;" allowfullscreen></iframe>
+            </div>`;
+            document.body.appendChild(modal);
+          } else {
+            window.open(url, '_blank', 'noopener');
+          }
+        };})(e.video_url));
+        tagsDiv.appendChild(vtag);
+      }
+
       inner.appendChild(tagsDiv);
     }
 
@@ -5334,6 +5368,28 @@ function quickLogDrill(drillName, defaultAttempts, drillType) {
       </div>
     </div>`;
   document.body.appendChild(modal);
+}
+
+// openDrillLogModal(drill) — punkt wejścia z obiektu ćwiczenia.
+// Wykrywa typ ćwiczenia (Skill/Drill vs Cardio/Sport) i deleguje do quickLogDrill().
+function openDrillLogModal(drill) {
+  if (!drill) return;
+  const name = drill.name || drill.drill_name || '';
+  const lower = name.toLowerCase();
+
+  // Typ 1: Cardio / Sport — czas lub wynik końcowy (mecz, bieg, sprint, cardio)
+  const isCardio = (
+    lower.includes('bieg') || lower.includes('sprint') || lower.includes('speed') ||
+    lower.includes('cardio') || lower.includes('mecz') || lower.includes('match') ||
+    lower.includes('suicid') || lower.includes('full-court') || lower.includes('17s') ||
+    lower.includes('km') || lower.includes('time') || lower.includes('run') ||
+    (drill.type || '').toLowerCase() === 'cardio'
+  );
+
+  // Typ 2: Skill / Drill — trafienia + próby (domyślny)
+  const drillType = isCardio ? 'bieg' : 'rzuty';
+  const defaultAttempts = drill.total_attempts || drill.defaultAttempts || 20;
+  quickLogDrill(name, defaultAttempts, drillType);
 }
 
 function updateDrillAccuracy() {
