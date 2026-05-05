@@ -940,22 +940,9 @@
         <div id="sportInnerContainer">
 
           <!-- HEADER -->
-          <div class="flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <h3 class="text-2xl font-bold text-white" style="font-family:'Syne',sans-serif;">🏀 Sport</h3>
-              <p class="text-sm mt-1" style="color:var(--muted);">Wybierz sport, przeglądaj ćwiczenia i dodawaj drille do planu</p>
-            </div>
-            <button onclick="regeneratePlanWithAI()" id="btnRegeneratePlan"
-              class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all"
-              style="background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.35);color:#a78bfa;"
-              title="Wyślij obecny plan do AI — ćwiczenia zostaną optymalnie rozmieszczone w tygodniu">
-              <span id="btnRegenerateIcon">⚡</span>
-              <span id="btnRegenerateLabel">Zregeneruj plan z AI</span>
-            </button>
-          </div>
-          <!-- AI Regeneration feedback banner -->
-          <div id="regenerateBanner" class="hidden rounded-2xl p-4 text-sm" style="background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.25);">
-            <span id="regenerateBannerText"></span>
+          <div>
+            <h3 class="text-2xl font-bold text-white" style="font-family:'Syne',sans-serif;">🏀 Sport</h3>
+            <p class="text-sm mt-1" style="color:var(--muted);">Wybierz sport, przeglądaj ćwiczenia i dodawaj drille do planu</p>
           </div>
 
           <!-- Sport selector -->
@@ -3154,7 +3141,7 @@ function refreshExercisesForSlider(count) {
     inner.appendChild(metaEl);
 
     // Tags + conditional Video button
-    const hasVideoUrl = !!(e.video_url && e.video_url.trim());
+    const hasVideoUrl = isValidVideoUrl(e.video_url);
     if ((e.tags && e.tags.length) || hasVideoUrl) {
       const tagsDiv = document.createElement('div');
       tagsDiv.className = 'flex flex-wrap gap-1 mt-1.5';
@@ -4976,7 +4963,7 @@ function renderSportDrills() {
       const lastPct = last ? Math.round(last.success_count / last.total_attempts * 100) : null;
       const metTarget = lastPct !== null && lastPct >= (drill.target_pct || 70);
       const videoId = `drill-video-${catKey}-${di}`;
-      const hasVideo = !!drill.video_url;
+      const hasVideo = isValidVideoUrl(drill.video_url);
       return `<div class="drill-row">
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 mb-1 flex-wrap">
@@ -5104,93 +5091,39 @@ function openAddToPlanModal(drillName, catKey, sportId, wholeCategory = false) {
   // ── AI Sugestia najlżejszego dnia ────────────────────────────────────────
   const suggestEl = document.getElementById('addToPlanAiSuggest');
   if (suggestEl) {
-    suggestEl.innerHTML = '<span class="text-gray-500 italic text-xs">⚖️ Analizuję obciążenie planu...</span>';
+    suggestEl.innerHTML = '<span class="text-gray-500 italic text-xs">🤖 Analizuję plan...</span>';
     suggestEl.classList.remove('hidden');
 
     const token = window._fitaiToken || null;
-    const userId = (window._fitaiProfile && window._fitaiProfile.id) ? window._fitaiProfile.id : 'me';
-    fetch(`${window.API_BASE || 'http://localhost:8000'}/app/training-load/${userId}`, {
+    fetch(`${window.API_BASE || 'http://localhost:8000'}/app/sport-suggest-day`, {
       headers: token ? { 'Authorization': `Bearer ${token}` } : {},
     })
     .then(r => r.ok ? r.json() : null)
     .then(data => {
-      if (!data) { suggestEl.innerHTML = ''; return; }
-
+      if (!data?.suggested_day) {
+        suggestEl.innerHTML = '';
+        return;
+      }
       const dayShortMap = {
         'Poniedziałek':'Pon','Wtorek':'Wt','Środa':'Śr',
         'Czwartek':'Czw','Piątek':'Pt','Sobota':'Sob','Niedziela':'Niedz'
       };
-
-      // Build workload bars for each day
-      const workload = data.workload || {};
-      const maxWl = Math.max(...Object.values(workload).map(v => v.workload || 0), 1);
-      const sugDay = data.suggested_day;
-      const shortSug = dayShortMap[sugDay] || sugDay;
-
-      // Map short day names to full Polish names for lookup
-      const shortToFull = {};
-      for (const [full, short] of Object.entries(dayShortMap)) shortToFull[short] = full;
-
-      const dayOrder = ['Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota','Niedziela'];
-      const barsHtml = dayOrder.map(dayFull => {
-        const short = dayShortMap[dayFull] || dayFull;
-        const wl = (workload[dayFull] || {}).workload || 0;
-        const exCount = (workload[dayFull] || {}).exercise_count || 0;
-        const isRest = (workload[dayFull] || {}).is_rest || false;
-        const isSug = dayFull === sugDay;
-        const barPct = Math.round((wl / maxWl) * 100);
-        const barColor = isRest
-          ? 'rgba(107,114,128,0.4)'
-          : isSug
-            ? 'rgba(0,229,255,0.7)'
-            : 'rgba(124,58,237,0.5)';
-        const labelColor = isSug ? 'var(--cyan)' : (isRest ? '#6b7280' : '#9ca3af');
-        return `<div class="flex flex-col items-center gap-1 cursor-pointer" onclick="selectAddToPlanDayByName('${short}')" title="${dayFull}: ${exCount} ćwiczeń, workload ${wl}">
-          <div class="text-xs font-bold" style="color:${labelColor};font-size:10px;">${short}</div>
-          <div style="width:20px;height:52px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;display:flex;align-items:flex-end;">
-            <div style="width:100%;height:${barPct}%;background:${barColor};border-radius:4px;transition:height 0.3s;"></div>
-          </div>
-          <div class="text-xs" style="color:${labelColor};font-size:9px;">${isRest ? '😴' : exCount}</div>
-          ${isSug ? '<div style="width:4px;height:4px;border-radius:50%;background:var(--cyan);margin-top:1px;"></div>' : ''}
-        </div>`;
-      }).join('');
-
+      const shortDay = dayShortMap[data.suggested_day] || data.suggested_day;
       suggestEl.innerHTML = `
-        <div class="rounded-xl p-3 space-y-2" style="background:rgba(0,229,255,0.05);border:1px solid rgba(0,229,255,0.15);">
-          <div class="flex items-center gap-2">
-            <span class="text-sm">⚖️</span>
-            <span class="text-xs font-bold" style="color:var(--cyan);">Workload tygodniowy</span>
-            ${sugDay ? `<span class="ml-auto text-xs px-2 py-0.5 rounded-lg font-bold" style="background:rgba(0,229,255,0.15);color:var(--cyan);">Zalecany: ${sugDay}</span>` : ''}
+        <div class="flex items-center gap-2 p-2 rounded-xl" style="background:rgba(0,229,255,0.07);border:1px solid rgba(0,229,255,0.2);">
+          <span class="text-base">🤖</span>
+          <div class="flex-1 text-xs" style="color:var(--muted);">
+            <span class="font-bold" style="color:var(--cyan);">AI sugeruje: ${data.suggested_day}</span>
+            <br>${data.reason}
           </div>
-          <div class="flex justify-between items-end gap-1 px-1">
-            ${barsHtml}
-          </div>
-          ${sugDay ? `<p class="text-xs" style="color:var(--muted);">${data.suggested_reason || ''}</p>` : ''}
-          ${sugDay ? `<button onclick="selectAddToPlanDayByName('${shortSug}')"
-            class="w-full text-xs py-1.5 rounded-lg font-bold mt-1"
-            style="background:rgba(0,229,255,0.12);border:1px solid rgba(0,229,255,0.25);color:var(--cyan);">
-            ✓ Wybierz ${sugDay}
-          </button>` : ''}
+          <button onclick="selectAddToPlanDayByName('${shortDay}')"
+            class="text-xs px-3 py-1 rounded-lg font-bold"
+            style="background:rgba(0,229,255,0.15);border:1px solid rgba(0,229,255,0.3);color:var(--cyan);">
+            Wybierz
+          </button>
         </div>`;
     })
-    .catch(() => {
-      // Fallback: try old sport-suggest-day endpoint
-      fetch(`${window.API_BASE || 'http://localhost:8000'}/app/sport-suggest-day`, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-      })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (!data?.suggested_day) { suggestEl.innerHTML = ''; return; }
-        const dayShortMap = {'Poniedziałek':'Pon','Wtorek':'Wt','Środa':'Śr','Czwartek':'Czw','Piątek':'Pt','Sobota':'Sob','Niedziela':'Niedz'};
-        const shortDay = dayShortMap[data.suggested_day] || data.suggested_day;
-        suggestEl.innerHTML = `<div class="flex items-center gap-2 p-2 rounded-xl" style="background:rgba(0,229,255,0.07);border:1px solid rgba(0,229,255,0.2);">
-          <span class="text-base">🤖</span>
-          <div class="flex-1 text-xs" style="color:var(--muted);"><span class="font-bold" style="color:var(--cyan);">AI sugeruje: ${data.suggested_day}</span><br>${data.reason}</div>
-          <button onclick="selectAddToPlanDayByName('${shortDay}')" class="text-xs px-3 py-1 rounded-lg font-bold" style="background:rgba(0,229,255,0.15);border:1px solid rgba(0,229,255,0.3);color:var(--cyan);">Wybierz</button>
-        </div>`;
-      })
-      .catch(() => { suggestEl.innerHTML = ''; });
-    });
+    .catch(() => { suggestEl.innerHTML = ''; });
   }
 
   modal.classList.remove('hidden');
@@ -5305,115 +5238,6 @@ function confirmAddToPlan() {
     loadPlanForDay();
     if (added > 0) showToast(`✅ Dodano do planu: ${selectedDay}`);
   }, 1200);
-}
-
-
-// ========== REGENERATE PLAN WITH AI ==========
-async function regeneratePlanWithAI() {
-  const btn       = document.getElementById('btnRegeneratePlan');
-  const icon      = document.getElementById('btnRegenerateIcon');
-  const label     = document.getElementById('btnRegenerateLabel');
-  const banner    = document.getElementById('regenerateBanner');
-  const bannerTxt = document.getElementById('regenerateBannerText');
-
-  if (!btn || !banner) return;
-
-  const p = getCurrentProfile();
-  const hasPlan = !!(p && p.trainingPlan && Object.keys(p.trainingPlan).length > 0);
-  const token = window._fitaiToken || null;
-
-  if (!hasPlan && !token) {
-    banner.classList.remove('hidden');
-    bannerTxt.innerHTML = '\u26a0\ufe0f <strong>Brak planu do zregenerowania.</strong> Najpierw wygeneruj tygodniowy plan treningowy.';
-    banner.style.background = 'rgba(234,179,8,0.1)';
-    banner.style.borderColor = 'rgba(234,179,8,0.25)';
-    bannerTxt.style.color = '#fbbf24';
-    return;
-  }
-
-  btn.disabled = true;
-  icon.textContent = '\u23f3';
-  label.textContent = 'AI optymalizuje...';
-  btn.style.opacity = '0.6';
-  banner.classList.add('hidden');
-
-  try {
-    const baseUrl = window.API_BASE || 'http://localhost:8000';
-    const res = await fetch(baseUrl + '/app/plan/regenerate-ai', {
-      method: 'POST',
-      headers: Object.assign({'Content-Type': 'application/json'}, token ? {'Authorization': 'Bearer ' + token} : {}),
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(function() { return {}; });
-      throw new Error(err.detail || 'HTTP ' + res.status);
-    }
-
-    const data = await res.json();
-
-    if (data.plan && data.plan.days) {
-      const dayShortMap = {
-        'Poniedzia\u0142ek':'Pon','Wtorek':'Wt','\u015aroda':'\u015ar',
-        'Czwartek':'Czw','Pi\u0105tek':'Pt','Sobota':'Sob','Niedziela':'Niedz'
-      };
-      const newTrainingPlan = {};
-      for (const dayEntry of data.plan.days) {
-        const shortDay = dayShortMap[dayEntry.day] || dayEntry.day;
-        const exercises = (dayEntry.workout && dayEntry.workout.exercises) || [];
-        if (exercises.length > 0) {
-          newTrainingPlan[shortDay] = exercises.map(function(ex) {
-            return {
-              id: ex.id || ('ex_' + Date.now() + '_' + Math.random().toString(36).slice(2,6)),
-              name: ex.name,
-              sets: ex.sets || 3,
-              reps: ex.reps || 10,
-              weight: ex.weight_kg || 0,
-              muscles: ex.muscles || ex.muscle_group || '',
-              desc: ex.notes || ex.how_to || '',
-              tags: ex.tags || [],
-              _sport: ex._sport || false,
-            };
-          });
-        }
-      }
-      if (Object.keys(newTrainingPlan).length > 0) {
-        p.trainingPlan = newTrainingPlan;
-        saveState();
-      }
-    }
-
-    banner.classList.remove('hidden');
-    banner.style.background = 'rgba(124,58,237,0.1)';
-    banner.style.borderColor = 'rgba(124,58,237,0.25)';
-    bannerTxt.style.color = '#c4b5fd';
-    const note = data.ai_note || 'Plan zoptymalizowany!';
-    const count = data.exercises_redistributed || '?';
-    bannerTxt.innerHTML = '\u2705 <strong>Plan zoptymalizowany przez AI</strong> (' + count + ' \u0107wicze\u0144)<br><span style="color:#9ca3af;">' + note + '</span>';
-
-    loadPlanForDay();
-    showToast('\u26a1 Plan zregenerowany przez AI!');
-
-    icon.textContent = '\u2705';
-    label.textContent = 'Zregenerowano!';
-    setTimeout(function() {
-      icon.textContent = '\u26a1';
-      label.textContent = 'Zregeneruj plan z AI';
-      btn.disabled = false;
-      btn.style.opacity = '1';
-    }, 3000);
-
-  } catch (err) {
-    banner.classList.remove('hidden');
-    banner.style.background = 'rgba(239,68,68,0.1)';
-    banner.style.borderColor = 'rgba(239,68,68,0.25)';
-    bannerTxt.style.color = '#f87171';
-    bannerTxt.innerHTML = '\u274c <strong>B\u0142\u0105d regeneracji:</strong> ' + err.message;
-
-    icon.textContent = '\u26a1';
-    label.textContent = 'Zregeneruj plan z AI';
-    btn.disabled = false;
-    btn.style.opacity = '1';
-  }
 }
 
 // ========== SPORT SUBTAB SWITCHING ==========
@@ -8587,7 +8411,85 @@ const water = {
 
 // ─── 3. Video Library ─────────────────────────────────────────────────────────
 
-const VIDEO_LIBRARY = [
+// ── Shared video URL validator ────────────────────────────────────────────────
+// Single source of truth used by:
+//   • loadPlanForDay   — exercise cards (▶ Video tag)
+//   • renderSportDrills — drill rows (▶ Video button + iframe)
+//   • validateVideos   — VIDEO_LIBRARY startup filter
+//
+// A URL is considered valid when ALL of the following are true:
+//   1. The value is a non-empty string after trimming whitespace
+//   2. It is not a bare placeholder ('#', '/', '.', 'http', 'https')
+//   3. It starts with http:// or https:// (rules out relative paths & hashes)
+//   4. It contains a recognisable host segment (at least one dot after the scheme)
+//
+// Any falsy value (null, undefined, 0, '') immediately returns false.
+function isValidVideoUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+
+  // Reject known placeholder patterns
+  const PLACEHOLDERS = ['#', '/', '.', 'http', 'https', 'http://', 'https://'];
+  if (PLACEHOLDERS.includes(trimmed)) return false;
+
+  // Must start with http(s)://
+  if (!/^https?:\/\//i.test(trimmed)) return false;
+
+  // Must have something after the scheme+host (at least "x.y")
+  try {
+    const u = new URL(trimmed);
+    // hostname must contain a dot — filters out bare 'localhost'-style placeholders
+    // that happen to pass the regex (e.g. "https://x")
+    if (!u.hostname.includes('.')) return false;
+  } catch {
+    return false;   // URL constructor threw — malformed
+  }
+
+  return true;
+}
+
+// ── validateVideos() ──────────────────────────────────────────────────────────
+// Filters VIDEO_LIBRARY in-place at startup, removing any entry that either:
+//   • lacks a video_url field entirely (the current default — entries have none)
+//   • has an invalid / placeholder video_url (fails isValidVideoUrl)
+//
+// WHY mutate in-place rather than build a new array:
+//   filterVideos() and openVideoModal() both reference the module-level
+//   VIDEO_LIBRARY const directly. Replacing entries in the same array means
+//   all callers automatically see the cleaned data without needing changes.
+//
+// The function also emits a concise console report so developers can see
+// exactly which entries were removed and why, without any user-visible noise.
+//
+// Call once at DOMContentLoaded, before the first filterVideos() render.
+function validateVideos() {
+  let removed = 0;
+  const removedNames = [];
+
+  // Walk backwards so splice() indices stay correct
+  for (let i = VIDEO_LIBRARY.length - 1; i >= 0; i--) {
+    const entry = VIDEO_LIBRARY[i];
+    if (!isValidVideoUrl(entry.video_url)) {
+      removedNames.unshift(entry.name);   // collect for logging (preserve order)
+      VIDEO_LIBRARY.splice(i, 1);
+      removed++;
+    }
+  }
+
+  if (removed > 0) {
+    console.info(
+      `[FitAI] validateVideos: usunięto ${removed} wpis${removed === 1 ? '' : removed < 5 ? 'y' : 'ów'} bez prawidłowego video_url:`,
+      removedNames
+    );
+  } else {
+    console.info('[FitAI] validateVideos: wszystkie wpisy mają prawidłowe video_url ✅');
+  }
+
+  return removed;   // callers can check how many were pruned if needed
+}
+
+
   // Klatka
   {id:'v1',cat:'klatka',emoji:'🏋️',name:'Wyciskanie sztangi leżąc',
    tip:'Łopatki ściągnięte przez cały ruch. Łokcie ~45°.',
@@ -8701,6 +8603,30 @@ function openVideoModal(id) {
   const v=VIDEO_LIBRARY.find(x=>x.id===id);
   if (!v) return;
   document.getElementById('videoModal')?.remove();
+
+  // Decide what to render in the media slot
+  const hasRealVideo = isValidVideoUrl(v.video_url);
+  const mediaSlot = hasRealVideo
+    // Real embed: responsive 16:9 iframe
+    ? `<div style="position:relative;padding-bottom:56.25%;height:0;border-radius:14px;overflow:hidden;border:1px solid rgba(239,68,68,0.35);">
+        <iframe
+          src="${v.video_url}?rel=0&modestbranding=1"
+          style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+          loading="lazy"
+          title="Instrukcja: ${v.name}">
+        </iframe>
+      </div>`
+    // Placeholder: emoji + coming-soon note
+    : `<div class="rounded-2xl flex items-center justify-center"
+          style="height:160px;background:linear-gradient(135deg,rgba(0,229,255,0.07),rgba(124,58,237,0.14));font-size:5rem;">
+          ${v.emoji}
+        </div>
+        <div class="text-xs text-center py-1 rounded-xl" style="color:var(--muted);background:rgba(255,255,255,0.03);border:1px solid var(--border);">
+          🎥 Tu docelowo pojawi się animacja GIF / klip instruktażowy
+        </div>`;
+
   const m=document.createElement('div');
   m.id='videoModal';
   m.className='fixed inset-0 z-[300] flex items-center justify-center p-4 modal-backdrop';
@@ -8714,14 +8640,7 @@ function openVideoModal(id) {
         </div>
         <button onclick="document.getElementById('videoModal').remove()" class="text-gray-500 hover:text-white text-xl leading-none">✕</button>
       </div>
-      <!-- Placeholder GIF -->
-      <div class="rounded-2xl flex items-center justify-center"
-        style="height:160px;background:linear-gradient(135deg,rgba(0,229,255,0.07),rgba(124,58,237,0.14));font-size:5rem;">
-        ${v.emoji}
-      </div>
-      <div class="text-xs text-center py-1 rounded-xl" style="color:var(--muted);background:rgba(255,255,255,0.03);border:1px solid var(--border);">
-        🎥 Tu docelowo pojawi się animacja GIF / klip instruktażowy
-      </div>
+      ${mediaSlot}
       <!-- Tech tip -->
       <div class="alert-neon rounded-xl p-3">
         <p class="text-xs font-bold text-cyan-400 mb-1">💡 Wskazówka techniczna</p>
@@ -8770,6 +8689,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 
   // Inicjalne wypełnienie siatki wideo (gdy użytkownik otworzy zakładkę)
+  // validateVideos() must run first — it prunes VIDEO_LIBRARY entries that
+  // lack a real video_url so filterVideos() never renders empty-video cards.
+  validateVideos();
   filterVideos('all');
 });
 </script>
