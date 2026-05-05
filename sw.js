@@ -1,5 +1,5 @@
 /**
- * FitAI — Service Worker v3.2.0
+ * FitAI — Service Worker v3.2.1
  * ─────────────────────────────────────────────────────────────────────────────
  * Strategie cachowania:
  *   • HTML (nawigacja)        → Network-First + fallback do cache
@@ -26,7 +26,7 @@
  */
 
 // ── Wersja — zmień przy każdym deploymencie ───────────────────────────────────
-const CACHE_VERSION = 'fitai-v3.2.0';
+const CACHE_VERSION = 'fitai-v3.2.1';
 
 // ── Nazwy bucketów cache ───────────────────────────────────────────────────────
 const CACHE = {
@@ -186,22 +186,24 @@ self.addEventListener('fetch', event => {
   if (url.protocol === 'chrome-extension:') return;
 
   const isLocalApi = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+  const isProductionApi = url.hostname === 'training-coach-api.onrender.com';
+  const isApi = isLocalApi || isProductionApi;
   const path = url.pathname;
 
   // 1. Nigdy nie cache'uj (AI, eksport, logowanie)
-  if (isLocalApi && NEVER_CACHE.some(p => p.test(path))) {
+  if (isApi && NEVER_CACHE.some(p => p.test(path))) {
     event.respondWith(networkOnly(request));
     return;
   }
 
   // 2. API z cache: Network-First → fallback do JSON cache
-  if (isLocalApi && API_CACHEABLE.some(p => p.test(path))) {
+  if (isApi && API_CACHEABLE.some(p => p.test(path))) {
     event.respondWith(networkFirstJSON(request));
     return;
   }
 
   // 3. Pozostałe lokalne API — network-only
-  if (isLocalApi) {
+  if (isApi) {
     event.respondWith(networkOnly(request));
     return;
   }
