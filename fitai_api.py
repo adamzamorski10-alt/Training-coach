@@ -3833,6 +3833,75 @@ def app_get_stats(days: int = 30, user: UserDB = Depends(get_current_user)):
         }
 
 
+# ─── Diet: Add meal to today's log ───────────────────────────────────────────
+
+class AddMealRequest(BaseModel):
+    meal_id: str                      # Unikalny identyfikator posiłku z katalogu
+    meal_name: str                    # Nazwa posiłku do dopisania w logu
+    meal_kcal: Optional[int] = None   # Kalorie (opcjonalne — do wzbogacenia logu)
+    meal_type: Optional[str] = None   # Typ: Śniadanie / Obiad / Kolacja / Przekąska
+    log_date: Optional[str] = None    # ISO date; domyślnie dzisiaj
+
+
+@app.post("/app/diet/add-meal", tags=["diet"])
+def app_diet_add_meal(req: AddMealRequest, user: UserDB = Depends(get_current_user)):
+    """
+    Dopisuje wybrany posiłek do logu diety bieżącego użytkownika.
+
+    Jeśli dla danego dnia istnieje już wpis w DailyLogDB, nowa pozycja jest
+    doklejana do pola `food` (oddzielona separatorem ' | ').
+    Jeśli wpisu nie ma, tworzony jest nowy rekord.
+
+    Zwraca zaktualizowany wpis dnia oraz status operacji.
+    """
+    target_date = req.log_date or date.today().isoformat()
+
+    # Zbuduj czytelny string opisujący posiłek
+    meal_entry_parts = [req.meal_name]
+    if req.meal_type:
+        meal_entry_parts.insert(0, f"[{req.meal_type}]")
+    if req.meal_kcal:
+        meal_entry_parts.append(f"({req.meal_kcal} kcal)")
+    meal_entry = " ".join(meal_entry_parts)
+
+    with Session(engine) as session:
+        existing = session.exec(
+            select(DailyLogDB)
+            .where(DailyLogDB.user_id == user.id)
+            .where(DailyLogDB.log_date == target_date)
+        ).first()
+
+        if existing:
+            # Doklejamy nowy posiłek do istniejącego logu
+            if existing.food and existing.food.strip():
+                existing.food = f"{existing.food} | {meal_entry}"
+            else:
+                existing.food = meal_entry
+            existing.logged_at = datetime.now().isoformat()
+            session.add(existing)
+            session.commit()
+            session.refresh(existing)
+            log_dict = existing.to_dict()
+        else:
+            # Tworzymy nowy wpis na ten dzień
+            new_log = DailyLogDB(
+                user_id=user.id,
+                log_date=target_date,
+                food=meal_entry,
+            )
+            session.add(new_log)
+            session.commit()
+            session.refresh(new_log)
+            log_dict = new_log.to_dict()
+
+    return {
+        "status": "ok",
+        "message": f"Dodano '{req.meal_name}' do diety na dzień {target_date}.",
+        "meal_added": meal_entry,
+        "log": log_dict,
+    }
+
+
 # ─── Version & root ───────────────────────────────────────────────────────────
 
 @app.get("/")
