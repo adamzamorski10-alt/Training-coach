@@ -21,7 +21,7 @@
     window.API_BASE = window.API_BASE || (
       location.hostname === 'localhost' || location.hostname === '127.0.0.1'
         ? 'http://localhost:8000'
-        : 'https://training-coach-api.onrender.com'
+        : 'https://fitai-api-v83w.onrender.com'
     );
   </script>
   <style>
@@ -8820,9 +8820,13 @@
       console.log('🔍 Składniki:', _kitchen.fridgeTags);
       console.log('📝 Identity ID:', identityId);
       console.log('🔐 Token present:', !!token);
+      console.log('[KitchenGenerate] State token:', state.token);
+      console.log('[KitchenGenerate] LocalStorage token:', localStorage.getItem('fitai_token'));
 
-      if (!identityId && !token) {
-        showToast('⚠️ Zaloguj się aby korzystać z Kuchni AI');
+      // ─ Walidacja: musi być identity_id ─
+      if (!identityId || identityId === '') {
+        showToast('⚠️ Nie udało się zidentyfikować użytkownika. Odśwież stronę.');
+        console.error('[KitchenGenerate] ERROR: No identityId available!', { identityId, token });
         return;
       }
       if (_kitchen.fridgeTags.length === 0) {
@@ -8873,13 +8877,14 @@
       try {
         const _apiBase = window.API_BASE || "http://localhost:8000";
 
-        // Build headers with Authorization
+        // Build headers with Authorization (optional, for future JWT support)
         const headers = { 'Content-Type': 'application/json' };
         if (token) {
           headers['Authorization'] = `Bearer ${token}`;
           console.log('[KitchenGenerate] Authorization header added');
         } else {
-          console.warn('[KitchenGenerate] WARNING: No token available!');
+          console.log('[KitchenGenerate] Note: No JWT token, using identity_id authentication');
+
         }
 
         const payload = {
