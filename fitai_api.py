@@ -3197,11 +3197,13 @@ def regenerate_plan_with_ai(request: Request, user: UserDB = Depends(get_current
     training_days_raw = user.get_list("sport_training_days_json")
     training_days_str = ", ".join(training_days_raw) if training_days_raw else "dowolne"
 
+    # Zmiana 1: System prompt wymuszający czysty JSON bez markdown i wstępów
     system_prompt = (
         "Jesteś ekspertem planowania treningów. Twoim zadaniem jest optymalne "
         "rozmieszczenie zestawu ćwiczeń na dni tygodnia, aby unikać przetrenowania "
         "tych samych grup mięśniowych w kolejnych dniach i zapewnić właściwą regenerację. "
-        "Odpowiadaj WYŁĄCZNIE w formacie JSON, bez żadnego tekstu poza JSON."
+        "Zwróć WYŁĄCZNIE czysty obiekt JSON bez żadnego wstępu i znaczników markdown. "
+        'Format odpowiedzi: {"diet": "treść planu diety", "training": "treść planu treningu"}'
     )
 
     user_msg = f"""Profil użytkownika:
@@ -3225,6 +3227,8 @@ Zadanie: Przypisz każde ćwiczenie do optymalnego dnia tygodnia. Zasady:
 
 Odpowiedź MUSI być w tym dokładnym formacie JSON (bez żadnego tekstu poza JSON):
 {{
+  "diet": "Krótkie wskazówki dietetyczne dopasowane do planu treningowego (carb cycling, nawodnienie, makra).",
+  "training": "Optymalny rozkład ćwiczeń na dni tygodnia z wyjaśnieniem strategii podziału grup mięśniowych.",
   "schedule": {{
     "Poniedziałek": ["NazwaĆwiczenia1", "NazwaĆwiczenia2"],
     "Wtorek": [],
@@ -3241,56 +3245,103 @@ Odpowiedź MUSI być w tym dokładnym formacie JSON (bez żadnego tekstu poza JS
     if isinstance(ai_result, _AIError):
         raise HTTPException(status_code=503, detail=str(ai_result))
 
-    # ── 3. Parsuj odpowiedź JSON ───────────────────────────────────────────────
-    try:
-        # Wyczyść ewentualne backticks z odpowiedzi
-        clean = ai_result.strip()
-        if clean.startswith("```"):
-            clean = clean.split("```")[1]
-            if clean.startswith("json"):
-                clean = clean[4:]
-        ai_data = json.loads(clean.strip())
-        schedule: dict[str, list[str]] = ai_data.get("schedule", {})
-        ai_note: str = ai_data.get("ai_note", "Plan zoptymalizowany przez AI.")
-    except (json.JSONDecodeError, KeyError, ValueError) as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=f"AI zwróciło niepoprawny JSON: {exc}. Spróbuj ponownie."
-        )
+    # ── 3. Czyszczenie i parsowanie odpowiedzi JSON ────────────────────────────
 
-    # ── 4. Aplikuj nowy rozkład — mapuj nazwy → oryginalne obiekty ćwiczeń ───
+    # Krok 1: usuń markdown fences, które LLM-y często dodają przed/po JSON-ie
+    raw_content = ai_result.replace("```json", "").replace("```", "").strip()
+
+    # Krok 2: odporna ekstrakcja — znajdź pierwszą '{' i ostatnią '}' w stringu.
+    # Dzięki temu wszelki tekst dodany przez AI przed lub po obiekcie JSON
+    # (np. "Oto plan:" albo "Mam nadzieję, że pomoże!") jest bezpiecznie
+    # odcięty zanim trafi do json.loads().
+    _brace_start = raw_content.find("{")
+    _brace_end   = raw_content.rfind("}")
+    if _brace_start != -1 and _brace_end != -1 and _brace_end > _brace_start:
+        raw_content = raw_content[_brace_start : _brace_end + 1]
+
+    # Krok 3: parsowanie z gwarantowanymi kluczami "diet" i "training"
+    try:
+        ai_data = json.loads(raw_content)
+
+        # Upewnij się że klucze to zawsze "diet" i "training"
+        diet_text:     str = str(ai_data.get("diet",     "") or "").strip()
+        training_text: str = str(ai_data.get("training", "") or "").strip()
+
+        # Pobierz schedule i ai_note (wsteczna kompatybilność z oryginalnym formatem)
+        schedule: dict[str, list[str]] = ai_data.get("schedule", {})
+        ai_note:  str                  = ai_data.get("ai_note",  training_text or "Plan zoptymalizowany przez AI.")
+
+        # Jeśli AI pominęło klucze diet/training — wypełnij sensownymi wartościami
+        if not diet_text:
+            diet_text = (
+                f"Plan diety dopasowany do celu: {goal}. "
+                "Zwiększ węglowodany w dni treningowe, ogranicz w dni odpoczynku. "
+                "Białko min. 1.6g/kg masy ciała. Nawodnienie: 2-3L wody dziennie."
+            )
+        if not training_text:
+            training_text = ai_note or "Optymalny rozkład ćwiczeń wygenerowany przez AI."
+
+    except (json.JSONDecodeError, KeyError, ValueError) as exc:
+        # Wymagane przez prompt: log [JSON ERROR] jako pierwsza linia
+        print(f"[JSON ERROR] Nie udało się sparsować planu: {exc}")
+        # Szczegółowy log dla dewelopera: typ wyjątku + surowa odpowiedź AI
+        print(f"[AI ERROR] {datetime.now()}: Błąd w module [regenerate-ai/JSON-parse]: {type(exc).__name__}: {exc}")
+        print(f"[AI ERROR] Raw (200 chars): {raw_content[:200]!r}")
+
+        fallback_payload = json.dumps(
+            {
+                "diet":     raw_content,   # surowa odpowiedź AI jako treść diety
+                "training": "Błąd generowania treningu, spróbuj ponownie.",
+            },
+            ensure_ascii=False,
+        )
+        fallback_data = json.loads(fallback_payload)
+        diet_text     = fallback_data["diet"]
+        training_text = fallback_data["training"]
+        schedule      = {}                 # brak harmonogramu — pomiń reorganizację
+        ai_note       = "Plan wygenerowany z awaryjnego fallbacku (błąd parsowania JSON)."
+
+    # ── 4. Aplikuj nowy rozkład (tylko jeśli schedule niepusty) ──────────────
     exercise_by_name: dict[str, dict] = {e["name"]: e["_original"] for e in all_exercises}
 
-    # Buduj nowe dni na podstawie harmonogramu AI
-    new_days: list[dict] = []
-    for day_name in ALL_DAYS_PL:
-        ex_names_for_day = schedule.get(day_name, [])
-        exercises_for_day = [
-            exercise_by_name[n] for n in ex_names_for_day if n in exercise_by_name
-        ]
+    if schedule:
+        # Buduj nowe dni na podstawie harmonogramu AI
+        new_days: list[dict] = []
+        for day_name in ALL_DAYS_PL:
+            ex_names_for_day = schedule.get(day_name, [])
+            exercises_for_day = [
+                exercise_by_name[n] for n in ex_names_for_day if n in exercise_by_name
+            ]
 
-        # Znajdź oryginalne dane dnia (meals, itp.) lub utwórz pusty szablon
-        original_day = next((d for d in days if d.get("day") == day_name), None)
-        if original_day:
-            new_day = dict(original_day)
-            new_day["workout"] = dict(original_day.get("workout", {}))
-            new_day["workout"]["exercises"] = exercises_for_day
-            new_day["workout"]["rest"] = len(exercises_for_day) == 0
-        else:
-            new_day = {
-                "day": day_name,
-                "workout": {
-                    "exercises": exercises_for_day,
-                    "rest": len(exercises_for_day) == 0,
-                },
-                "meals": [],
-            }
-        new_days.append(new_day)
+            # Znajdź oryginalne dane dnia (meals, itp.) lub utwórz pusty szablon
+            original_day = next((d for d in days if d.get("day") == day_name), None)
+            if original_day:
+                new_day = dict(original_day)
+                new_day["workout"] = dict(original_day.get("workout", {}))
+                new_day["workout"]["exercises"] = exercises_for_day
+                new_day["workout"]["rest"] = len(exercises_for_day) == 0
+            else:
+                new_day = {
+                    "day": day_name,
+                    "workout": {
+                        "exercises": exercises_for_day,
+                        "rest": len(exercises_for_day) == 0,
+                    },
+                    "meals": [],
+                }
+            new_days.append(new_day)
+
+        plan["days"] = new_days
+    else:
+        # Fallback: brak harmonogramu — zachowaj oryginalne dni bez zmian
+        print(f"[regenerate-ai] Brak 'schedule' w odpowiedzi AI — dni pozostają bez zmian.")
 
     # ── 5. Zapisz zaktualizowany plan ─────────────────────────────────────────
-    plan["days"] = new_days
     plan["ai_regenerated_at"] = datetime.now().isoformat()
-    plan["ai_note"] = ai_note
+    plan["ai_note"]           = ai_note
+    # Zmiana 3: Zawsze zapisz klucze "diet" i "training" w planie
+    plan["diet"]              = diet_text
+    plan["training"]          = training_text
 
     with Session(engine) as session:
         db_user = session.get(UserDB, user.id)
@@ -3301,7 +3352,10 @@ Odpowiedź MUSI być w tym dokładnym formacie JSON (bez żadnego tekstu poza JS
 
     return {
         "status": "ok",
-        "plan": plan,
+        "plan":   plan,
+        # Zmiana 3: klucze "diet" i "training" zawsze obecne na poziomie głównym odpowiedzi
+        "diet":   diet_text,
+        "training": training_text,
         "ai_note": ai_note,
         "exercises_redistributed": len(all_exercises),
     }
