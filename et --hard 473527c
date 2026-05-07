@@ -1,0 +1,76 @@
+[33m1c834b5[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m naprawa błędów
+[33mc0ee33a[m[33m ([m[1;31morigin/main[m[33m)[m naprawa Ai v2
+[33m473527c[m naprawa AI
+[33m8427c51[m Use production FitAI API from GitHub Pages
+[33m76e641d[m Update service worker API cache handling
+[33m79b10b4[m Fix GitHub Pages API connection
+[33mb166fcb[m naprawy
+[33me3584a0[m naprawa kuchnia Ai v3
+[33mfbf4710[m naprava kuchnia Ai v2
+[33m4c3ada5[m przed naprawa kuchnia AI
+[33m8efb10d[m Usunięcie water tracjkera z mój dzien
+[33m02285fa[m migracja bazy danych
+[33me732d44[m wsyztstkie fixy
+[33mf63cad6[m fix 3
+[33m420b5dc[m faza 4
+[33m0501e16[m Faza 3
+[33m1eccd94[m Faza 2
+[33m70ec87d[m Faza 1
+[33m0b3057d[m wdrożenie zmian z backendu
+[33m41a257f[m dodanie kluczy
+[33mc58ad13[m po wsyztskich fixach
+[33m90efdf8[m fix 2
+[33m1c8153b[m fixy
+[33ma539035[m po fixach
+[33m3111146[m nwm
+[33m1b50836[m po wszystkich promptach fix
+[33m12729f2[m fix A i B
+[33m4f56a68[m po wsyztskich pakietach (do naprawy i testu)
+[33m215ccea[m pakiet 3
+[33m6442f58[m pierwsze 2 pakiete (do przetestowania)
+[33m1e9ff68[m małe naprawki (przed gemini)
+[33m75c3e46[m naprawa zmiany okresu w statystykach
+[33m7e6a1bc[m rozbudowa
+[33m697eed2[m upgrade pliku do wdrażania backendu
+[33m3b6864d[m zmiany gemini
+[33m0f8e5ef[m nic
+[33m6c3f113[m dodanie statystyk
+[33md9ebb52[m rozbudowa strony
+[33m975eef3[m działająca edycja planu
+[33ma68f5e0[m działajaca edycja
+[33m758b10b[m edycja treningu
+[33m9f593e9[m dodawanie ciwczen ze sportu do treningu
+[33m431d100[m działąjace z nowymi sportami (do przetestowania)
+[33m5d18dfe[m dodanie treningu koszykówki (nie do konca poprawnie)
+[33m9ac9ea0[m zamiana
+[33m1592004[m wsyztsko dopracowane
+[33mf4ce109[m naprawa wybodu ilości cwiczen
+[33m7c3fd75[m działą (do naprawy pare funkcji)
+[33m4e3bc7b[m działą (z zedytowana funckja Mój dzień)
+[33m73f2e16[m zmiana configu
+[33me855bfc[m działa (do małych poprawek)
+[33m2113286[m działajaca strona bez poprawek
+[33m93f0942[m zaminy zrobione przez gemini (do cofniecia)
+[33mca38e8f[m naprawa pól wyboruy
+[33mce7bc0e[m Fix: Make select dropdown options visible with proper styling
+[33m9c8eed2[m wygenerowane przez gemini
+[33m98dbf33[m podkategorie, dodanie brakujacych funkcji
+[33mb01514b[m Expand: Complete FitAI dashboard with all training & nutrition sections
+[33mabd4aee[m  Redesign strony
+[33m626c7f9[m Redesign: Complete premium SaaS dashboard with Tailwind CSS and glassmorphism
+[33m7521875[m Fix: Auto-load profile data on login - return default profile/dashboard/plan instead of 404
+[33m8361e29[m zmiana wizualna strony
+[33mb7deccc[m Refactor: Dynamic versioning, full-width layout, single-day plan view with navigation
+[33md054538[m automatyczne załadowywanie danych urzytkownika po update
+[33mc4f7daf[m naprawa listy wyboru opcji
+[33m479a32f[m naprawa
+[33m2bc70b7[m usuniedize panelu api
+[33mcc25ea2[m stworzenie render
+[33mb8f2487[m upgrade storny v2
+[33m9c21266[m naprawy wizualne
+[33m4379a74[m uphrade strony
+[33mbfcbf4c[m naprawa strony
+[33m770d5ab[m strona v2
+[33m452bc79[m ze strina
+[33mf3208e8[m Fix: Add missing json import in API
+[33mc734d2c[m Initial commit: FitAI system with shared utils and refactored bot

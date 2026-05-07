@@ -38,6 +38,74 @@ from sqlalchemy.orm import relationship
 from sqlalchemy import text as _text
 from sqlmodel import Field, Relationship, Session, SQLModel, create_engine, select
 
+# ─── External prompt templates ────────────────────────────────────────────────
+# Centralised in prompts.py — import here and use via .format() at each call
+# site so the API file stays free of long instruction strings.
+try:
+    from prompts import (
+        KITCHEN_PROMPT,
+        PROGRESSION_PROMPT,
+        WEEKLY_PLAN_PROMPT,
+        RECOVERY_PROMPT,
+    )
+    print("[FitAI] prompts.py imported OK — AI prompt templates active.")
+except ImportError:
+    # Graceful fallback so the API still starts if prompts.py is absent.
+    # All prompt variables are set to None; every call site has an
+    # inline fallback string that mirrors the prompts.py content.
+    KITCHEN_PROMPT = PROGRESSION_PROMPT = WEEKLY_PLAN_PROMPT = RECOVERY_PROMPT = None
+    print("[FitAI] WARN: prompts.py not found — inline fallback prompts will be used.")
+
+# ── Inline fallback definitions (mirror prompts.py, used when import fails) ──
+# These are only active when KITCHEN_PROMPT etc. are None after the import.
+_KITCHEN_PROMPT_FB = (
+    "Jesteś Ekspertem Kulinarnym FitAI.\n"
+    "Składniki: {ingredients}\n"
+    "Cel: {goal}\n"
+    "Limit kcal: {remaining_calories}\n"
+    "Wykluczenia/alergie: {exclusions}\n"
+    "Stwórz 4 przepisy w podanym formacie. Każdy musi mieścić się w limicie kcal."
+)
+_PROGRESSION_PROMPT_FB = (
+    "Jesteś Trenerem FitAI. Ćwiczenie: {exercise_name}.\n"
+    "Wynik: {successes}/{total_attempts}, RPE: {rpe}/10.\n"
+    "Notatki: {user_notes}\n"
+    "Podaj jedną konkretną radę (max 2 zdania)."
+)
+_WEEKLY_PLAN_PROMPT_FB = (
+    "Jesteś Strategiem FitAI. Profil: wiek {age}, waga {weight}kg, cel: {goal}.\n"
+    "Sport: {sport_focus}, poziom: {level}, treningi: {workout_days} dni/tydz.\n"
+    "Typ dnia (carb cycling): {day_type}.\n"
+    "Podaj główne założenie tygodnia i modyfikację diety."
+)
+_RECOVERY_PROMPT_FB = (
+    "Jesteś Systemem Autoregulacji FitAI.\n"
+    "Nastrój: {mood}/10, energia: {energy}/10, ból/zakwasy: {soreness}.\n"
+    "Odpowiedź max 2 zdania."
+)
+
+def _get_prompt(template, fallback: str, **kwargs) -> str:
+    """
+    Bezpieczne renderowanie szablonu promptu.
+    Jeśli template jest None (brak prompts.py) → użyj fallback.
+    Wszystkie None-wartości w kwargs → zastąp pustym stringiem lub 'brak'.
+    Zawsze opakowuje wywołanie .format() w try/except KeyError.
+    """
+    safe_kwargs = {
+        k: (str(v) if v is not None else 'brak')
+        for k, v in kwargs.items()
+    }
+    source = template if template is not None else fallback
+    try:
+        return source.format(**safe_kwargs)
+    except KeyError as exc:
+        # Brakująca zmienna w szablonie — loguj i zwróć fallback
+        print(f"[FitAI] WARN: prompt KeyError {exc} — using raw fallback")
+        try:
+            return fallback.format(**safe_kwargs)
+        except KeyError:
+            return fallback  # ostateczny fallback: niesformatowany string
+
 
 # ─── Rate limiter setup ───────────────────────────────────────────────────────
 # Key function: prefer authenticated user ID over raw IP so shared NAT doesn't
@@ -779,6 +847,19 @@ class AppDailyCheckinRequest(BaseModel):
     workout: str = ""
     mood: str = ""
     weight: Optional[float] = None
+    # ── Recovery / autoregulation fields (used by RECOVERY_PROMPT) ───────────
+    mood_score: Optional[int] = Field(
+        default=None, ge=1, le=10,
+        description="Nastrój 1–10 (opcjonalne, uzupełnia pole mood)"
+    )
+    energy_score: Optional[int] = Field(
+        default=None, ge=1, le=10,
+        description="Poziom energii 1–10"
+    )
+    soreness: Optional[str] = Field(
+        default=None,
+        description="Opis zakwasów / bólu, np. 'klatka piersiowa, uda'"
+    )
 
 
 class DiscordLinkRequest(BaseModel):
@@ -943,6 +1024,18 @@ def calc_daily_macros(base_calories: int, day_type: str) -> dict:
         "fat_g": round(kcal * pct["fat"] / 9),
         "day_type": day_type,
     }
+
+
+# Fix 4: Czytelna etykieta dnia dla promptów AI — zamiast technicznego klucza 'heavy'/'rest'
+_DAY_TYPE_LABELS: dict[str, str] = {
+    "heavy":    "Dzień Wysokich Węglowodanów (Ciężki Trening)",
+    "moderate": "Dzień Umiarkowany (Trening Ogólny)",
+    "rest":     "Dzień Odpoczynku / Niskich Węglowodanów",
+}
+
+def _day_type_label(day_type: str) -> str:
+    """Zwraca czytelną po polsku etykietę dla {day_type} w promptach AI."""
+    return _DAY_TYPE_LABELS.get(day_type, day_type)
 
 
 # ─── Progressive Overload / RPE helpers ───────────────────────────────────────
@@ -2095,6 +2188,35 @@ def ask_ai(system: str, user_msg: str, max_tokens: int = 800) -> str:
 ask_claude = ask_ai
 
 
+# ── Algorytmiczne fallbacki gdy AI niedostępne ────────────────────────────────
+def _fallback_recovery_tip(mood: Optional[float], energy: Optional[float]) -> str:
+    """Statyczna rada regeneracyjna gdy AI jest niedostępne.
+    Ton zgodny z RECOVERY_PROMPT w prompts.py — krótki, konkretny, max 2 zdania."""
+    m = float(mood)   if mood   is not None else 5.0
+    e = float(energy) if energy is not None else 5.0
+    avg = (m + e) / 2
+    if avg < 4:
+        return "Twoje wskaźniki są niskie — dziś priorytet to regeneracja. Postaw na lekki stretching i sen minimum 8h."
+    elif avg > 7:
+        return "Świetny stan — to idealny moment na intensywny trening lub pobicie rekordu. Działaj!"
+    else:
+        return "Umiarkowany poziom energii — wykonaj zaplanowany trening, słuchaj ciała i nie forsuj nadmiernie."
+
+
+def _fallback_drill_tip(accuracy_pct: int, rpe: int) -> str:
+    """Statyczna rada treningowa gdy AI jest niedostępne.
+    Ton zgodny z PROGRESSION_PROMPT w prompts.py — max 2 zdania, konkretna wskazówka techniczna lub intensywność."""
+    if rpe < 5:
+        return f"RPE {rpe}/10 — intensywność niska. Zwiększ tempo lub trudność ćwiczenia w kolejnej sesji."
+    if rpe > 8:
+        return f"RPE {rpe}/10 — bardzo intensywna sesja. Skup się na technice i zaplanuj jutro dzień regeneracyjny."
+    if accuracy_pct < 40:
+        return f"Skuteczność {accuracy_pct}% — zwolnij tempo i skup się na mechanice ruchu zamiast na liczbie powtórzeń."
+    if accuracy_pct >= 80:
+        return f"Skuteczność {accuracy_pct}% — doskonały wynik. Czas zwiększyć trudność: dodaj obciążenie lub skróć przerwę."
+    return f"Skuteczność {accuracy_pct}% przy RPE {rpe}/10 — solidna praca. Konsekwencja to klucz do postępu."
+
+
 # ─── DB helpers ───────────────────────────────────────────────────────────────
 
 def _get_user_or_404(user_key: str, session: Session) -> UserDB:
@@ -2599,6 +2721,39 @@ def app_daily_checkin(log: AppDailyCheckinRequest, user: UserDB = Depends(get_cu
         user.updated_at = datetime.now().isoformat()
         session.commit()
         water_ml_today = round((entry.water_liters or 0) * 1000)
+
+        # ── Recovery / autoregulation AI tip (RECOVERY_PROMPT) ───────────────
+        # Triggered when the checkin includes numeric mood_score or energy_score.
+        # Falls back gracefully — never blocks the checkin response.
+        ai_recovery_tip: Optional[str] = None
+        _mood_num   = getattr(log, "mood_score",  None)
+        _energy_num = getattr(log, "energy_score", None)
+        _soreness   = getattr(log, "soreness",     None)
+        # ── Recovery AI tip — używamy _get_prompt() dla bezpiecznego renderowania ─
+        if _mood_num is not None or _energy_num is not None:
+            try:
+                _recovery_user_msg = _get_prompt(
+                    RECOVERY_PROMPT, _RECOVERY_PROMPT_FB,
+                    mood=_mood_num,
+                    energy=_energy_num,
+                    soreness=_soreness,
+                )
+                _recovery_system = (
+                    "Jesteś Systemem Autoregulacji FitAI. Odpowiadaj po polsku. "
+                    "Bądź krótki (max 2 zdania), konkretny i wspierający."
+                )
+                _recovery_raw = ask_ai(_recovery_system, _recovery_user_msg, max_tokens=150)
+                if not isinstance(_recovery_raw, _AIError):
+                    ai_recovery_tip = _recovery_raw.strip()
+                else:
+                    # Non-fatal: AI niedostępne, zwróć komunikat zastępczy
+                    print(f"[AI ERROR] {datetime.now()}: Błąd w module [Checkin/RecoveryTip]: {_recovery_raw}")
+                    ai_recovery_tip = _fallback_recovery_tip(_mood_num, _energy_num)
+            except Exception as _exc:
+                # Non-fatal — checkin zawsze wraca z wynikiem nawet bez porady AI
+                print(f"[AI ERROR] {datetime.now()}: Błąd w module [Checkin/RecoveryTip]: {type(_exc).__name__}: {_exc}")
+                ai_recovery_tip = _fallback_recovery_tip(_mood_num, _energy_num)
+
         return {
             "status": "ok",
             "log": entry.to_dict(),
@@ -2609,6 +2764,7 @@ def app_daily_checkin(log: AppDailyCheckinRequest, user: UserDB = Depends(get_cu
             "level": _xp_to_level(user.total_xp),
             "xp_to_next_level": _xp_to_next_level(user.total_xp),
             "water_ml_today": water_ml_today,
+            "ai_recovery_tip": ai_recovery_tip,   # None when not sent or AI unavailable
         }
 
 
@@ -3225,10 +3381,50 @@ def log_drill_result(payload: DrillResultRequest, user: UserDB = Depends(get_cur
 
         progression = _suggest_drill_progression(payload.drill_name, history)
 
+        # ── AI coaching tip via PROGRESSION_PROMPT ──────────────────────────
+        # Personalizowana rada po zapisie wyniku drilla.
+        # Używamy _get_prompt() z fallbackiem gdy prompts.py niedostępny.
+        # Błąd AI nie blokuje odpowiedzi — progression algorytmiczny zawsze wraca.
+        ai_coaching_tip: Optional[str] = None
+        if history:
+            last_h = history[0]
+            _successes   = last_h.success_count  or 0
+            _total_atts  = last_h.total_attempts or max(1, _successes)
+            _rpe_val     = last_h.rpe            or payload.rpe or 5
+            # Fix 1: jawny fallback 'brak' — nie wysyłaj pustego stringa do AI
+            _notes_val   = (payload.notes or "").strip() or "brak"
+            try:
+                _prog_user_msg = _get_prompt(
+                    PROGRESSION_PROMPT, _PROGRESSION_PROMPT_FB,
+                    exercise_name=payload.drill_name,
+                    successes=_successes,
+                    total_attempts=_total_atts,
+                    rpe=_rpe_val,
+                    user_notes=_notes_val,
+                )
+                _prog_system = (
+                    "Jesteś Trenerem Przygotowania Fizycznego FitAI. "
+                    "Odpowiadaj po polsku. Bądź konkretny, motywujący i zwięzły (max 2 zdania)."
+                )
+                _tip_raw = ask_ai(_prog_system, _prog_user_msg, max_tokens=200)
+                if not isinstance(_tip_raw, _AIError):
+                    ai_coaching_tip = _tip_raw.strip()
+                else:
+                    # Fallback algorytmiczny gdy AI niedostępne
+                    print(f"[AI ERROR] {datetime.now()}: Błąd w module [DrillResult/CoachingTip]: {_tip_raw}")
+                    _eff = round((_successes / _total_atts) * 100) if _total_atts > 0 else 0
+                    ai_coaching_tip = _fallback_drill_tip(_eff, int(_rpe_val))
+            except Exception as _exc:
+                # Non-fatal — progression algorytmiczny zawsze zwracany
+                print(f"[AI ERROR] {datetime.now()}: Błąd w module [DrillResult/CoachingTip]: {type(_exc).__name__}: {_exc}")
+                _eff = round((_successes / _total_atts) * 100) if _total_atts > 0 else 0
+                ai_coaching_tip = _fallback_drill_tip(_eff, int(payload.rpe or 5))
+
         return {
             "status": "ok",
             "result": result.to_dict(),
             "progression": progression,
+            "ai_coaching_tip": ai_coaching_tip,   # None when AI unavailable
             "upserted": existing_dr is not None,
         }
 
@@ -3311,17 +3507,45 @@ def ai_diet_plan(request: Request, req: AIRequest, user: UserDB = Depends(get_cu
         )
         user_msg = (
             f"Profil: {json.dumps(user.to_profile_dict(), ensure_ascii=False)}\n"
-            f"Typ dnia (carb cycling): {day_type}\n"
+            f"Typ dnia (carb cycling): {_day_type_label(day_type)}\n"
             f"Makroskładniki DZIŚ: {macros['kcal']} kcal, "
             f"białko {macros['protein_g']}g, węgle {macros['carbs_g']}g, tłuszcze {macros['fat_g']}g\n"
             f"Dzień: {day_of_week}\n"
-            f"Dieta: {user.diet}, alergie: {user.allergies or 'brak'}\n"
+            f"Dieta: {user.diet or 'brak'}, alergie: {user.allergies or 'brak'}\n"
             f"Posiłków dziennie: {user.meals_per_day}\n\n"
             f"Kontekst: {req.extra_context or 'brak'}\n\n"
             "Utwórz szczegółowy plan diety na DZIŚ z godzinami, pełnymi nazwami produktów, "
             "gramaturą i kaloriami każdego posiłku. Na końcu łączne makroskładniki."
         )
-        return {"plan": ask_claude(system, user_msg, 1000), "calories_target": kcal, "protein_target": protein, "macros": macros}
+        try:
+            _diet_result = ask_claude(system, user_msg, 1000)
+            if isinstance(_diet_result, _AIError):
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"Serwis AI tymczasowo niedostępny: {_diet_result}"
+                )
+            return {
+                "plan": _diet_result,
+                "calories_target": kcal,
+                "protein_target": protein,
+                "macros": macros,
+            }
+        except HTTPException:
+            raise
+        except Exception as _exc:
+            print(f"[AI ERROR] {datetime.now()}: Błąd w module [ai/diet]: {type(_exc).__name__}: {_exc}")
+            # Fallback: zwróć makro bez planu tekstowego
+            return {
+                "plan": (
+                    f"AI tymczasowo niedostępne. Twoje makro na dziś ({_day_type_label(day_type)}): "
+                    f"{macros['kcal']} kcal | białko {macros['protein_g']}g | "
+                    f"węgle {macros['carbs_g']}g | tłuszcze {macros['fat_g']}g."
+                ),
+                "calories_target": kcal,
+                "protein_target": protein,
+                "macros": macros,
+                "fallback": True,
+            }
 
 
 @app.post("/ai/workout", tags=["ai"])
@@ -3365,7 +3589,25 @@ def ai_workout_plan(request: Request, req: AIRequest, user: UserDB = Depends(get
             "i wskazówkami technicznymi. Unikaj partii zmęczonych z ostatnich dni.\n"
             f"Cel: {user.goal}, sporty: {', '.join(user.get_list('sports_json'))}"
         )
-        return {"plan": ask_claude(system, user_msg, 900)}
+        try:
+            _workout_result = ask_claude(system, user_msg, 900)
+            if isinstance(_workout_result, _AIError):
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"Serwis AI tymczasowo niedostępny: {_workout_result}"
+                )
+            return {"plan": _workout_result}
+        except HTTPException:
+            raise
+        except Exception as _exc:
+            print(f"[AI ERROR] {datetime.now()}: Błąd w module [ai/workout]: {type(_exc).__name__}: {_exc}")
+            return {
+                "plan": (
+                    "AI tymczasowo niedostępne. Wykonaj trening według ostatniego "
+                    "zaplanowanego planu lub skonsultuj się z trenerem."
+                ),
+                "fallback": True,
+            }
 
 
 @app.post("/ai/analyze-log", tags=["ai"])
@@ -3391,7 +3633,7 @@ def ai_analyze_log(request: Request, req: AIRequest, user: UserDB = Depends(get_
         )
         user_msg = (
             f"Profil: {json.dumps(user.to_profile_dict(), ensure_ascii=False)}\n"
-            f"Makro na dziś ({day_type}): {macros}\n\n"
+            f"Makro na dziś ({_day_type_label(day_type)}): {macros}\n\n"
             f"Raport z dziś:\n"
             f"- Co jadłem: {today_log.food or 'nie podano'}\n"
             f"- Trening: {today_log.workout or 'nie podano'}\n"
@@ -3399,7 +3641,25 @@ def ai_analyze_log(request: Request, req: AIRequest, user: UserDB = Depends(get_
             f"- Waga: {today_log.weight or 'nie podano'} kg\n\n"
             "Oceń dzień i podaj KONKRETNY plan na jutro z makroskładnikami. Max 400 słów."
         )
-        return {"analysis": ask_claude(system, user_msg, 1000)}
+        try:
+            _log_result = ask_claude(system, user_msg, 1000)
+            if isinstance(_log_result, _AIError):
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"Serwis AI tymczasowo niedostępny: {_log_result}"
+                )
+            return {"analysis": _log_result}
+        except HTTPException:
+            raise
+        except Exception as _exc:
+            print(f"[AI ERROR] {datetime.now()}: Błąd w module [ai/analyze-log]: {type(_exc).__name__}: {_exc}")
+            return {
+                "analysis": (
+                    "AI tymczasowo niedostępne. Twój wpis z dziś został zapisany. "
+                    "Sprawdź analizę jutro po przywróceniu serwisu."
+                ),
+                "fallback": True,
+            }
 
 
 @app.post("/ai/weekly", tags=["ai"])
@@ -3410,17 +3670,67 @@ def ai_weekly_summary(request: Request, req: AIRequest, user: UserDB = Depends(g
         logs = list(session.exec(
             select(DailyLogDB).where(DailyLogDB.user_id == user.id).order_by(DailyLogDB.log_date.desc())
         ).all())[:7]
-        system = (
-            "Jesteś analitykiem fitness. Piszesz po polsku. "
-            "Tworzysz motywujące ale realistyczne podsumowania tygodniowe."
+        _weekly_system = (
+            "Jesteś Głównym Strategiem FitAI. Piszesz po polsku. "
+            "Tworzysz motywujące ale realistyczne podsumowania tygodniowe "
+            "oraz konkretne zalecenia na kolejny tydzień."
         )
-        user_msg = (
-            f"Profil: {json.dumps(user.to_profile_dict(), ensure_ascii=False)}\n"
-            f"Logi z ostatnich 7 dni: {json.dumps([l.to_dict() for l in logs], ensure_ascii=False)}\n\n"
-            "Podaj tygodniowe podsumowanie: ocena tygodnia, postęp do celu, "
+
+        # ── Build user message from WEEKLY_PLAN_PROMPT (lub fallback) ─────────
+        # _get_prompt() obsługuje: brak prompts.py, None-wartości, KeyError.
+        # Po wygenerowaniu dołączamy dane logów jako kontekst empiryczny.
+        _focus = user.get_list("training_focus_json")
+        _day_type_now = _day_type(
+            datetime.now().strftime("%A"),
+            _focus[0].lower() if _focus else "klatka"
+        )
+        try:
+            _user_msg = _get_prompt(
+                WEEKLY_PLAN_PROMPT, _WEEKLY_PLAN_PROMPT_FB,
+                age=user.age,
+                weight=user.weight,
+                goal=user.goal or "ogólna sprawność",
+                sport_focus=user.sport_focus or "brak",
+                level=_xp_to_level(user.total_xp),
+                workout_days=user.frequency or "3-4",
+                # Fix 4: czytelna etykieta zamiast technicznego klucza 'heavy'/'rest'
+                day_type=_day_type_label(_day_type_now),
+            )
+        except Exception as _fmt_exc:
+            print(f"[AI ERROR] {datetime.now()}: Błąd w module [WeeklySummary/PromptFormat]: {_fmt_exc}")
+            _user_msg = f"Profil: {json.dumps(user.to_profile_dict(), ensure_ascii=False)}"
+
+        # Dołącz logi tygodniowe — AI ma konkretne dane, nie tylko profil
+        _log_summary = json.dumps(
+            [l.to_dict() for l in logs], ensure_ascii=False
+        )
+        _user_msg += (
+            f"\n\nLogi z ostatnich 7 dni:\n{_log_summary}"
+            "\n\nPodaj tygodniowe podsumowanie: ocena tygodnia, postęp do celu, "
             "top 3 rekomendacje na kolejny tydzień (dieta + trening). Max 300 słów."
         )
-        return {"summary": ask_claude(system, user_msg, 800)}
+
+        try:
+            _weekly_result = ask_claude(_weekly_system, _user_msg, 800)
+            if isinstance(_weekly_result, _AIError):
+                print(f"[WeeklySummary] AI error: {_weekly_result}")
+                raise HTTPException(status_code=503, detail=str(_weekly_result))
+            return {"summary": _weekly_result}
+        except HTTPException:
+            raise
+        except Exception as _exc:
+            print(f"[AI ERROR] {datetime.now()}: Błąd w module [ai/weekly]: {type(_exc).__name__}: {_exc}")
+            # Fallback: statyczne podsumowanie z danych logów
+            _n_logs = len(logs)
+            _workouts_done = sum(1 for l in logs if l.workout)
+            return {
+                "summary": (
+                    f"AI tymczasowo niedostępne. Statystyki tygodnia: "
+                    f"{_n_logs} wpisów w dzienniku, {_workouts_done} treningów. "
+                    "Sprawdź pełną analizę gdy serwis AI wróci online."
+                ),
+                "fallback": True,
+            }
 
 
 # ─── XP / Injuries endpoints ─────────────────────────────────────────────────
@@ -3588,29 +3898,48 @@ def app_fridge_chef(request: Request, req: FridgeChefRequest, user: UserDB = Dep
                 "(sól, pieprz, oliwa, podstawowe przyprawy) spoza listy."
             )
 
-            user_msg = (
-                f"Profil użytkownika:\n"
-                f"  Imię: {user.name}\n"
-                f"  Cel: {user.goal}\n"
-                f"  Dieta: {user.diet}\n"
-                f"  Cel kaloryczny/dzień: {kcal_target} kcal | białko: {protein_target}g\n"
-                f"  Docelowy kcal na 1 posiłek: ~{meal_kcal} kcal (±20%)\n"
-                f"  Alergie/wykluczenia: {user.allergies or 'brak'}\n"
-                f"  Unikane produkty: {avoid_str}\n"
-                f"  Preferowane smaki/produkty: {preferred_str}\n"
-                f"  Kontuzje (unikaj ciężkostrawnych potraw): {user.injuries or 'brak'}\n\n"
-                f"Składniki dostępne: {ingredients_str}\n\n"
-                f"Kontekst dodatkowy: {req.extra_context or 'brak'}\n\n"
-                f"Tryb: {mode_instruction}\n\n"
-                "Wygeneruj 4 przepisy zgodnie z instrukcjami systemowymi."
-            )
+            # Scal exclusions dla KITCHEN_PROMPT: allergies z DB + avoid + tryb
+            _fc_excl_parts = []
+            _fc_excl_parts.append(f"alergie: {user.allergies.strip() if user.allergies else 'brak'}")
+            if avoid_str and avoid_str != "brak":
+                _fc_excl_parts.append(f"unikane: {avoid_str}")
+            if preferred_str and preferred_str != "brak":
+                _fc_excl_parts.append(f"preferowane: {preferred_str}")
+            _fc_excl_parts.append(f"tryb: {mode_instruction}")
+            _fc_excl_full = " | ".join(_fc_excl_parts)
+
+            try:
+                user_msg = _get_prompt(
+                    KITCHEN_PROMPT, _KITCHEN_PROMPT_FB,
+                    ingredients=ingredients_str,
+                    goal=user.goal or "ogólna sprawność",
+                    remaining_calories=meal_kcal,
+                    # Fix 1: jawny fallback 'brak' zamiast pustego stringa
+                    exclusions=_fc_excl_full or "brak",
+                )
+                # Dołącz pełny profil dla fridge-chef (bardziej szczegółowy)
+                user_msg += (
+                    f"\n\nDodatkowe dane profilu:"
+                    f"\n  Imię: {user.name or 'brak'}, Dieta: {user.diet or 'brak'}"
+                    f"\n  Kontuzje: {user.injuries or 'brak'}"
+                    f"\n  Kontekst: {req.extra_context or 'brak'}"
+                    "\n\nWygeneruj 4 przepisy zgodnie z instrukcjami systemowymi."
+                )
+            except Exception as _fmt_exc:
+                print(f"[AI ERROR] {datetime.now()}: Błąd w module [FridgeChef/PromptFormat]: {_fmt_exc}")
+                user_msg = (
+                    f"Składniki: {ingredients_str}. Cel: {user.goal or 'brak'}. "
+                    f"Alergie: {user.allergies or 'brak'}. Kcal/posiłek: ~{meal_kcal}. "
+                    f"Tryb: {mode_instruction}. "
+                    "Wygeneruj 4 przepisy zgodnie z instrukcjami systemowymi."
+                )
 
             print("[FridgeChef] Calling ask_claude()...")
             recipe_text = ask_claude(system_prompt, user_msg, max_tokens=2400)
 
             # Check if ask_claude returned _AIError (fallback response)
             if isinstance(recipe_text, _AIError):
-                print(f"[FridgeChef] AI Error: {recipe_text}")
+                print(f"[AI ERROR] {datetime.now()}: Błąd w module [FridgeChef/AskClaude]: {recipe_text}")
                 raise HTTPException(
                     status_code=503,
                     detail=f"Błąd serwisu AI: {str(recipe_text)}"
@@ -3685,53 +4014,51 @@ def app_kitchen_generate(request: Request, req: FridgeChefRequest, user: UserDB 
                 "(sól, pieprz, oliwa, podstawowe przyprawy) spoza listy. Format JSON obowiązkowy!"
             )
 
-            # JSON format: każdy element ma: { "nazwa": string, "składniki": list, "opis": string, "kalorie": number }
-            system_prompt = f"""Jesteś kulinarzem AI FitAI. Generujesz przepisy na podstawie dostępnych składników.
-
-ZAWSZE odpowiadaj WYŁĄCZNIE ważnym, prawidłowo sformatowanym JSON. Nie dodawaj tekstu przed lub po JSON.
-
-Zwróć dokładnie taką strukturę - tablica JSON z 4 przepisami:
-[
-  {{
-    "nazwa": "Nazwa przepisu",
-    "składniki": ["składnik1", "składnik2", "składnik3"],
-    "opis": "Krótki opis przygotowania i wyglądu dania",
-    "kalorie": 350,
-    "białko": 35,
-    "węglowodany": 40,
-    "tłuszcze": 8
-  }},
-  ... (3 więcej przepisów)
-]
-
-Przepisy muszą być:
-- Praktyczne i szybkie do przygotowania (max 30 minut)
-- Pyszne i zróżnicowane (różne style/kuchnie)
-- Zgodne z profilem użytkownika
-- OK dla celu: {user.goal}
-- Dieta: {user.diet}
-- Bez alergenów: {user.allergies or 'brak'}
-- Bez unikanych produktów: {avoid_str}
-- Preferować: {preferred_str}
-- Około {meal_kcal} kcal na porcję
-"""
-
-            user_msg = (
-                f"Profil użytkownika:\n"
-                f"  Imię: {user.name}\n"
-                f"  Cel: {user.goal}\n"
-                f"  Dieta: {user.diet}\n"
-                f"  Cel kaloryczny/dzień: {kcal_target} kcal | białko: {protein_target}g\n"
-                f"  Docelowy kcal na 1 posiłek: ~{meal_kcal} kcal\n"
-                f"  Alergie/wykluczenia: {user.allergies or 'brak'}\n"
-                f"  Unikane produkty: {avoid_str}\n"
-                f"  Preferowane smaki/produkty: {preferred_str}\n"
-                f"  Kontuzje: {user.injuries or 'brak'}\n\n"
-                f"Składniki dostępne:\n{ingredients_str}\n\n"
-                f"Kontekst: {req.extra_context or 'brak'}\n\n"
-                f"Tryb: {mode_instruction}\n\n"
-                f"Wygeneruj 4 przepisy w formacie JSON. TYLKO JSON."
+            # ── Budowanie promptu: _get_prompt() + KITCHEN_PROMPT z prompts.py ─────
+            # exclusions scala: allergies z bazy + avoid_foods + preferowane + tryb
+            # _get_prompt() gwarantuje bezpieczeństwo: None → 'brak', KeyError → fallback
+            _kitchen_system = (
+                "Jesteś kulinarzem AI FitAI. Generujesz przepisy na podstawie "
+                "dostępnych składników. ZAWSZE odpowiadaj WYŁĄCZNIE ważnym, "
+                "prawidłowo sformatowanym JSON (tablica 4 przepisów). "
+                'Każdy przepis musi mieć pola: "nazwa", "składniki", "opis", '
+                '"kalorie", "białko", "węglowodany", "tłuszcze".'
             )
+
+            # Scal exclusions: alergie z bazy + unikane + preferowane + tryb
+            _excl_parts = []
+            _excl_parts.append(f"alergie: {user.allergies.strip() if user.allergies else 'brak'}")
+            if avoid_str and avoid_str != "brak":
+                _excl_parts.append(f"unikane: {avoid_str}")
+            if preferred_str and preferred_str != "brak":
+                _excl_parts.append(f"preferowane: {preferred_str}")
+            _excl_parts.append(f"tryb: {mode_instruction}")
+            _exclusions_full = " | ".join(_excl_parts)
+
+            try:
+                user_msg = _get_prompt(
+                    KITCHEN_PROMPT, _KITCHEN_PROMPT_FB,
+                    ingredients=ingredients_str,
+                    goal=user.goal or "ogólna sprawność",
+                    remaining_calories=meal_kcal,
+                    # Fix 1: jawny fallback 'brak' zamiast pustego stringa
+                    exclusions=_exclusions_full or "brak",
+                )
+                user_msg += (
+                    f"\n\nDieta: {user.diet or 'brak'}."
+                    f"\nKontekst: {req.extra_context or 'brak'}."
+                    "\n\nWygeneruj 4 przepisy w formacie JSON. TYLKO JSON."
+                )
+                system_prompt = _kitchen_system
+            except Exception as _fmt_exc:
+                print(f"[AI ERROR] {datetime.now()}: Błąd w module [KitchenGenerate/PromptFormat]: {_fmt_exc}")
+                system_prompt = _kitchen_system
+                user_msg = (
+                    f"Cel: {user.goal or 'brak'}. Dieta: {user.diet or 'brak'}. "
+                    f"Alergie: {user.allergies or 'brak'}. Unikane: {avoid_str or 'brak'}.\n"
+                    f"Składniki: {ingredients_str}. Kcal/posiłek: ~{meal_kcal}.\n"
+                    f"Tryb: {mode_instruction}.\nWygeneruj 4 przepisy w formacie JSON. TYLKO JSON."
+                )
 
             print("[KitchenGenerate] Calling ask_claude()...")
             try:
@@ -3739,7 +4066,7 @@ Przepisy muszą być:
                 
                 # Check if ask_claude returned _AIError
                 if isinstance(response_text, _AIError):
-                    print(f"[KitchenGenerate] AI Error: {response_text}")
+                    print(f"[AI ERROR] {datetime.now()}: Błąd w module [KitchenGenerate/AskClaude]: {response_text}")
                     raise HTTPException(
                         status_code=503,
                         detail=f"Błąd serwisu AI: {str(response_text)}"
@@ -4167,6 +4494,41 @@ def app_diet_add_meal(req: AddMealRequest, user: UserDB = Depends(get_current_us
         "message": f"Dodano '{req.meal_name}' do diety na dzień {target_date}.",
         "meal_added": meal_entry,
         "log": log_dict,
+    }
+
+
+# ─── Auth: Logout ─────────────────────────────────────────────────────────────
+
+@app.post("/app/logout", tags=["auth"])
+def app_logout(user: UserDB = Depends(get_current_user)):
+    """
+    POST /app/logout
+
+    JWT jest bezstanowy — serwer nie przechowuje tokenów, więc nie ma
+    po stronie backendu nic do „unieważnienia". Prawdziwe unieważnienie
+    realizuje frontend usuwając token z localStorage/sessionStorage.
+
+    Ten endpoint:
+    1. Weryfikuje token (get_current_user) — wiadomo, że żądanie pochodzi od autentycznego użytkownika.
+    2. Zwraca instrukcję dla frontendu wraz z nazwą klucza do usunięcia.
+    3. Opcjonalnie: jeśli wdrożysz token-blacklist (Redis/DB), tutaj dodaj wpis.
+
+    Odpowiedź 200 z clear_storage zawsze — nawet jeśli token już wygasł
+    (w takim przypadku get_current_user rzuci 401 wcześniej).
+    """
+    return {
+        "status": "logged_out",
+        "message": f"Użytkownik {user.name!r} wylogowany pomyślnie.",
+        # Instrukcja dla frontendu: usuń te klucze z localStorage
+        "clear_storage": ["fitai_token", "fitai_identity_id", "fitai_user"],
+        "user_id": user.id,
+        "timestamp": datetime.now().isoformat(),
+        # Hint: token wygasa naturalnie po ACCESS_TOKEN_EXPIRE_MINUTES
+        # Nie wysyłaj już żadnych requestów tym tokenem po tej odpowiedzi.
+        "note": (
+            "Usuń token z localStorage. "
+            "JWT wygasa po stronie serwera automatycznie po upływie ważności."
+        ),
     }
 
 
