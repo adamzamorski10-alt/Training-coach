@@ -6762,14 +6762,17 @@
     };
 
     /** Zwraca klucz SPORT_DRILLS dla dowolnego formatu nazwy sportu.
-     *  Kolejność: SPORT_ID_MAP → lowercase match → raw id. */
+     *  Normalizacja: trim → lowercase → SPORT_ID_MAP → bezpośredni klucz w SPORT_DRILLS.
+     *  Dzięki temu "Koszykówka", "KOSZYKÓWKA" i "koszykówka" zawsze trafiają poprawnie. */
     function resolveSportId(rawId) {
       if (!rawId) return null;
-      const s = String(rawId).trim();
-      return SPORT_ID_MAP[s]
-          || SPORT_ID_MAP[s.toLowerCase()]
-          || (SPORT_DRILLS[s] ? s : null)
-          || (SPORT_DRILLS[s.toLowerCase()] ? s.toLowerCase() : null)
+      // Zmiana: zawsze normalizuj do lowercase przed jakimkolwiek porównaniem
+      const s     = String(rawId).trim();
+      const sLow  = s.toLowerCase();
+      return SPORT_ID_MAP[s]                          // 1. dokładne dopasowanie (oryginał)
+          || SPORT_ID_MAP[sLow]                       // 2. toLowerCase → SPORT_ID_MAP
+          || (SPORT_DRILLS[s]    ? s    : null)       // 3. oryginał jako klucz SPORT_DRILLS
+          || (SPORT_DRILLS[sLow] ? sLow : null)       // 4. toLowerCase jako klucz SPORT_DRILLS
           || null;
     }
 
@@ -7043,14 +7046,19 @@
       // ── Rozwiąż sport z profilu / stanu ─────────────────────────────────────
       // Priorytet: sport_focus ze stanu → sport z profilu → koszykówka (default)
       const p = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
-      const rawSport = st.sport_focus
+      // Zmiana: jawne .toLowerCase() zapobiega niespójności wielkości liter
+      // np. "Koszykówka" z profilu ≠ klucza "koszykówka" w SPORT_DRILLS
+      const rawSport = (
+        st.sport_focus
         || (p && (p.sport_focus || (p.sports && p.sports[0])))
-        || 'koszykówka';
+        || 'koszykówka'
+      );
+      const rawSportNormalized = String(rawSport).trim().toLowerCase();
 
-      const sportId = resolveSportId(rawSport);
+      const sportId = resolveSportId(rawSportNormalized);
 
       // ── Stan pusty: brak sportu w profilu ────────────────────────────────────
-      if (!rawSport || rawSport === '') {
+      if (!rawSportNormalized || rawSportNormalized === '') {
         container.innerHTML = `
           <div class="glass p-8 rounded-2xl text-center space-y-3">
             <div style="font-size:3rem;">🏅</div>
@@ -7069,25 +7077,29 @@
       const sportData = sportId ? SPORT_DRILLS[sportId] : null;
       if (!sportData) {
         const sportLabel = (typeof SPORTS_CATALOG !== 'undefined'
-          ? (SPORTS_CATALOG.find(s => s.id === rawSport || s.id === sportId)?.label || rawSport)
+          ? (SPORTS_CATALOG.find(s => s.id === rawSportNormalized || s.id === sportId)?.label || rawSport)
           : rawSport);
         container.innerHTML = `
-          <div class="glass p-8 rounded-2xl text-center space-y-3">
-            <div style="font-size:3rem;">🔧</div>
+          <div class="glass p-8 rounded-2xl text-center space-y-4">
+            <div style="font-size:3rem;">🏋️</div>
             <p class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">
-              Brak drilli dla sportu: <span style="color:var(--cyan);">${sportLabel}</span>
+              Brak dostępnych drilli dla Twojej dyscypliny
             </p>
             <p class="text-sm" style="color:var(--muted);">
-              Wybierz inną dyscyplinę powyżej lub
-              <a href="#" onclick="switchPlanCategory('sport');return false;"
-                 style="color:var(--cyan);text-decoration:underline;">zmień sport w profilu</a>.
+              Baza drilli dla sportu <strong style="color:var(--cyan);">${sportLabel}</strong>
+              jest w przygotowaniu. Wybierz inną dyscyplinę, aby zobaczyć dostępne ćwiczenia.
             </p>
-            <p class="text-xs mt-2" style="color:var(--muted);">
+            <p class="text-xs" style="color:var(--muted);">
               Dostępne sporty z bazą drilli:
-              <strong style="color:rgba(255,255,255,0.7);">
-                ${Object.keys(SPORT_DRILLS).join(', ')}
+              <strong style="color:rgba(255,255,255,0.65);">
+                ${Object.keys(SPORT_DRILLS).join(' · ')}
               </strong>
             </p>
+            <a href="#" onclick="switchPlanCategory && switchPlanCategory('sport');return false;"
+               class="inline-block text-xs px-4 py-2 rounded-xl font-bold transition-all"
+               style="background:rgba(0,229,255,0.1);border:1px solid rgba(0,229,255,0.3);color:var(--cyan);">
+              ← Zmień sport
+            </a>
           </div>`;
         return;
       }
@@ -7201,12 +7213,24 @@
       }
       } catch (err) {
         console.error('[FitAI] renderSportDrills() error:', err);
-        // Nie blokujemy nawigacji — pokazujemy komunikat błędu zamiast pustego ekranu
-        container.innerHTML = `<div class="glass p-6 text-center rounded-2xl">
-          <div style="font-size:2rem;">⚠️</div>
-          <p class="text-sm font-bold text-yellow-400 mt-2">Błąd ładowania drilli</p>
-          <p class="text-xs mt-1" style="color:var(--muted);">Spróbuj przełączyć sport lub odświeżyć stronę.</p>
-        </div>`;
+        // Zmiana: blok catch nie blokuje ładowania reszty strony —
+        // zamiast rzucać błąd dalej, wstawiamy czytelny komunikat HTML.
+        if (container) {
+          container.innerHTML = `
+            <div class="glass p-8 rounded-2xl text-center space-y-3">
+              <div style="font-size:2.5rem;">⚠️</div>
+              <p class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">
+                Brak dostępnych drilli dla Twojej dyscypliny
+              </p>
+              <p class="text-sm" style="color:var(--muted);">
+                Wystąpił błąd podczas ładowania ćwiczeń. Spróbuj wybrać sport ponownie
+                lub odśwież stronę.
+              </p>
+              <p class="text-xs font-mono" style="color:rgba(255,255,255,0.25);">
+                ${err && err.message ? err.message.substring(0, 80) : 'Nieznany błąd'}
+              </p>
+            </div>`;
+        }
       }
     }
 

@@ -2890,9 +2890,69 @@ def app_reminders_due():
 
 @app.get("/app/plan", tags=["plan"])
 def app_get_plan(user: UserDB = Depends(get_current_user)):
-    if not user.weekly_plan_json:
-        return {"days": [], "generated_at": None, "weekly_goal": None}
-    return user.get_dict("weekly_plan_json")
+    """
+    GET /app/plan
+
+    Zwraca tygodniowy plan użytkownika.
+    Gwarantuje klucze: days, diet, training, generated_at, weekly_goal
+    — nawet gdy plan jest pusty — żeby frontend nigdy nie dostał KeyError.
+    """
+    
+    _EMPTY = {
+        "days":         [],
+        "diet":         {},   # frontend reads plan.diet
+        "training":     {},   # frontend reads plan.training
+        "generated_at": None,
+        "weekly_goal":  None,
+    }
+
+    try:
+        if not user.weekly_plan_json:
+            print(f"[FitAI][app_get_plan] user_id={user.id} — brak weekly_plan_json, zwracam pustą strukturę")
+            return _EMPTY
+
+        raw = user.get_dict("weekly_plan_json")
+
+        # ── Buduj klucze diet i training z listy days ────────────────────────
+        # Każdy element days ma: day, meals (→ diet) i workout.exercises (→ training)
+        diet_by_day:     dict = {}
+        training_by_day: dict = {}
+
+        for day_entry in raw.get("days", []):
+            day_name = day_entry.get("day", "")
+            if not day_name:
+                continue
+            # diet: lista posiłków dla danego dnia
+            diet_by_day[day_name] = day_entry.get("meals", [])
+            # training: informacje treningowe dla danego dnia
+            training_by_day[day_name] = {
+                "title":      day_entry.get("workout", {}).get("title", ""),
+                "focus":      day_entry.get("workout", {}).get("focus", ""),
+                "exercises":  day_entry.get("workout", {}).get("exercises", []),
+                "day_type":   day_entry.get("day_type", ""),
+                "macros":     day_entry.get("macros", {}),
+                "is_sport_session": day_entry.get("is_sport_session", False),
+            }
+
+        result = {
+            **raw,
+            "diet":     diet_by_day,
+            "training": training_by_day,
+        }
+        # Upewnij się że days zawsze istnieje jako lista
+        result.setdefault("days", [])
+        result.setdefault("generated_at", None)
+        result.setdefault("weekly_goal", None)
+
+        print(f"[FitAI][app_get_plan] user_id={user.id} — OK, dni={len(raw.get('days', []))}")
+        return result
+
+    except json.JSONDecodeError as exc:
+        print(f"[FitAI][app_get_plan] ERROR user_id={user.id} — Uszkodzony JSON: {exc}")
+        return {**_EMPTY, "error_hint": "corrupted_plan_json"}
+    except Exception as exc:
+        print(f"[FitAI][app_get_plan] ERROR user_id={user.id} — {type(exc).__name__}: {exc}")
+        return _EMPTY
 
 
 @app.post("/app/plan/generate", tags=["plan"])
@@ -3362,19 +3422,110 @@ Odpowiedź MUSI być w tym dokładnym formacie JSON (bez żadnego tekstu poza JS
 
 
 @app.get("/app/sport-drills", tags=["sport"])
-def list_sport_drills(sport: str = "koszykówka", specialization: str = ""):
-    """Zwraca dostępne drille dla danego sportu i specjalizacji."""
-    sport_lower = sport.lower().strip()
-    if sport_lower not in SPORT_DRILLS_DB:
-        raise HTTPException(status_code=404, detail=f"Brak drilli dla sportu: {sport}")
-    spec_map = SPORT_DRILLS_DB[sport_lower]
-    if specialization:
-        spec_lower = specialization.lower().strip()
-        drills = spec_map.get(spec_lower)
-        if drills is None:
-            raise HTTPException(status_code=404, detail=f"Brak specjalizacji: {specialization}")
-        return {"sport": sport, "specialization": specialization, "drills": drills}
-    return {"sport": sport, "specializations": list(spec_map.keys()), "all_drills": spec_map}
+def list_sport_drills(sport: str = "", specialization: str = ""):
+    """
+    GET /app/sport-drills?sport=koszykówka&specialization=rzuty
+
+    Zwraca drille dla danego sportu/specjalizacji.
+    Zawsze zwraca HTTP 200 — frontend obsługuje pustą listę zamiast crashować:
+      • sport pusty lub nieznany  → drills=[], available_sports=[lista dostępnych]
+      • specjalizacja nieznana    → drills=[], available_specializations=[lista]
+      • OK                        → drills=[...], specializations=[...]
+    """
+    
+
+    # ── Brak sportu lub pusty string ─────────────────────────────────────────
+    if not sport or not sport.strip():
+        available = sorted(SPORT_DRILLS_DB.keys())
+        print(f"[FitAI][list_sport_drills] Brak parametru sport — dostępne: {available}")
+        return {
+            "sport":              "",
+            "specialization":     specialization,
+            "drills":             [],
+            "specializations":    [],
+            "available_sports":   available,
+            "message": (
+                "Wybierz dyscyplinę sportową w Profilu → Sport, "
+                "aby zobaczyć dedykowane ćwiczenia techniczne."
+            ),
+        }
+
+    try:
+        sport_lower = sport.lower().strip()
+        available_sports = sorted(SPORT_DRILLS_DB.keys())
+
+        # ── Sport nieobsługiwany w bazie ─────────────────────────────────────
+        if sport_lower not in SPORT_DRILLS_DB:
+            print(f"[FitAI][list_sport_drills] Sport '{sport_lower}' nieznany. Dostępne: {available_sports}")
+            return {
+                "sport":            sport,
+                "specialization":   specialization,
+                "drills":           [],
+                "specializations":  [],
+                "available_sports": available_sports,
+                "message": (
+                    f"Pracujemy nad bazą drilli dla dyscypliny '{sport}'. "
+                    "Wybierz inny sport, aby przetestować system."
+                ),
+            }
+
+        spec_map = SPORT_DRILLS_DB[sport_lower]
+        available_specs = sorted(spec_map.keys())
+
+        # ── Konkretna specjalizacja ───────────────────────────────────────────
+        if specialization and specialization.strip():
+            spec_lower = specialization.lower().strip()
+            drills = spec_map.get(spec_lower)
+
+            if drills is None:
+                print(f"[FitAI][list_sport_drills] Specjalizacja '{spec_lower}' nieznana dla sportu '{sport_lower}'. Dostępne: {available_specs}")
+                return {
+                    "sport":                     sport,
+                    "specialization":            specialization,
+                    "drills":                    [],
+                    "specializations":           available_specs,
+                    "available_sports":          available_sports,
+                    "message": (
+                        f"Brak drilli dla specjalizacji '{specialization}' "
+                        f"w sporcie '{sport}'. "
+                        f"Dostępne specjalizacje: {', '.join(available_specs)}."
+                    ),
+                }
+
+            print(f"[FitAI][list_sport_drills] OK sport='{sport_lower}' spec='{spec_lower}' drills={len(drills)}")
+            return {
+                "sport":            sport,
+                "specialization":   specialization,
+                "drills":           drills,
+                "specializations":  available_specs,
+                "available_sports": available_sports,
+                "message":          None,
+            }
+
+        # ── Wszystkie specjalizacje dla sportu ───────────────────────────────
+        all_drills_flat = [d for drills in spec_map.values() for d in drills]
+        print(f"[FitAI][list_sport_drills] OK sport='{sport_lower}' specs={available_specs} total_drills={len(all_drills_flat)}")
+        return {
+            "sport":            sport,
+            "specialization":   "",
+            "drills":           all_drills_flat,
+            "specializations":  available_specs,
+            "all_drills":       spec_map,          # zachowany dla backward compat
+            "available_sports": available_sports,
+            "message":          None,
+        }
+
+    except Exception as exc:
+        print(f"[FitAI][list_sport_drills] ERROR sport='{sport}' spec='{specialization}' — {type(exc).__name__}: {exc}")
+        # Nigdy nie zwracaj 500 — frontend czeka na [] nie na crash
+        return {
+            "sport":            sport,
+            "specialization":   specialization,
+            "drills":           [],
+            "specializations":  [],
+            "available_sports": sorted(SPORT_DRILLS_DB.keys()),
+            "message":          "Błąd serwera przy pobieraniu drilli. Spróbuj ponownie.",
+        }
 
 
 @app.post("/app/drill-result", tags=["sport"])
@@ -3485,29 +3636,73 @@ def log_drill_result(payload: DrillResultRequest, user: UserDB = Depends(get_cur
 
 
 @app.get("/app/drill-history", tags=["sport"])
-def get_drill_history(drill_name: Optional[str] = None, limit: int = 20, user: UserDB = Depends(get_current_user)):
-    """Pobiera historię wyników drilli dla użytkownika."""
-    with Session(engine) as session:
-        query = select(DrillResultDB).where(DrillResultDB.user_id == user.id)
-        if drill_name:
-            query = query.where(DrillResultDB.drill_name == drill_name)
-        query = query.order_by(DrillResultDB.session_date.desc())
-        results = list(session.exec(query).all())[:limit]
+def get_drill_history(
+    drill_name: Optional[str] = None,
+    limit: int = 20,
+    user: UserDB = Depends(get_current_user),
+):
+    """
+    GET /app/drill-history?drill_name=...&limit=20
 
-        # Dołącz progresję dla każdego unikalnego drilla
-        by_name: dict[str, list] = {}
-        for r in results:
-            by_name.setdefault(r.drill_name, []).append(r)
+    Zawsze zwraca HTTP 200.
+    Pusty wynik → {"results": [], "progressions": {}} zamiast 500.
+    """
+    MODULE = "get_drill_history"  # used in print statements below
 
-        progressions = {
-            name: _suggest_drill_progression(name, hist)
-            for name, hist in by_name.items()
-        }
+    # Ogranicz limit do rozsądnej wartości
+    limit = max(1, min(limit, 200))
 
-        return {
-            "results": [r.to_dict() for r in results],
-            "progressions": progressions,
-        }
+    try:
+        with Session(engine) as session:
+            query = (
+                select(DrillResultDB)
+                .where(DrillResultDB.user_id == user.id)
+            )
+            if drill_name and drill_name.strip():
+                query = query.where(DrillResultDB.drill_name == drill_name.strip())
+
+            query = query.order_by(DrillResultDB.session_date.desc())
+            results = list(session.exec(query).all())[:limit]
+
+            if not results:
+                print(
+                    f"[FitAI][get_drill_history] user_id={user.id} drill='{drill_name}' "
+                    f"— brak wyników w bazie, zwracam []"
+                )
+                return {"results": [], "progressions": {}}
+
+            # Pogrupuj po nazwie drilla → oblicz progresję
+            by_name: dict[str, list] = {}
+            for r in results:
+                by_name.setdefault(r.drill_name, []).append(r)
+
+            progressions = {}
+            for name, hist in by_name.items():
+                try:
+                    progressions[name] = _suggest_drill_progression(name, hist)
+                except Exception as prog_exc:
+                    print(
+                        f"[FitAI][get_drill_history] WARN progresja drill='{name}' "
+                        f"— {type(prog_exc).__name__}: {prog_exc}"
+                    )
+                    progressions[name] = {"tip": "Brak danych do analizy progresji."}
+
+            print(
+                f"[FitAI][get_drill_history] user_id={user.id} drill='{drill_name}' "
+                f"— wyniki={len(results)} unique_drills={len(by_name)}"
+            )
+            return {
+                "results":      [r.to_dict() for r in results],
+                "progressions": progressions,
+            }
+
+    except Exception as exc:
+        print(
+            f"[FitAI][get_drill_history] ERROR user_id={user.id} drill='{drill_name}' "
+            f"— {type(exc).__name__}: {exc}"
+        )
+        # Nigdy nie zwracaj 500 — frontend zawsze dostaje pustą listę
+        return {"results": [], "progressions": {}}
 
 
 # ─── Billing endpoints ────────────────────────────────────────────────────────

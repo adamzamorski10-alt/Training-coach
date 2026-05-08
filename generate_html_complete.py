@@ -1181,6 +1181,13 @@ const SPORT_SPECS = {
   ],
 };
 
+/** Zwraca specjalizacje dla danego sportu.
+ *  Używa .toLowerCase() żeby "Koszykówka" i "koszykówka" trafiały na ten sam klucz. */
+function getSportSpecs(sportValue) {
+  if (!sportValue) return [];
+  return SPORT_SPECS[String(sportValue).trim().toLowerCase()] || [];
+}
+
   function updateDate() {
     const today = new Date();
     document.getElementById('todayDate').textContent = today.toLocaleDateString('pl-PL', {
@@ -2197,8 +2204,9 @@ function onSportFocusChange(presetSpec, presetDays) {
     container.innerHTML += html;
     closeManualForm();
   });
-  // Render spec options
-  const specs  = SPORT_SPECS[val] || [];
+  // Render spec options — używamy getSportSpecs() zamiast SPORT_SPECS[val]
+  // żeby "Koszykówka" i "koszykówka" były traktowane tak samo (toLowerCase)
+  const specs  = getSportSpecs(val);
   const optEl  = document.getElementById('sportSpecOptions');
   optEl.innerHTML = specs.map(s => `
     <label class="flex items-center gap-2 p-3 bg-white/5 rounded-lg cursor-pointer hover:bg-orange-500/10 border border-white/5 hover:border-orange-500/30 transition-all">
