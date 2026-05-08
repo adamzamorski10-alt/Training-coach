@@ -1201,11 +1201,11 @@
 
     /* Tab content panels */
     .plan-tab-panel {
-      display: none;
+      display: none !important; /* !important: zapobiega nadpisaniu przez Tailwind/inline styles */
     }
 
     .plan-tab-panel.active {
-      display: block;
+      display: block !important; /* musi wygrać z każdym innym display:none */
       animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
@@ -2036,7 +2036,29 @@
 
         <!-- ═══ HYBRID LAYOUT: Sub-Sidebar + Content Area ═══ -->
         <div id="planHybridLayout">
-          <!-- Content Area with Top Tab Bar -->
+
+          <!-- LEFT: Category Sub-Sidebar -->
+          <nav id="planSubSidebar" aria-label="Kategorie planu">
+            <button class="plan-cat-btn active" id="plancat-dieta"
+              onclick="switchPlanCategory('dieta')" title="Dieta">
+              <span class="cat-icon">🍽️</span>
+              <span class="cat-label">Dieta</span>
+            </button>
+            <div class="plan-cat-divider"></div>
+            <button class="plan-cat-btn" id="plancat-trening"
+              onclick="switchPlanCategory('trening')" title="Trening">
+              <span class="cat-icon">💪</span>
+              <span class="cat-label">Trening</span>
+            </button>
+            <div class="plan-cat-divider"></div>
+            <button class="plan-cat-btn" id="plancat-sport"
+              onclick="switchPlanCategory('sport')" title="Sport">
+              <span class="cat-icon">🏀</span>
+              <span class="cat-label">Sport</span>
+            </button>
+          </nav>
+
+          <!-- RIGHT: Content Area with Top Tab Bar -->
           <div id="planContentArea">
 
             <!-- Top Tab Bar (changes by category) -->
@@ -2582,22 +2604,22 @@
                       class="flex-1 min-w-[180px] bg-transparent border rounded-xl px-4 py-2 text-sm text-white placeholder-gray-600 outline-none"
                       style="border-color:var(--border);">
                     <div class="flex gap-2 flex-wrap" id="atlasCategoryBtns">
-                      <button onclick="atlasExerciseSetCategory('all')" data-cat="all"
+                      <button onclick="atlasSetCategory('wszystkie')" data-cat="wszystkie"
                         class="atlas-cat-btn active text-xs px-3 py-1.5 rounded-full font-bold transition-all"
                         style="background:rgba(0,229,255,0.15);color:var(--cyan);border:1px solid rgba(0,229,255,0.3);">Wszystkie</button>
-                      <button onclick="atlasExerciseSetCategory('klatka')" data-cat="klatka"
+                      <button onclick="atlasSetCategory('klatka')" data-cat="klatka"
                         class="atlas-cat-btn text-xs px-3 py-1.5 rounded-full font-bold transition-all"
                         style="background:rgba(255,255,255,0.05);color:var(--muted);border:1px solid var(--border);">🫀
                         Klatka</button>
-                      <button onclick="atlasExerciseSetCategory('plecy')" data-cat="plecy"
+                      <button onclick="atlasSetCategory('plecy')" data-cat="plecy"
                         class="atlas-cat-btn text-xs px-3 py-1.5 rounded-full font-bold transition-all"
                         style="background:rgba(255,255,255,0.05);color:var(--muted);border:1px solid var(--border);">🔙
                         Plecy</button>
-                      <button onclick="atlasExerciseSetCategory('nogi')" data-cat="nogi"
+                      <button onclick="atlasSetCategory('nogi')" data-cat="nogi"
                         class="atlas-cat-btn text-xs px-3 py-1.5 rounded-full font-bold transition-all"
                         style="background:rgba(255,255,255,0.05);color:var(--muted);border:1px solid var(--border);">🦵
                         Nogi</button>
-                      <button onclick="atlasExerciseSetCategory('barki')" data-cat="barki"
+                      <button onclick="atlasSetCategory('barki')" data-cat="barki"
                         class="atlas-cat-btn text-xs px-3 py-1.5 rounded-full font-bold transition-all"
                         style="background:rgba(255,255,255,0.05);color:var(--muted);border:1px solid var(--border);">📌
                         Barki</button>
@@ -4566,6 +4588,16 @@
 
     // ========== TAB SWITCHING ==========
     function showTab(tabId) {
+      // Zamknij wszystkie "pływające" modale przy zmianie głównej zakładki
+      try {
+        const drillModal = document.getElementById('drillLogModal');
+        if (drillModal) drillModal.remove();
+        document.querySelectorAll('[data-fitai-lightbox]').forEach(el => el.remove());
+        // expandModal — zawsze chowaj przy zmianie zakładki
+        const expModal = document.getElementById('expandModal');
+        if (expModal && !expModal.classList.contains('hidden')) expModal.classList.add('hidden');
+      } catch(e) {}
+
       document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'));
       const el = document.getElementById('tab-' + tabId);
       if (el) { el.classList.remove('hidden'); el.classList.add('tab-anim'); setTimeout(() => el.classList.remove('tab-anim'), 400); }
@@ -4575,12 +4607,9 @@
       if (tabId === 'plan') {
         renderDayCarousel();
         loadPlanForDay();
-        // Initialize with Dieta category if no category is set
-        if (!state.planCategory) {
-          switchPlanCategory('dieta');
-        } else {
-          switchPlanCategory(state.planCategory);
-        }
+        // Always call switchPlanCategory so the left sidebar, top tabs, and content
+        // panel are all initialized — never leaves the user looking at a blank screen.
+        switchPlanCategory(state.planCategory || 'dieta');
         // Sync slider value if we're on training subtab
         if (state.planSubtab === 'training' || (state.planSubtab === 'myplan' && state.planView === 'training')) {
           const slider = document.getElementById('exerciseCountSlider');
@@ -4633,12 +4662,12 @@
     }
 
     // Switch category from sidebar menu AND show plan tab
+    // ─── switchPlanCategoryFromMenu ──────────────────────────────────────────────
+    // Called from the left sidebar menu links. Navigates to the plan tab first,
+    // then switches the category, then closes the submenu.
     function switchPlanCategoryFromMenu(cat) {
-      // First show Plan tab
       showTab('plan');
-      // Then switch category
       switchPlanCategory(cat);
-      // Close submenu
       const subitems = document.getElementById('planSubitems');
       if (subitems && subitems.classList.contains('open')) {
         subitems.classList.remove('open');
@@ -4647,119 +4676,176 @@
       }
     }
 
-    function switchPlanCategory(cat) {
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PLAN NAVIGATION — UJEDNOLICONA ARCHITEKTURA (naprawa bugu zacinania się)
+    // ═══════════════════════════════════════════════════════════════════════════
+    //
+    // ZASADA: jedynym miejscem które zmienia widoczność paneli jest switchPlanTab().
+    // switchPlanCategory, switchPlanSubTab i wszystkie legacy wrappery są
+    // CIENKIMI WARSTWAMI delegującymi do switchPlanTab — same nie dotykają DOM.
+    //
+    //  klik sidebar   → switchPlanCategory(cat)       → switchPlanTab(cat, defaultSub)
+    //  klik top tab   → switchPlanSubTab(cat, sub)     → switchPlanTab(cat, sub)
+    //  legacy call    → switchPlanSubtab(legacySub)    → switchPlanTab(cat, sub)
+    //  showTab(plan)  → switchPlanCategory(state.cat) → switchPlanTab(cat, sub)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    // ─── switchPlanTab — MASTER FUNCTION ─────────────────────────────────────
+    // Jedyne miejsce które dotyka widoczności .plan-tab-panel.
+    // Atomowo ukrywa WSZYSTKIE panele, potem pokazuje dokładnie jeden.
+    function switchPlanTab(cat, sub) {
+      // 0. Zamknij wszelkie "pływające" modale które blokują nawigację
+      // drillLogModal i video modal są doczepiane do body i muszą być usuwane
+      // przy każdej zmianie kategorii — inaczej blokują całą stronę.
+      try {
+        const drillModal = document.getElementById('drillLogModal');
+        if (drillModal) drillModal.remove();
+        // Video lightbox (tworzony dynamicznie w training card Video button)
+        document.querySelectorAll('[data-fitai-lightbox]').forEach(el => el.remove());
+      } catch(e) {}
+
+      // 1. Normalizacja
+      const validCats = ['dieta', 'trening', 'sport'];
+      if (!validCats.includes(cat)) cat = 'dieta';
+      const defaultSubs = { dieta: 'plan', trening: 'plan', sport: 'drills' };
+      if (!sub) sub = defaultSubs[cat];
+
+      // 2. Persist state — jedno miejsce, zero duplikacji
       state.planCategory = cat;
-
-      // Default sub-tab for each category
-      const defaultSub = { dieta: 'plan', trening: 'plan', sport: 'drills' }[cat] || 'plan';
-      state.planSubTab = defaultSub;
-
-      // Sync legacy state fields so existing code keeps working
-      if (cat === 'dieta') { state.planSubtab = 'myplan'; state.planView = 'diet'; }
+      state.planSubTab   = sub;
+      // Legacy pola wymagane przez loadPlanForDay / refreshExercisesForSlider
+      if (cat === 'dieta')   { state.planSubtab = 'myplan'; state.planView = 'diet';     }
       if (cat === 'trening') { state.planSubtab = 'myplan'; state.planView = 'training'; }
-      if (cat === 'sport') { state.planSubtab = 'sport'; }
+      if (cat === 'sport')   { state.planSubtab = 'sport';                               }
 
-      // Update left sidebar buttons
+      // 3. ATOMOWE ukrycie WSZYSTKICH paneli
+      // removeAttribute('style') usuwa inline style które mógł ustawić starszy kod.
+      document.querySelectorAll('.plan-tab-panel').forEach(p => {
+        p.classList.remove('active');
+        p.removeAttribute('style');
+      });
+      // Zabezpieczenie na legacy ID-based kontenery
+      ['plan-diet-content', 'plan-training-content', 'plan-sport-content'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.classList.add('hidden'); el.removeAttribute('style'); }
+      });
+
+      // 4. Pokaż TYLKO docelowy panel
+      const panelId = 'panel-' + cat + '-' + sub;
+      const target  = document.getElementById(panelId);
+      if (target) {
+        target.classList.add('active');
+      } else {
+        console.warn('[FitAI] switchPlanTab: panel nie znaleziony:', panelId, '— fallback do dieta-plan');
+        const fallback = document.getElementById('panel-dieta-plan');
+        if (fallback) { fallback.classList.add('active'); cat = 'dieta'; sub = 'plan'; }
+      }
+
+      // 5. Synchronizacja lewego sidebara (przyciski kategorii)
       ['dieta', 'trening', 'sport'].forEach(c => {
         const btn = document.getElementById('plancat-' + c);
         if (btn) btn.classList.toggle('active', c === cat);
       });
 
-      // Update header chip
+      // 6. Header chip
       const chip = document.getElementById('planCatHeaderChip');
       if (chip) chip.textContent = PLAN_CATEGORY_LABELS[cat] || cat;
 
-      // Render top tab bar
-      _renderPlanTopTabs(cat, defaultSub);
-
-      // Show correct panel
-      _showPlanPanel(cat, defaultSub);
-
-      // Side effects
-      if (cat === 'sport') { renderSportSelector(); renderSportDrills(); }
-      if (cat === 'dieta') {
-        const p = getCurrentProfile();
-        const mSlider = document.getElementById('mealCountSlider');
-        if (mSlider) { mSlider.value = p.mealsPerDay || 5; updateMealSlider(p.mealsPerDay || 5, false); }
-        loadPlanForDay();
-      }
-      if (cat === 'trening') {
-        const slider = document.getElementById('exerciseCountSlider');
-        if (slider) slider.value = state.exerciseCount;
-        updateExerciseSlider(state.exerciseCount);
-        loadPlanForDay();
-      }
-    }
-
-    function switchPlanSubTab(cat, sub) {
-      state.planSubTab = sub;
+      // 7. Top tab bar — przebudowa TYLKO RAZ na wywołanie (eliminuje podwójny render)
       _renderPlanTopTabs(cat, sub);
-      _showPlanPanel(cat, sub);
-      // Legacy showSportSubtab compat
-      if (cat === 'sport') {
-        ['drills', 'log', 'history'].forEach(s => {
-          const el = document.getElementById('sport-' + s);
-          if (el) el.classList.toggle('hidden', s !== sub);
-        });
+
+      // 8. Side-effecty owrapowane try-catch — błąd NIE blokuje nawigacji
+      try {
+        if (cat === 'sport') {
+          if (typeof renderSportSelector === 'function') renderSportSelector();
+          if (sub === 'drills'   && typeof renderSportDrills  === 'function') renderSportDrills();
+          if (sub === 'historia' && typeof renderDrillHistory  === 'function') renderDrillHistory();
+          if (sub === 'log'      && typeof prepareLogForm       === 'function') prepareLogForm();
+        }
+        if (cat === 'dieta') {
+          if (sub === 'biblioteka' && typeof bibliotekaMealFilter === 'function') bibliotekaMealFilter();
+          if (sub === 'kuchnia'    && typeof kitchenInit           === 'function') kitchenInit();
+          if (sub === 'plan') {
+            const p = getCurrentProfile();
+            const mSlider = document.getElementById('mealCountSlider');
+            if (mSlider) { mSlider.value = p.mealsPerDay || 5; updateMealSlider(p.mealsPerDay || 5, false); }
+            if (typeof loadPlanForDay === 'function') loadPlanForDay();
+          }
+        }
+        if (cat === 'trening') {
+          if (sub === 'atlas') {
+            if      (typeof renderAtlas         === 'function') renderAtlas();
+            else if (typeof atlasExerciseFilter === 'function') atlasExerciseFilter();
+          }
+          if (sub === 'plan') {
+            const slider = document.getElementById('exerciseCountSlider');
+            if (slider) slider.value = state.exerciseCount || 4;
+            if (typeof updateExerciseSlider === 'function') updateExerciseSlider(state.exerciseCount || 4);
+            if (typeof loadPlanForDay === 'function') loadPlanForDay();
+          }
+        }
+      } catch (sideEffectErr) {
+        // Panel jest już widoczny — błąd side-effectu nie blokuje nawigacji
+        console.error('[FitAI] switchPlanTab side-effect error:', sideEffectErr);
       }
     }
 
-    // Helper to switch category and subtab (used for menu links)
-    function switchPlanCategoryAndSub(cat, sub) {
-      switchPlanCategory(cat);
-      switchPlanSubTab(cat, sub);
+    // ─── switchPlanCategory — wrapper dla kompatybilności wstecznej ───────────
+    function switchPlanCategory(cat) {
+      const defaultSub = { dieta: 'plan', trening: 'plan', sport: 'drills' }[cat] || 'plan';
+      switchPlanTab(cat, defaultSub);
     }
 
+    // ─── switchPlanSubTab — wrapper (kliknięcie top tab bar) ─────────────────
+    function switchPlanSubTab(cat, sub) {
+      switchPlanTab(cat, sub);
+    }
+
+    // ─── _renderPlanTopTabs ──────────────────────────────────────────────────
+    // Przebudowuje pasek zakładek. Chip zachowany przez detach/re-attach.
     function _renderPlanTopTabs(cat, activeSub) {
-      const bar = document.getElementById('planTopTabBar');
+      const bar  = document.getElementById('planTopTabBar');
       if (!bar) return;
-      const tabs = PLAN_CATEGORY_TABS[cat] || [];
       const chip = document.getElementById('planCatHeaderChip');
+      if (chip && chip.parentNode === bar) bar.removeChild(chip);
+
       bar.innerHTML = '';
+      const tabs = PLAN_CATEGORY_TABS[cat] || [];
       tabs.forEach(tab => {
         const btn = document.createElement('button');
         btn.className = 'plan-top-tab' + (tab.id === activeSub ? ' active' : '');
-        btn.innerHTML = `<span class="plan-top-tab-icon">${tab.icon}</span>${tab.label}`;
-        btn.onclick = () => switchPlanSubTab(cat, tab.id);
+        btn.innerHTML = '<span class="plan-top-tab-icon">' + tab.icon + '</span>' + tab.label;
+        btn.setAttribute('data-subtab', tab.id);
+        btn.onclick = (function(c, s) { return function() { switchPlanTab(c, s); }; })(cat, tab.id);
         bar.appendChild(btn);
       });
-      if (chip) { bar.appendChild(chip); }
+      if (chip) bar.appendChild(chip);
     }
 
-    function _showPlanPanel(cat, sub) {
-      // All panels
-      const allPanels = document.querySelectorAll('.plan-tab-panel');
-      allPanels.forEach(p => p.classList.remove('active'));
-      const panelId = 'panel-' + cat + '-' + sub;
-      const target = document.getElementById(panelId);
-      if (target) target.classList.add('active');
-      // Side effects
-      if (cat === 'dieta' && sub === 'biblioteka') bibliotekaMealFilter();
-      if (cat === 'dieta' && sub === 'kuchnia') kitchenInit();
+    // ─── Legacy / helper wrappers ─────────────────────────────────────────────
+    function _showPlanPanel(cat, sub) { switchPlanTab(cat, sub); }
+
+    function switchPlanCategoryAndSub(cat, sub) {
+      switchPlanTab(cat, sub || ({ dieta: 'plan', trening: 'plan', sport: 'drills' }[cat]));
     }
 
-    // ─── Legacy compat wrapper ───────────────────────────────────────────────────
     function switchPlanSubtab(sub) {
-      // Map legacy sub values to new category/tab pairs
-      const map = {
-        'myplan': ['dieta', 'plan'],
-        'diet': ['dieta', 'plan'],
-        'dietdb': ['dieta', 'kuchnia'],
-        'training': ['trening', 'plan'],
-        'sport': ['sport', 'drills'],
+      const legacyMap = {
+        'myplan':   ['dieta',   'plan'   ],
+        'diet':     ['dieta',   'plan'   ],
+        'dietdb':   ['dieta',   'kuchnia'],
+        'training': ['trening', 'plan'   ],
+        'sport':    ['sport',   'drills' ],
       };
-      const [cat, tab] = map[sub] || ['dieta', 'plan'];
-      state.planSubtab = sub;
-      if (sub === 'training') state.planView = 'training';
-      else if (sub === 'myplan' || sub === 'diet') state.planView = 'diet';
-      switchPlanCategory(cat);
-      if (tab !== (state.planSubTab)) switchPlanSubTab(cat, tab);
+      const [cat, tab] = legacyMap[sub] || ['dieta', 'plan'];
+      switchPlanTab(cat, tab);
     }
 
-    // Legacy sport subtab switcher
     function showSportSubtab(sub) {
-      switchPlanSubTab('sport', sub === 'log' ? 'log' : sub === 'history' ? 'historia' : 'drills');
+      const subMap = { log: 'log', history: 'historia', historia: 'historia', drills: 'drills' };
+      switchPlanTab('sport', subMap[sub] || 'drills');
     }
+
 
     function updateExerciseSlider(val) {
       const count = parseInt(val);
@@ -4831,6 +4917,8 @@
     }
 
     function refreshExercisesForSlider(count) {
+      const trainingContainerForFinally = document.getElementById('planTrainingContainer');
+      try {
       const p = getCurrentProfile();
       const day = state.days[state.currentDay];
       const excl = p.exclusions || [];
@@ -4963,11 +5051,17 @@
                 // Open in lightbox or new tab
                 if (url.includes('embed')) {
                   const modal = document.createElement('div');
-                  modal.style.cssText = 'position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.92);';
-                  modal.innerHTML = `<div style="width:min(90vw,720px);position:relative;">
-              <button onclick="this.closest('[style]').remove()" style="position:absolute;top:-36px;right:0;background:none;border:none;color:#fff;font-size:24px;cursor:pointer;">✕</button>
+                  modal.dataset.fitaiLightbox = '1'; // oznaczenie dla switchPlanTab
+                  modal.style.cssText = 'position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.92);cursor:pointer;';
+                  modal.innerHTML = `<div style="width:min(90vw,720px);position:relative;cursor:default;" onclick="event.stopPropagation()">
+              <button onclick="this.closest('[data-fitai-lightbox]').remove()" style="position:absolute;top:-36px;right:0;background:none;border:none;color:#fff;font-size:24px;cursor:pointer;" title="Zamknij (Esc)">✕</button>
               <iframe src="${url}?autoplay=1&rel=0&modestbranding=1" style="width:100%;aspect-ratio:16/9;border:none;border-radius:12px;" allowfullscreen></iframe>
             </div>`;
+                  // Klik w tło zamknij modal
+                  modal.addEventListener('click', () => modal.remove());
+                  // Klawisz Escape
+                  const _escHandler = (e) => { if (e.key === 'Escape') { modal.remove(); document.removeEventListener('keydown', _escHandler); } };
+                  document.addEventListener('keydown', _escHandler);
                   document.body.appendChild(modal);
                 } else {
                   window.open(url, '_blank', 'noopener');
@@ -4992,6 +5086,18 @@
         trainingContainer.style.opacity = '1';
         trainingContainer.style.transform = 'translateY(0)';
       });
+      } catch (renderErr) {
+        console.error('[FitAI] refreshExercisesForSlider error:', renderErr);
+        if (trainingContainerForFinally) {
+          trainingContainerForFinally.innerHTML = '<div class="glass p-6 text-center rounded-2xl"><div style="font-size:2rem;">\u26A0\uFE0F</div><p class="text-sm font-bold text-yellow-400 mt-2">Błąd ładowania treningu</p></div>';
+        }
+      } finally {
+        // Zawsze wyczyść opacity:0 żeby kontener nie był niewidoczny po błędzie
+        if (trainingContainerForFinally && trainingContainerForFinally.style.opacity === '0') {
+          trainingContainerForFinally.style.opacity = '1';
+          trainingContainerForFinally.style.transform = 'translateY(0)';
+        }
+      }
     }
 
     // ========== PROFILE TABS ==========
@@ -6621,6 +6727,52 @@
       { id: 'kolarstwo', emoji: '🚴', label: 'Kolarstwo', color: '#f59e0b' },
     ];
 
+    // ── Mapa polskich etykiet i aliasów → klucze SPORT_DRILLS ──────────────────
+    // Używana w renderSportDrills(), renderSportSelector() i switchPlanSubTab.
+    // Dodaj tutaj nowy sport jeśli piszesz do SPORT_DRILLS z innym kluczem.
+    const SPORT_ID_MAP = {
+      // SPORTS_CATALOG ids (już poprawne — lewa = prawe strona)
+      'koszykówka':   'koszykówka',
+      'piłka nożna':  'piłka nożna',
+      'tenis':        'tenis',
+      'siatkówka':    'siatkówka',
+      'boks':         'boks',
+      'pływanie':     'pływanie',
+      'bieganie':     'bieganie',
+      'kolarstwo':    'kolarstwo',
+      // Aliasy angielskie (SPORT_GOALS używa tych kluczy)
+      'basketball':   'koszykówka',
+      'football':     'piłka nożna',
+      'soccer':       'piłka nożna',
+      'tennis':       'tenis',
+      'volleyball':   'siatkówka',
+      'boxing':       'boks',
+      'swimming':     'pływanie',
+      'running':      'bieganie',
+      'cycling':      'kolarstwo',
+      // Inne możliwe wartości z profilu użytkownika
+      'Koszykówka':   'koszykówka',
+      'Piłka nożna':  'piłka nożna',
+      'Tenis':        'tenis',
+      'Siatkówka':    'siatkówka',
+      'Boks':         'boks',
+      'Pływanie':     'pływanie',
+      'Bieganie':     'bieganie',
+      'Kolarstwo':    'kolarstwo',
+    };
+
+    /** Zwraca klucz SPORT_DRILLS dla dowolnego formatu nazwy sportu.
+     *  Kolejność: SPORT_ID_MAP → lowercase match → raw id. */
+    function resolveSportId(rawId) {
+      if (!rawId) return null;
+      const s = String(rawId).trim();
+      return SPORT_ID_MAP[s]
+          || SPORT_ID_MAP[s.toLowerCase()]
+          || (SPORT_DRILLS[s] ? s : null)
+          || (SPORT_DRILLS[s.toLowerCase()] ? s.toLowerCase() : null)
+          || null;
+    }
+
     const SPORT_DRILLS = {
       'koszykówka': {
         emoji: '🏀',
@@ -6857,7 +7009,8 @@
       const grid = document.getElementById('sportSelectorGrid');
       if (!grid) return;
       const st = loadSportState();
-      const current = st.sport_focus || 'koszykówka';
+      // resolveSportId normalizuje angielskie/wielkie litery → właściwy klucz
+      const current = resolveSportId(st.sport_focus) || 'koszykówka';
       grid.innerHTML = SPORTS_CATALOG.map(s => `
     <div class="sport-selector-card ${s.id === current ? 'selected' : ''}"
          onclick="selectSport('${s.id}')"
@@ -6869,7 +7022,8 @@
 
     function selectSport(sportId) {
       const st = loadSportState();
-      st.sport_focus = sportId;
+      // Zawsze zapisuj znormalizowany klucz SPORT_DRILLS
+      st.sport_focus = resolveSportId(sportId) || sportId;
       saveSportState(st);
       // Update selector UI
       document.querySelectorAll('.sport-selector-card').forEach(el => {
@@ -6881,14 +7035,60 @@
 
     // ========== DRILLS RENDERER — categories + drills ==========
     function renderSportDrills() {
-      const st = loadSportState();
-      const sportId = st.sport_focus || 'koszykówka';
-      const sportData = SPORT_DRILLS[sportId];
       const container = document.getElementById('sportDrillsContainer');
       if (!container) return;
+      try {
+      const st = loadSportState();
 
+      // ── Rozwiąż sport z profilu / stanu ─────────────────────────────────────
+      // Priorytet: sport_focus ze stanu → sport z profilu → koszykówka (default)
+      const p = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
+      const rawSport = st.sport_focus
+        || (p && (p.sport_focus || (p.sports && p.sports[0])))
+        || 'koszykówka';
+
+      const sportId = resolveSportId(rawSport);
+
+      // ── Stan pusty: brak sportu w profilu ────────────────────────────────────
+      if (!rawSport || rawSport === '') {
+        container.innerHTML = `
+          <div class="glass p-8 rounded-2xl text-center space-y-3">
+            <div style="font-size:3rem;">🏅</div>
+            <p class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">
+              Wybierz sport w ustawieniach
+            </p>
+            <p class="text-sm" style="color:var(--muted);">
+              Przejdź do <strong style="color:var(--cyan);">Profil → Sport</strong>,
+              aby ustawić swoją dyscyplinę i odblokować spersonalizowane drille.
+            </p>
+          </div>`;
+        return;
+      }
+
+      // ── Brak danych dla wybranego sportu w SPORT_DRILLS ─────────────────────
+      const sportData = sportId ? SPORT_DRILLS[sportId] : null;
       if (!sportData) {
-        container.innerHTML = '<div class="glass p-6 text-center text-gray-500 italic">Brak drilli dla tego sportu.</div>';
+        const sportLabel = (typeof SPORTS_CATALOG !== 'undefined'
+          ? (SPORTS_CATALOG.find(s => s.id === rawSport || s.id === sportId)?.label || rawSport)
+          : rawSport);
+        container.innerHTML = `
+          <div class="glass p-8 rounded-2xl text-center space-y-3">
+            <div style="font-size:3rem;">🔧</div>
+            <p class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">
+              Brak drilli dla sportu: <span style="color:var(--cyan);">${sportLabel}</span>
+            </p>
+            <p class="text-sm" style="color:var(--muted);">
+              Wybierz inną dyscyplinę powyżej lub
+              <a href="#" onclick="switchPlanCategory('sport');return false;"
+                 style="color:var(--cyan);text-decoration:underline;">zmień sport w profilu</a>.
+            </p>
+            <p class="text-xs mt-2" style="color:var(--muted);">
+              Dostępne sporty z bazą drilli:
+              <strong style="color:rgba(255,255,255,0.7);">
+                ${Object.keys(SPORT_DRILLS).join(', ')}
+              </strong>
+            </p>
+          </div>`;
         return;
       }
 
@@ -6973,25 +7173,41 @@
     </div>`;
       }).join('');
 
-      // Event delegation — czyścimy stare listenery przez podmianę węzła
-      const newContainer = container.cloneNode(false); // false = bez dzieci (czysty)
-      newContainer.innerHTML = generatedHtml;           // ← nowy HTML
-      container.replaceWith(newContainer);
-      newContainer.addEventListener('click', function (e) {
-        const addBtn = e.target.closest('.js-drill-add-btn');
-        const logBtn = e.target.closest('.js-drill-log-btn');
-        const catBtn = e.target.closest('.js-cat-add-btn');
-        if (addBtn) {
-          e.stopPropagation();
-          openAddToPlanModal(addBtn.dataset.drill, addBtn.dataset.cat, addBtn.dataset.sport);
-        } else if (logBtn) {
-          e.stopPropagation();
-          quickLogDrill(logBtn.dataset.drill, Number(logBtn.dataset.attempts), logBtn.dataset.type || 'rzuty');
-        } else if (catBtn) {
-          e.stopPropagation();
-          openAddToPlanModal(null, catBtn.dataset.cat, catBtn.dataset.sport, true);
-        }
-      });
+      // ── NAPRAWA: innerHTML zamiast replaceWith ───────────────────────────────
+      // replaceWith() wyjmował kontener z DOM i wstawiał nowy węzeł — to niszczyło
+      // referencje paneli używane przez switchPlanCategory/switchPlanSubTab.
+      // Zamiast tego nadpisujemy tylko innerHTML (kontener pozostaje w DOM).
+      container.innerHTML = generatedHtml;
+
+      // Event delegation — delegujemy na stabilny kontener (zawsze ten sam węzeł).
+      // Podpinamy listener tylko raz, chroniąc się przed wielokrotnym nakładaniem.
+      if (!container._drillListenerAttached) {
+        container.addEventListener('click', function (e) {
+          const addBtn = e.target.closest('.js-drill-add-btn');
+          const logBtn = e.target.closest('.js-drill-log-btn');
+          const catBtn = e.target.closest('.js-cat-add-btn');
+          if (addBtn) {
+            e.stopPropagation();
+            openAddToPlanModal(addBtn.dataset.drill, addBtn.dataset.cat, addBtn.dataset.sport);
+          } else if (logBtn) {
+            e.stopPropagation();
+            quickLogDrill(logBtn.dataset.drill, Number(logBtn.dataset.attempts), logBtn.dataset.type || 'rzuty');
+          } else if (catBtn) {
+            e.stopPropagation();
+            openAddToPlanModal(null, catBtn.dataset.cat, catBtn.dataset.sport, true);
+          }
+        });
+        container._drillListenerAttached = true;
+      }
+      } catch (err) {
+        console.error('[FitAI] renderSportDrills() error:', err);
+        // Nie blokujemy nawigacji — pokazujemy komunikat błędu zamiast pustego ekranu
+        container.innerHTML = `<div class="glass p-6 text-center rounded-2xl">
+          <div style="font-size:2rem;">⚠️</div>
+          <p class="text-sm font-bold text-yellow-400 mt-2">Błąd ładowania drilli</p>
+          <p class="text-xs mt-1" style="color:var(--muted);">Spróbuj przełączyć sport lub odświeżyć stronę.</p>
+        </div>`;
+      }
     }
 
     function toggleSportCategory(header) {
@@ -7179,19 +7395,16 @@
     }
 
     // ========== SPORT SUBTAB SWITCHING ==========
-    function showSportSubtab(tab) {
-      ['drills', 'log', 'history'].forEach(t => {
-        const el = document.getElementById('sport-' + t);
-        if (el) el.classList.toggle('hidden', t !== tab);
-        const btn = document.getElementById('sporttab-' + t);
-        if (btn) {
-          btn.classList.toggle('active', t === tab);
-          btn.classList.toggle('text-gray-400', t !== tab);
-        }
-      });
-      if (tab === 'drills') renderSportDrills();
-      if (tab === 'log') prepareLogForm();
-      if (tab === 'history') renderDrillHistory();
+    // NOTE: showSportSubtab is defined above in the navigation block.
+    // This block preserves the side-effects that the old implementation had
+    // but were not wired up in the new unified version.
+    // Re-declared here as a no-op to avoid "duplicate function" errors;
+    // the real implementation at line 4844 already handles drills/log/historia.
+    // Side-effects (prepareLogForm, renderDrillHistory) are called from switchPlanSubTab.
+    function _sportSubtabSideEffects(tab) {
+      if (tab === 'drills'  && typeof renderSportDrills  === 'function') renderSportDrills();
+      if (tab === 'log'     && typeof prepareLogForm     === 'function') prepareLogForm();
+      if (tab === 'history' && typeof renderDrillHistory === 'function') renderDrillHistory();
     }
 
     function loadDrills() { renderSportDrills(); }
@@ -7305,6 +7518,19 @@
         <button onclick="document.getElementById('drillLogModal').remove()" class="flex-1 btn-ghost py-2.5 rounded-xl text-sm">Anuluj</button>
       </div>
     </div>`;
+      // Klik w tło (poza kartę) zamknij modal — żeby nie blokował nawigacji
+      modal.addEventListener('click', function(e) {
+        if (e.target === modal) { modal.remove(); _drillLogCtx = null; }
+      });
+      // Klawisz Escape
+      const _drillEscClose = function(e) {
+        if (e.key === 'Escape') {
+          const m = document.getElementById('drillLogModal');
+          if (m) { m.remove(); _drillLogCtx = null; }
+          document.removeEventListener('keydown', _drillEscClose);
+        }
+      };
+      document.addEventListener('keydown', _drillEscClose);
       document.body.appendChild(modal);
     }
 
@@ -8347,11 +8573,28 @@
 
       if (!grid) return;
 
-      // Build flat list from MEAL_DB
+      // ── Seed meal data — displayed when MEAL_DB is empty ─────────────────────
+      const MEAL_SEED = [
+        { name: 'Owsianka z owocami', kcal: 380, protein: 12, carbs: 65, fat: 8, _type: 'śniadanie', ingredients: [{item:'płatki owsiane',amount:'80g'},{item:'mleko',amount:'200ml'},{item:'banan',amount:'1 szt'}] },
+        { name: 'Kurczak z ryżem i brokułami', kcal: 520, protein: 45, carbs: 55, fat: 10, _type: 'obiad', ingredients: [{item:'pierś z kurczaka',amount:'200g'},{item:'ryż brązowy',amount:'100g'},{item:'brokuły',amount:'150g'}] },
+        { name: 'Łosoś z warzywami', kcal: 480, protein: 38, carbs: 20, fat: 28, _type: 'kolacja', ingredients: [{item:'łosoś',amount:'180g'},{item:'szparagi',amount:'150g'},{item:'cytryna',amount:'½ szt'}] },
+        { name: 'Twarożek z warzywami', kcal: 210, protein: 22, carbs: 15, fat: 6, _type: 'przekąska', ingredients: [{item:'twaróg chudy',amount:'150g'},{item:'ogórek',amount:'1 szt'},{item:'rzodkiewka',amount:'5 szt'}] },
+        { name: 'Jajecznica z warzywami', kcal: 340, protein: 24, carbs: 8, fat: 22, _type: 'śniadanie', ingredients: [{item:'jaja',amount:'3 szt'},{item:'papryka',amount:'½ szt'},{item:'szpinak',amount:'50g'}] },
+      ];
+
+      // Build flat list from MEAL_DB (with seed fallback)
       const allMeals = [];
-      Object.entries(MEAL_DB).forEach(([type, meals]) => {
-        meals.forEach(m => allMeals.push({ ...m, _type: type }));
-      });
+      let hasMealDB = false;
+      if (typeof MEAL_DB !== 'undefined') {
+        Object.entries(MEAL_DB).forEach(([type, meals]) => {
+          if (meals && meals.length) hasMealDB = true;
+          meals.forEach(m => allMeals.push({ ...m, _type: type }));
+        });
+      }
+      // Fall back to seed data if MEAL_DB is empty or undefined
+      if (!hasMealDB) {
+        MEAL_SEED.forEach(m => allMeals.push(m));
+      }
 
       const filtered = allMeals.filter(m => {
         const matchCat = (cat === 'all') || (m._type === cat);
@@ -8366,7 +8609,14 @@
         grid.innerHTML = '';
         const emp = document.createElement('div');
         emp.className = 'col-span-full text-center py-12';
-        emp.innerHTML = '<div style="font-size:2.5rem">🔍</div><p class="text-sm mt-2" style="color:var(--muted);">Brak wyników dla: <strong>' + (query || cat) + '</strong></p>';
+        emp.innerHTML = `
+          <div style="font-size:2.5rem">🔍</div>
+          <p class="text-sm font-semibold mt-3 text-white">Brak danych</p>
+          <p class="text-xs mt-1" style="color:var(--muted);">
+            ${query
+              ? `Brak wyników dla: <strong>${query}</strong>`
+              : 'Brak posiłków w tej kategorii. Dodaj pierwszy posiłek lub zmień filtr.'}
+          </p>`;
         grid.appendChild(emp);
         return;
       }
@@ -8436,14 +8686,34 @@
     }
 
     // ─── Atlas Ćwiczeń (Exercise Library) ───────────────────────────────────────
-    function atlasExerciseSetCategory(cat) {
-      _atlasExerciseCategory = cat;
-      document.querySelectorAll('.atlas-cat-btn').forEach(b => {
-        const active = b.dataset.cat === cat;
-        b.style.background = active ? 'rgba(0,229,255,0.15)' : 'rgba(255,255,255,0.05)';
-        b.style.color = active ? 'var(--cyan)' : 'var(--muted)';
-        b.style.borderColor = active ? 'rgba(0,229,255,0.3)' : 'var(--border)';
+
+    /**
+     * atlasSetCategory(category) — kanoniczna funkcja przełączania kategorii w Atlasie.
+     * Wywoływana przez: statyczne przyciski HTML, dynamiczne przyciski z initAtlasCategoryBtns().
+     *
+     * 1. Ustawia globalną zmienną _atlasExerciseCategory
+     * 2. Aktualizuje styl i klasę .active na wszystkich .atlas-cat-btn
+     * 3. Wywołuje renderAtlas() aby przefiltrować listę ćwiczeń
+     */
+    function atlasSetCategory(category) {
+      _atlasExerciseCategory = category;
+
+      document.querySelectorAll('.atlas-cat-btn').forEach(btn => {
+        const isActive = btn.dataset.cat === category;
+        btn.classList.toggle('active', isActive);
+        btn.style.background  = isActive ? 'rgba(0,229,255,0.15)' : 'rgba(255,255,255,0.05)';
+        btn.style.color       = isActive ? 'var(--cyan)'           : 'var(--muted)';
+        btn.style.borderColor = isActive ? 'rgba(0,229,255,0.3)'  : 'var(--border)';
       });
+
+      renderAtlas();
+    }
+
+    // Alias wstecznej kompatybilności — stary kod może wciąż wywoływać atlasExerciseSetCategory
+    function atlasExerciseSetCategory(cat) { atlasSetCategory(cat); }
+
+    /** renderAtlas() — publiczny punkt wejścia; wywołaj przy starcie i przy wejściu na zakładkę */
+    function renderAtlas() {
       atlasExerciseFilter();
     }
 
@@ -8451,95 +8721,229 @@
       const grid = document.getElementById('atlasExerciseGrid');
       const countEl = document.getElementById('atlasExerciseCount');
       const query = (document.getElementById('atlasExerciseSearch')?.value || '').toLowerCase().trim();
-      const cat = _atlasExerciseCategory;
+      const cat = _atlasExerciseCategory || 'all';
 
       if (!grid) return;
 
-      // Get all exercises from various sources
+      // ── Seed data — shown when EXERCISE_DB is empty or undefined ─────────────
+      // Ensures the Atlas always has content; users never see a blank page.
+      const ATLAS_SEED_EXERCISES = [
+        { name: 'Pompki', sets: 4, reps: 20, weight: 0, tags: [], muscles: 'klatka, triceps', desc: 'Klasyczne pompki angażujące klatkę piersiową, triceps i core. Opuszczaj ciało do 2 cm od podłogi i dynamicznie się unoś.', _group: 'klatka', _source: 'EXERCISE_DB' },
+        { name: 'Przysiady', sets: 4, reps: 15, weight: 0, tags: [], muscles: 'nogi, pośladki', desc: 'Stopy na szerokość bioder. Zejdź do równoległości ud trzymając plecy proste. Wyjdź wciskając pięty w podłogę.', _group: 'nogi', _source: 'EXERCISE_DB' },
+        { name: 'Martwy Ciąg', sets: 4, reps: 6, weight: 80, tags: ['sztanga'], muscles: 'plecy, nogi', desc: 'Chwyć sztangę na szerokość bioder. Unoś ją trzymając plecy prosto, angażując nogi i pośladki. Jedna z najskuteczniejszych ćwiczeń złożonych.', _group: 'plecy', _source: 'EXERCISE_DB' },
+        { name: 'Wyciskanie Sztangi', sets: 4, reps: 8, weight: 60, tags: ['sztanga', 'ławka'], muscles: 'klatka, triceps, barki', desc: 'Połóż się na ławce. Trzymaj sztangę na szerokość barków. Opuszczaj do klatki i wypychaj dynamicznie do pełnego wyprostu.', _group: 'klatka', _source: 'EXERCISE_DB' },
+        { name: 'Plank', sets: 3, reps: 1, weight: 0, tags: [], muscles: 'core, stabilizacja', desc: 'Oprzyj się na przedramionach i palcach stóp. Utrzymuj ciało w linii prostej. Napnij core i pośladki. Zacznij od 30 sekund i wydłużaj czas.', _group: 'core', _source: 'EXERCISE_DB' },
+      ];
+
+      // ── Zbierz ćwiczenia ze wszystkich źródeł ────────────────────────────────
+      const seenNames = new Set();
       const allExercises = [];
 
-      // From training plans
-      if (window.TRAINING_DB) {
-        Object.entries(window.TRAINING_DB).forEach(([key, dayPlan]) => {
-          if (dayPlan.exercises && Array.isArray(dayPlan.exercises)) {
-            dayPlan.exercises.forEach(ex => {
-              const existing = allExercises.find(e => e.name === ex.exercise);
-              if (!existing) {
-                allExercises.push({
-                  name: ex.exercise,
-                  rpe: ex.rpe,
-                  sets: ex.sets,
-                  reps: ex.reps,
-                  _source: 'training'
-                });
-              }
-            });
-          }
+      const push = (ex) => {
+        if (!ex.name || seenNames.has(ex.name)) return;
+        seenNames.add(ex.name);
+        allExercises.push(ex);
+      };
+
+      // Źródło 1: EXERCISE_DB (główna baza — zawsze dostępna)
+      let hasExerciseDB = false;
+      if (typeof EXERCISE_DB !== 'undefined') {
+        Object.entries(EXERCISE_DB).forEach(([group, list]) => {
+          if (list && list.length) hasExerciseDB = true;
+          (list || []).forEach(e => push({
+            name:        e.name,
+            sets:        e.sets,
+            reps:        e.reps,
+            weight:      e.weight,
+            tags:        e.tags  || [],
+            muscles:     e.muscles || e.muscle_group || group,
+            desc:        e.desc  || '',
+            video_url:   e.video_url || null,
+            _group:      group,
+            _source:     'EXERCISE_DB',
+          }));
         });
       }
 
+      // Jeśli EXERCISE_DB jest pusta lub niezdefiniowana — użyj danych startowych
+      if (!hasExerciseDB) {
+        ATLAS_SEED_EXERCISES.forEach(e => push(e));
+      }
+
+      // Źródło 2: SPORT_DRILLS (ćwiczenia sportowe)
+      if (typeof SPORT_DRILLS !== 'undefined') {
+        Object.entries(SPORT_DRILLS).forEach(([sport, sportData]) => {
+          Object.entries(sportData).forEach(([catKey, catData]) => {
+            if (catKey === 'emoji' || !catData?.drills) return;
+            (catData.drills || []).forEach(d => push({
+              name:        d.name,
+              sets:        d.sets   || '—',
+              reps:        d.total_attempts || '—',
+              weight:      null,
+              tags:        [sport],
+              muscles:     d.muscle_group || '—',
+              desc:        d.description  || '',
+              video_url:   d.video_url    || null,
+              _group:      sport,
+              _source:     'SPORT_DRILLS',
+            }));
+          });
+        });
+      }
+
+      // Źródło 3: TRAINING_DB (plany tygodniowe — legacy)
+      if (window.TRAINING_DB) {
+        Object.values(window.TRAINING_DB).forEach(dayPlan => {
+          (dayPlan?.exercises || []).forEach(ex => push({
+            name:    ex.exercise,
+            rpe:     ex.rpe,
+            sets:    ex.sets,
+            reps:    ex.reps,
+            tags:    [],
+            muscles: '—',
+            desc:    '',
+            _group:  'plan',
+            _source: 'TRAINING_DB',
+          }));
+        });
+      }
+
+      // ── Filtrowanie ──────────────────────────────────────────────────────────
       const filtered = allExercises.filter(e => {
-        const matchQ = !query || e.name.toLowerCase().includes(query);
-        return matchQ;
+        const matchQ   = !query || e.name.toLowerCase().includes(query)
+                                || (e.muscles || '').toLowerCase().includes(query)
+                                || (e.desc    || '').toLowerCase().includes(query);
+        // 'wszystkie' i 'all' — brak filtru kategorii (pokaż wszystkie ćwiczenia)
+        const noFilter = cat === 'wszystkie' || cat === 'all' || !cat;
+        const matchCat = noFilter
+                      || e._group === cat
+                      || (e.tags  || []).includes(cat);
+        return matchQ && matchCat;
       });
 
       if (countEl) countEl.textContent = `${filtered.length} ćwiczeń`;
 
+      // ── Pusty stan ───────────────────────────────────────────────────────────
       if (!filtered.length) {
         grid.innerHTML = '';
         const emp = document.createElement('div');
         emp.className = 'col-span-full text-center py-12';
-        emp.innerHTML = '<div style="font-size:2.5rem">🏋️</div><p class="text-sm mt-2" style="color:var(--muted);">Brak wyników dla: <strong>' + (query || 'szukana fraza') + '</strong></p>';
+        emp.innerHTML = `
+          <div style="font-size:2.5rem">🏋️</div>
+          <p class="text-sm font-semibold mt-3 text-white">Brak danych</p>
+          <p class="text-xs mt-1" style="color:var(--muted);">
+            ${query
+              ? `Nie znaleziono ćwiczeń dla: <strong>${query}</strong>`
+              : 'Brak ćwiczeń w tej kategorii. Dodaj pierwsze ćwiczenie lub zmień filtr.'}
+          </p>`;
         grid.appendChild(emp);
         return;
       }
 
+      // ── Czyść kontener przed dodaniem kart (zapobiega duplikatom) ─────────
       grid.innerHTML = '';
+
+      // Grupuj źródła dla nagłówków sekcji
+      const SOURCE_LABELS = {
+        'EXERCISE_DB': '💪 Baza ćwiczeń siłowych',
+        'SPORT_DRILLS': '🏅 Drille sportowe',
+        'TRAINING_DB': '📅 Z planu tygodniowego',
+      };
+
       filtered.forEach(e => {
         const card = document.createElement('div');
         card.className = 'glass rounded-2xl p-4 flex flex-col gap-3 transition-all';
         card.style.cssText = 'border:1px solid var(--border);cursor:default;';
-        card.onmouseenter = () => { card.style.borderColor = 'rgba(0,229,255,0.25)'; card.style.transform = 'translateY(-2px)'; };
-        card.onmouseleave = () => { card.style.borderColor = 'var(--border)'; card.style.transform = ''; };
+        card.onmouseenter = () => {
+          card.style.borderColor = 'rgba(0,229,255,0.25)';
+          card.style.transform   = 'translateY(-2px)';
+          card.style.boxShadow   = '0 8px 24px rgba(0,229,255,0.06)';
+        };
+        card.onmouseleave = () => {
+          card.style.borderColor = 'var(--border)';
+          card.style.transform   = '';
+          card.style.boxShadow   = '';
+        };
+
+        // Source badge color
+        const srcColors = {
+          EXERCISE_DB:  { bg: 'rgba(0,229,255,0.1)',    color: 'var(--cyan)',  border: 'rgba(0,229,255,0.25)' },
+          SPORT_DRILLS: { bg: 'rgba(249,115,22,0.1)',   color: '#fb923c',      border: 'rgba(249,115,22,0.25)' },
+          TRAINING_DB:  { bg: 'rgba(124,58,237,0.1)',   color: '#a78bfa',      border: 'rgba(124,58,237,0.25)' },
+        };
+        const sc = srcColors[e._source] || srcColors.EXERCISE_DB;
+
+        // Group label (muscle group or sport name)
+        const groupLabel = e.muscles || e._group || '—';
+
+        // Video badge
+        const hasVideo = e.video_url && e.video_url.includes('youtube');
+        const videoId  = 'atlas-video-' + e.name.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'');
+
+        // Macro pills
+        const pills = [];
+        if (e.sets  != null && e.sets  !== '—') pills.push({ label: `Serie: ${e.sets}`,  color: 'var(--cyan)'  });
+        if (e.reps  != null && e.reps  !== '—') pills.push({ label: `Powt: ${e.reps}`,   color: '#a78bfa'      });
+        if (e.weight != null && e.weight > 0)   pills.push({ label: `${e.weight} kg`,     color: '#fbbf24'      });
+        if (e.rpe)                               pills.push({ label: `RPE: ${e.rpe}`,      color: '#f97316'      });
+
+        const pillsHtml = pills.map(p =>
+          `<span style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
+                        border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700;color:${p.color};">
+             ${p.label}
+           </span>`
+        ).join('');
 
         card.innerHTML = `
-      <div class="flex items-start justify-between gap-2">
-        <h4 class="font-extrabold text-white text-sm leading-tight">${e.name}</h4>
-        <span style="background:rgba(0,229,255,0.1);color:var(--cyan);
-                     border:1px solid rgba(0,229,255,0.25);border-radius:999px;
-                     padding:2px 10px;font-size:10px;font-weight:700;white-space:nowrap;">
-          💪 Ćwiczenie
-        </span>
-      </div>
-      <div class="flex flex-wrap gap-1.5">
-        <span style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
-                     border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700;color:var(--cyan);">
-          Serie: ${e.sets}
-        </span>
-        <span style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
-                     border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700;color:#a78bfa;">
-          Powtórzenia: ${e.reps}
-        </span>
-        <span style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
-                     border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700;color:#fbbf24;">
-          RPE: ${e.rpe}
-        </span>
-      </div>
-      <div class="flex gap-2 mt-auto">
-        <button onclick="alert('Szczegóły ćwiczenia:\\n${e.name}\\nSerie: ${e.sets}\\nPowtórzenia: ${e.reps}\\nRPE: ${e.rpe}')"
-          class="flex-shrink-0 py-2 px-3 rounded-xl text-xs font-bold transition-all"
-          style="background:rgba(255,255,255,0.05);color:var(--muted);border:1px solid var(--border);"
-          title="Szczegóły ćwiczenia">
-          ℹ️ Info
-        </button>
-        <button onclick="addExerciseToPlan('${e.name.replace(/'/g, "\\'")}', ${e.sets}, ${e.reps}, ${e.rpe})"
-          class="flex-1 py-2 rounded-xl text-xs font-extrabold transition-all"
-          style="background:rgba(0,229,255,0.1);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);"
-          onmouseenter="this.style.background='rgba(0,229,255,0.2)'"
-          onmouseleave="this.style.background='rgba(0,229,255,0.1)'">
-          ➕ Dodaj do planu
-        </button>
-      </div>`;
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex-1 min-w-0">
+              <h4 class="font-extrabold text-white text-sm leading-tight truncate">${e.name}</h4>
+              <p class="text-xs mt-0.5" style="color:var(--muted);">💪 ${groupLabel}</p>
+            </div>
+            <div class="flex gap-1.5 flex-shrink-0 flex-wrap justify-end">
+              ${hasVideo ? `<span style="background:rgba(239,68,68,0.12);color:#f87171;
+                                        border:1px solid rgba(239,68,68,0.25);border-radius:999px;
+                                        padding:2px 8px;font-size:10px;font-weight:700;">▶ Video</span>` : ''}
+              <span style="background:${sc.bg};color:${sc.color};
+                           border:1px solid ${sc.border};border-radius:999px;
+                           padding:2px 8px;font-size:10px;font-weight:700;white-space:nowrap;">
+                ${e._source === 'SPORT_DRILLS' ? '🏅 Drill' : e._source === 'TRAINING_DB' ? '📅 Plan' : '💪 Atlas'}
+              </span>
+            </div>
+          </div>
+
+          ${pillsHtml ? `<div class="flex flex-wrap gap-1.5">${pillsHtml}</div>` : ''}
+
+          ${e.desc ? `<p class="text-xs leading-relaxed line-clamp-2" style="color:rgba(255,255,255,0.55);">${e.desc}</p>` : ''}
+
+          ${hasVideo ? `
+          <div id="${videoId}" class="hidden mt-1">
+            <div style="position:relative;padding-bottom:56.25%;height:0;
+                        border-radius:10px;overflow:hidden;
+                        border:1px solid rgba(239,68,68,0.3);">
+              <iframe src="${e.video_url}?rel=0&modestbranding=1"
+                style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen loading="lazy"
+                title="Instrukcja: ${e.name}">
+              </iframe>
+            </div>
+          </div>` : ''}
+
+          <div class="flex gap-2 mt-auto">
+            ${hasVideo ? `
+            <button onclick="const v=document.getElementById('${videoId}');v.classList.toggle('hidden');this.textContent=v.classList.contains('hidden')?'▶ Video':'✕ Ukryj';"
+              class="py-2 px-3 rounded-xl text-xs font-bold transition-all"
+              style="background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.2);">
+              ▶ Video
+            </button>` : ''}
+            <button onclick="addExerciseToDay(${JSON.stringify(e).replace(/\/g,'\\').replace(/"/g,'&quot;')})"
+              class="flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all"
+              style="background:rgba(0,229,255,0.08);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);">
+              ➕ Do planu
+            </button>
+          </div>`;
+
         grid.appendChild(card);
       });
     }
@@ -11454,10 +11858,8 @@
           _origST(tabId);
           if (tabId === 'my-day') water._render();
           if (tabId === 'postepy') initCharts();
-          if (tabId === 'plan') {
-            // Default to myplan on first open
-            if (!state.planSubtab || state.planSubtab === 'diet') switchPlanSubtab('myplan');
-          }
+          // UWAGA: NIE wywołuj switchPlanCategory tutaj — _origST (showTab) już to robi
+          // wewnątrz. Podwójne wywołanie resetowało state i "zacinało" nawigację Plan.
           if (tabId === 'kuchnia') { kitchenInit(); }
         };
       }
@@ -11471,9 +11873,68 @@
         };
       }
 
-      // Inicjalne wypełnienie siatki wideo (gdy użytkownik otworzy zakładkę)
-      // validateVideos() must run first — it prunes VIDEO_LIBRARY entries that
-      // lack a real video_url so filterVideos() never renders empty-video cards.
+      // ── Atlas Ćwiczeń: wygeneruj przyciski kategorii z EXERCISE_DB ──────────
+      // Musi być wywołane przed pierwszym wejściem na zakładkę Atlas.
+      (function initAtlasCategoryBtns() {
+        const btnRow = document.getElementById('atlasCategoryBtns');
+        if (!btnRow || typeof EXERCISE_DB === 'undefined') return;
+
+        // Zbierz unikalne grupy mięśniowe z EXERCISE_DB
+        const groups = Object.keys(EXERCISE_DB).sort();
+        // Usuń istniejące dynamiczne przyciski (zachowaj "Wszystkie" i statyczne)
+        btnRow.querySelectorAll('[data-dynamic]').forEach(b => b.remove());
+
+        groups.forEach(group => {
+          // Don't duplicate buttons that already exist as static HTML
+          if (btnRow.querySelector(`[data-cat="${group}"]:not([data-dynamic])`)) return;
+
+          const btn = document.createElement('button');
+          btn.dataset.dynamic = '1';
+          btn.dataset.cat = group;
+          btn.className = 'atlas-cat-btn text-xs px-3 py-1.5 rounded-full font-bold transition-all';
+          btn.style.cssText = 'background:rgba(255,255,255,0.05);color:var(--muted);border:1px solid var(--border);';
+          btn.onmouseenter = () => { if (!btn.classList.contains('active')) { btn.style.background='rgba(0,229,255,0.08)'; btn.style.color='var(--cyan)'; } };
+          btn.onmouseleave = () => { if (!btn.classList.contains('active')) { btn.style.background='rgba(255,255,255,0.05)'; btn.style.color='var(--muted)'; } };
+          btn.onclick = () => {
+            if (typeof atlasSetCategory === 'function') atlasSetCategory(group);
+            else { _atlasExerciseCategory = group; renderAtlas(); }
+          };
+          const LABEL_MAP = { klatka:'💪 Klatka', plecy:'🔙 Plecy', nogi:'🦵 Nogi', ramiona:'🏋️ Ramiona', biceps:'💪 Biceps', triceps:'🦾 Triceps', core:'⚡ Core', kardio:'🏃 Kardio', pośladki:'🍑 Pośladki', barki:'📌 Barki' };
+          btn.textContent = LABEL_MAP[group] || ('🏷️ ' + group.charAt(0).toUpperCase() + group.slice(1));
+          btnRow.appendChild(btn);
+        });
+      })();
+
+      // ── Inicjalizacja baz danych przy starcie (Prompt wymaganie) ─────────────
+      // renderAtlas() — Atlas Ćwiczeń: pierwszy render. Jeśli baza pusta → dane startowe
+      try {
+        if (typeof renderAtlas === 'function') renderAtlas();
+      } catch(e) {
+        console.warn('[FitAI] renderAtlas() failed at DOMContentLoaded:', e);
+        const grid = document.getElementById('atlasExerciseGrid');
+        if (grid) grid.innerHTML = '<div class="col-span-full text-center py-12"><div style="font-size:2.5rem">🏋️</div><p class="text-sm mt-2" style="color:var(--muted);">Brak danych, dodaj pierwsze ćwiczenie</p></div>';
+      }
+
+      // renderSportDrills() — Baza Drilli: pierwszy render
+      try {
+        if (typeof renderSportDrills === 'function') renderSportDrills();
+      } catch(e) {
+        console.warn('[FitAI] renderSportDrills() failed at DOMContentLoaded:', e);
+        const cont = document.getElementById('sportDrillsContainer');
+        if (cont) cont.innerHTML = '<div class="glass p-6 text-center text-gray-500 italic">Brak danych, dodaj pierwsze ćwiczenie</div>';
+      }
+
+      // bibliotekaMealFilter() — Biblioteka Posiłków: pierwszy render
+      try {
+        if (typeof bibliotekaMealFilter === 'function') bibliotekaMealFilter();
+      } catch(e) {
+        console.warn('[FitAI] bibliotekaMealFilter() failed at DOMContentLoaded:', e);
+        const grid = document.getElementById('bibliotekaMealGrid');
+        if (grid) grid.innerHTML = '<div class="col-span-full text-center py-12"><div style="font-size:2.5rem">🍽️</div><p class="text-sm mt-2" style="color:var(--muted);">Brak danych, dodaj pierwszy posiłek</p></div>';
+      }
+
+      // ── Wideo: validateVideos → filterVideos ──────────────────────────────────
+      // validateVideos() prunes VIDEO_LIBRARY entries without video_url first.
       validateVideos();
       filterVideos('all');
     });
