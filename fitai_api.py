@@ -887,6 +887,20 @@ class AIRequest(BaseModel):
     extra_context: str = ""
 
 
+class ProfileUpdateRequest(BaseModel):
+    """Edycja profilu użytkownika — tylko zmienne pola."""
+    age: Optional[int] = None
+    weight: Optional[float] = None
+    target_weight: Optional[float] = None
+    gender: Optional[str] = None
+    goal: Optional[str] = None
+    frequency: Optional[str] = None
+    diet: Optional[str] = None
+    allergies: Optional[str] = None
+    meals_per_day: Optional[int] = None
+    notes: Optional[str] = None
+
+
 class AppOnboardingRequest(BaseModel):
     identity_id: str
     email: str
@@ -1026,23 +1040,59 @@ def calc_calories(p: dict | UserDB) -> int:
         mult = 1.2
     tdee = int(bmr * mult)
     goal = str(p.get("goal", "")).lower()
-    if any(x in goal for x in ["redukcj", "odchudzani", "schud"]):
+    # Rozpoznaj zarówno angielskie jak i polskie słowa
+    if any(x in goal for x in ["redukcj", "odchudzani", "schud", "cut", "weight_loss", "fat_loss"]):
         tdee -= 400
-    elif any(x in goal for x in ["masa", "budow", "przyty"]):
+    elif any(x in goal for x in ["masa", "budow", "przyty", "bulk", "muscle", "gain", "build"]):
         tdee += 300
     return tdee
 
 
 def calc_protein(p: dict | UserDB) -> int:
+    """
+    Liczy zapotrzebowanie na białko na podstawie wagi, celu i DIETY.
+    
+    Bazowe (na podstawie goal):
+    - buildmass/bulk: 2.0 g/kg
+    - weight_loss/cut: 2.2 g/kg
+    - default: 1.6 g/kg
+    
+    Modyfikatory diety (ale z limitem max 2.4 g/kg):
+    - High-Protein: +0.2 g/kg (razem max 2.4 g/kg)
+    - Low-Carb: +0.1 g/kg (razem max 2.2 g/kg)
+    - Balanced/Standard/default: bez zmian
+    - Low-Fat: bez zmian (białko jak baseline)
+    """
     if isinstance(p, UserDB):
         p = p.to_profile_dict()
+    
     w = p.get("weight", 75)
     goal = str(p.get("goal", "")).lower()
-    if "masa" in goal:
-        return int(w * 2.0)
-    if "redukcj" in goal:
-        return int(w * 2.2)
-    return int(w * 1.6)
+    diet = str(p.get("diet", "")).lower()
+    
+    # Ustaw baseline na podstawie goal
+    if any(x in goal for x in ["masa", "budow", "przyty", "bulk", "muscle", "gain", "build"]):
+        base_protein_factor = 2.0  # Budowa masy: 2.0 g/kg
+    elif any(x in goal for x in ["redukcj", "odchudzani", "schud", "cut", "weight_loss", "fat_loss"]):
+        base_protein_factor = 2.2  # Redukcja: 2.2 g/kg
+    else:
+        base_protein_factor = 1.6  # Default: 1.6 g/kg
+    
+    # Modyfikuj na podstawie diety (ale z rozsądnymi limitami)
+    if any(x in diet for x in ["high.protein", "high_protein", "high-protein", "wysokobiałk", "high protein"]):
+        # High-Protein: +0.2 g/kg, ale max 2.4 g/kg (bezpieczny limit)
+        protein_factor = min(base_protein_factor + 0.2, 2.4)
+    elif any(x in diet for x in ["low.carb", "low_carb", "low-carb", "niskoglowodanow", "low carb"]):
+        # Low-Carb: +0.1 g/kg, ale max 2.3 g/kg (pozwala na +0.1 modyfikator)
+        protein_factor = min(base_protein_factor + 0.1, 2.3)
+    elif any(x in diet for x in ["low.fat", "low_fat", "low-fat", "niskotłuszczow", "low fat"]):
+        # Low-Fat: bez modyfikacji (standardowe białko)
+        protein_factor = base_protein_factor
+    else:
+        # Balanced/Standard/inne: baseline bez zmian
+        protein_factor = base_protein_factor
+    
+    return int(w * protein_factor)
 
 
 # ─── Carb Cycling macros ──────────────────────────────────────────────────────
@@ -2693,6 +2743,73 @@ def app_get_profile(user: UserDB = Depends(get_current_user)):
     return user.to_profile_dict()
 
 
+@app.put("/app/profile", tags=["profile"])
+def app_update_profile(payload: ProfileUpdateRequest, user: UserDB = Depends(get_current_user)):
+    """
+    Aktualizuje profil użytkownika.
+    Tylko niepuste pola są zmieniane — reszta pozostaje bez zmian.
+    
+    ⚠️  WAŻNE: Kalorie i białko zawsze się przeliczają jeśli zmieni się
+    którykolwiek z: weight, age, goal, frequency, gender, diet
+    
+    Wpływ diet na białko:
+    - High-Protein: +0.2 g/kg (max 2.4 g/kg)
+    - Low-Carb: +0.1 g/kg (max 2.2 g/kg)
+    - Balanced/Standard/inne: bez modyfikacji
+    """
+    with Session(engine) as session:
+        db_user = session.get(UserDB, user.id)
+        if not db_user:
+            raise HTTPException(status_code=404, detail="Użytkownik nie znaleziony")
+        
+        # Zaznacz czy trzeba przeliczać kalorie/białko
+        should_recalc_macros = False
+        
+        # Aktualizuj tylko podane pola
+        if payload.age is not None:
+            db_user.age = payload.age
+            should_recalc_macros = True
+        if payload.weight is not None:
+            db_user.weight = payload.weight
+            should_recalc_macros = True
+        if payload.target_weight is not None:
+            db_user.target_weight = payload.target_weight
+        if payload.gender is not None:
+            db_user.gender = payload.gender
+            should_recalc_macros = True
+        if payload.goal is not None:
+            db_user.goal = payload.goal
+            should_recalc_macros = True
+        if payload.frequency is not None:
+            db_user.frequency = payload.frequency
+            should_recalc_macros = True
+        if payload.diet is not None:
+            db_user.diet = payload.diet
+            should_recalc_macros = True  # Dieta wpływa na białko!
+        if payload.allergies is not None:
+            db_user.allergies = payload.allergies
+        if payload.meals_per_day is not None:
+            db_user.meals_per_day = payload.meals_per_day
+        if payload.notes is not None:
+            db_user.notes = payload.notes
+        
+        # Przelicz kalorie i białko jeśli którýkolwiek z parametrów się zmienił
+        if should_recalc_macros:
+            db_user.calories_target = calc_calories(db_user)
+            db_user.protein_target = calc_protein(db_user)
+        
+        db_user.updated_at = datetime.now().isoformat()
+        session.add(db_user)
+        session.commit()
+        session.refresh(db_user)
+        
+        return {
+            "status": "ok",
+            "message": "Profil zaktualizowany",
+            "profile": db_user.to_profile_dict(),
+        }
+
+
 @app.get("/app/dashboard", tags=["profile"])
 def app_dashboard(user: UserDB = Depends(get_current_user)):
     with Session(engine) as session:
@@ -2753,6 +2870,10 @@ def app_daily_checkin(log: AppDailyCheckinRequest, user: UserDB = Depends(get_cu
         session.add(entry)
 
         # ── XP awards ────────────────────────────────────────────────────────
+        # ANTI-SPAM: Śledź czy to nowy wpis czy update
+        is_new_entry = existing is None
+        had_previous_workout = existing and existing.workout  # Czy przed zmianę było workout
+        
         xp_earned = _XP_CHECKIN
         # XP za wodę — 5 XP gdy zalogowano ≥ 500 ml (zgodnie z nowym systemem)
         wl_val = getattr(log, "water_liters", None) or 0
@@ -2773,7 +2894,9 @@ def app_daily_checkin(log: AppDailyCheckinRequest, user: UserDB = Depends(get_cu
             user.weight = log.weight
             user.calories_target = calc_calories(user)
             user.protein_target = calc_protein(user)
-        if log.workout:
+        # ANTI-SPAM: Przyznaj XP za workout TYLKO raz na dzień
+        # Jeśli to nowy wpis lub jeśli to update ale wcześniej nie było treningu — przyznaj XP
+        if log.workout and (is_new_entry or (not had_previous_workout)):
             xp_earned += _XP_WORKOUT_LOGGED
         eaten = getattr(log, "eaten_meals", []) or []
         if eaten:
