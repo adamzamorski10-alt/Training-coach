@@ -52,7 +52,13 @@ app.add_middleware(
 # Include routers
 app.include_router(auth_router)
 app.include_router(health_router)
-# TODO: fitness routes, ai routes
+
+# Import fitness routes
+from app.fitness.routes import router as fitness_router
+from app.ai.routes import router as ai_router
+
+app.include_router(fitness_router)
+app.include_router(ai_router)
 
 
 # Exception handlers

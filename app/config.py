@@ -36,6 +36,7 @@ _XP_MEAL_LOGGED = 5
 _XP_RECOVERY_FILLED = 8
 _XP_DRILL_ATTEMPT = 25
 _XP_DRILL_COMPLETED = 100
+_XP_STREAK_BONUS = 10
 
 # ─── CORS ─────────────────────────────────────────────────────────────────────
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
