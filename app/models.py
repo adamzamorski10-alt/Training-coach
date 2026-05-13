@@ -1,0 +1,271 @@
+"""
+FitAI Models — SQLModel definitions for database tables
+"""
+
+import json
+import uuid as _uuid_mod
+from datetime import datetime
+from typing import TYPE_CHECKING, Optional
+
+from sqlalchemy.orm import relationship
+from sqlmodel import Field, Relationship, SQLModel
+
+if TYPE_CHECKING:
+    from app.fitness.calculations import _xp_to_level  # avoid circular import
+
+
+class UserDB(SQLModel, table=True):
+    __tablename__ = "users"
+
+    id: Optional[str] = Field(
+        default_factory=lambda: str(_uuid_mod.uuid4()),
+        primary_key=True,
+    )
+    user_key: str = Field(unique=True, index=True)          # "web:<identity_id>" lub legacy user_id
+    identity_id: Optional[str] = Field(default=None, index=True)
+    email: Optional[str] = Field(default=None, index=True)
+    name: str
+    age: int
+    height: float
+    weight: float
+    start_weight: float
+    target_weight: float
+    gender: str = "mężczyzna"
+    goal: str
+    frequency: str
+    diet: str
+    allergies: str = ""
+    meals_per_day: int = 4
+    notes: str = ""
+    plan: str = "free"          # "free" | "pro"
+    role: str = "free_user"
+    calories_target: int = 0
+    protein_target: int = 0
+    streak_days: int = 0
+    linked_discord_id: Optional[str] = None
+    # JSON-encoded lists/dicts – SQLite nie ma ARRAY
+    sports_json: str = "[]"
+    training_focus_json: str = "[]"
+    improvement_areas_json: str = "[]"
+    preferred_foods_json: str = "[]"
+    avoid_foods_json: str = "[]"
+    available_equipment_json: str = "[]"
+    avoid_exercises_json: str = "[]"
+    reminders_json: str = '{"email_enabled":true,"discord_enabled":false,"discord_channel_id":null}'
+    weekly_plan_json: Optional[str] = None
+    substitutes_history_json: str = "{}"
+    # ─── Sports module ───────────────────────────────────────────────────────
+    sport_focus: Optional[str] = None                  # np. "koszykówka"
+    sport_specialization: Optional[str] = None         # np. "rzuty"
+    sport_training_days_json: str = "[]"               # np. ["Środa", "Sobota"]
+    # ─── Auth (dodane w v2.1) ───────────────────────────────────────────────
+    hashed_password: Optional[str] = None             # None = konto Netlify Identity (stare)
+    is_active: bool = True                             # możliwość blokowania konta
+    # ─── Gamification & safety ───────────────────────────────────────────────
+    total_xp: int = 0                                  # łączne punkty XP
+    injuries: str = ""                                 # przecinkowy string: "kolano lewe,bark"
+    last_weight_change: float = 0.0                    # delta wagi wzgl. poprzedniego wpisu [kg]
+    created_at: str = Field(default_factory=lambda: datetime.now().isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now().isoformat())
+
+    # ── Relacje ──────────────────────────────────────────────────────────────────
+    logs: list["DailyLogDB"] = Relationship(
+        sa_relationship=relationship(
+            "DailyLogDB",
+            back_populates="user",
+            lazy="select",
+        )
+    )
+    exercise_results: list["ExerciseResultDB"] = Relationship(
+        sa_relationship=relationship(
+            "ExerciseResultDB",
+            back_populates="user",
+            lazy="select",
+        )
+    )
+
+    # Helpers
+    def get_list(self, field: str) -> list:
+        return json.loads(getattr(self, field, "[]") or "[]")
+
+    def set_list(self, field: str, value: list):
+        setattr(self, field, json.dumps(value, ensure_ascii=False))
+
+    def get_dict(self, field: str) -> dict:
+        return json.loads(getattr(self, field, "{}") or "{}")
+
+    def set_dict(self, field: str, value: dict):
+        setattr(self, field, json.dumps(value, ensure_ascii=False))
+
+    def to_profile_dict(self) -> dict:
+        """Serializes user row to the legacy profile dict format for backward compat."""
+        from app.fitness.calculations import _xp_to_level
+        
+        return {
+            "user_key": self.user_key,
+            "identity_id": self.identity_id,
+            "email": self.email,
+            "name": self.name,
+            "age": self.age,
+            "height": self.height,
+            "weight": self.weight,
+            "start_weight": self.start_weight,
+            "target_weight": self.target_weight,
+            "gender": self.gender,
+            "goal": self.goal,
+            "frequency": self.frequency,
+            "diet": self.diet,
+            "allergies": self.allergies,
+            "meals_per_day": self.meals_per_day,
+            "notes": self.notes,
+            "plan": self.plan,
+            "role": self.role,
+            "calories_target": self.calories_target,
+            "protein_target": self.protein_target,
+            "streak_days": self.streak_days,
+            "linked_discord_id": self.linked_discord_id,
+            "sports": self.get_list("sports_json"),
+            "training_focus": self.get_list("training_focus_json"),
+            "improvement_areas": self.get_list("improvement_areas_json"),
+            "preferred_foods": self.get_list("preferred_foods_json"),
+            "avoid_foods": self.get_list("avoid_foods_json"),
+            "available_equipment": self.get_list("available_equipment_json"),
+            "avoid_exercises": self.get_list("avoid_exercises_json"),
+            "reminders": self.get_dict("reminders_json"),
+            "weekly_plan": self.get_dict("weekly_plan_json") if self.weekly_plan_json else None,
+            "substitutes_history": self.get_dict("substitutes_history_json"),
+            "sport_focus": self.sport_focus,
+            "sport_specialization": self.sport_specialization,
+            "sport_training_days": self.get_list("sport_training_days_json"),
+            "total_xp": self.total_xp,
+            "level": _xp_to_level(self.total_xp),
+            "injuries": [i.strip() for i in self.injuries.split(",") if i.strip()],
+            "last_weight_change": self.last_weight_change,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
+
+
+class DailyLogDB(SQLModel, table=True):
+    __tablename__ = "daily_logs"
+
+    id: Optional[str] = Field(
+        default_factory=lambda: str(_uuid_mod.uuid4()),
+        primary_key=True,
+    )
+    user_id: str = Field(foreign_key="users.id", index=True)
+    log_date: str = Field(index=True)           # ISO date string
+    food: str = ""
+    workout: str = ""
+    mood: str = ""
+    weight: Optional[float] = None
+    water_liters: Optional[float] = None          # spożycie wody w litrach (inkrementowane)
+    logged_at: str = Field(default_factory=lambda: datetime.now().isoformat())
+
+    user: "UserDB" = Relationship(
+        sa_relationship=relationship(
+            "UserDB",
+            back_populates="logs",
+            lazy="select",
+        )
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "date": self.log_date,
+            "food": self.food,
+            "workout": self.workout,
+            "mood": self.mood,
+            "weight": self.weight,
+            "water_liters": self.water_liters,
+            "logged_at": self.logged_at,
+        }
+
+
+class ExerciseResultDB(SQLModel, table=True):
+    """Historyczne wyniki ćwiczeń – serce systemu progresji."""
+    __tablename__ = "exercise_results"
+
+    id: Optional[str] = Field(
+        default_factory=lambda: str(_uuid_mod.uuid4()),
+        primary_key=True,
+    )
+    user_id: str = Field(foreign_key="users.id", index=True)
+    exercise_name: str = Field(index=True)
+    session_date: str = Field(index=True)       # ISO date
+    sets: int
+    reps: int
+    weight_kg: float
+    rpe: int = Field(ge=1, le=10)               # 1 = bardzo lekko, 10 = maksymalny wysiłek
+    notes: str = ""
+    logged_at: str = Field(default_factory=lambda: datetime.now().isoformat())
+
+    user: Optional["UserDB"] = Relationship(
+        sa_relationship=relationship(
+            "UserDB",
+            back_populates="exercise_results",
+            lazy="select",
+        )
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "exercise_name": self.exercise_name,
+            "session_date": self.session_date,
+            "sets": self.sets,
+            "reps": self.reps,
+            "weight_kg": self.weight_kg,
+            "rpe": self.rpe,
+            "notes": self.notes,
+            "logged_at": self.logged_at,
+        }
+
+
+class DrillResultDB(SQLModel, table=True):
+    """Wyniki sesji drilli sportowych – serce systemu progresji sportowej."""
+    __tablename__ = "drill_results"
+
+    id: Optional[str] = Field(
+        default_factory=lambda: str(_uuid_mod.uuid4()),
+        primary_key=True,
+    )
+    user_id: str = Field(foreign_key="users.id", index=True)
+    drill_name: str = Field(index=True)
+    session_date: str = Field(index=True)       # ISO date
+    success_count: int = 0                      # trafienia / powtórzenia (rzuty)
+    total_attempts: int = 0                     # łączna liczba prób (rzuty)
+    rpe: int = Field(ge=1, le=10)              # 1 = bardzo lekko, 10 = maksymalny wysiłek
+    notes: str = ""
+    # ─── Pola dla typów drilli bieg/sprint ───────────────────────────────────
+    time_seconds: Optional[float] = None        # czas w sekundach (Bieg/Sprint)
+    distance_meters: Optional[float] = None     # dystans w metrach (Bieg/Sprint)
+    # ─── Pola ogólne (Skill/Drill i Cardio/Sport) ─────────────────────────────
+    duration_seconds: Optional[int] = None      # czas trwania ćwiczenia/meczu [s]
+    weight_kg: Optional[float] = None           # obciążenie [kg] (np. weighted drill)
+    logged_at: str = Field(default_factory=lambda: datetime.now().isoformat())
+
+    def to_dict(self) -> dict:
+        base = {
+            "id": self.id,
+            "drill_name": self.drill_name,
+            "session_date": self.session_date,
+            "rpe": self.rpe,
+            "notes": self.notes,
+            "logged_at": self.logged_at,
+        }
+        # Rzuty: pola success/attempts
+        if self.total_attempts:
+            base["success_count"]  = self.success_count
+            base["total_attempts"] = self.total_attempts
+            base["accuracy_pct"]   = round(self.success_count / self.total_attempts * 100)
+        # Bieg/Sprint: pola time/distance
+        if self.time_seconds is not None:
+            base["time_seconds"]   = self.time_seconds
+        if self.distance_meters is not None:
+            base["distance_meters"] = self.distance_meters
+        if self.duration_seconds is not None:
+            base["duration_seconds"] = self.duration_seconds
+        if self.weight_kg is not None:
+            base["weight_kg"] = self.weight_kg
+        return base

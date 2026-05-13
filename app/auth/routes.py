@@ -1,0 +1,201 @@
+"""
+Auth Routes — registration, login, password change, token refresh
+"""
+
+from datetime import datetime
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlmodel import Session, select
+
+from app.auth import (
+    create_access_token,
+    get_current_user,
+    hash_password,
+    verify_password,
+)
+from app.database import engine
+from app.fitness.calculations import calc_calories, calc_protein
+from app.models import UserDB
+from app.schemas import (
+    ChangePasswordRequest,
+    LoginRequest,
+    RegisterRequest,
+    TokenResponse,
+    UserProfile,
+)
+
+router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+@router.post("/register", response_model=TokenResponse)
+def register(payload: RegisterRequest):
+    """
+    Rejestracja nowego użytkownika z hasłem.
+    Zwraca JWT gotowy do użycia w nagłówku Authorization: Bearer <token>.
+    """
+    with Session(engine) as session:
+        # Sprawdź unikalność e-maila
+        existing = session.exec(
+            select(UserDB).where(UserDB.email == payload.email.lower().strip())
+        ).first()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Konto z tym e-mailem już istnieje",
+            )
+
+        user = UserDB(
+            user_key=f"native:{payload.email.lower().strip()}",
+            email=payload.email.lower().strip(),
+            hashed_password=hash_password(payload.password),
+            name=payload.name,
+            age=payload.age,
+            height=payload.height,
+            weight=payload.weight,
+            start_weight=payload.weight,
+            target_weight=payload.target_weight,
+            gender=payload.gender,
+            goal=payload.goal,
+            frequency=payload.frequency,
+            diet=payload.diet,
+            is_active=True,
+        )
+        user.calories_target = calc_calories(user)
+        user.protein_target = calc_protein(user)
+        session.add(user)
+        try:
+            session.commit()
+            session.refresh(user)
+        except IntegrityError:
+            session.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Konto z tym e-mailem już istnieje (race condition)",
+            )
+        except SQLAlchemyError as exc:
+            session.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Błąd bazy danych podczas rejestracji: {exc}",
+            )
+
+        token = create_access_token(user.id, user.email, user.role)
+        return TokenResponse(
+            access_token=token,
+            user_id=user.id,
+            name=user.name,
+            role=user.role,
+            plan=user.plan,
+        )
+
+
+@router.post("/login", response_model=TokenResponse)
+def login(payload: LoginRequest):
+    """
+    Logowanie email + hasło. Zwraca JWT.
+    Endpoint publiczny — nie wymaga tokena.
+    """
+    with Session(engine) as session:
+        user = session.exec(
+            select(UserDB).where(UserDB.email == payload.email.lower().strip())
+        ).first()
+
+        # Celowo jednolity komunikat błędu — nie ujawniamy czy email istnieje
+        _INVALID = HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Nieprawidłowy e-mail lub hasło",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+        if not user:
+            raise _INVALID
+        if not user.hashed_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="To konto używa logowania zewnętrznego (Netlify Identity). "
+                "Użyj oryginalnego dostawcy.",
+            )
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Konto zostało zablokowane. Skontaktuj się z pomocą techniczną.",
+            )
+        if not verify_password(payload.password, user.hashed_password):
+            raise _INVALID
+
+        token = create_access_token(user.id, user.email, user.role)
+        return TokenResponse(
+            access_token=token,
+            user_id=user.id,
+            name=user.name,
+            role=user.role,
+            plan=user.plan,
+        )
+
+
+@router.get("/me")
+def me(user: UserDB = Depends(get_current_user)):
+    """Zwraca profil aktualnie zalogowanego użytkownika."""
+    return user.to_profile_dict()
+
+
+@router.post("/change-password")
+def change_password(
+    payload: ChangePasswordRequest,
+    user: UserDB = Depends(get_current_user),
+):
+    """Zmiana hasła — wymaga podania aktualnego hasła."""
+    if not user.hashed_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Konto zewnętrzne — zmień hasło u dostawcy identity.",
+        )
+    if not verify_password(payload.current_password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Aktualne hasło jest nieprawidłowe",
+        )
+    if len(payload.new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Nowe hasło musi mieć co najmniej 8 znaków",
+        )
+    with Session(engine) as session:
+        db_user = session.get(UserDB, user.id)
+        db_user.hashed_password = hash_password(payload.new_password)
+        db_user.updated_at = datetime.now().isoformat()
+        session.add(db_user)
+        session.commit()
+    return {"status": "ok", "message": "Hasło zostało zmienione"}
+
+
+@router.post("/refresh", response_model=TokenResponse)
+def refresh(user: UserDB = Depends(get_current_user)):
+    """
+    Odświeżenie tokena — klient wysyła stary (wciąż ważny) token,
+    dostaje nowy z przesuniętym `exp`. Bezpieczne zastępstwo refresh tokenów
+    dla aplikacji SPA bez backendu sesji.
+    """
+    token = create_access_token(user.id, user.email, user.role)
+    return TokenResponse(
+        access_token=token,
+        user_id=user.id,
+        name=user.name,
+        role=user.role,
+        plan=user.plan,
+    )
+
+
+@router.post("/users/{user_id}")
+def create_or_update_user(user_id: str, profile: UserProfile):
+    """Legacy endpoint — tworzy lub aktualizuje użytkownika."""
+    from app.fitness.utils import upsert_user_from_profile
+    
+    with Session(engine) as session:
+        user = upsert_user_from_profile(user_id, profile.model_dump(), session)
+        return {
+            "status": "ok",
+            "user_id": user_id,
+            "calories_target": user.calories_target,
+        }
