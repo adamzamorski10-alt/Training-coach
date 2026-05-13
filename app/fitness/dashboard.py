@@ -28,7 +28,7 @@ def compute_streak_days_from_logs(logs: list[DailyLogDB]) -> int:
     if not logs:
         return 0
     
-    today = date.today().isoformat()
+    today = date.today()
     logs_by_date = {log.log_date: log for log in logs}
     
     current_date = today
@@ -40,10 +40,7 @@ def compute_streak_days_from_logs(logs: list[DailyLogDB]) -> int:
             if log.food or log.workout or log.weight is not None:
                 streak += 1
                 # Move to previous day
-                current_date = (
-                    datetime.fromisoformat(current_date).date()
-                    - __import__("datetime").timedelta(days=1)
-                ).isoformat()
+                current_date = current_date - __import__("datetime").timedelta(days=1)
                 continue
         break
     
@@ -52,7 +49,7 @@ def compute_streak_days_from_logs(logs: list[DailyLogDB]) -> int:
 
 def build_dashboard(user: UserDB, logs: list[DailyLogDB]) -> dict:
     """Buduje pełny dashboard dla użytkownika."""
-    today = date.today().isoformat()
+    today = date.today()
     today_log = next((l for l in logs if l.log_date == today), None)
     
     # Macros
@@ -63,10 +60,11 @@ def build_dashboard(user: UserDB, logs: list[DailyLogDB]) -> dict:
     
     # Weight trend (last 14 days)
     weight_logs = [l for l in logs if l.weight is not None][:14]
-    weight_trend = [{"date": l.log_date, "weight": l.weight} for l in reversed(weight_logs)]
+    weight_trend = [{"date": l.log_date.isoformat(), "weight": l.weight} for l in reversed(weight_logs)]
     
     # Weekly stats
-    week_logs = [l for l in logs if l.log_date >= (datetime.fromisoformat(today).date() - __import__("datetime").timedelta(days=7)).isoformat()]
+    week_ago = today - __import__("datetime").timedelta(days=7)
+    week_logs = [l for l in logs if l.log_date >= week_ago]
     workouts_week = len([l for l in week_logs if l.workout])
     
     return {

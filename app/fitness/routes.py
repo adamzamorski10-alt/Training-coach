@@ -106,7 +106,7 @@ def update_profile(
             db_user.calories_target = calc_calories(db_user)
             db_user.protein_target = calc_protein(db_user)
 
-        db_user.updated_at = datetime.now().isoformat()
+        db_user.updated_at = datetime.now()  # ← Use datetime object
         session.add(db_user)
         session.commit()
         session.refresh(db_user)
@@ -136,7 +136,7 @@ def daily_checkin(
     Automatycznie przyznaje XP, oblicza streak, przelicza macros.
     """
     with Session(engine) as session:
-        today = date.today().isoformat()
+        today = date.today()  # ← Use date object instead of string
         existing = session.exec(
             select(DailyLogDB)
             .where(DailyLogDB.user_id == user.id)
@@ -153,13 +153,13 @@ def daily_checkin(
                 existing.mood = log.mood
             if log.weight is not None:
                 existing.weight = log.weight
-            existing.logged_at = datetime.now().isoformat()
+            existing.logged_at = datetime.now()  # ← Use datetime object
             entry = existing
         else:
             # Nowy wpis
             entry = DailyLogDB(
                 user_id=user.id,
-                log_date=today,
+                log_date=today,  # ← Use date object
                 food=log.food,
                 workout=log.workout,
                 mood=log.mood,
@@ -208,7 +208,7 @@ def daily_checkin(
             user.total_xp += streak_bonus
             xp_earned += streak_bonus
 
-        user.updated_at = datetime.now().isoformat()
+        user.updated_at = datetime.now()  # ← Use datetime object
         session.add(user)
         session.commit()
 
@@ -230,12 +230,12 @@ def log_exercise_result(
     user: UserDB = Depends(get_current_user),
 ):
     """Zaloguj wynik ćwiczenia — nazwa, serie, powtórzenia, ciężar, RPE."""
-    session_date = req.session_date or date.today().isoformat()
+    session_date = req.session_date or date.today()  # ← Use date object
 
     result = ExerciseResultDB(
         user_id=user.id,
         exercise_name=req.exercise_name,
-        session_date=session_date,
+        session_date=session_date,  # ← date object
         sets=req.sets,
         reps=req.reps,
         weight_kg=req.weight_kg,
@@ -263,12 +263,12 @@ def log_drill_result(
     """Zaloguj wynik drilla sportowego — nazwa, sukces/próby, czas, dystans, RPE."""
     from app.models import DrillResultDB
 
-    session_date = req.session_date or date.today().isoformat()
+    session_date = req.session_date or date.today()  # ← Use date object
 
     drill = DrillResultDB(
         user_id=user.id,
         drill_name=req.drill_name,
-        session_date=session_date,
+        session_date=session_date,  # ← date object
         success_count=req.success_count,
         total_attempts=req.total_attempts,
         rpe=req.rpe,

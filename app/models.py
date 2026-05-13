@@ -4,7 +4,7 @@ FitAI Models — SQLModel definitions for database tables
 
 import json
 import uuid as _uuid_mod
-from datetime import datetime
+from datetime import datetime, date
 from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy.orm import relationship
@@ -65,8 +65,8 @@ class UserDB(SQLModel, table=True):
     total_xp: int = 0                                  # łączne punkty XP
     injuries: str = ""                                 # przecinkowy string: "kolano lewe,bark"
     last_weight_change: float = 0.0                    # delta wagi wzgl. poprzedniego wpisu [kg]
-    created_at: str = Field(default_factory=lambda: datetime.now().isoformat())
-    updated_at: str = Field(default_factory=lambda: datetime.now().isoformat())
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
 
     # ── Relacje ──────────────────────────────────────────────────────────────────
     logs: list["DailyLogDB"] = Relationship(
@@ -141,8 +141,8 @@ class UserDB(SQLModel, table=True):
             "level": _xp_to_level(self.total_xp),
             "injuries": [i.strip() for i in self.injuries.split(",") if i.strip()],
             "last_weight_change": self.last_weight_change,
-            "created_at": self.created_at,
-            "updated_at": self.updated_at,
+            "created_at": self.created_at.isoformat(),  # Serialize datetime to ISO string
+            "updated_at": self.updated_at.isoformat(),
         }
 
 
@@ -154,13 +154,13 @@ class DailyLogDB(SQLModel, table=True):
         primary_key=True,
     )
     user_id: str = Field(foreign_key="users.id", index=True)
-    log_date: str = Field(index=True)           # ISO date string
+    log_date: date = Field(index=True)           # Rzeczywista data, nie string
     food: str = ""
     workout: str = ""
     mood: str = ""
     weight: Optional[float] = None
     water_liters: Optional[float] = None          # spożycie wody w litrach (inkrementowane)
-    logged_at: str = Field(default_factory=lambda: datetime.now().isoformat())
+    logged_at: datetime = Field(default_factory=datetime.now)  # Rzeczywisty datetime
 
     user: "UserDB" = Relationship(
         sa_relationship=relationship(
@@ -172,13 +172,13 @@ class DailyLogDB(SQLModel, table=True):
 
     def to_dict(self) -> dict:
         return {
-            "date": self.log_date,
+            "date": self.log_date.isoformat(),  # Serialize to ISO format for API
             "food": self.food,
             "workout": self.workout,
             "mood": self.mood,
             "weight": self.weight,
             "water_liters": self.water_liters,
-            "logged_at": self.logged_at,
+            "logged_at": self.logged_at.isoformat(),
         }
 
 
@@ -192,13 +192,13 @@ class ExerciseResultDB(SQLModel, table=True):
     )
     user_id: str = Field(foreign_key="users.id", index=True)
     exercise_name: str = Field(index=True)
-    session_date: str = Field(index=True)       # ISO date
+    session_date: date = Field(index=True)       # Rzeczywista data
     sets: int
     reps: int
     weight_kg: float
     rpe: int = Field(ge=1, le=10)               # 1 = bardzo lekko, 10 = maksymalny wysiłek
     notes: str = ""
-    logged_at: str = Field(default_factory=lambda: datetime.now().isoformat())
+    logged_at: datetime = Field(default_factory=datetime.now)  # Rzeczywisty datetime
 
     user: Optional["UserDB"] = Relationship(
         sa_relationship=relationship(
@@ -212,13 +212,13 @@ class ExerciseResultDB(SQLModel, table=True):
         return {
             "id": self.id,
             "exercise_name": self.exercise_name,
-            "session_date": self.session_date,
+            "session_date": self.session_date.isoformat(),
             "sets": self.sets,
             "reps": self.reps,
             "weight_kg": self.weight_kg,
             "rpe": self.rpe,
             "notes": self.notes,
-            "logged_at": self.logged_at,
+            "logged_at": self.logged_at.isoformat(),
         }
 
 
@@ -232,7 +232,7 @@ class DrillResultDB(SQLModel, table=True):
     )
     user_id: str = Field(foreign_key="users.id", index=True)
     drill_name: str = Field(index=True)
-    session_date: str = Field(index=True)       # ISO date
+    session_date: date = Field(index=True)       # Rzeczywista data
     success_count: int = 0                      # trafienia / powtórzenia (rzuty)
     total_attempts: int = 0                     # łączna liczba prób (rzuty)
     rpe: int = Field(ge=1, le=10)              # 1 = bardzo lekko, 10 = maksymalny wysiłek
@@ -243,16 +243,16 @@ class DrillResultDB(SQLModel, table=True):
     # ─── Pola ogólne (Skill/Drill i Cardio/Sport) ─────────────────────────────
     duration_seconds: Optional[int] = None      # czas trwania ćwiczenia/meczu [s]
     weight_kg: Optional[float] = None           # obciążenie [kg] (np. weighted drill)
-    logged_at: str = Field(default_factory=lambda: datetime.now().isoformat())
+    logged_at: datetime = Field(default_factory=datetime.now)  # Rzeczywisty datetime
 
     def to_dict(self) -> dict:
         base = {
             "id": self.id,
             "drill_name": self.drill_name,
-            "session_date": self.session_date,
+            "session_date": self.session_date.isoformat(),
             "rpe": self.rpe,
             "notes": self.notes,
-            "logged_at": self.logged_at,
+            "logged_at": self.logged_at.isoformat(),
         }
         # Rzuty: pola success/attempts
         if self.total_attempts:
