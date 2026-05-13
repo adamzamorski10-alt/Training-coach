@@ -560,6 +560,74 @@ app.add_exception_handler(
     _rate_limit_exceeded_handler,   # returns 429 with Retry-After header
 )
 
+# ── Globalny handler SQLAlchemyError ─────────────────────────────────────────
+# Zapobiega wyciekom surowego traceback do frontendu przy problemach z bazą.
+# Frontend zawsze dostaje JSON z polem "detail" — nigdy HTML z 500.
+@app.exception_handler(SQLAlchemyError)
+async def sqlalchemy_error_handler(request: Request, exc: SQLAlchemyError) -> JSONResponse:
+    """
+    Przechwytuje wszystkie nieobsłużone błędy SQLAlchemy (OperationalError,
+    IntegrityError, DataError itp.) i zwraca czytelny JSON zamiast surowego 500.
+
+    Loguje pełny traceback po stronie serwera dla debugowania.
+    """
+    exc_type = type(exc).__name__
+    exc_msg  = str(exc).split("\n")[0]          # pierwsza linia — bez traceback SQL
+    endpoint = request.url.path
+
+    print(
+        f"[FitAI][SQLAlchemyError] {exc_type} @ {request.method} {endpoint} — {exc_msg}"
+    )
+
+    # Specyficzne komunikaty dla najczęstszych błędów
+    if isinstance(exc, IntegrityError):
+        user_message = "Konflikt danych — rekord już istnieje lub narusza unikalność."
+        status_code  = 409
+    elif isinstance(exc, OperationalError):
+        # Najczęstsze przyczyny: locked DB, disk full, brak pliku .db
+        user_message = "Baza danych chwilowo niedostępna. Spróbuj ponownie za chwilę."
+        status_code  = 503
+    else:
+        user_message = "Błąd bazy danych. Skontaktuj się z pomocą techniczną jeśli problem się powtarza."
+        status_code  = 500
+
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "error":     exc_type,
+            "detail":    user_message,
+            "endpoint":  endpoint,
+            "hint":      "Sprawdź logi serwera w celu uzyskania szczegółów.",
+        },
+    )
+
+
+@app.exception_handler(Exception)
+async def generic_error_handler(request: Request, exc: Exception) -> JSONResponse:
+    """
+    Ostatnia linia obrony — przechwytuje wszystkie nieobsłużone wyjątki.
+    Zapobiega wyciekowi surowego traceback Pythona do frontendu.
+    """
+    exc_type = type(exc).__name__
+    endpoint = request.url.path
+
+    # Nie loguj HTTPException — FastAPI już je obsługuje
+    if isinstance(exc, HTTPException):
+        raise exc
+
+    print(
+        f"[FitAI][UnhandledException] {exc_type} @ {request.method} {endpoint} — {exc}"
+    )
+
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error":   exc_type,
+            "detail":  "Nieoczekiwany błąd serwera. Sprawdź logi.",
+            "endpoint": endpoint,
+        },
+    )
+
 # ── Klienty AI (Groq primary, Gemini fallback) ───────────────────────────────
 _groq_client:  Optional[_groq_module.Groq]  = None
 _gemini_ready: bool = False
@@ -2898,12 +2966,16 @@ def app_get_plan(user: UserDB = Depends(get_current_user)):
     — nawet gdy plan jest pusty — żeby frontend nigdy nie dostał KeyError.
     """
     
-    _EMPTY = {
+    # Pusta struktura gwarantowana — frontend NIGDY nie dostaje KeyError.
+    # diet i training jako "" (string) gdy plan nie istnieje,
+    # jako {} (dict) gdy plan istnieje ale jest pusty — oba warianty obsługiwane.
+    _EMPTY: dict = {
         "days":         [],
-        "diet":         {},   # frontend reads plan.diet
-        "training":     {},   # frontend reads plan.training
+        "diet":         "",    # string = "brak planu" sygnał dla frontendu
+        "training":     "",    # string = "brak planu" sygnał dla frontendu
         "generated_at": None,
         "weekly_goal":  None,
+        "source":       "empty",
     }
 
     try:
@@ -2911,7 +2983,11 @@ def app_get_plan(user: UserDB = Depends(get_current_user)):
             print(f"[FitAI][app_get_plan] user_id={user.id} — brak weekly_plan_json, zwracam pustą strukturę")
             return _EMPTY
 
+        # Bezpieczny odczyt JSON — get_dict może zwrócić None gdy pole jest "null"
         raw = user.get_dict("weekly_plan_json")
+        if not raw or not isinstance(raw, dict):
+            print(f"[FitAI][app_get_plan] user_id={user.id} — weekly_plan_json jest null/pusty po deserializacji")
+            return _EMPTY
 
         # ── Buduj klucze diet i training z listy days ────────────────────────
         # Każdy element days ma: day, meals (→ diet) i workout.exercises (→ training)
@@ -2936,10 +3012,11 @@ def app_get_plan(user: UserDB = Depends(get_current_user)):
 
         result = {
             **raw,
-            "diet":     diet_by_day,
-            "training": training_by_day,
+            "diet":     diet_by_day     if diet_by_day     else {},
+            "training": training_by_day if training_by_day else {},
+            "source":   "database",
         }
-        # Upewnij się że days zawsze istnieje jako lista
+        # Upewnij się że wymagane klucze zawsze istnieją
         result.setdefault("days", [])
         result.setdefault("generated_at", None)
         result.setdefault("weekly_goal", None)
@@ -2949,29 +3026,47 @@ def app_get_plan(user: UserDB = Depends(get_current_user)):
 
     except json.JSONDecodeError as exc:
         print(f"[FitAI][app_get_plan] ERROR user_id={user.id} — Uszkodzony JSON: {exc}")
-        return {**_EMPTY, "error_hint": "corrupted_plan_json"}
+        return {**_EMPTY, "error_hint": "corrupted_plan_json", "source": "error"}
+    except SQLAlchemyError as exc:
+        print(f"[FitAI][app_get_plan] DB ERROR user_id={user.id} — {type(exc).__name__}: {exc}")
+        return {**_EMPTY, "error_hint": "database_error", "source": "error"}
     except Exception as exc:
         print(f"[FitAI][app_get_plan] ERROR user_id={user.id} — {type(exc).__name__}: {exc}")
-        return _EMPTY
+        return {**_EMPTY, "source": "error"}
 
 
 @app.post("/app/plan/generate", tags=["plan"])
 def app_generate_plan(payload: PlanGenerateRequest, user: UserDB = Depends(get_current_user)):
-    with Session(engine) as session:
-        if not _is_profile_ready_for_plan(user):
-            raise HTTPException(status_code=400, detail="Najpierw uzupełnij pełny onboarding")
-        if payload.force or not user.weekly_plan_json:
-            plan = _build_weekly_plan(user)
-            user.set_dict("weekly_plan_json", plan)
-            # Wzbogać plan o sugestie progresji
-            for day in plan.get("days", []):
-                exercises = day.get("workout", {}).get("exercises", [])
-                if exercises:
-                    day["workout"]["exercises"] = _enrich_exercises_with_progression(exercises, user, session)
-            user.set_dict("weekly_plan_json", plan)
-            user.updated_at = datetime.now().isoformat()
-            session.commit()
-        return {"status": "ok", "plan": user.get_dict("weekly_plan_json")}
+    try:
+        with Session(engine) as session:
+            if not _is_profile_ready_for_plan(user):
+                raise HTTPException(status_code=400, detail="Najpierw uzupełnij pełny onboarding")
+            if payload.force or not user.weekly_plan_json:
+                plan = _build_weekly_plan(user)
+                user.set_dict("weekly_plan_json", plan)
+                # Wzbogać plan o sugestie progresji
+                for day in plan.get("days", []):
+                    exercises = day.get("workout", {}).get("exercises", [])
+                    if exercises:
+                        day["workout"]["exercises"] = _enrich_exercises_with_progression(exercises, user, session)
+                user.set_dict("weekly_plan_json", plan)
+                user.updated_at = datetime.now().isoformat()
+                try:
+                    session.commit()
+                except IntegrityError as exc:
+                    session.rollback()
+                    print(f"[FitAI][app_generate_plan] IntegrityError user_id={user.id}: {exc}")
+                    raise HTTPException(status_code=409, detail="Konflikt zapisu planu — spróbuj ponownie.")
+                except SQLAlchemyError as exc:
+                    session.rollback()
+                    print(f"[FitAI][app_generate_plan] SQLAlchemyError user_id={user.id}: {exc}")
+                    raise HTTPException(status_code=503, detail="Błąd bazy danych podczas zapisu planu.")
+            return {"status": "ok", "plan": user.get_dict("weekly_plan_json")}
+    except HTTPException:
+        raise   # przekaż HTTPException bez zmian
+    except Exception as exc:
+        print(f"[FitAI][app_generate_plan] ERROR user_id={user.id} — {type(exc).__name__}: {exc}")
+        raise HTTPException(status_code=500, detail="Błąd generowania planu. Spróbuj ponownie.")
 
 
 @app.post("/app/plan/swap", tags=["plan"])
@@ -3538,101 +3633,114 @@ def log_drill_result(payload: DrillResultRequest, user: UserDB = Depends(get_cur
     """
     session_date = payload.session_date or date.today().isoformat()
 
-    with Session(engine) as session:
+    try:
+        with Session(engine) as session:
 
-        # ── UPSERT: jeden rekord per (user, drill, dzień) ──────────────────────
-        existing_dr = session.exec(
-            select(DrillResultDB)
-            .where(DrillResultDB.user_id == user.id)
-            .where(DrillResultDB.drill_name == payload.drill_name)
-            .where(DrillResultDB.session_date == session_date)
-        ).first()
+            # ── UPSERT: jeden rekord per (user, drill, dzień) ──────────────────────
+            existing_dr = session.exec(
+                select(DrillResultDB)
+                .where(DrillResultDB.user_id == user.id)
+                .where(DrillResultDB.drill_name == payload.drill_name)
+                .where(DrillResultDB.session_date == session_date)
+            ).first()
 
-        if existing_dr:
-            # Aktualizacja istniejącego rekordu drilla
-            if payload.success_count    is not None: existing_dr.success_count    = payload.success_count
-            if payload.total_attempts   is not None: existing_dr.total_attempts   = payload.total_attempts
-            if payload.rpe              is not None: existing_dr.rpe              = payload.rpe
-            if payload.notes            is not None: existing_dr.notes            = payload.notes
-            if payload.time_seconds     is not None: existing_dr.time_seconds     = payload.time_seconds
-            if payload.distance_meters  is not None: existing_dr.distance_meters  = payload.distance_meters
-            if payload.duration_seconds is not None: existing_dr.duration_seconds = payload.duration_seconds
-            if payload.weight_kg        is not None: existing_dr.weight_kg        = payload.weight_kg
-            result = existing_dr
-        else:
-            result = DrillResultDB(
-                user_id=user.id,
-                drill_name=payload.drill_name,
-                session_date=session_date,
-                success_count=payload.success_count,
-                total_attempts=payload.total_attempts,
-                rpe=payload.rpe,
-                notes=payload.notes,
-                time_seconds=payload.time_seconds,
-                distance_meters=payload.distance_meters,
-                duration_seconds=payload.duration_seconds,
-                weight_kg=payload.weight_kg,
-            )
-        session.add(result)
-        session.commit()
-        session.refresh(result)
-
-        # Pobierz historię dla tej nazwy drilla i oblicz progresję
-        history = list(session.exec(
-            select(DrillResultDB)
-            .where(DrillResultDB.user_id == user.id)
-            .where(DrillResultDB.drill_name == payload.drill_name)
-            .order_by(DrillResultDB.session_date.desc())
-        ).all())
-
-        progression = _suggest_drill_progression(payload.drill_name, history)
-
-        # ── AI coaching tip via PROGRESSION_PROMPT ──────────────────────────
-        # Personalizowana rada po zapisie wyniku drilla.
-        # Używamy _get_prompt() z fallbackiem gdy prompts.py niedostępny.
-        # Błąd AI nie blokuje odpowiedzi — progression algorytmiczny zawsze wraca.
-        ai_coaching_tip: Optional[str] = None
-        if history:
-            last_h = history[0]
-            _successes   = last_h.success_count  or 0
-            _total_atts  = last_h.total_attempts or max(1, _successes)
-            _rpe_val     = last_h.rpe            or payload.rpe or 5
-            # Fix 1: jawny fallback 'brak' — nie wysyłaj pustego stringa do AI
-            _notes_val   = (payload.notes or "").strip() or "brak"
-            try:
-                _prog_user_msg = _get_prompt(
-                    PROGRESSION_PROMPT, _PROGRESSION_PROMPT_FB,
-                    exercise_name=payload.drill_name,
-                    successes=_successes,
-                    total_attempts=_total_atts,
-                    rpe=_rpe_val,
-                    user_notes=_notes_val,
+            if existing_dr:
+                # Aktualizacja istniejącego rekordu drilla
+                if payload.success_count    is not None: existing_dr.success_count    = payload.success_count
+                if payload.total_attempts   is not None: existing_dr.total_attempts   = payload.total_attempts
+                if payload.rpe              is not None: existing_dr.rpe              = payload.rpe
+                if payload.notes            is not None: existing_dr.notes            = payload.notes
+                if payload.time_seconds     is not None: existing_dr.time_seconds     = payload.time_seconds
+                if payload.distance_meters  is not None: existing_dr.distance_meters  = payload.distance_meters
+                if payload.duration_seconds is not None: existing_dr.duration_seconds = payload.duration_seconds
+                if payload.weight_kg        is not None: existing_dr.weight_kg        = payload.weight_kg
+                result = existing_dr
+            else:
+                result = DrillResultDB(
+                    user_id=user.id,
+                    drill_name=payload.drill_name,
+                    session_date=session_date,
+                    success_count=payload.success_count,
+                    total_attempts=payload.total_attempts,
+                    rpe=payload.rpe,
+                    notes=payload.notes,
+                    time_seconds=payload.time_seconds,
+                    distance_meters=payload.distance_meters,
+                    duration_seconds=payload.duration_seconds,
+                    weight_kg=payload.weight_kg,
                 )
-                _prog_system = (
-                    "Jesteś Trenerem Przygotowania Fizycznego FitAI. "
-                    "Odpowiadaj po polsku. Bądź konkretny, motywujący i zwięzły (max 2 zdania)."
-                )
-                _tip_raw = ask_ai(_prog_system, _prog_user_msg, max_tokens=200)
-                if not isinstance(_tip_raw, _AIError):
-                    ai_coaching_tip = _tip_raw.strip()
-                else:
-                    # Fallback algorytmiczny gdy AI niedostępne
-                    print(f"[AI ERROR] {datetime.now()}: Błąd w module [DrillResult/CoachingTip]: {_tip_raw}")
+            session.add(result)
+            session.commit()
+            session.refresh(result)
+
+            # Pobierz historię dla tej nazwy drilla i oblicz progresję
+            history = list(session.exec(
+                select(DrillResultDB)
+                .where(DrillResultDB.user_id == user.id)
+                .where(DrillResultDB.drill_name == payload.drill_name)
+                .order_by(DrillResultDB.session_date.desc())
+            ).all())
+
+            progression = _suggest_drill_progression(payload.drill_name, history)
+
+            # ── AI coaching tip via PROGRESSION_PROMPT ──────────────────────────
+            # Personalizowana rada po zapisie wyniku drilla.
+            # Używamy _get_prompt() z fallbackiem gdy prompts.py niedostępny.
+            # Błąd AI nie blokuje odpowiedzi — progression algorytmiczny zawsze wraca.
+            ai_coaching_tip: Optional[str] = None
+            if history:
+                last_h = history[0]
+                _successes   = last_h.success_count  or 0
+                _total_atts  = last_h.total_attempts or max(1, _successes)
+                _rpe_val     = last_h.rpe            or payload.rpe or 5
+                # Fix 1: jawny fallback 'brak' — nie wysyłaj pustego stringa do AI
+                _notes_val   = (payload.notes or "").strip() or "brak"
+                try:
+                    _prog_user_msg = _get_prompt(
+                        PROGRESSION_PROMPT, _PROGRESSION_PROMPT_FB,
+                        exercise_name=payload.drill_name,
+                        successes=_successes,
+                        total_attempts=_total_atts,
+                        rpe=_rpe_val,
+                        user_notes=_notes_val,
+                    )
+                    _prog_system = (
+                        "Jesteś Trenerem Przygotowania Fizycznego FitAI. "
+                        "Odpowiadaj po polsku. Bądź konkretny, motywujący i zwięzły (max 2 zdania)."
+                    )
+                    _tip_raw = ask_ai(_prog_system, _prog_user_msg, max_tokens=200)
+                    if not isinstance(_tip_raw, _AIError):
+                        ai_coaching_tip = _tip_raw.strip()
+                    else:
+                        # Fallback algorytmiczny gdy AI niedostępne
+                        print(f"[AI ERROR] {datetime.now()}: Błąd w module [DrillResult/CoachingTip]: {_tip_raw}")
+                        _eff = round((_successes / _total_atts) * 100) if _total_atts > 0 else 0
+                        ai_coaching_tip = _fallback_drill_tip(_eff, int(_rpe_val))
+                except Exception as _exc:
+                    # Non-fatal — progression algorytmiczny zawsze zwracany
+                    print(f"[AI ERROR] {datetime.now()}: Błąd w module [DrillResult/CoachingTip]: {type(_exc).__name__}: {_exc}")
                     _eff = round((_successes / _total_atts) * 100) if _total_atts > 0 else 0
-                    ai_coaching_tip = _fallback_drill_tip(_eff, int(_rpe_val))
-            except Exception as _exc:
-                # Non-fatal — progression algorytmiczny zawsze zwracany
-                print(f"[AI ERROR] {datetime.now()}: Błąd w module [DrillResult/CoachingTip]: {type(_exc).__name__}: {_exc}")
-                _eff = round((_successes / _total_atts) * 100) if _total_atts > 0 else 0
-                ai_coaching_tip = _fallback_drill_tip(_eff, int(payload.rpe or 5))
+                    ai_coaching_tip = _fallback_drill_tip(_eff, int(payload.rpe or 5))
 
-        return {
-            "status": "ok",
-            "result": result.to_dict(),
-            "progression": progression,
-            "ai_coaching_tip": ai_coaching_tip,   # None when AI unavailable
-            "upserted": existing_dr is not None,
-        }
+            return {
+                "status": "ok",
+                "result": result.to_dict(),
+                "progression": progression,
+                "ai_coaching_tip": ai_coaching_tip,   # None when AI unavailable
+                "upserted": existing_dr is not None,
+            }
+
+    except HTTPException:
+        raise
+    except SQLAlchemyError as exc:
+        print(f"[FitAI][log_drill_result] SQLAlchemyError user_id={user.id} drill='{payload.drill_name}': {type(exc).__name__}: {exc}")
+        raise HTTPException(
+            status_code=503,
+            detail="Błąd bazy danych podczas zapisu wyniku drilla. Spróbuj ponownie.",
+        )
+    except Exception as exc:
+        print(f"[FitAI][log_drill_result] ERROR user_id={user.id} — {type(exc).__name__}: {exc}")
+        raise HTTPException(status_code=500, detail="Nieoczekiwany błąd podczas zapisu drilla.")
 
 
 @app.get("/app/drill-history", tags=["sport"])

@@ -811,6 +811,142 @@
       box-shadow: 0 0 25px rgba(0, 229, 255, 0.15);
     }
 
+    /* ─── Sport Catalog (no-sport-selected state) ──────────────────────────── */
+    .sport-catalog-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+      gap: 14px;
+    }
+
+    .sport-catalog-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 22px 14px 18px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.025);
+      backdrop-filter: blur(12px);
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      overflow: hidden;
+      text-align: center;
+    }
+
+    /* Glow layer — coloured per-sport via inline --sport-color */
+    .sport-catalog-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, var(--sport-color, rgba(0,229,255,0.15)) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      border-radius: inherit;
+      pointer-events: none;
+    }
+
+    .sport-catalog-card:hover {
+      transform: translateY(-5px) scale(1.03);
+      border-color: var(--sport-color, var(--border-cyan));
+      box-shadow: 0 8px 32px color-mix(in srgb, var(--sport-color, var(--cyan)) 20%, transparent);
+    }
+
+    .sport-catalog-card:hover::before { opacity: 1; }
+
+    .sport-catalog-card-emoji {
+      font-size: 2.6rem;
+      line-height: 1;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      display: block;
+    }
+
+    .sport-catalog-card:hover .sport-catalog-card-emoji {
+      transform: scale(1.18) rotate(-4deg);
+    }
+
+    .sport-catalog-card-label {
+      font-size: 13px;
+      font-weight: 800;
+      color: #e2e8f0;
+      font-family: 'Syne', sans-serif;
+      line-height: 1.2;
+    }
+
+    .sport-catalog-card-count {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .sport-catalog-card-browse {
+      margin-top: 4px;
+      padding: 5px 14px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      border: 1px solid var(--sport-color, var(--border-cyan));
+      color: var(--sport-color, var(--cyan));
+      background: transparent;
+      transition: all 0.2s;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .sport-catalog-card:hover .sport-catalog-card-browse {
+      background: color-mix(in srgb, var(--sport-color, var(--cyan)) 12%, transparent);
+    }
+
+    /* Drill preview header shown when browsing from catalog */
+    .sport-catalog-preview-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.025);
+      backdrop-filter: blur(12px);
+      margin-bottom: 16px;
+    }
+
+    /* "Set as main sport" CTA button */
+    .btn-set-main-sport {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 20px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid rgba(249, 115, 22, 0.35);
+      background: rgba(249, 115, 22, 0.1);
+      color: #fb923c;
+      font-family: 'Syne', sans-serif;
+    }
+
+    .btn-set-main-sport:hover {
+      background: rgba(249, 115, 22, 0.2);
+      border-color: rgba(249, 115, 22, 0.6);
+      box-shadow: 0 0 18px rgba(249, 115, 22, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .btn-set-main-sport.saved {
+      border-color: rgba(34, 197, 94, 0.4);
+      background: rgba(34, 197, 94, 0.1);
+      color: #4ade80;
+    }
+
+    @media (max-width: 480px) {
+      .sport-catalog-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
     .sport-category-header {
       display: flex;
       align-items: center;
@@ -1524,7 +1660,7 @@
   <!-- END LANDING -->
 
   <!-- ======= DASHBOARD PAGE ======= -->
-  <div id="dashboardPage" class="hidden pt-16 min-h-screen" style="display:none;">
+  <div id="dashboardPage" class="hidden pt-16 min-h-screen">
 
     <!-- SIDEBAR -->
     <aside id="sidebar"
@@ -3480,14 +3616,17 @@
       manualFormType: null,
       dayLogs: { diet: [], training: [] },
       dayChecked: {}, // tracks checked state by profileId + day
-      extraItems: {}, // manually added items {profileId: [{type,name,kcal,protein,...}]}
-      aiOpen: false,
+      extraItems: {}, // manually added items {profileId: [{type,name,kcal,protein,...}]}\n      aiOpen: false,
       planSubtab: 'myplan',
       planView: 'diet',  // 'diet' | 'training'
       planCategory: 'dieta',     // 'dieta' | 'trening' | 'sport'
       planSubTab: 'plan',        // sub-tab within a category
       exerciseCount: 4,
       addOtherType: 'diet',
+      // ── Lazy render flags — set to false on logout/profile change ──────────
+      _dieta_rendered:   false,  // 'biblioteka' sub-tab rendered at least once
+      _trening_rendered: false,  // 'atlas' sub-tab rendered at least once
+      _sport_rendered:   false,  // 'drills' sub-tab rendered at least once
     };
 
     const FOOD_EXCLUSIONS = [
@@ -3544,7 +3683,8 @@
     ];
 
     // ========== MEAL DATABASE ==========
-    const MEAL_DB = {
+    window.MEAL_DB = window.MEAL_DB || {};
+    window.MEAL_DB = {
       śniadanie: [
         { name: 'Owsianka z jagodami', protein: 15, carbs: 55, fat: 5, kcal: 320, tags: ['owies', 'gluten'], ingredients: [{ item: 'Płatki owsiane', amount: '80g' }, { item: 'Jagody świeże', amount: '100g' }, { item: 'Mleko', amount: '200ml' }, { item: 'Miód', amount: '1 łyżka' }], recipe: 'Zagotuj mleko, dodaj płatki i gotuj 5 min. Udekoruj jagodami i miodem.' },
         { name: 'Jajecznica z awokado', protein: 22, carbs: 6, fat: 20, kcal: 295, tags: ['jajka'], ingredients: [{ item: 'Jajka', amount: '3 szt' }, { item: 'Awokado', amount: '0.5 szt' }, { item: 'Masło', amount: '1 łyżeczka' }, { item: 'Sól, pieprz', amount: 'do smaku' }], recipe: 'Usmaż jajecznicę na maśle. Podaj z awokado i przyprawami.' },
@@ -3572,7 +3712,8 @@
       ],
     };
 
-    const EXERCISE_DB = {
+    window.EXERCISE_DB = window.EXERCISE_DB || {};
+    window.EXERCISE_DB = {
       klatka: [
         { name: 'Wyciskanie sztangi leżąc', sets: 4, reps: 6, weight: 80, tags: ['sztanga', 'lawka'], muscles: 'klatka piersiowa, trójgłowy', desc: 'Połóż się na ławce. Trzymaj sztangę na szerokość barków. Opuszczaj do klatki i wypychaj dynamicznie.' },
         { name: 'Wyciskanie hantli leżąc', sets: 4, reps: 8, weight: 30, tags: ['hantle', 'lawka'], muscles: 'klatka piersiowa', desc: 'Połóż się na ławce z hantlami. Rozciągnij klatkę i wyciskaj do góry.' },
@@ -3998,8 +4139,18 @@
       const todayIdx = (new Date().getDay() + 6) % 7; // Mon=0
       state.currentDay = todayIdx;
 
-      renderUserSwitcher();
-      updateDashboard();
+      // Render calls wrapped in try/catch so one crash never breaks the full boot
+      try {
+        renderUserSwitcher();
+      } catch (e) {
+        console.error('[initApp] renderUserSwitcher() failed:', e);
+      }
+
+      try {
+        updateDashboard();
+      } catch (e) {
+        console.error('[initApp] updateDashboard() failed:', e);
+      }
     }
 
     function saveState() {
@@ -4092,11 +4243,19 @@
     // ========== LANDING / DASHBOARD SWITCH ==========
     function enterDashboard() {
       state.view = 'dashboard';
-      document.getElementById('landingPage').style.display = 'none';
-      document.getElementById('dashboardPage').style.display = 'flex';
-      document.getElementById('landingLinks').classList.add('hidden');
-      document.getElementById('userSwitcher').classList.remove('hidden');
-      document.getElementById('aiFloatBtn').classList.remove('hidden');
+      const landing   = document.getElementById('landingPage');
+      const dashboard = document.getElementById('dashboardPage');
+      if (landing)   { landing.style.display = 'none'; }
+      if (dashboard) {
+        // Remove both the Tailwind 'hidden' class AND any inline style that hides it.
+        // The class sets display:none!important which beats the inline style,
+        // so both must be cleared together.
+        dashboard.classList.remove('hidden');
+        dashboard.style.display = 'flex';
+      }
+      document.getElementById('landingLinks')?.classList.add('hidden');
+      document.getElementById('userSwitcher')?.classList.remove('hidden');
+      document.getElementById('aiFloatBtn')?.classList.remove('hidden');
       showTab('home');
       updateDashboard();
     }
@@ -4156,6 +4315,9 @@
         clearLocalData();
       }
 
+      // Resetuj flagi lazy-render — przy ponownym logowaniu dane będą świeże
+      if (typeof _resetPlanRenderFlags === 'function') _resetPlanRenderFlags();
+
       // Pokaż komunikat i przeładuj stronę (powrót do ekranu logowania)
       if (typeof showToast === 'function') {
         showToast('✅ Wylogowano pomyślnie');
@@ -4167,10 +4329,14 @@
     function exitDashboard() {
       state.view = 'landing';
       document.getElementById('landingPage').style.display = '';
-      document.getElementById('dashboardPage').style.display = 'none';
-      document.getElementById('landingLinks').classList.remove('hidden');
-      document.getElementById('userSwitcher').classList.add('hidden');
-      document.getElementById('aiFloatBtn').classList.add('hidden');
+      const dashboard = document.getElementById('dashboardPage');
+      if (dashboard) {
+        dashboard.classList.add('hidden');
+        dashboard.style.display = '';
+      }
+      document.getElementById('landingLinks')?.classList.remove('hidden');
+      document.getElementById('userSwitcher')?.classList.add('hidden');
+      document.getElementById('aiFloatBtn')?.classList.add('hidden');
     }
 
     // ========== USER SWITCHER ==========
@@ -4605,6 +4771,13 @@
       const active = document.querySelector(`.nav-item[data-tab="${tabId}"]`);
       if (active) { active.classList.add('active', 'text-cyan-400'); active.classList.remove('text-gray-400'); }
       if (tabId === 'plan') {
+        // Resetuj flagi renderowania przy każdym wejściu na Plan
+        // Gwarantuje świeży render jeśli dane zostały zaktualizowane przez seed load
+        const curSub = state.planSubTab || 'plan';
+        if (curSub === 'biblioteka') state._dieta_rendered   = false;
+        if (curSub === 'atlas')      state._trening_rendered = false;
+        if (curSub === 'drills')     state._sport_rendered   = false;
+
         renderDayCarousel();
         loadPlanForDay();
         // Always call switchPlanCategory so the left sidebar, top tabs, and content
@@ -4754,16 +4927,42 @@
       // 7. Top tab bar — przebudowa TYLKO RAZ na wywołanie (eliminuje podwójny render)
       _renderPlanTopTabs(cat, sub);
 
-      // 8. Side-effecty owrapowane try-catch — błąd NIE blokuje nawigacji
+      // 8. Lazy render — side-effecty z setTimeout(50ms) tak, żeby przeglądarka
+      //    zdążyła pokazać panel zanim wystartują ciężkie funkcje renderujące.
+      //    Flagi _*_rendered zapobiegają wielokrotnemu przeładowaniu tej samej treści.
       try {
         if (cat === 'sport') {
           if (typeof renderSportSelector === 'function') renderSportSelector();
-          if (sub === 'drills'   && typeof renderSportDrills  === 'function') renderSportDrills();
+          if (sub === 'drills') {
+            const _drillsCont = document.getElementById('sportDrillsContainer');
+            const _drillsIsEmpty = !_drillsCont || _drillsCont.children.length < 1
+                                || (_drillsCont.textContent || '').includes('Brak pozycji')
+                                || (_drillsCont.textContent || '').includes('Wybierz sport');
+            if (!state._sport_rendered || _drillsIsEmpty) {
+              // Skeleton — widoczny zanim dane się załadują
+              _showPlanSkeleton('sportDrillsContainer');
+            }
+            setTimeout(() => {
+              if (typeof renderSportDrills === 'function') renderSportDrills();
+              state._sport_rendered = true;
+            }, 50);
+          }
           if (sub === 'historia' && typeof renderDrillHistory  === 'function') renderDrillHistory();
           if (sub === 'log'      && typeof prepareLogForm       === 'function') prepareLogForm();
         }
         if (cat === 'dieta') {
-          if (sub === 'biblioteka' && typeof bibliotekaMealFilter === 'function') bibliotekaMealFilter();
+          if (sub === 'biblioteka') {
+            const _bibGrid = document.getElementById('bibliotekaMealGrid');
+            const _bibIsEmpty = !_bibGrid || _bibGrid.children.length < 2
+                             || (_bibGrid.textContent || '').includes('Brak pozycji');
+            if (!state._dieta_rendered || _bibIsEmpty) {
+              _showPlanSkeleton('bibliotekaMealGrid');
+            }
+            setTimeout(() => {
+              if (typeof bibliotekaMealFilter === 'function') bibliotekaMealFilter();
+              state._dieta_rendered = true;
+            }, 50);
+          }
           if (sub === 'kuchnia'    && typeof kitchenInit           === 'function') kitchenInit();
           if (sub === 'plan') {
             const p = getCurrentProfile();
@@ -4774,8 +4973,17 @@
         }
         if (cat === 'trening') {
           if (sub === 'atlas') {
-            if      (typeof renderAtlas         === 'function') renderAtlas();
-            else if (typeof atlasExerciseFilter === 'function') atlasExerciseFilter();
+            const _atlasGrid = document.getElementById('atlasExerciseGrid');
+            const _atlasIsEmpty = !_atlasGrid || _atlasGrid.children.length < 2
+                               || (_atlasGrid.textContent || '').includes('Brak pozycji');
+            if (!state._trening_rendered || _atlasIsEmpty) {
+              _showPlanSkeleton('atlasExerciseGrid');
+            }
+            setTimeout(() => {
+              if      (typeof renderAtlas         === 'function') renderAtlas();
+              else if (typeof atlasExerciseFilter === 'function') atlasExerciseFilter();
+              state._trening_rendered = true;
+            }, 50);
           }
           if (sub === 'plan') {
             const slider = document.getElementById('exerciseCountSlider');
@@ -4794,6 +5002,55 @@
     function switchPlanCategory(cat) {
       const defaultSub = { dieta: 'plan', trening: 'plan', sport: 'drills' }[cat] || 'plan';
       switchPlanTab(cat, defaultSub);
+    }
+
+    // ─── _showPlanSkeleton(containerId) ─────────────────────────────────────
+    // Wstawia skeleton screen (animowane placeholder-y) do kontenera gridowego.
+    // Wywoływany PRZED setTimeout(() => realRender(), 50), żeby zamiast pustego
+    // napisu "Brak danych" użytkownik widział pulsujące karty ładowania.
+    function _showPlanSkeleton(containerId, count) {
+      const grid = document.getElementById(containerId);
+      if (!grid) return;
+      count = count || 6;
+      let html = '';
+      for (let i = 0; i < count; i++) {
+        html += '<div class="skeleton-card rounded-2xl overflow-hidden" style="'
+          + 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);'
+          + 'padding:16px;display:flex;flex-direction:column;gap:10px;min-height:110px;">'
+          + '<div class="skel-line" style="'
+          + 'height:14px;border-radius:8px;width:65%;'
+          + 'background:linear-gradient(90deg,rgba(255,255,255,0.07) 25%,rgba(255,255,255,0.13) 50%,rgba(255,255,255,0.07) 75%);'
+          + 'background-size:200% 100%;animation:skelshimmer 1.4s infinite;"></div>'
+          + '<div class="skel-line" style="'
+          + 'height:10px;border-radius:8px;width:90%;'
+          + 'background:linear-gradient(90deg,rgba(255,255,255,0.05) 25%,rgba(255,255,255,0.10) 50%,rgba(255,255,255,0.05) 75%);'
+          + 'background-size:200% 100%;animation:skelshimmer 1.4s infinite 0.15s;"></div>'
+          + '<div class="skel-line" style="'
+          + 'height:10px;border-radius:8px;width:75%;'
+          + 'background:linear-gradient(90deg,rgba(255,255,255,0.05) 25%,rgba(255,255,255,0.10) 50%,rgba(255,255,255,0.05) 75%);'
+          + 'background-size:200% 100%;animation:skelshimmer 1.4s infinite 0.3s;"></div>'
+          + '</div>';
+      }
+      grid.innerHTML = html;
+
+      // Dodaj @keyframes skelshimmer jeśli jeszcze nie ma w dokumencie
+      if (!document.getElementById('_skelStyles')) {
+        const s = document.createElement('style');
+        s.id = '_skelStyles';
+        s.textContent = '@keyframes skelshimmer{'
+          + 'from{background-position:200% 0}'
+          + 'to{background-position:-200% 0}}';
+        document.head.appendChild(s);
+      }
+    }
+
+    // ─── _resetPlanRenderFlags() ─────────────────────────────────────────────
+    // Wywołaj po wylogowaniu lub zmianie profilu, żeby przy powrocie do zakładek
+    // dane zostały ponownie wyrenderowane ze świeżego profilu.
+    function _resetPlanRenderFlags() {
+      state._dieta_rendered   = false;
+      state._trening_rendered = false;
+      state._sport_rendered   = false;
     }
 
     // ─── switchPlanSubTab — wrapper (kliknięcie top tab bar) ─────────────────
@@ -4830,6 +5087,7 @@
     }
 
     function switchPlanSubtab(sub) {
+      // Map legacy sub values to (cat, tab) pairs
       const legacyMap = {
         'myplan':   ['dieta',   'plan'   ],
         'diet':     ['dieta',   'plan'   ],
@@ -4838,6 +5096,14 @@
         'sport':    ['sport',   'drills' ],
       };
       const [cat, tab] = legacyMap[sub] || ['dieta', 'plan'];
+
+      // Update legacy state fields BEFORE render so any code reading state
+      // mid-call (e.g. loadPlanForDay) already sees the correct values
+      state.planSubtab = sub;
+      if (sub === 'training')                        state.planView = 'training';
+      else if (sub === 'myplan' || sub === 'diet')   state.planView = 'diet';
+
+      // Single atomic call — no race condition, no double-render
       switchPlanTab(cat, tab);
     }
 
@@ -5405,15 +5671,24 @@
      * bez zawieszania aplikacji.
      */
     async function generatePlanAI() {
-      const token = localStorage.getItem('fitai_token');
-      const apiBase = window.API_BASE || 'http://localhost:8000';
-      const btn = document.getElementById('generatePlanAIBtn');
-      const dietOut  = document.getElementById('aiPlanDietOutput');
-      const trainOut = document.getElementById('aiPlanTrainingOutput');
+      const token      = localStorage.getItem('fitai_token');
+      const userId     = localStorage.getItem('fitai_user_id') || state.identityId || null;
+      const apiBase    = window.API_BASE || 'http://localhost:8000';
+      const btn        = document.getElementById('generatePlanAIBtn');
+      const dietOut    = document.getElementById('aiPlanDietOutput');
+      const trainOut   = document.getElementById('aiPlanTrainingOutput');
 
+      // Validate token — required to authenticate API call
       if (!token) {
+        console.error('[generatePlanAI] Brak tokenu — użytkownik nie jest zalogowany.',
+          { fitai_token: token, fitai_user_id: userId });
         showToast('⚠️ Zaloguj się, aby wygenerować plan AI');
         return;
+      }
+
+      // Warn (but don't block) if user_id is missing — backend may derive it from token
+      if (!userId) {
+        console.warn('[generatePlanAI] Brak fitai_user_id w localStorage — plan może być anonimowy.');
       }
 
       // ── Stan ładowania ───────────────────────────────────────────────────
@@ -5434,8 +5709,15 @@
         });
 
         if (!res.ok) {
-          const errData = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
-          throw new Error(errData.detail || `HTTP ${res.status}`);
+          // Explicit console.error with full status details for debugging
+          const errData = await res.json().catch(() => ({ detail: `HTTP ${res.status} ${res.statusText}` }));
+          const errMsg  = errData.detail || errData.message || `HTTP ${res.status} ${res.statusText}`;
+          console.error(`[generatePlanAI] API error: ${res.status} ${res.statusText} — ${errMsg}`, {
+            url:    res.url,
+            status: res.status,
+            body:   errData,
+          });
+          throw new Error(errMsg);
         }
 
         const data = await res.json();
@@ -6776,7 +7058,8 @@
           || null;
     }
 
-    const SPORT_DRILLS = {
+    window.SPORT_DRILLS = window.SPORT_DRILLS || {};
+    window.SPORT_DRILLS = {
       'koszykówka': {
         emoji: '🏀',
         'rzuty': {
@@ -6999,14 +7282,6 @@
       localStorage.setItem('fitai_sport_v1', JSON.stringify(data));
     }
 
-    // ========== SPORT STATE ==========
-    function loadSportState() {
-      try { return JSON.parse(localStorage.getItem('fitai_sport_v1') || '{}'); } catch { return {}; }
-    }
-    function saveSportState(data) {
-      localStorage.setItem('fitai_sport_v1', JSON.stringify(data));
-    }
-
     // ========== SPORT SELECTOR — visual tiles ==========
     function renderSportSelector() {
       const grid = document.getElementById('sportSelectorGrid');
@@ -7036,203 +7311,550 @@
       renderSportDrills();
     }
 
-    // ========== DRILLS RENDERER — categories + drills ==========
-    function renderSportDrills() {
+    // ========== SPORT CATALOG — shown when no sport is selected ==========
+
+    /**
+     * Counts how many drills a sport has across all its categories.
+     * Used for the "X drilli" badge on catalog cards.
+     */
+    function _countSportDrills(sportKey) {
+      const data = SPORT_DRILLS[sportKey];
+      if (!data) return 0;
+      return Object.entries(data)
+        .filter(([k]) => k !== 'emoji')
+        .reduce((sum, [, cat]) => sum + (cat.drills?.length || 0), 0);
+    }
+
+    /**
+     * Renders a full-page sport catalog grid inside sportDrillsContainer.
+     * Called automatically by renderSportDrills() when no sport is set.
+     * Also callable directly via the "← Przeglądaj katalog" back-button.
+     */
+    function renderSportCatalog() {
       const container = document.getElementById('sportDrillsContainer');
       if (!container) return;
-      try {
+
+      // Build catalog entries — merge SPORTS_CATALOG (has colors/labels)
+      // with the keys actually present in SPORT_DRILLS (has drill data).
+      const catalogMap = {};
+      SPORTS_CATALOG.forEach(s => { catalogMap[s.id] = { ...s, drillCount: _countSportDrills(s.id) }; });
+
+      // Also surface any SPORT_DRILLS keys not yet in SPORTS_CATALOG
+      Object.keys(SPORT_DRILLS).forEach(key => {
+        if (!catalogMap[key]) {
+          catalogMap[key] = {
+            id: key,
+            emoji: SPORT_DRILLS[key].emoji || '🏅',
+            label: key.charAt(0).toUpperCase() + key.slice(1),
+            color: '#64748b',
+            drillCount: _countSportDrills(key),
+          };
+        }
+      });
+
+      const entries = Object.values(catalogMap);
+
+      const cardsHtml = entries.map(s => {
+        // Encode sport color as CSS custom property on each card
+        const colorRgba = s.color
+          ? s.color.replace(/^#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i, (_, r, g, b) =>
+              `rgba(${parseInt(r,16)},${parseInt(g,16)},${parseInt(b,16)},0.35)`)
+          : 'rgba(0,229,255,0.35)';
+
+        const drillLabel = s.drillCount === 0
+          ? '<span style="color:var(--muted);">Wkrótce</span>'
+          : `<span>${s.drillCount} drilli</span>`;
+
+        const hasDrills = SPORT_DRILLS[s.id];
+
+        return `
+        <div class="sport-catalog-card"
+             style="--sport-color:${colorRgba};"
+             data-sport-id="${s.id}">
+          <span class="sport-catalog-card-emoji">${s.emoji}</span>
+          <span class="sport-catalog-card-label">${s.label}</span>
+          <span class="sport-catalog-card-count">${drillLabel}</span>
+          ${hasDrills
+            ? `<button class="sport-catalog-card-browse js-catalog-browse"
+                       data-sport-id="${s.id}">
+                 Przeglądaj →
+               </button>`
+            : `<span style="font-size:10px;color:var(--muted);opacity:0.5;padding:5px 0;">
+                 Niedostępne
+               </span>`
+          }
+        </div>`;
+      }).join('');
+
+      container.innerHTML = `
+        <!-- Catalog header -->
+        <div style="margin-bottom:20px;">
+          <h4 class="font-extrabold text-white text-lg mb-1"
+              style="font-family:'Syne',sans-serif;">
+            🏅 Wybierz dyscyplinę
+          </h4>
+          <p style="font-size:13px;color:var(--muted);line-height:1.5;">
+            Przeglądaj drille bez ustawiania sportu głównego — lub kliknij
+            <strong style="color:var(--cyan);">Ustaw jako główny</strong>, aby
+            spersonalizować plan treningowy.
+          </p>
+        </div>
+
+        <!-- Cards grid -->
+        <div class="sport-catalog-grid js-sport-catalog-grid">
+          ${cardsHtml}
+        </div>`;
+
+      // Single delegated click listener — attached once per container lifecycle
+      if (!container._catalogListenerAttached) {
+        container.addEventListener('click', function (e) {
+          const browseBtn = e.target.closest('.js-catalog-browse');
+          if (browseBtn) {
+            e.stopPropagation();
+            _previewSportFromCatalog(browseBtn.dataset.sportId);
+          }
+        });
+        container._catalogListenerAttached = true;
+      }
+    }
+
+    /**
+     * Temporarily shows drills for a sport chosen from the catalog,
+     * WITHOUT persisting it as the user's main sport.
+     * Injects a sticky header with sport name + "Set as main" + "← Back" buttons.
+     */
+    function _previewSportFromCatalog(sportId) {
+      const container = document.getElementById('sportDrillsContainer');
+      if (!container) return;
+
+      const normalized = resolveSportId(sportId) || sportId;
+      const sportData  = SPORT_DRILLS[normalized];
+      if (!sportData) return;
+
+      const meta = SPORTS_CATALOG.find(s => s.id === normalized) || {
+        id: normalized,
+        emoji: sportData.emoji || '🏅',
+        label: normalized.charAt(0).toUpperCase() + normalized.slice(1),
+        color: '#64748b',
+      };
+
+      const colorRgba = meta.color
+        ? meta.color.replace(/^#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i, (_, r, g, b) =>
+            `rgba(${parseInt(r,16)},${parseInt(g,16)},${parseInt(b,16)},0.2)`)
+        : 'rgba(0,229,255,0.2)';
+
+      // ── Preview header (sticky bar at top) ─────────────────────────────────
+      const headerHtml = `
+        <div class="sport-catalog-preview-header" style="border-color:${colorRgba};">
+          <span style="font-size:2rem;">${meta.emoji}</span>
+          <div class="flex-1 min-w-0">
+            <p class="font-extrabold text-white text-sm leading-tight"
+               style="font-family:'Syne',sans-serif;">${meta.label}</p>
+            <p style="font-size:11px;color:var(--muted);">
+              Podgląd — drille nie są jeszcze Twoim głównym sportem
+            </p>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap justify-end">
+            <button id="setMainSportBtn"
+                    class="btn-set-main-sport"
+                    onclick="_setMainSportFromCatalog('${normalized}')">
+              ⭐ Ustaw jako główny
+            </button>
+            <button onclick="renderSportCatalog()"
+                    class="text-xs px-3 py-2 rounded-xl font-bold transition-all"
+                    style="background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--muted);">
+              ← Katalog
+            </button>
+          </div>
+        </div>`;
+
+      // ── Drill categories (reuse the same card HTML as renderSportDrills) ───
       const st = loadSportState();
-
-      // ── Rozwiąż sport z profilu / stanu ─────────────────────────────────────
-      // Priorytet: sport_focus ze stanu → sport z profilu → koszykówka (default)
-      const p = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
-      // Zmiana: jawne .toLowerCase() zapobiega niespójności wielkości liter
-      // np. "Koszykówka" z profilu ≠ klucza "koszykówka" w SPORT_DRILLS
-      const rawSport = (
-        st.sport_focus
-        || (p && (p.sport_focus || (p.sports && p.sports[0])))
-        || 'koszykówka'
-      );
-      const rawSportNormalized = String(rawSport).trim().toLowerCase();
-
-      const sportId = resolveSportId(rawSportNormalized);
-
-      // ── Stan pusty: brak sportu w profilu ────────────────────────────────────
-      if (!rawSportNormalized || rawSportNormalized === '') {
-        container.innerHTML = `
-          <div class="glass p-8 rounded-2xl text-center space-y-3">
-            <div style="font-size:3rem;">🏅</div>
-            <p class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">
-              Wybierz sport w ustawieniach
-            </p>
-            <p class="text-sm" style="color:var(--muted);">
-              Przejdź do <strong style="color:var(--cyan);">Profil → Sport</strong>,
-              aby ustawić swoją dyscyplinę i odblokować spersonalizowane drille.
-            </p>
-          </div>`;
-        return;
-      }
-
-      // ── Brak danych dla wybranego sportu w SPORT_DRILLS ─────────────────────
-      const sportData = sportId ? SPORT_DRILLS[sportId] : null;
-      if (!sportData) {
-        const sportLabel = (typeof SPORTS_CATALOG !== 'undefined'
-          ? (SPORTS_CATALOG.find(s => s.id === rawSportNormalized || s.id === sportId)?.label || rawSport)
-          : rawSport);
-        container.innerHTML = `
-          <div class="glass p-8 rounded-2xl text-center space-y-4">
-            <div style="font-size:3rem;">🏋️</div>
-            <p class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">
-              Brak dostępnych drilli dla Twojej dyscypliny
-            </p>
-            <p class="text-sm" style="color:var(--muted);">
-              Baza drilli dla sportu <strong style="color:var(--cyan);">${sportLabel}</strong>
-              jest w przygotowaniu. Wybierz inną dyscyplinę, aby zobaczyć dostępne ćwiczenia.
-            </p>
-            <p class="text-xs" style="color:var(--muted);">
-              Dostępne sporty z bazą drilli:
-              <strong style="color:rgba(255,255,255,0.65);">
-                ${Object.keys(SPORT_DRILLS).join(' · ')}
-              </strong>
-            </p>
-            <a href="#" onclick="switchPlanCategory && switchPlanCategory('sport');return false;"
-               class="inline-block text-xs px-4 py-2 rounded-xl font-bold transition-all"
-               style="background:rgba(0,229,255,0.1);border:1px solid rgba(0,229,255,0.3);color:var(--cyan);">
-              ← Zmień sport
-            </a>
-          </div>`;
-        return;
-      }
-
       const categories = Object.entries(sportData).filter(([k]) => k !== 'emoji');
-      const generatedHtml = categories.map(([catKey, cat], catIdx) => {
+
+      const categoriesHtml = categories.map(([catKey, cat], catIdx) => {
         const drills = cat.drills || [];
         const drillsHtml = drills.map((drill, di) => {
-          const history = (st.drill_history || []).filter(r => r.drill_name === drill.name);
-          const last = history[0];
-          const lastPct = last ? Math.round(last.success_count / last.total_attempts * 100) : null;
+          const history  = (st.drill_history || []).filter(r => r.drill_name === drill.name);
+          const last     = history[0];
+          const lastPct  = last ? Math.round(last.success_count / last.total_attempts * 100) : null;
           const metTarget = lastPct !== null && lastPct >= (drill.target_pct || 70);
-          const videoId = `drill-video-${catKey}-${di}`;
+          const videoId  = `drill-preview-${catKey}-${di}`;
           const hasVideo = isValidVideoUrl(drill.video_url);
+
           return `<div class="drill-row">
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 mb-1 flex-wrap">
-            <span class="text-sm font-bold text-white">${drill.name}</span>
-            ${metTarget ? '<span class="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">✅ Cel osiągnięty</span>' : ''}
-            ${hasVideo ? `<button onclick="toggleDrillVideo('${videoId}')" class="text-xs px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/25 hover:bg-red-500/25 transition-colors font-semibold">▶ Video</button>` : ''}
-          </div>
-          <p class="text-xs text-gray-400 leading-snug mb-2">${drill.description}</p>
-          <div class="flex items-center gap-4 flex-wrap text-xs text-gray-500">
-            <span>⏱ ${drill.duration}</span>
-            <span>🔁 ${drill.sets}</span>
-            <span>💪 ${drill.muscle_group}</span>
-            ${lastPct !== null ? `<span class="${metTarget ? 'text-cyan-400' : 'text-yellow-400'} font-bold">Ostatnio: ${lastPct}%</span>` : '<span class="text-gray-600 italic">brak wyników</span>'}
-          </div>
-          ${last ? `<div class="progress-bar mt-2" style="height:4px;"><div class="progress-fill ${metTarget ? 'bg-gradient-to-r from-cyan-500 to-green-400' : 'bg-gradient-to-r from-yellow-500 to-cyan-500'}" style="width:${Math.min(lastPct, 100)}%"></div></div>` : ''}
-          <div class="alert-neon text-xs py-1.5 px-3 mt-2 leading-snug">💡 ${drill.progression_tip}</div>
-          ${hasVideo ? `<div id="${videoId}" class="hidden mt-3">
-            <div style="position:relative;padding-bottom:56.25%;height:0;border-radius:10px;overflow:hidden;border:1px solid rgba(239,68,68,0.3);">
-              <iframe
-                src="${drill.video_url}?rel=0&modestbranding=1"
-                style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowfullscreen
-                loading="lazy"
-                title="Instrukcja: ${drill.name}">
-              </iframe>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1 flex-wrap">
+                <span class="text-sm font-bold text-white">${drill.name}</span>
+                ${metTarget ? '<span class="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">✅ Cel</span>' : ''}
+                ${hasVideo ? `<button onclick="toggleDrillVideo('${videoId}')"
+                  class="text-xs px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/25 hover:bg-red-500/25 transition-colors font-semibold">
+                  ▶ Video
+                </button>` : ''}
+              </div>
+              <p class="text-xs text-gray-400 leading-snug mb-2">${drill.description}</p>
+              <div class="flex items-center gap-4 flex-wrap text-xs text-gray-500">
+                <span>⏱ ${drill.duration}</span>
+                <span>🔁 ${drill.sets}</span>
+                <span>💪 ${drill.muscle_group}</span>
+                ${lastPct !== null
+                  ? `<span class="${metTarget ? 'text-cyan-400' : 'text-yellow-400'} font-bold">Ostatnio: ${lastPct}%</span>`
+                  : '<span class="text-gray-600 italic">brak wyników</span>'}
+              </div>
+              ${last ? `<div class="progress-bar mt-2" style="height:4px;">
+                <div class="progress-fill ${metTarget ? 'bg-gradient-to-r from-cyan-500 to-green-400' : 'bg-gradient-to-r from-yellow-500 to-cyan-500'}"
+                     style="width:${Math.min(lastPct, 100)}%"></div>
+              </div>` : ''}
+              <div class="alert-neon text-xs py-1.5 px-3 mt-2 leading-snug">💡 ${drill.progression_tip}</div>
+              ${hasVideo ? `<div id="${videoId}" class="hidden mt-3">
+                <div style="position:relative;padding-bottom:56.25%;height:0;border-radius:10px;overflow:hidden;border:1px solid rgba(239,68,68,0.3);">
+                  <iframe src="${drill.video_url}?rel=0&modestbranding=1"
+                    style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen loading="lazy" title="Instrukcja: ${drill.name}">
+                  </iframe>
+                </div>
+              </div>` : ''}
             </div>
-          </div>` : ''}
-        </div>
-        <div class="flex flex-col gap-2 shrink-0">
-          <button class="drill-add-btn js-drill-add-btn"
-            data-drill="${drill.name.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}"
-            data-cat="${catKey}"
-            data-sport="${sportId}">
-            ➕ Do planu
-          </button>
-          <button class="drill-add-btn js-drill-log-btn" style="background:rgba(255,255,255,0.04);border-color:var(--border);color:var(--muted);"
-            data-drill="${drill.name.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}"
-            data-attempts="${drill.total_attempts}"
-            data-type="${drill.drill_type || 'rzuty'}">
-            📝 Loguj
-          </button>
-        </div>
-      </div>`;
+            <div class="flex flex-col gap-2 shrink-0">
+              <button class="drill-add-btn js-drill-add-btn"
+                      data-drill="${drill.name.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}"
+                      data-cat="${catKey}"
+                      data-sport="${normalized}">➕ Do planu</button>
+              <button class="drill-add-btn js-drill-log-btn"
+                      style="background:rgba(255,255,255,0.04);border-color:var(--border);color:var(--muted);"
+                      data-drill="${drill.name.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}"
+                      data-attempts="${drill.total_attempts}"
+                      data-type="${drill.drill_type || 'rzuty'}">📝 Loguj</button>
+            </div>
+          </div>`;
         }).join('');
 
         return `<div class="glass rounded-2xl overflow-hidden mb-4">
-      <div class="sport-category-header flex items-center justify-between px-5 py-4"
-           onclick="toggleSportCategory(this)">
-        <div class="flex items-center gap-3">
-          <span class="text-xl">${cat.emoji}</span>
-          <div>
-            <span class="font-bold text-white">${cat.label}</span>
-            <span class="text-xs text-gray-500 ml-2">${drills.length} ćwiczeń</span>
+          <div class="sport-category-header flex items-center justify-between px-5 py-4"
+               onclick="toggleSportCategory(this)">
+            <div class="flex items-center gap-3">
+              <span class="text-xl">${cat.emoji}</span>
+              <div>
+                <span class="font-bold text-white">${cat.label}</span>
+                <span class="text-xs text-gray-500 ml-2">${drills.length} ćwiczeń</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <button class="cat-add-btn js-cat-add-btn"
+                      data-cat="${catKey}" data-sport="${normalized}">
+                ➕ Dodaj kategorię
+              </button>
+              <svg class="cat-arrow w-4 h-4 text-gray-500 transition-transform duration-300"
+                   fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </div>
           </div>
-        </div>
-        <div class="flex items-center gap-3">
-          <button class="cat-add-btn js-cat-add-btn" data-cat="${catKey}" data-sport="${sportId}">
-            ➕ Dodaj całą kategorię
-          </button>
-          <svg class="cat-arrow w-4 h-4 text-gray-500 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-          </svg>
-        </div>
-      </div>
-      <div class="sport-category-body" style="max-height:${catIdx === 0 ? '2000px' : '0'};">
-        <div class="px-5 pb-5 space-y-2">${drillsHtml}</div>
-      </div>
-    </div>`;
+          <div class="sport-category-body" style="max-height:${catIdx === 0 ? '2000px' : '0'};">
+            <div class="px-5 pb-5 space-y-2">${drillsHtml}</div>
+          </div>
+        </div>`;
       }).join('');
 
-      // ── NAPRAWA: innerHTML zamiast replaceWith ───────────────────────────────
-      // replaceWith() wyjmował kontener z DOM i wstawiał nowy węzeł — to niszczyło
-      // referencje paneli używane przez switchPlanCategory/switchPlanSubTab.
-      // Zamiast tego nadpisujemy tylko innerHTML (kontener pozostaje w DOM).
-      container.innerHTML = generatedHtml;
+      container.innerHTML = headerHtml + categoriesHtml;
 
-      // Event delegation — delegujemy na stabilny kontener (zawsze ten sam węzeł).
-      // Podpinamy listener tylko raz, chroniąc się przed wielokrotnym nakładaniem.
+      // Wire up drill/log/category buttons via event delegation (once per container)
       if (!container._drillListenerAttached) {
         container.addEventListener('click', function (e) {
           const addBtn = e.target.closest('.js-drill-add-btn');
           const logBtn = e.target.closest('.js-drill-log-btn');
           const catBtn = e.target.closest('.js-cat-add-btn');
-          if (addBtn) {
-            e.stopPropagation();
-            openAddToPlanModal(addBtn.dataset.drill, addBtn.dataset.cat, addBtn.dataset.sport);
-          } else if (logBtn) {
-            e.stopPropagation();
-            quickLogDrill(logBtn.dataset.drill, Number(logBtn.dataset.attempts), logBtn.dataset.type || 'rzuty');
-          } else if (catBtn) {
-            e.stopPropagation();
-            openAddToPlanModal(null, catBtn.dataset.cat, catBtn.dataset.sport, true);
-          }
+          if (addBtn) { e.stopPropagation(); openAddToPlanModal(addBtn.dataset.drill, addBtn.dataset.cat, addBtn.dataset.sport); }
+          else if (logBtn) { e.stopPropagation(); quickLogDrill(logBtn.dataset.drill, Number(logBtn.dataset.attempts), logBtn.dataset.type || 'rzuty'); }
+          else if (catBtn) { e.stopPropagation(); openAddToPlanModal(null, catBtn.dataset.cat, catBtn.dataset.sport, true); }
         });
         container._drillListenerAttached = true;
       }
-      } catch (err) {
-        console.error('[FitAI] renderSportDrills() error:', err);
-        // Zmiana: blok catch nie blokuje ładowania reszty strony —
-        // zamiast rzucać błąd dalej, wstawiamy czytelny komunikat HTML.
-        if (container) {
+    }
+
+    /**
+     * Persists sportId as the user's main sport in both localStorage state
+     * AND the profile object, then syncs with the API and re-renders drills.
+     */
+    async function _setMainSportFromCatalog(sportId) {
+      const normalized = resolveSportId(sportId) || sportId;
+
+      // ── 1. Update sport state ─────────────────────────────────────────────
+      const st = loadSportState();
+      st.sport_focus = normalized;
+      saveSportState(st);
+
+      // ── 2. Update in-memory profile ───────────────────────────────────────
+      const profile = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
+      if (profile) {
+        profile.sport_focus = normalized;
+        // Also append to profile.sports[] if not already present
+        if (!Array.isArray(profile.sports)) profile.sports = [];
+        if (!profile.sports.includes(normalized)) profile.sports.push(normalized);
+        if (typeof saveState === 'function') saveState();
+      }
+
+      // ── 3. Visual feedback on button ──────────────────────────────────────
+      const btn = document.getElementById('setMainSportBtn');
+      if (btn) {
+        btn.classList.add('saved');
+        btn.textContent = '✅ Ustawiono!';
+        btn.disabled = true;
+      }
+
+      // ── 4. Sync to API (fire-and-forget, don't block UI) ──────────────────
+      try {
+        const token   = window._fitaiToken || localStorage.getItem('fitai_token');
+        const apiBase = window.API_BASE || 'http://localhost:8000';
+        if (token && apiBase) {
+          await fetch(`${apiBase}/app/profile`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body:    JSON.stringify({ sport_focus: normalized }),
+          });
+        }
+      } catch (e) {
+        // Non-blocking — offline mode still works via localStorage
+        console.warn('[FitAI] _setMainSportFromCatalog: API sync failed (offline?)', e);
+      }
+
+      // ── 5. Re-render selectors and full drills after 600 ms ───────────────
+      showToast(`⭐ ${normalized.charAt(0).toUpperCase() + normalized.slice(1)} ustawiony jako główny sport!`);
+      setTimeout(() => {
+        if (typeof renderSportSelector === 'function') renderSportSelector();
+        renderSportDrills();
+      }, 600);
+    }
+
+    // ========== DRILLS RENDERER — categories + drills ==========
+    function renderSportDrills() {
+      const container = document.getElementById('sportDrillsContainer');
+      if (!container) return;
+      // Używaj window.SPORT_DRILLS priorytetowo — seed data może je wzbogacić po starcie
+      if (typeof SPORT_DRILLS === 'undefined' || SPORT_DRILLS !== window.SPORT_DRILLS) {
+        // Upewnij się że funkcja widzi te same dane co reszta aplikacji
+        Object.assign(typeof SPORT_DRILLS !== 'undefined' ? SPORT_DRILLS : {}, window.SPORT_DRILLS || {});
+      }
+      const _effectiveSD = window.SPORT_DRILLS || (typeof SPORT_DRILLS !== 'undefined' ? SPORT_DRILLS : {});
+      console.log('[FitAI] renderSportDrills: SPORT_DRILLS =', Object.keys(_effectiveSD).length, 'sportów');
+      try {
+        const st = loadSportState();
+        const p  = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
+
+        // ── Resolve sport from state → profile → nothing ──────────────────────
+        // .toLowerCase() + .trim() ensures "Koszykówka" from the profile
+        // correctly matches the "koszykówka" key in SPORT_DRILLS.
+        const rawSport = (
+          st.sport_focus
+          || (p && (p.sport_focus || (Array.isArray(p.sports) && p.sports[0])))
+          || ''
+        );
+        const rawSportNormalized = String(rawSport).trim().toLowerCase();
+
+        // ── No sport selected → show the full catalog instead of an error ────
+        if (!rawSportNormalized) {
+          renderSportCatalog();
+          return;
+        }
+
+        const sportId   = resolveSportId(rawSportNormalized);
+        const sportData = sportId ? SPORT_DRILLS[sportId] : null;
+
+        // ── Sport set but drills not found → catalog with explanation ────────
+        if (!sportData) {
+          const sportLabel = SPORTS_CATALOG.find(
+            s => s.id === rawSportNormalized || s.id === sportId
+          )?.label || rawSport;
+
           container.innerHTML = `
-            <div class="glass p-8 rounded-2xl text-center space-y-3">
-              <div style="font-size:2.5rem;">⚠️</div>
+            <div class="glass p-8 rounded-2xl text-center space-y-4 mb-6">
+              <div style="font-size:3rem;">🏋️</div>
               <p class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">
-                Brak dostępnych drilli dla Twojej dyscypliny
+                Brak drilli dla „${sportLabel}"
               </p>
               <p class="text-sm" style="color:var(--muted);">
-                Wystąpił błąd podczas ładowania ćwiczeń. Spróbuj wybrać sport ponownie
-                lub odśwież stronę.
+                Baza drilli dla tej dyscypliny jest w przygotowaniu.<br>
+                Wybierz inny sport z katalogu, aby zacząć już dziś.
               </p>
-              <p class="text-xs font-mono" style="color:rgba(255,255,255,0.25);">
-                ${err && err.message ? err.message.substring(0, 80) : 'Nieznany błąd'}
-              </p>
+              <button onclick="renderSportCatalog()"
+                class="inline-flex items-center gap-2 text-sm px-5 py-2.5 rounded-xl font-bold transition-all"
+                style="background:rgba(0,229,255,0.1);border:1px solid rgba(0,229,255,0.3);color:var(--cyan);">
+                🏅 Przeglądaj katalog sportów
+              </button>
             </div>`;
+
+          // Show catalog below the message so user doesn't have to click
+          const catalogWrapper = document.createElement('div');
+          container.appendChild(catalogWrapper);
+
+          // Render catalog cards into the wrapper
+          const tempId = 'sport-catalog-fallback-' + Date.now();
+          catalogWrapper.id = tempId;
+          const origContainer = document.getElementById('sportDrillsContainer');
+          // Temporarily swap target, render, swap back
+          const savedInner = container.innerHTML;
+          const catalogContainer = { innerHTML: '' };
+          const realRender = window._renderCatalogInto;
+          _renderCatalogInto(catalogWrapper);
+          return;
+        }
+
+        // ── Normal render — sport found, show category accordion ─────────────
+        const categories = Object.entries(sportData).filter(([k]) => k !== 'emoji');
+
+        const generatedHtml = categories.map(([catKey, cat], catIdx) => {
+          const drills    = cat.drills || [];
+          const drillsHtml = drills.map((drill, di) => {
+            const history  = (st.drill_history || []).filter(r => r.drill_name === drill.name);
+            const last     = history[0];
+            const lastPct  = last ? Math.round(last.success_count / last.total_attempts * 100) : null;
+            const metTarget = lastPct !== null && lastPct >= (drill.target_pct || 70);
+            const videoId  = `drill-video-${catKey}-${di}`;
+            const hasVideo = isValidVideoUrl(drill.video_url);
+
+            return `<div class="drill-row">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1 flex-wrap">
+                  <span class="text-sm font-bold text-white">${drill.name}</span>
+                  ${metTarget ? '<span class="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">✅ Cel osiągnięty</span>' : ''}
+                  ${hasVideo ? `<button onclick="toggleDrillVideo('${videoId}')"
+                    class="text-xs px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/25 hover:bg-red-500/25 transition-colors font-semibold">
+                    ▶ Video
+                  </button>` : ''}
+                </div>
+                <p class="text-xs text-gray-400 leading-snug mb-2">${drill.description}</p>
+                <div class="flex items-center gap-4 flex-wrap text-xs text-gray-500">
+                  <span>⏱ ${drill.duration}</span>
+                  <span>🔁 ${drill.sets}</span>
+                  <span>💪 ${drill.muscle_group}</span>
+                  ${lastPct !== null
+                    ? `<span class="${metTarget ? 'text-cyan-400' : 'text-yellow-400'} font-bold">Ostatnio: ${lastPct}%</span>`
+                    : '<span class="text-gray-600 italic">brak wyników</span>'}
+                </div>
+                ${last ? `<div class="progress-bar mt-2" style="height:4px;">
+                  <div class="progress-fill ${metTarget ? 'bg-gradient-to-r from-cyan-500 to-green-400' : 'bg-gradient-to-r from-yellow-500 to-cyan-500'}"
+                       style="width:${Math.min(lastPct, 100)}%"></div>
+                </div>` : ''}
+                <div class="alert-neon text-xs py-1.5 px-3 mt-2 leading-snug">💡 ${drill.progression_tip}</div>
+                ${hasVideo ? `<div id="${videoId}" class="hidden mt-3">
+                  <div style="position:relative;padding-bottom:56.25%;height:0;border-radius:10px;overflow:hidden;border:1px solid rgba(239,68,68,0.3);">
+                    <iframe src="${drill.video_url}?rel=0&modestbranding=1"
+                      style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowfullscreen loading="lazy" title="Instrukcja: ${drill.name}">
+                    </iframe>
+                  </div>
+                </div>` : ''}
+              </div>
+              <div class="flex flex-col gap-2 shrink-0">
+                <button class="drill-add-btn js-drill-add-btn"
+                        data-drill="${drill.name.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}"
+                        data-cat="${catKey}" data-sport="${sportId}">
+                  ➕ Do planu
+                </button>
+                <button class="drill-add-btn js-drill-log-btn"
+                        style="background:rgba(255,255,255,0.04);border-color:var(--border);color:var(--muted);"
+                        data-drill="${drill.name.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}"
+                        data-attempts="${drill.total_attempts}"
+                        data-type="${drill.drill_type || 'rzuty'}">
+                  📝 Loguj
+                </button>
+              </div>
+            </div>`;
+          }).join('');
+
+          return `<div class="glass rounded-2xl overflow-hidden mb-4">
+            <div class="sport-category-header flex items-center justify-between px-5 py-4"
+                 onclick="toggleSportCategory(this)">
+              <div class="flex items-center gap-3">
+                <span class="text-xl">${cat.emoji}</span>
+                <div>
+                  <span class="font-bold text-white">${cat.label}</span>
+                  <span class="text-xs text-gray-500 ml-2">${drills.length} ćwiczeń</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <button class="cat-add-btn js-cat-add-btn" data-cat="${catKey}" data-sport="${sportId}">
+                  ➕ Dodaj całą kategorię
+                </button>
+                <svg class="cat-arrow w-4 h-4 text-gray-500 transition-transform duration-300"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </div>
+            </div>
+            <div class="sport-category-body" style="max-height:${catIdx === 0 ? '2000px' : '0'};">
+              <div class="px-5 pb-5 space-y-2">${drillsHtml}</div>
+            </div>
+          </div>`;
+        }).join('');
+
+        // innerHTML keeps the container node alive so switchPlanCategory refs still work
+        container.innerHTML = generatedHtml;
+
+        // Event delegation — attach once per container lifecycle
+        if (!container._drillListenerAttached) {
+          container.addEventListener('click', function (e) {
+            const addBtn = e.target.closest('.js-drill-add-btn');
+            const logBtn = e.target.closest('.js-drill-log-btn');
+            const catBtn = e.target.closest('.js-cat-add-btn');
+            if (addBtn) { e.stopPropagation(); openAddToPlanModal(addBtn.dataset.drill, addBtn.dataset.cat, addBtn.dataset.sport); }
+            else if (logBtn) { e.stopPropagation(); quickLogDrill(logBtn.dataset.drill, Number(logBtn.dataset.attempts), logBtn.dataset.type || 'rzuty'); }
+            else if (catBtn) { e.stopPropagation(); openAddToPlanModal(null, catBtn.dataset.cat, catBtn.dataset.sport, true); }
+          });
+          container._drillListenerAttached = true;
+        }
+
+      } catch (err) {
+        console.error('[FitAI] renderSportDrills() error:', err);
+        // On any unexpected error fall back to the catalog — never show a blank screen
+        try {
+          renderSportCatalog();
+        } catch (innerErr) {
+          if (container) {
+            container.innerHTML = `
+              <div class="glass p-8 rounded-2xl text-center space-y-3">
+                <div style="font-size:2.5rem;">⚠️</div>
+                <p class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">
+                  Wybierz dyscyplinę, aby zobaczyć drille
+                </p>
+                <p class="text-xs font-mono" style="color:rgba(255,255,255,0.2);">
+                  ${err && err.message ? err.message.substring(0,80) : 'Nieznany błąd'}
+                </p>
+              </div>`;
+          }
         }
       }
     }
+
+    // ── Internal helper: render catalog cards into an arbitrary DOM node ─────
+    // Used by the "sport not found" fallback path.
+    function _renderCatalogInto(node) {
+      if (!node) return;
+      const entries = Object.keys(SPORT_DRILLS).map(key => {
+        const meta = SPORTS_CATALOG.find(s => s.id === key) || {
+          id: key, emoji: SPORT_DRILLS[key].emoji || '🏅',
+          label: key.charAt(0).toUpperCase() + key.slice(1), color: '#64748b',
+        };
+        return { ...meta, drillCount: _countSportDrills(key) };
+      });
+
+      node.innerHTML = `<div class="sport-catalog-grid mt-2">` +
+        entries.map(s => {
+          const colorRgba = (s.color || '#64748b')
+            .replace(/^#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i,
+              (_, r, g, b) => `rgba(${parseInt(r,16)},${parseInt(g,16)},${parseInt(b,16)},0.35)`);
+          return `
+            <div class="sport-catalog-card" style="--sport-color:${colorRgba};"
+                 onclick="_previewSportFromCatalog('${s.id}')">
+              <span class="sport-catalog-card-emoji">${s.emoji}</span>
+              <span class="sport-catalog-card-label">${s.label}</span>
+              <span class="sport-catalog-card-count">${s.drillCount} drilli</span>
+            </div>`;
+        }).join('') + `</div>`;
+    }
+
 
     function toggleSportCategory(header) {
       const body = header.nextElementSibling;
@@ -8566,7 +9188,293 @@
     let _bibliotekaMealCategory = 'all';
     let _atlasExerciseCategory = 'all';
 
-    function dietDbSetCategory(cat) {
+    // ═══════════════════════════════════════════════════════════════════════════
+    // NORMALIZACJA KATEGORII — odporna na literówki i różne języki
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * normalizeCategory(cat) — inteligentny mapper kategorii.
+     *
+     * Mapuje dowolny wariant nazwy (z literówkami, w innym języku, z różną
+     * wielkością liter) na jeden spójny klucz używany w MEAL_DB / EXERCISE_DB.
+     *
+     * Przykłady:
+     *   'Śniadania' → 'śniadanie'    'Breakfast' → 'śniadanie'
+     *   'Sniadanie' → 'śniadanie'    'Lunch'     → 'obiad'
+     *   'Klatka'    → 'klatka'       'Chest'     → 'klatka'
+     *   'all'       → 'all'          'Wszystkie' → 'all'
+     *   'barki'     → 'barki'        'Shoulders' → 'barki'
+     */
+    function normalizeCategory(cat) {
+      if (!cat) return 'all';
+      const s = String(cat).trim().toLowerCase()
+        // usuń polskie znaki diakrytyczne dla dopasowania bez ogonków
+        .replace(/ą/g, 'a').replace(/ć/g, 'c').replace(/ę/g, 'e')
+        .replace(/ł/g, 'l').replace(/ń/g, 'n').replace(/ó/g, 'o')
+        .replace(/ś/g, 's').replace(/ź/g, 'z').replace(/ż/g, 'z');
+
+      // ── Klucze "pokaż wszystko" ─────────────────────────────────────────────
+      if (['all', 'wszystkie', 'wszystko', 'any', 'any category', ''].includes(s)) return 'all';
+
+      // ── Mapa kategorii posiłków ─────────────────────────────────────────────
+      const MEAL_CATEGORY_MAP = {
+        // śniadanie
+        'sniadanie':  'śniadanie', 'sniadania': 'śniadanie',
+        'snadanie':   'śniadanie', 'sniadanko': 'śniadanie',  // literówki
+        'breakfast':  'śniadanie', 'morning':   'śniadanie',
+        'rano':       'śniadanie',
+        // obiad
+        'obiad':  'obiad', 'obiady': 'obiad',
+        'lunch':  'obiad', 'dinner': 'obiad', 'drugie sniadanie': 'obiad',
+        // kolacja
+        'kolacja':  'kolacja', 'kolacje': 'kolacja',
+        'supper':   'kolacja', 'wieczor': 'kolacja',
+        'kolacjia': 'kolacja',  // literówka
+        // przekąska
+        'przekaska':    'przekąska', 'przekaski':  'przekąska',
+        'snack':        'przekąska', 'snacks':     'przekąska',
+        'przegryzka':   'przekąska', 'podwieczorek': 'przekąska',
+        'przekashka':   'przekąska',  // literówka
+      };
+
+      // ── Mapa kategorii ćwiczeń ──────────────────────────────────────────────
+      const EXERCISE_CATEGORY_MAP = {
+        // klatka
+        'klatka':    'klatka', 'klatki':    'klatka',
+        'chest':     'klatka', 'pecs':      'klatka',
+        'piersiowa': 'klatka',
+        // plecy
+        'plecy':  'plecy', 'back': 'plecy',
+        'grzbet': 'plecy', 'lats': 'plecy',
+        // nogi
+        'nogi':   'nogi', 'nog':    'nogi',
+        'legs':   'nogi', 'quads':  'nogi',
+        'uda':    'nogi', 'laskomy': 'nogi',
+        // barki (zdefiniowane wyżej przy brzuch)
+        // ramiona
+        'ramiona':  'ramiona', 'ramie':     'ramiona',
+        'arms':     'ramiona',
+        // biceps
+        'biceps':  'biceps', 'bicepsy': 'biceps',
+        'bicep':   'biceps', 'guns':    'biceps',
+        // triceps
+        'triceps':  'triceps', 'trojglowy': 'triceps',
+        'tricep':   'triceps',
+        // brzuch / core
+        'brzuch':  'brzuch', 'core': 'core',
+        'abs':     'brzuch', 'abdomen': 'brzuch',
+        'talia':   'brzuch',
+        // barki (były pominięte w mapie - EXERCISE_DB ma klucz 'barki')
+        'barki':   'barki', 'bark':  'barki',
+        'shoulders': 'barki', 'deltoids': 'barki', 'delt': 'barki',
+        // kardio
+        'kardio':  'kardio', 'cardio': 'kardio',
+        // pośladki
+        'posladki': 'pośladki', 'glutes':   'pośladki',
+        'pupka':    'pośladki', 'glute':    'pośladki',
+        // kardio (zdefiniowane wyżej przy brzuch)
+        'bieganie': 'kardio', 'running': 'kardio',
+      };
+
+      return MEAL_CATEGORY_MAP[s] || EXERCISE_CATEGORY_MAP[s] || cat.trim().toLowerCase();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // DEDUPLIKACJA — zapobiega duplikatom przy wielokrotnym ładowaniu
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Śledzi nazwy już załadowanych posiłków i ćwiczeń.
+     * Resetowane przy każdym pełnym przeładowaniu loadInitialData().
+     */
+    const _loadedMealNames     = new Set();
+    const _loadedExerciseNames = new Set();
+
+    /** Zwraca tylko rekordy, których name jeszcze nie ma w danym Set. */
+    function _deduplicateByName(records, seenSet) {
+      const fresh = [];
+      for (const rec of records) {
+        const key = (rec.name || '').trim().toLowerCase();
+        if (!key || seenSet.has(key)) continue;
+        seenSet.add(key);
+        fresh.push(rec);
+      }
+      return fresh;
+    }
+
+    /**
+     * _mergeIntoMealDB(seedData) — scala dane seed z istniejącym MEAL_DB.
+     *
+     * • Pomija posiłki, których name już istnieje w _loadedMealNames.
+     * • Normalizuje klucz kategorii przez normalizeCategory().
+     * • Nigdy nie usuwa istniejących wpisów — tylko dodaje nowe.
+     */
+    function _mergeIntoMealDB(seedData) {
+      if (!seedData || typeof seedData !== 'object') return;
+      // Zawsze używaj window.MEAL_DB jako target — jest dostępny globalnie
+      const targetDB = window.MEAL_DB;
+      if (!targetDB) { console.warn('[FitAI] _mergeIntoMealDB: window.MEAL_DB niedostępne'); return; }
+      Object.entries(seedData).forEach(([rawCat, meals]) => {
+        const cat = normalizeCategory(rawCat);
+        if (!cat || cat === 'all') return;
+        if (!targetDB[cat]) targetDB[cat] = [];
+        const fresh = _deduplicateByName(meals || [], _loadedMealNames);
+        targetDB[cat].push(...fresh);
+      });
+    }
+
+    /**
+     * _mergeIntoExerciseDB(seedData) — scala dane seed z istniejącym EXERCISE_DB.
+     *
+     * • Pomija ćwiczenia, których name już istnieje w _loadedExerciseNames.
+     * • Normalizuje klucz kategorii przez normalizeCategory().
+     */
+    function _mergeIntoExerciseDB(seedData) {
+      if (!seedData || typeof seedData !== 'object') return;
+      // Zawsze używaj window.EXERCISE_DB jako target — jest dostępny globalnie
+      const targetDB = window.EXERCISE_DB;
+      if (!targetDB) { console.warn('[FitAI] _mergeIntoExerciseDB: window.EXERCISE_DB niedostępne'); return; }
+      Object.entries(seedData).forEach(([rawCat, exercises]) => {
+        const cat = normalizeCategory(rawCat);
+        if (!cat || cat === 'all') return;
+        if (!targetDB[cat]) targetDB[cat] = [];
+        const fresh = _deduplicateByName(exercises || [], _loadedExerciseNames);
+        targetDB[cat].push(...fresh);
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ŁADOWANIE DANYCH — fetch seed JSON + fallback do inline data
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /** Stan ładowania danych seed — unika wielokrotnego fetch na tej samej sesji */
+    let _seedDataLoadState = 'idle'; // 'idle' | 'loading' | 'done' | 'error'
+
+    /**
+     * loadInitialData() — async fetch fitai_seed_data.js + fallback.
+     *
+     * Strategia ładowania:
+     *  1. Jeśli MEAL_DB / EXERCISE_DB już mają dane (inline w HTML) → skanuj
+     *     je przez deduplicator żeby uzupełnić _loaded*Names Sets i zakończ.
+     *  2. Spróbuj fetch('fitai_seed_data.js') — parsuj jako JS module eval.
+     *  3. Jeśli fetch nie powiedzie się (plik nie istnieje, CORS, błąd sieci)
+     *     → użyj danych wbudowanych jako fallback (już są w MEAL_DB/EXERCISE_DB).
+     *  4. Po każdej ścieżce odśwież widoki: bibliotekaMealFilter + renderAtlas.
+     *
+     * @returns {Promise<void>}
+     */
+    async function loadInitialData() {
+      if (_seedDataLoadState === 'loading' || _seedDataLoadState === 'done') return;
+      _seedDataLoadState = 'loading';
+
+      // ── Krok 1: Zeskanuj istniejące dane inline (eliminacja duplikatów) ─────
+      const _preScanInline = () => {
+        if (typeof MEAL_DB !== 'undefined') {
+          Object.values(MEAL_DB).forEach(meals =>
+            (meals || []).forEach(m => {
+              const k = (m.name || '').trim().toLowerCase();
+              if (k) _loadedMealNames.add(k);
+            })
+          );
+        }
+        if (typeof EXERCISE_DB !== 'undefined') {
+          Object.values(EXERCISE_DB).forEach(exs =>
+            (exs || []).forEach(e => {
+              const k = (e.name || '').trim().toLowerCase();
+              if (k) _loadedExerciseNames.add(k);
+            })
+          );
+        }
+      };
+      _preScanInline();
+
+      const _countMeals    = () => typeof MEAL_DB     !== 'undefined' ? Object.values(MEAL_DB).reduce((s, a)     => s + (a || []).length, 0) : 0;
+      const _countExercises = () => typeof EXERCISE_DB !== 'undefined' ? Object.values(EXERCISE_DB).reduce((s, a) => s + (a || []).length, 0) : 0;
+
+      const inlineMeals     = _countMeals();
+      const inlineExercises = _countExercises();
+
+      // ── Krok 2: Spróbuj fetch fitai_seed_data.js ─────────────────────────────
+      let fetchedSeedOk = false;
+      try {
+        // Timestamp cache-buster tylko w dev (localhost)
+        const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        const url     = isLocal ? `fitai_seed_data.js?v=${Date.now()}` : 'fitai_seed_data.js';
+
+        const res = await fetch(url, { cache: 'no-store' });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const jsText = await res.text();
+
+        // ── Bezpieczne wyodrębnienie MEAL_DB, EXERCISE_DB i SPORT_DRILLS ─────
+        // Zamiast eval() na całym pliku, wycinamy tylko obiekty danych.
+        // Technika: owrap w IIFE który zwraca zdefiniowane zmienne.
+        /* eslint-disable no-new-func */
+        const extractFn = new Function(`
+          ${jsText}
+          return {
+            MEAL_DB:      typeof MEAL_DB      !== 'undefined' ? MEAL_DB      : null,
+            EXERCISE_DB:  typeof EXERCISE_DB  !== 'undefined' ? EXERCISE_DB  : null,
+            SPORT_DRILLS: typeof SPORT_DRILLS !== 'undefined' ? SPORT_DRILLS : null,
+          };
+        `);
+        /* eslint-enable no-new-func */
+
+        const extracted = extractFn();
+
+        if (extracted.MEAL_DB)      _mergeIntoMealDB(extracted.MEAL_DB);
+        if (extracted.EXERCISE_DB)  _mergeIntoExerciseDB(extracted.EXERCISE_DB);
+
+        // Jeśli seed ma SPORT_DRILLS a globalny go nie ma lub ma mniej dyscyplin
+        if (extracted.SPORT_DRILLS && typeof SPORT_DRILLS !== 'undefined') {
+          Object.entries(extracted.SPORT_DRILLS).forEach(([sport, data]) => {
+            if (!SPORT_DRILLS[sport]) SPORT_DRILLS[sport] = data;
+          });
+        }
+
+        const addedMeals     = _countMeals()     - inlineMeals;
+        const addedExercises = _countExercises() - inlineExercises;
+        console.log(`[FitAI] loadInitialData: seed załadowany ✅ +${addedMeals} posiłków, +${addedExercises} ćwiczeń`);
+        fetchedSeedOk = true;
+
+      } catch (fetchErr) {
+        // ── Krok 3: Fallback — dane wbudowane w HTML są już w MEAL_DB/EXERCISE_DB
+        const isNotFound = fetchErr.message && (fetchErr.message.includes('404') || fetchErr.message.includes('HTTP 4'));
+        if (isNotFound) {
+          console.info('[FitAI] loadInitialData: fitai_seed_data.js nie znaleziony — używam danych wbudowanych.');
+        } else {
+          console.warn('[FitAI] loadInitialData: błąd fetch —', fetchErr.message, '— używam danych wbudowanych.');
+        }
+      }
+
+      _seedDataLoadState = 'done';
+
+      // ── Krok 4: Odśwież widoki (niezależnie od ścieżki ładowania) ────────────
+      // Resetuj flagi renderowania — dane mogły się zmienić po załadowaniu seed
+      if (typeof state !== 'undefined') {
+        state._dieta_rendered   = false;
+        state._trening_rendered = false;
+        state._sport_rendered   = false;
+      }
+      // Odśwież tylko panele które są aktualnie widoczne (active)
+      try {
+        const bibGrid   = document.getElementById('bibliotekaMealGrid');
+        const atlasGrid = document.getElementById('atlasExerciseGrid');
+        const drillsCt  = document.getElementById('sportDrillsContainer');
+        const isVisible = (el) => el && el.closest('.plan-tab-panel.active');
+
+        if (isVisible(bibGrid)   && typeof bibliotekaMealFilter === 'function') bibliotekaMealFilter();
+        if (isVisible(atlasGrid) && typeof renderAtlas === 'function')          renderAtlas();
+        if (isVisible(drillsCt)  && typeof renderSportDrills === 'function')    renderSportDrills();
+
+        // Zawsze wywołaj dla niewidocznych — wypełnią się przy następnym wejściu przez DOMContentLoaded
+        if (!isVisible(bibGrid)   && typeof bibliotekaMealFilter === 'function') bibliotekaMealFilter();
+        if (!isVisible(atlasGrid) && typeof renderAtlas === 'function')          renderAtlas();
+        if (!isVisible(drillsCt)  && typeof renderSportDrills === 'function')    renderSportDrills();
+        if (typeof initAtlasCategoryBtnsFromDB === 'function') initAtlasCategoryBtnsFromDB();
+      } catch(_) {}
+    }
       _dietDbCategory = cat;
       document.querySelectorAll('.diet-cat-btn').forEach(b => {
         const active = b.dataset.cat === cat;
@@ -8590,10 +9498,19 @@
     }
 
     function bibliotekaMealFilter() {
-      const grid = document.getElementById('bibliotekaMealGrid');
+      // Użyj window.MEAL_DB jeśli lokalna const jest niedostępna
+      const _MEAL_DB = (typeof MEAL_DB !== 'undefined' ? MEAL_DB : null) || window.MEAL_DB || {};
+      console.log('[FitAI] bibliotekaMealFilter: MEAL_DB =',
+        Object.keys(_MEAL_DB).length, 'kategorii,',
+        Object.values(_MEAL_DB).reduce((s,a) => s+(a||[]).length, 0), 'posiłków');
+      const grid    = document.getElementById('bibliotekaMealGrid');
       const countEl = document.getElementById('bibliotekaMealCount');
-      const query = (document.getElementById('bibliotekaMealSearch')?.value || '').toLowerCase().trim();
-      const cat = _bibliotekaMealCategory;
+      const query   = (document.getElementById('bibliotekaMealSearch')?.value || '').toLowerCase().trim();
+
+      // Normalize category przez centralny mapper — obsługuje literówki, angielskie nazwy itp.
+      const rawCat  = _bibliotekaMealCategory || 'all';
+      const catNorm = normalizeCategory(rawCat);  // ← używa normalizeCategory zamiast ręcznego toLowerCase
+      const showAll = catNorm === 'all';
 
       if (!grid) return;
 
@@ -8609,11 +9526,15 @@
       // Build flat list from MEAL_DB (with seed fallback)
       const allMeals = [];
       let hasMealDB = false;
-      if (typeof MEAL_DB !== 'undefined') {
-        Object.entries(MEAL_DB).forEach(([type, meals]) => {
+      // Priorytet: window.MEAL_DB (plik seed) > lokalna const MEAL_DB (inline)
+      const _activeMealDB = window.MEAL_DB || (typeof MEAL_DB !== 'undefined' ? MEAL_DB : null) || {};
+      try {
+        Object.entries(_activeMealDB).forEach(([type, meals]) => {
           if (meals && meals.length) hasMealDB = true;
-          meals.forEach(m => allMeals.push({ ...m, _type: type }));
+          (meals || []).forEach(m => allMeals.push({ ...m, _type: type }));
         });
+      } catch (dbErr) {
+        console.warn('[FitAI] bibliotekaMealFilter: MEAL_DB read error:', dbErr);
       }
       // Fall back to seed data if MEAL_DB is empty or undefined
       if (!hasMealDB) {
@@ -8621,9 +9542,12 @@
       }
 
       const filtered = allMeals.filter(m => {
-        const matchCat = (cat === 'all') || (m._type === cat);
-        const matchQ = !query || m.name.toLowerCase().includes(query)
-          || (m.ingredients || []).some(i => i.item?.toLowerCase().includes(query));
+        // normalizeCategory na _type z bazy danych — eliminuje niespójności w danych
+        const typeNorm = normalizeCategory(m._type || '');
+        const matchCat = showAll || typeNorm === catNorm;
+        const matchQ   = !query
+                      || m.name.toLowerCase().includes(query)
+                      || (m.ingredients || []).some(i => (i.item || '').toLowerCase().includes(query));
         return matchCat && matchQ;
       });
 
@@ -8634,20 +9558,21 @@
         const emp = document.createElement('div');
         emp.className = 'col-span-full text-center py-12';
         emp.innerHTML = `
-          <div style="font-size:2.5rem">🔍</div>
-          <p class="text-sm font-semibold mt-3 text-white">Brak danych</p>
+          <div style="font-size:2.5rem">🍽️</div>
+          <p class="text-sm font-semibold mt-3 text-white">Brak pozycji w tej kategorii</p>
           <p class="text-xs mt-1" style="color:var(--muted);">
             ${query
-              ? `Brak wyników dla: <strong>${query}</strong>`
-              : 'Brak posiłków w tej kategorii. Dodaj pierwszy posiłek lub zmień filtr.'}
+              ? `Brak wyników dla: <strong style="color:var(--cyan);">${query}</strong> — spróbuj innej frazy`
+              : 'Żaden posiłek nie pasuje do wybranego filtra. Wybierz inną kategorię.'
+            }
           </p>`;
         grid.appendChild(emp);
         return;
       }
 
       // Type label map
-      const TYPE_LABELS = { śniadanie: '☀️ Śniadanie', obiad: '🍲 Obiad', kolacja: '🌙 Kolacja', przekąska: '🍎 Przekąska' };
-      const TYPE_COLORS = { śniadanie: '#fbbf24', obiad: '#34d399', kolacja: '#a78bfa', przekąska: '#f97316' };
+      const TYPE_LABELS = { 'śniadanie': '☀️ Śniadanie', 'obiad': '🍲 Obiad', 'kolacja': '🌙 Kolacja', 'przekąska': '🍎 Przekąska' };
+      const TYPE_COLORS = { 'śniadanie': '#fbbf24', 'obiad': '#34d399', 'kolacja': '#a78bfa', 'przekąska': '#f97316' };
 
       grid.innerHTML = '';
       filtered.forEach(m => {
@@ -8657,16 +9582,15 @@
         card.onmouseenter = () => { card.style.borderColor = 'rgba(0,229,255,0.25)'; card.style.transform = 'translateY(-2px)'; };
         card.onmouseleave = () => { card.style.borderColor = 'var(--border)'; card.style.transform = ''; };
 
-        // Type badge
-        const badgeColor = TYPE_COLORS[m._type] || '#64748b';
-        const badgeLabel = TYPE_LABELS[m._type] || m._type;
+        const typeKey    = (m._type || '').toLowerCase();
+        const badgeColor = TYPE_COLORS[typeKey] || '#64748b';
+        const badgeLabel = TYPE_LABELS[typeKey] || m._type;
 
-        // Macro pills
         const macros = [
-          { label: 'Kcal', val: m.kcal, color: 'var(--cyan)' },
-          { label: 'B', val: m.protein + 'g', color: '#a78bfa' },
-          { label: 'W', val: (m.carbs !== undefined ? m.carbs + 'g' : '—'), color: '#fbbf24' },
-          { label: 'T', val: (m.fat !== undefined ? m.fat + 'g' : '—'), color: '#34d399' },
+          { label: 'Kcal', val: m.kcal,                                     color: 'var(--cyan)' },
+          { label: 'B',    val: m.protein + 'g',                            color: '#a78bfa'    },
+          { label: 'W',    val: m.carbs !== undefined ? m.carbs + 'g' : '—', color: '#fbbf24'   },
+          { label: 'T',    val: m.fat   !== undefined ? m.fat   + 'g' : '—', color: '#34d399'   },
         ];
 
         const macroHtml = macros.map(mg =>
@@ -8676,7 +9600,6 @@
        </span>`
         ).join('');
 
-        // Ingredients preview
         const ingPrev = (m.ingredients || []).slice(0, 3).map(i => i.item).join(', ');
         const ingMore = (m.ingredients || []).length > 3 ? ` +${(m.ingredients || []).length - 3}` : '';
 
@@ -8691,13 +9614,13 @@
       <div class="flex flex-wrap gap-1.5">${macroHtml}</div>
       ${ingPrev ? `<p class="text-xs" style="color:var(--muted);">${ingPrev}${ingMore}</p>` : ''}
       <div class="flex gap-2 mt-auto">
-        <button onclick='dietDbOpenInfoModal(${JSON.stringify(m).replace(/'/g, "\\'")})'
+        <button onclick='dietDbOpenInfoModal(${JSON.stringify(m).replace(/'/g, "\'")})'
           class="flex-shrink-0 py-2 px-3 rounded-xl text-xs font-bold transition-all"
           style="background:rgba(255,255,255,0.05);color:var(--muted);border:1px solid var(--border);"
           title="Szczegóły posiłku">
           ℹ️ Info
         </button>
-        <button onclick='dietDbOpenModal(${JSON.stringify(m).replace(/'/g, "\\'")})'
+        <button onclick='dietDbOpenModal(${JSON.stringify(m).replace(/'/g, "\'")})'
           class="flex-1 py-2 rounded-xl text-xs font-extrabold transition-all"
           style="background:rgba(0,229,255,0.1);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);"
           onmouseenter="this.style.background='rgba(0,229,255,0.2)'"
@@ -8738,6 +9661,13 @@
 
     /** renderAtlas() — publiczny punkt wejścia; wywołaj przy starcie i przy wejściu na zakładkę */
     function renderAtlas() {
+      // Użyj window.EXERCISE_DB jeśli lokalna stała nie jest zdefiniowana (shadow fix)
+      if (typeof EXERCISE_DB === 'undefined' && window.EXERCISE_DB) {
+        console.log('[FitAI] renderAtlas: używam window.EXERCISE_DB jako fallback');
+      }
+      console.log('[FitAI] renderAtlas: EXERCISE_DB =',
+        Object.keys(window.EXERCISE_DB || EXERCISE_DB || {}).length, 'kategorii,',
+        Object.values(window.EXERCISE_DB || EXERCISE_DB || {}).reduce((s,a) => s+(a||[]).length, 0), 'ćwiczeń');
       atlasExerciseFilter();
     }
 
@@ -8745,7 +9675,10 @@
       const grid = document.getElementById('atlasExerciseGrid');
       const countEl = document.getElementById('atlasExerciseCount');
       const query = (document.getElementById('atlasExerciseSearch')?.value || '').toLowerCase().trim();
-      const cat = _atlasExerciseCategory || 'all';
+      // normalizeCategory obsługuje 'Wszystkie', 'All', 'Chest', literówki itp.
+      const rawCat  = _atlasExerciseCategory || 'all';
+      const cat     = normalizeCategory(rawCat);  // ← centralny mapper
+      const noFilter = cat === 'all';
 
       if (!grid) return;
 
@@ -8770,24 +9703,24 @@
       };
 
       // Źródło 1: EXERCISE_DB (główna baza — zawsze dostępna)
+      // Priorytet: window.EXERCISE_DB (może zawierać seed data) > lokalna const
+      const _activeExDB = window.EXERCISE_DB || (typeof EXERCISE_DB !== 'undefined' ? EXERCISE_DB : null) || {};
       let hasExerciseDB = false;
-      if (typeof EXERCISE_DB !== 'undefined') {
-        Object.entries(EXERCISE_DB).forEach(([group, list]) => {
-          if (list && list.length) hasExerciseDB = true;
-          (list || []).forEach(e => push({
-            name:        e.name,
-            sets:        e.sets,
-            reps:        e.reps,
-            weight:      e.weight,
-            tags:        e.tags  || [],
-            muscles:     e.muscles || e.muscle_group || group,
-            desc:        e.desc  || '',
-            video_url:   e.video_url || null,
-            _group:      group,
-            _source:     'EXERCISE_DB',
-          }));
-        });
-      }
+      Object.entries(_activeExDB).forEach(([group, list]) => {
+        if (list && list.length) hasExerciseDB = true;
+        (list || []).forEach(e => push({
+          name:        e.name,
+          sets:        e.sets,
+          reps:        e.reps,
+          weight:      e.weight,
+          tags:        e.tags  || [],
+          muscles:     e.muscles || e.muscle_group || group,
+          desc:        e.desc  || '',
+          video_url:   e.video_url || null,
+          _group:      normalizeCategory(e.category || group),
+          _source:     'EXERCISE_DB',
+        }));
+      });
 
       // Jeśli EXERCISE_DB jest pusta lub niezdefiniowana — użyj danych startowych
       if (!hasExerciseDB) {
@@ -8795,8 +9728,9 @@
       }
 
       // Źródło 2: SPORT_DRILLS (ćwiczenia sportowe)
-      if (typeof SPORT_DRILLS !== 'undefined') {
-        Object.entries(SPORT_DRILLS).forEach(([sport, sportData]) => {
+      const _activeSD = window.SPORT_DRILLS || (typeof SPORT_DRILLS !== 'undefined' ? SPORT_DRILLS : null) || {};
+      if (Object.keys(_activeSD).length) {
+        Object.entries(_activeSD).forEach(([sport, sportData]) => {
           Object.entries(sportData).forEach(([catKey, catData]) => {
             if (catKey === 'emoji' || !catData?.drills) return;
             (catData.drills || []).forEach(d => push({
@@ -8837,11 +9771,11 @@
         const matchQ   = !query || e.name.toLowerCase().includes(query)
                                 || (e.muscles || '').toLowerCase().includes(query)
                                 || (e.desc    || '').toLowerCase().includes(query);
-        // 'wszystkie' i 'all' — brak filtru kategorii (pokaż wszystkie ćwiczenia)
-        const noFilter = cat === 'wszystkie' || cat === 'all' || !cat;
-        const matchCat = noFilter
-                      || e._group === cat
-                      || (e.tags  || []).includes(cat);
+        // normalizeCategory na _group i tagach — eliminuje "Klatka" ≠ "klatka", "Chest" ≠ "klatka" itp.
+        const groupNorm = normalizeCategory(e._group || '');
+        const matchCat  = noFilter
+                       || groupNorm === cat
+                       || (e.tags || []).map(t => normalizeCategory(t || '')).includes(cat);
         return matchQ && matchCat;
       });
 
@@ -8854,11 +9788,11 @@
         emp.className = 'col-span-full text-center py-12';
         emp.innerHTML = `
           <div style="font-size:2.5rem">🏋️</div>
-          <p class="text-sm font-semibold mt-3 text-white">Brak danych</p>
+          <p class="text-sm font-semibold mt-3 text-white">Brak pozycji w tej kategorii</p>
           <p class="text-xs mt-1" style="color:var(--muted);">
             ${query
-              ? `Nie znaleziono ćwiczeń dla: <strong>${query}</strong>`
-              : 'Brak ćwiczeń w tej kategorii. Dodaj pierwsze ćwiczenie lub zmień filtr.'}
+              ? `Nie znaleziono ćwiczeń dla: <strong style="color:var(--cyan);">${query}</strong> — spróbuj innej frazy`
+              : 'Żadne ćwiczenie nie pasuje do wybranego filtra. Wybierz inną kategorię.'}
           </p>`;
         grid.appendChild(emp);
         return;
@@ -11897,6 +12831,10 @@
         };
       }
 
+      // ── Ładowanie danych seed (async — fetch fitai_seed_data.js + fallback) ──
+      // loadInitialData() samo wywołuje bibliotekaMealFilter() i renderAtlas() po załadowaniu.
+      loadInitialData();
+
       // ── Atlas Ćwiczeń: wygeneruj przyciski kategorii z EXERCISE_DB ──────────
       // Musi być wywołane przed pierwszym wejściem na zakładkę Atlas.
       (function initAtlasCategoryBtns() {
@@ -11964,6 +12902,571 @@
     });
   </script>
 
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       window.FitAI — MODUŁ DIAGNOSTYCZNY
+       Dostęp z konsoli przeglądarki (F12):
+         FitAI.checkIntegrity()    → pełny raport stanu aplikacji
+         FitAI.checkDB()           → stan baz danych (MEAL_DB, EXERCISE_DB, SPORT_DRILLS)
+         FitAI.checkDOM()          → weryfikacja krytycznych elementów HTML
+         FitAI.checkProfile()      → walidacja aktywnego profilu użytkownika
+         FitAI.checkAPI()          → test połączenia z backendem FastAPI
+         FitAI.reload()            → wymuś ponowne załadowanie danych seed
+         FitAI.dumpState()         → zrzut całego obiektu state (do debugowania)
+         FitAI.help()              → lista wszystkich komend
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <script>
+  (function() {
+    'use strict';
+
+    // ── Styl logów konsoli ────────────────────────────────────────────────────
+    const S = {
+      header:  'background:#0a0b10;color:#00e5ff;font-weight:bold;font-size:13px;padding:4px 8px;border-left:3px solid #00e5ff;',
+      ok:      'color:#22c55e;font-weight:bold;',
+      warn:    'color:#f59e0b;font-weight:bold;',
+      error:   'color:#ef4444;font-weight:bold;',
+      info:    'color:#94a3b8;',
+      fix:     'color:#a78bfa;font-style:italic;',
+      bold:    'color:#e2e8f0;font-weight:bold;',
+      section: 'background:#1e293b;color:#7dd3fc;font-weight:bold;padding:2px 6px;',
+    };
+
+    // ── Pomocnik wypisywania ──────────────────────────────────────────────────
+    function _log(style, msg) { console.log(`%c${msg}`, S[style] || S.info); }
+    function _ok(msg)         { _log('ok',   '  ✅ ' + msg); }
+    function _warn(msg)       { _log('warn', '  ⚠️  ' + msg); }
+    function _err(msg)        { _log('error','  ❌ ' + msg); }
+    function _fix(msg)        { _log('fix',  '     💡 Rozwiązanie: ' + msg); }
+    function _info(msg)       { _log('info', '     ℹ️  ' + msg); }
+    function _section(title)  { console.log('%c' + title, S.section); }
+
+    // ── Dostęp do zmiennych aplikacji (definiowanych w tym samym scope) ───────
+    // Musimy użyć funkcji, bo MEAL_DB etc. są const w closure — nie są na window.
+    // Trick: mamy dostęp dzięki temu, że <script> jest w tym samym dokumencie.
+    // Używamy eval() wyłącznie do odczytu zmiennych z zamkniętego scope.
+    function _safeRead(varName) {
+      try {
+        // Najpierw sprawdź window (gdyby ktoś wyeksponował zmienną globalnie)
+        if (typeof window[varName] !== 'undefined') return window[varName];
+        // Fallback: eval w kontekście dokumentu
+        // eslint-disable-next-line no-eval
+        return eval(varName);
+      } catch (_) {
+        return undefined;
+      }
+    }
+
+    function _getState() {
+      // state jest zdefiniowany jako const w zamkniętym scope — używamy eval
+      return _safeRead('state');
+    }
+
+    function _getMealDB()     { return _safeRead('MEAL_DB'); }
+    function _getExerciseDB() { return _safeRead('EXERCISE_DB'); }
+    function _getSportDrills(){ return _safeRead('SPORT_DRILLS'); }
+    function _getSportIdMap() { return _safeRead('SPORT_ID_MAP'); }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 1. FitAI.checkDB() — Stan baz danych
+    // ─────────────────────────────────────────────────────────────────────────
+    function checkDB() {
+      _section('▶ BAZY DANYCH');
+      let issueCount = 0;
+
+      // ── MEAL_DB ──────────────────────────────────────────────────────────
+      const _localMealDB = _getMealDB(); const MEAL_DB = _localMealDB;
+      if (typeof MEAL_DB === 'undefined' || MEAL_DB === null) {
+        _err('MEAL_DB nie istnieje (undefined)');
+        _fix('Uruchom FitAI.reload() lub sprawdź czy fitai_seed_data.js jest dostępny');
+        issueCount++;
+      } else {
+        const cats = Object.keys(MEAL_DB);
+        const totalMeals = cats.reduce((s, k) => s + (MEAL_DB[k] || []).length, 0);
+        const emptyCats  = cats.filter(k => (MEAL_DB[k] || []).length === 0);
+
+        if (totalMeals === 0) {
+          _err(`MEAL_DB istnieje, ale jest PUSTA (0 posiłków)`);
+          _fix('Uruchom FitAI.reload() aby załadować dane z fitai_seed_data.js');
+          issueCount++;
+        } else {
+          _ok(`MEAL_DB: ${totalMeals} posiłków w ${cats.length} kategoriach`);
+          cats.forEach(k => _info(`  ${k}: ${(MEAL_DB[k] || []).length} pozycji`));
+        }
+
+        // Sprawdź wymagane kategorie
+        const requiredMealCats = ['śniadanie', 'obiad', 'kolacja', 'przekąska'];
+        requiredMealCats.forEach(cat => {
+          const key = Object.keys(MEAL_DB).find(k => k.toLowerCase() === cat);
+          if (!key) {
+            _warn(`Brak kategorii "${cat}" w MEAL_DB`);
+            _fix(`Dodaj kategorię "${cat}" do fitai_seed_data.js`);
+            issueCount++;
+          }
+        });
+
+        if (emptyCats.length > 0) {
+          _warn(`Puste kategorie w MEAL_DB: ${emptyCats.join(', ')}`);
+          issueCount++;
+        }
+
+        // Walidacja struktury — sprawdź pierwsze 3 rekordy z każdej kategorii
+        const requiredMealFields = ['id', 'name', 'calories', 'protein', 'carbs', 'fat', 'category'];
+        let malformedMeals = 0;
+        cats.forEach(cat => {
+          (MEAL_DB[cat] || []).slice(0, 3).forEach(meal => {
+            const missing = requiredMealFields.filter(f => meal[f] === undefined);
+            if (missing.length > 0) {
+              malformedMeals++;
+              _warn(`Posiłek "${meal.name || '(brak name)'}" w "${cat}" — brak pól: ${missing.join(', ')}`);
+            }
+          });
+        });
+        if (malformedMeals === 0) _ok('Struktura posiłków: wszystkie pola wymagane obecne (próbka)');
+      }
+
+      // ── EXERCISE_DB ───────────────────────────────────────────────────────
+      const _localExerciseDB = _getExerciseDB(); const EXERCISE_DB = _localExerciseDB;
+      if (typeof EXERCISE_DB === 'undefined' || EXERCISE_DB === null) {
+        _err('EXERCISE_DB nie istnieje (undefined)');
+        _fix('Uruchom FitAI.reload() lub sprawdź czy fitai_seed_data.js jest dostępny');
+        issueCount++;
+      } else {
+        const cats = Object.keys(EXERCISE_DB);
+        const totalEx = cats.reduce((s, k) => s + (EXERCISE_DB[k] || []).length, 0);
+        const emptyCats = cats.filter(k => (EXERCISE_DB[k] || []).length === 0);
+
+        if (totalEx === 0) {
+          _err('EXERCISE_DB istnieje, ale jest PUSTA (0 ćwiczeń)');
+          _fix('Uruchom FitAI.reload() aby załadować dane z fitai_seed_data.js');
+          issueCount++;
+        } else {
+          _ok(`EXERCISE_DB: ${totalEx} ćwiczeń w ${cats.length} kategoriach`);
+          cats.forEach(k => _info(`  ${k}: ${(EXERCISE_DB[k] || []).length} pozycji`));
+        }
+
+        // Sprawdź wymagane partie mięśniowe
+        const requiredExCats = ['klatka piersiowa', 'plecy', 'nogi', 'barki', 'ramiona', 'brzuch'];
+        requiredExCats.forEach(cat => {
+          const key = cats.find(k => k.toLowerCase() === cat);
+          if (!key) {
+            _warn(`Brak kategorii "${cat}" w EXERCISE_DB`);
+            _fix(`Dodaj kategorię "${cat}" do fitai_seed_data.js`);
+            issueCount++;
+          }
+        });
+
+        // Walidacja struktury — próbka
+        const requiredExFields = ['id', 'name', 'category', 'difficulty'];
+        let malformedEx = 0;
+        cats.forEach(cat => {
+          (EXERCISE_DB[cat] || []).slice(0, 3).forEach(ex => {
+            const missing = requiredExFields.filter(f => ex[f] === undefined);
+            if (missing.length > 0) {
+              malformedEx++;
+              _warn(`Ćwiczenie "${ex.name || '(brak name)'}" w "${cat}" — brak pól: ${missing.join(', ')}`);
+            }
+          });
+        });
+        if (malformedEx === 0) _ok('Struktura ćwiczeń: wszystkie pola wymagane obecne (próbka)');
+
+        if (emptyCats.length > 0) {
+          _warn(`Puste kategorie w EXERCISE_DB: ${emptyCats.join(', ')}`);
+          issueCount++;
+        }
+      }
+
+      // ── SPORT_DRILLS ──────────────────────────────────────────────────────
+      const SPORT_DRILLS = _getSportDrills();
+      if (typeof SPORT_DRILLS === 'undefined' || SPORT_DRILLS === null) {
+        _err('SPORT_DRILLS nie istnieje (undefined)');
+        _fix('Sprawdź czy SPORT_DRILLS jest zdefiniowany w index.html lub fitai_seed_data.js');
+        issueCount++;
+      } else {
+        const sports = Object.keys(SPORT_DRILLS);
+        const totalDrills = sports.reduce((s, sport) => {
+          const drills = SPORT_DRILLS[sport]?.drills || SPORT_DRILLS[sport] || [];
+          return s + (Array.isArray(drills) ? drills.length : 0);
+        }, 0);
+        _ok(`SPORT_DRILLS: ${sports.length} dyscyplin, ${totalDrills} drilli`);
+        sports.forEach(sp => {
+          const drills = SPORT_DRILLS[sp]?.drills || SPORT_DRILLS[sp] || [];
+          const count = Array.isArray(drills) ? drills.length : 0;
+          if (count === 0) {
+            _warn(`SPORT_DRILLS["${sp}"] — brak drilli`);
+            issueCount++;
+          } else {
+            _info(`  ${sp}: ${count} drilli`);
+          }
+        });
+      }
+
+      return issueCount;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 2. FitAI.checkDOM() — Weryfikacja krytycznych elementów HTML
+    // ─────────────────────────────────────────────────────────────────────────
+    function checkDOM() {
+      _section('▶ KONTENERY DOM');
+      let issueCount = 0;
+
+      // Krytyczne kontenery z opisem ich roli
+      const CRITICAL_IDS = [
+        // Nawigacja i strony
+        { id: 'mainNav',              role: 'Nawigacja górna' },
+        { id: 'landingPage',          role: 'Strona startowa (niezalogowany)' },
+        { id: 'dashboardPage',        role: 'Główna aplikacja (zalogowany)' },
+        { id: 'mainContent',          role: 'Główny kontener treści' },
+        // Plan
+        { id: 'planDietContainer',    role: 'Kontener diety w planie' },
+        { id: 'planTrainingContainer',role: 'Kontener treningu w planie' },
+        { id: 'planHybridLayout',     role: 'Układ hybrydowy planu' },
+        { id: 'planSubSidebar',       role: 'Sidebar kategorii planu' },
+        { id: 'planContentArea',      role: 'Obszar treści planu' },
+        // Atlas ćwiczeń
+        { id: 'atlasExerciseGrid',    role: 'Siatka atlasu ćwiczeń' },
+        { id: 'atlasExerciseSearch',  role: 'Wyszukiwarka w atlasie' },
+        { id: 'atlasCategoryBtns',    role: 'Przyciski kategorii atlasu' },
+        // Dashboard
+        { id: 'kpiWeight',            role: 'KPI — waga użytkownika' },
+        { id: 'kpiGoal',              role: 'KPI — cele' },
+        { id: 'greetingName',         role: 'Powitanie z imieniem' },
+        { id: 'headerUserBadge',      role: 'Badge użytkownika w nagłówku' },
+        { id: 'currentUserName',      role: 'Nazwa użytkownika w sidebarze' },
+        // Checklist planu
+        { id: 'planChecklistContainer', role: 'Checklist posiłków/treningów' },
+      ];
+
+      let missing = [];
+      let found   = [];
+
+      CRITICAL_IDS.forEach(({ id, role }) => {
+        const el = document.getElementById(id);
+        if (!el) {
+          missing.push({ id, role });
+          issueCount++;
+        } else {
+          found.push(id);
+        }
+      });
+
+      _ok(`Znaleziono ${found.length}/${CRITICAL_IDS.length} krytycznych elementów`);
+
+      if (missing.length > 0) {
+        _err(`Brak ${missing.length} elementów DOM:`);
+        missing.forEach(({ id, role }) => {
+          _warn(`  #${id} — "${role}"`);
+          _fix(`Sprawdź czy element id="${id}" istnieje w HTML. Może być ukryty przez display:none`);
+        });
+      }
+
+      // Sprawdź widoczność kluczowych stron
+      const dashPage = document.getElementById('dashboardPage');
+      const landPage = document.getElementById('landingPage');
+      if (dashPage && landPage) {
+        const dashVisible = dashPage.style.display !== 'none' && !dashPage.classList.contains('hidden');
+        const landVisible = landPage.style.display !== 'none' && !landPage.classList.contains('hidden');
+        _info(`Aktywna strona: ${dashVisible ? 'dashboardPage ✅' : landVisible ? 'landingPage (niezalogowany)' : 'żadna (!)'}`)
+        if (!dashVisible && !landVisible) {
+          _warn('Ani dashboardPage ani landingPage nie są widoczne!');
+          _fix('Sprawdź funkcję initApp() — powinna przełączyć widok po załadowaniu');
+          issueCount++;
+        }
+      }
+
+      return issueCount;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 3. FitAI.checkProfile() — Walidacja aktywnego profilu użytkownika
+    // ─────────────────────────────────────────────────────────────────────────
+    function checkProfile() {
+      _section('▶ PROFIL UŻYTKOWNIKA');
+      let issueCount = 0;
+
+      const st = _getState();
+      if (!st) {
+        _err('Obiekt "state" jest niedostępny — aplikacja nie zainicjalizowana?');
+        _fix('Poczekaj na załadowanie strony i wywołaj FitAI.checkProfile() ponownie');
+        return 1;
+      }
+
+      // Aktywny profil
+      const profile = st.profiles?.find(p => p.id === st.currentProfile) || st.profiles?.[0];
+      if (!profile) {
+        _err('Brak aktywnego profilu w state.profiles');
+        _fix('Utwórz profil przez UI lub zresetuj localStorage: localStorage.clear()');
+        return 1;
+      }
+
+      _ok(`Aktywny profil: "${profile.name || '(brak imienia)'}" (id: ${profile.id})`);
+      _info(`Liczba profili: ${(st.profiles || []).length}`);
+
+      // Wymagane pola
+      const REQUIRED_FIELDS = [
+        { key: 'name',      label: 'Imię' },
+        { key: 'age',       label: 'Wiek' },
+        { key: 'weight',    label: 'Waga (kg)' },
+        { key: 'height',    label: 'Wzrost (cm)' },
+        { key: 'gender',    label: 'Płeć' },
+        { key: 'goal',      label: 'Cel (np. redukcja, masa)' },
+        { key: 'frequency', label: 'Częstotliwość treningów' },
+      ];
+
+      let missingFields = [];
+      REQUIRED_FIELDS.forEach(({ key, label }) => {
+        const val = profile[key];
+        if (val === undefined || val === null || val === '') {
+          missingFields.push({ key, label });
+          issueCount++;
+        } else {
+          _ok(`${label}: ${val}`);
+        }
+      });
+
+      if (missingFields.length > 0) {
+        _err(`Brak ${missingFields.length} wymaganych pól profilu:`);
+        missingFields.forEach(({ key, label }) => {
+          _warn(`  Brak: "${key}" (${label})`);
+          _fix(`Uzupełnij pole "${label}" w ustawieniach profilu w aplikacji`);
+        });
+      }
+
+      // Walidacja sport_focus vs SPORT_DRILLS
+      const SPORT_DRILLS = _getSportDrills();
+      const SPORT_ID_MAP = _getSportIdMap();
+      const sportFocus = profile.sport_focus
+        || (Array.isArray(profile.sports) && profile.sports[0])
+        || st.sport_focus;
+
+      if (!sportFocus) {
+        _warn('Brak sport_focus w profilu — drille sportowe nie będą działać');
+        _fix('Ustaw sport w ustawieniach: FitAI.dumpState() → szukaj sport_focus');
+        issueCount++;
+      } else {
+        // Normalizacja — tak jak robi resolveSportId()
+        const sportLow    = String(sportFocus).trim().toLowerCase();
+        const resolvedId  = (SPORT_ID_MAP && (SPORT_ID_MAP[sportFocus] || SPORT_ID_MAP[sportLow])) || sportLow;
+        const drillsExist = SPORT_DRILLS && (SPORT_DRILLS[resolvedId] || SPORT_DRILLS[sportFocus] || SPORT_DRILLS[sportLow]);
+
+        if (!SPORT_DRILLS) {
+          _warn(`sport_focus = "${sportFocus}" — SPORT_DRILLS nie załadowane (sprawdź checkDB)`);
+          issueCount++;
+        } else if (!drillsExist) {
+          _err(`sport_focus = "${sportFocus}" → resolvedId = "${resolvedId}" — BRAK klucza w SPORT_DRILLS!`);
+          _fix(`Dostępne dyscypliny: ${Object.keys(SPORT_DRILLS).join(', ')}`);
+          _fix(`Zmień sport_focus na jedną z powyższych lub dodaj "${resolvedId}" do SPORT_DRILLS`);
+          issueCount++;
+        } else {
+          const drills = drillsExist?.drills || drillsExist || [];
+          const count  = Array.isArray(drills) ? drills.length : 0;
+          _ok(`sport_focus = "${sportFocus}" → resolvedId = "${resolvedId}" → ${count} drilli ✅`);
+        }
+      }
+
+      // Ostrzeżenia dla wartości poza zakresem
+      if (profile.age    && (profile.age    < 10 || profile.age    > 100)) { _warn(`Wiek ${profile.age} poza zakresem (10-100)`); issueCount++; }
+      if (profile.weight && (profile.weight <  30 || profile.weight > 300)) { _warn(`Waga ${profile.weight} poza zakresem (30-300)`); issueCount++; }
+      if (profile.height && (profile.height < 100 || profile.height > 250)) { _warn(`Wzrost ${profile.height} poza zakresem (100-250)`); issueCount++; }
+
+      // identityId
+      _info(`identityId: ${st.identityId || window.FITAI_USER_ID || '(brak!)'}`);
+      if (!st.identityId && !window.FITAI_USER_ID) {
+        _warn('Brak identityId — synchronizacja z backendem nie działa');
+        _fix('Sprawdź initDeviceId() i czy localStorage["fitai_device_id"] jest ustawiony');
+        issueCount++;
+      }
+
+      return issueCount;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 4. FitAI.checkAPI() — Test połączenia z backendem
+    // ─────────────────────────────────────────────────────────────────────────
+    async function checkAPI() {
+      _section('▶ POŁĄCZENIE Z API');
+
+      const apiBase = window.API_BASE || 'http://localhost:8000';
+      _info(`Testowany endpoint: ${apiBase}`);
+
+      // Test 1: /health lub /
+      try {
+        const start = performance.now();
+        const res   = await fetch(apiBase + '/health', { signal: AbortSignal.timeout(5000) });
+        const ms    = Math.round(performance.now() - start);
+
+        if (res.ok) {
+          _ok(`Backend odpowiada: HTTP ${res.status} (${ms}ms)`);
+          try {
+            const body = await res.json();
+            _info(`Wersja API: ${body.version || body.app_version || '(brak pola version)'}`);
+          } catch (_) {}
+        } else {
+          _warn(`Backend odpowiedział kodem ${res.status} — może być problem z konfiguracją`);
+          _fix(`Sprawdź logi uvicorn. Endpoint /health powinien zwracać 200`);
+        }
+      } catch (err) {
+        if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+          _err(`Timeout (5s) — backend nie odpowiada pod ${apiBase}`);
+        } else {
+          _err(`Błąd połączenia: ${err.message}`);
+        }
+        _fix(`1. Uruchom start_fitai.bat`);
+        _fix(`2. Sprawdź czy PORT 8000 jest wolny: netstat -ano | findstr :8000`);
+        _fix(`3. Sprawdź zmienną window.API_BASE: ${apiBase}`);
+        _info('CORS: Upewnij się że ${location.origin} jest w CORS_ORIGINS w .env');
+      }
+
+      // Test 2: Czy CORS działa (preflight)
+      try {
+        const corsRes = await fetch(apiBase + '/health', {
+          method: 'OPTIONS',
+          signal: AbortSignal.timeout(3000),
+        });
+        const corsHeader = corsRes.headers.get('access-control-allow-origin');
+        if (corsHeader) {
+          _ok(`CORS: access-control-allow-origin = "${corsHeader}"`);
+        } else {
+          _warn('CORS: brak nagłówka access-control-allow-origin w OPTIONS response');
+          _fix(`Dodaj "${location.origin}" do CORS_ORIGINS w pliku .env i zrestartuj serwer`);
+        }
+      } catch (_) {
+        _info('CORS preflight: nie można przetestować (brak odpowiedzi na OPTIONS)');
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 5. FitAI.checkIntegrity() — Pełny raport (wywołuje wszystko)
+    // ─────────────────────────────────────────────────────────────────────────
+    function checkIntegrity() {
+      console.log('%c╔══════════════════════════════════════════════════════╗', S.header);
+      console.log('%c║          FitAI — RAPORT INTEGRALNOŚCI DANYCH         ║', S.header);
+      console.log('%c╚══════════════════════════════════════════════════════╝', S.header);
+      console.log(`%c  ${new Date().toLocaleString('pl-PL')}  |  ${location.href}`, S.info);
+      console.log('');
+
+      let totalIssues = 0;
+
+      totalIssues += checkDB();
+      console.log('');
+      totalIssues += checkDOM();
+      console.log('');
+      totalIssues += checkProfile();
+      console.log('');
+
+      // Podsumowanie
+      console.log('%c▶ PODSUMOWANIE', S.section);
+      if (totalIssues === 0) {
+        _ok(`Wszystko w porządku — brak problemów ✅`);
+        _info('Możesz uruchomić FitAI.checkAPI() aby przetestować połączenie z backendem');
+      } else {
+        _err(`Znaleziono ${totalIssues} problem${totalIssues === 1 ? '' : totalIssues < 5 ? 'y' : 'ów'}`);
+        _info('Sprawdź instrukcje 💡 powyżej lub uruchom FitAI.help()');
+      }
+
+      console.log('');
+      return totalIssues;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 6. FitAI.reload() — Wymuś ponowne załadowanie danych seed
+    // ─────────────────────────────────────────────────────────────────────────
+    async function reload() {
+      _section('▶ PRZEŁADOWANIE DANYCH SEED');
+      try {
+        // Zresetuj flagę stanu ładowania żeby loadInitialData() mogło ruszyć ponownie
+        // eslint-disable-next-line no-eval
+        eval('_seedDataLoadState = "idle"');
+        _info('Flaga _seedDataLoadState → "idle"');
+      } catch (_) {
+        _warn('Nie można zresetować _seedDataLoadState — spróbuj odświeżyć stronę (F5)');
+      }
+      try {
+        // eslint-disable-next-line no-eval
+        await eval('loadInitialData()');
+        _ok('loadInitialData() wykonane — sprawdź FitAI.checkDB() za chwilę');
+      } catch (err) {
+        _err(`loadInitialData() rzuciło wyjątek: ${err.message}`);
+        _fix('Odśwież stronę (F5) lub sprawdź błędy w zakładce Network');
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 7. FitAI.dumpState() — Zrzut obiektu state
+    // ─────────────────────────────────────────────────────────────────────────
+    function dumpState() {
+      _section('▶ ZRZUT STATE');
+      const st = _getState();
+      if (!st) {
+        _err('"state" jest niedostępny');
+        return null;
+      }
+      // Wypisz bez zbyt długich tablic (truncate)
+      const safe = JSON.parse(JSON.stringify(st, (key, val) => {
+        if (Array.isArray(val) && val.length > 5) return `[Array(${val.length}) — skrócono]`;
+        if (typeof val === 'string' && val.length > 200) return val.slice(0, 197) + '…';
+        return val;
+      }));
+      console.log('%cstate =', S.bold, safe);
+      _info('Pełny state: window._fitaiDebugState (przypisany teraz)');
+      window._fitaiDebugState = st;
+      return st;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 8. FitAI.help() — Lista komend
+    // ─────────────────────────────────────────────────────────────────────────
+    function help() {
+      console.log('%c╔══════════════════════════════════════════════════╗', S.header);
+      console.log('%c║         FitAI — KONSOLA DIAGNOSTYCZNA            ║', S.header);
+      console.log('%c╚══════════════════════════════════════════════════╝', S.header);
+      const cmds = [
+        ['FitAI.checkIntegrity()', 'Pełny raport: bazy + DOM + profil'],
+        ['FitAI.checkDB()',        'Weryfikacja MEAL_DB, EXERCISE_DB, SPORT_DRILLS'],
+        ['FitAI.checkDOM()',       'Weryfikacja krytycznych elementów HTML'],
+        ['FitAI.checkProfile()',   'Walidacja aktywnego profilu użytkownika'],
+        ['FitAI.checkAPI()',       'Async test połączenia z backendem FastAPI'],
+        ['FitAI.reload()',         'Wymuś ponowne załadowanie fitai_seed_data.js'],
+        ['FitAI.dumpState()',      'Zrzut state aplikacji (do debugowania)'],
+        ['FitAI.help()',           'Ta lista komend'],
+      ];
+      cmds.forEach(([cmd, desc]) => {
+        console.log(`%c  ${cmd.padEnd(34)}%c ${desc}`, S.bold, S.info);
+      });
+      console.log('');
+      _info('Tip: FitAI.checkIntegrity() zwraca liczbę problemów (0 = wszystko OK)');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Eksport na window.FitAI
+    // ─────────────────────────────────────────────────────────────────────────
+    window.FitAI = {
+      checkIntegrity,
+      checkDB,
+      checkDOM,
+      checkProfile,
+      checkAPI,
+      reload,
+      dumpState,
+      help,
+      // Wersja modułu diagnostycznego
+      _diagnosticVersion: '1.0.0',
+      _installedAt: new Date().toISOString(),
+    };
+
+    // Komunikat potwierdzający dostępność modułu (widoczny w konsoli przy każdym ładowaniu)
+    console.log(
+      '%c[FitAI Diagnostics] Gotowy ✅  →  wpisz %cFitAI.checkIntegrity()%c lub %cFitAI.help()%c',
+      'color:#64748b;',
+      'color:#00e5ff;font-weight:bold;',
+      'color:#64748b;',
+      'color:#00e5ff;font-weight:bold;',
+      'color:#64748b;',
+    );
+
+  })();
+  </script>
+
 </body>
+
 
 </html>
