@@ -285,9 +285,24 @@
     }
 
     /* ── AI Plan output ─────────────────────────────────────────────── */
-    .ai-plan-output{min-height:60px;transition:opacity 0.2s;}
-    .ai-plan-output.loading{opacity:0.5;font-style:italic;color:var(--muted);font-size:13px;}
-    .ai-plan-output.error{color:#f87171;font-size:13px;white-space:pre-wrap;}
+    .ai-plan-output {
+      min-height: 60px;
+      transition: opacity 0.2s;
+    }
+
+    .ai-plan-output.loading {
+      opacity: 0.5;
+      font-style: italic;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .ai-plan-output.error {
+      color: #f87171;
+      font-size: 13px;
+      white-space: pre-wrap;
+    }
+
     /* Plan accordion */
     .plan-accordion-arrow {
       transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -840,7 +855,7 @@
       content: '';
       position: absolute;
       inset: 0;
-      background: radial-gradient(ellipse at 50% 0%, var(--sport-color, rgba(0,229,255,0.15)) 0%, transparent 70%);
+      background: radial-gradient(ellipse at 50% 0%, var(--sport-color, rgba(0, 229, 255, 0.15)) 0%, transparent 70%);
       opacity: 0;
       transition: opacity 0.3s;
       border-radius: inherit;
@@ -853,7 +868,9 @@
       box-shadow: 0 8px 32px color-mix(in srgb, var(--sport-color, var(--cyan)) 20%, transparent);
     }
 
-    .sport-catalog-card:hover::before { opacity: 1; }
+    .sport-catalog-card:hover::before {
+      opacity: 1;
+    }
 
     .sport-catalog-card-emoji {
       font-size: 2.6rem;
@@ -1337,11 +1354,13 @@
 
     /* Tab content panels */
     .plan-tab-panel {
-      display: none !important; /* !important: zapobiega nadpisaniu przez Tailwind/inline styles */
+      display: none !important;
+      /* !important: zapobiega nadpisaniu przez Tailwind/inline styles */
     }
 
     .plan-tab-panel.active {
-      display: block !important; /* musi wygrać z każdym innym display:none */
+      display: block !important;
+      /* musi wygrać z każdym innym display:none */
       animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
@@ -1723,9 +1742,11 @@
       <div class="border-t pt-4" style="border-color:var(--border);">
         <p class="text-xs text-gray-600 mb-2">FitAI v3.0 Ultimate</p>
         <div class="flex items-center gap-3 flex-wrap">
-          <button onclick="exitDashboard()" class="text-xs text-gray-500 hover:text-gray-300 transition-colors">← Strona główna</button>
+          <button onclick="exitDashboard()" class="text-xs text-gray-500 hover:text-gray-300 transition-colors">← Strona
+            główna</button>
           <span class="text-gray-700 text-xs">|</span>
-          <button onclick="logoutUser()" class="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors font-medium">
+          <button onclick="logoutUser()"
+            class="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors font-medium">
             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -2175,20 +2196,17 @@
 
           <!-- LEFT: Category Sub-Sidebar -->
           <nav id="planSubSidebar" aria-label="Kategorie planu">
-            <button class="plan-cat-btn active" id="plancat-dieta"
-              onclick="switchPlanCategory('dieta')" title="Dieta">
+            <button class="plan-cat-btn active" id="plancat-dieta" onclick="switchPlanCategory('dieta')" title="Dieta">
               <span class="cat-icon">🍽️</span>
               <span class="cat-label">Dieta</span>
             </button>
             <div class="plan-cat-divider"></div>
-            <button class="plan-cat-btn" id="plancat-trening"
-              onclick="switchPlanCategory('trening')" title="Trening">
+            <button class="plan-cat-btn" id="plancat-trening" onclick="switchPlanCategory('trening')" title="Trening">
               <span class="cat-icon">💪</span>
               <span class="cat-label">Trening</span>
             </button>
             <div class="plan-cat-divider"></div>
-            <button class="plan-cat-btn" id="plancat-sport"
-              onclick="switchPlanCategory('sport')" title="Sport">
+            <button class="plan-cat-btn" id="plancat-sport" onclick="switchPlanCategory('sport')" title="Sport">
               <span class="cat-icon">🏀</span>
               <span class="cat-label">Sport</span>
             </button>
@@ -2573,23 +2591,27 @@
                     <div class="px-5 py-3 flex items-center gap-2"
                       style="background:linear-gradient(135deg,rgba(0,229,255,0.07),rgba(124,58,237,0.07));border-bottom:1px solid rgba(255,255,255,0.07);">
                       <span class="text-base">🤖</span>
-                      <span class="text-sm font-bold text-white" style="font-family:'Syne',sans-serif;">Plan wygenerowany przez AI</span>
+                      <span class="text-sm font-bold text-white" style="font-family:'Syne',sans-serif;">Plan
+                        wygenerowany przez AI</span>
                       <button onclick="document.getElementById('aiPlanResultPanel').classList.add('hidden')"
                         class="ml-auto text-gray-500 hover:text-gray-300 text-lg leading-none transition-colors">×</button>
                     </div>
                     <div class="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/5">
                       <!-- Dieta -->
                       <div class="p-5 space-y-2">
-                        <p class="text-xs font-bold uppercase tracking-widest mb-3" style="color:var(--cyan);">🥗 Dieta</p>
+                        <p class="text-xs font-bold uppercase tracking-widest mb-3" style="color:var(--cyan);">🥗 Dieta
+                        </p>
                         <div id="aiPlanDietOutput" class="ai-plan-output">
                           <p class="text-sm text-gray-500 italic">Kliknij „Generuj plan AI" aby zobaczyć plan diety.</p>
                         </div>
                       </div>
                       <!-- Trening -->
                       <div class="p-5 space-y-2">
-                        <p class="text-xs font-bold uppercase tracking-widest mb-3" style="color:var(--violet);">💪 Trening</p>
+                        <p class="text-xs font-bold uppercase tracking-widest mb-3" style="color:var(--violet);">💪
+                          Trening</p>
                         <div id="aiPlanTrainingOutput" class="ai-plan-output">
-                          <p class="text-sm text-gray-500 italic">Kliknij „Generuj plan AI" aby zobaczyć plan treningu.</p>
+                          <p class="text-sm text-gray-500 italic">Kliknij „Generuj plan AI" aby zobaczyć plan treningu.
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -3624,9 +3646,9 @@
       exerciseCount: 4,
       addOtherType: 'diet',
       // ── Lazy render flags — set to false on logout/profile change ──────────
-      _dieta_rendered:   false,  // 'biblioteka' sub-tab rendered at least once
+      _dieta_rendered: false,  // 'biblioteka' sub-tab rendered at least once
       _trening_rendered: false,  // 'atlas' sub-tab rendered at least once
-      _sport_rendered:   false,  // 'drills' sub-tab rendered at least once
+      _sport_rendered: false,  // 'drills' sub-tab rendered at least once
     };
 
     const FOOD_EXCLUSIONS = [
@@ -4243,9 +4265,9 @@
     // ========== LANDING / DASHBOARD SWITCH ==========
     function enterDashboard() {
       state.view = 'dashboard';
-      const landing   = document.getElementById('landingPage');
+      const landing = document.getElementById('landingPage');
       const dashboard = document.getElementById('dashboardPage');
-      if (landing)   { landing.style.display = 'none'; }
+      if (landing) { landing.style.display = 'none'; }
       if (dashboard) {
         // Remove both the Tailwind 'hidden' class AND any inline style that hides it.
         // The class sets display:none!important which beats the inline style,
@@ -4762,7 +4784,7 @@
         // expandModal — zawsze chowaj przy zmianie zakładki
         const expModal = document.getElementById('expandModal');
         if (expModal && !expModal.classList.contains('hidden')) expModal.classList.add('hidden');
-      } catch(e) {}
+      } catch (e) { }
 
       document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'));
       const el = document.getElementById('tab-' + tabId);
@@ -4774,9 +4796,9 @@
         // Resetuj flagi renderowania przy każdym wejściu na Plan
         // Gwarantuje świeży render jeśli dane zostały zaktualizowane przez seed load
         const curSub = state.planSubTab || 'plan';
-        if (curSub === 'biblioteka') state._dieta_rendered   = false;
-        if (curSub === 'atlas')      state._trening_rendered = false;
-        if (curSub === 'drills')     state._sport_rendered   = false;
+        if (curSub === 'biblioteka') state._dieta_rendered = false;
+        if (curSub === 'atlas') state._trening_rendered = false;
+        if (curSub === 'drills') state._sport_rendered = false;
 
         renderDayCarousel();
         loadPlanForDay();
@@ -4875,7 +4897,7 @@
         if (drillModal) drillModal.remove();
         // Video lightbox (tworzony dynamicznie w training card Video button)
         document.querySelectorAll('[data-fitai-lightbox]').forEach(el => el.remove());
-      } catch(e) {}
+      } catch (e) { }
 
       // 1. Normalizacja
       const validCats = ['dieta', 'trening', 'sport'];
@@ -4885,11 +4907,11 @@
 
       // 2. Persist state — jedno miejsce, zero duplikacji
       state.planCategory = cat;
-      state.planSubTab   = sub;
+      state.planSubTab = sub;
       // Legacy pola wymagane przez loadPlanForDay / refreshExercisesForSlider
-      if (cat === 'dieta')   { state.planSubtab = 'myplan'; state.planView = 'diet';     }
+      if (cat === 'dieta') { state.planSubtab = 'myplan'; state.planView = 'diet'; }
       if (cat === 'trening') { state.planSubtab = 'myplan'; state.planView = 'training'; }
-      if (cat === 'sport')   { state.planSubtab = 'sport';                               }
+      if (cat === 'sport') { state.planSubtab = 'sport'; }
 
       // 3. ATOMOWE ukrycie WSZYSTKICH paneli
       // removeAttribute('style') usuwa inline style które mógł ustawić starszy kod.
@@ -4905,7 +4927,7 @@
 
       // 4. Pokaż TYLKO docelowy panel
       const panelId = 'panel-' + cat + '-' + sub;
-      const target  = document.getElementById(panelId);
+      const target = document.getElementById(panelId);
       if (target) {
         target.classList.add('active');
       } else {
@@ -4936,8 +4958,8 @@
           if (sub === 'drills') {
             const _drillsCont = document.getElementById('sportDrillsContainer');
             const _drillsIsEmpty = !_drillsCont || _drillsCont.children.length < 1
-                                || (_drillsCont.textContent || '').includes('Brak pozycji')
-                                || (_drillsCont.textContent || '').includes('Wybierz sport');
+              || (_drillsCont.textContent || '').includes('Brak pozycji')
+              || (_drillsCont.textContent || '').includes('Wybierz sport');
             if (!state._sport_rendered || _drillsIsEmpty) {
               // Skeleton — widoczny zanim dane się załadują
               _showPlanSkeleton('sportDrillsContainer');
@@ -4947,14 +4969,14 @@
               state._sport_rendered = true;
             }, 50);
           }
-          if (sub === 'historia' && typeof renderDrillHistory  === 'function') renderDrillHistory();
-          if (sub === 'log'      && typeof prepareLogForm       === 'function') prepareLogForm();
+          if (sub === 'historia' && typeof renderDrillHistory === 'function') renderDrillHistory();
+          if (sub === 'log' && typeof prepareLogForm === 'function') prepareLogForm();
         }
         if (cat === 'dieta') {
           if (sub === 'biblioteka') {
             const _bibGrid = document.getElementById('bibliotekaMealGrid');
             const _bibIsEmpty = !_bibGrid || _bibGrid.children.length < 2
-                             || (_bibGrid.textContent || '').includes('Brak pozycji');
+              || (_bibGrid.textContent || '').includes('Brak pozycji');
             if (!state._dieta_rendered || _bibIsEmpty) {
               _showPlanSkeleton('bibliotekaMealGrid');
             }
@@ -4963,7 +4985,7 @@
               state._dieta_rendered = true;
             }, 50);
           }
-          if (sub === 'kuchnia'    && typeof kitchenInit           === 'function') kitchenInit();
+          if (sub === 'kuchnia' && typeof kitchenInit === 'function') kitchenInit();
           if (sub === 'plan') {
             const p = getCurrentProfile();
             const mSlider = document.getElementById('mealCountSlider');
@@ -4975,12 +4997,12 @@
           if (sub === 'atlas') {
             const _atlasGrid = document.getElementById('atlasExerciseGrid');
             const _atlasIsEmpty = !_atlasGrid || _atlasGrid.children.length < 2
-                               || (_atlasGrid.textContent || '').includes('Brak pozycji');
+              || (_atlasGrid.textContent || '').includes('Brak pozycji');
             if (!state._trening_rendered || _atlasIsEmpty) {
               _showPlanSkeleton('atlasExerciseGrid');
             }
             setTimeout(() => {
-              if      (typeof renderAtlas         === 'function') renderAtlas();
+              if (typeof renderAtlas === 'function') renderAtlas();
               else if (typeof atlasExerciseFilter === 'function') atlasExerciseFilter();
               state._trening_rendered = true;
             }, 50);
@@ -5048,9 +5070,9 @@
     // Wywołaj po wylogowaniu lub zmianie profilu, żeby przy powrocie do zakładek
     // dane zostały ponownie wyrenderowane ze świeżego profilu.
     function _resetPlanRenderFlags() {
-      state._dieta_rendered   = false;
+      state._dieta_rendered = false;
       state._trening_rendered = false;
-      state._sport_rendered   = false;
+      state._sport_rendered = false;
     }
 
     // ─── switchPlanSubTab — wrapper (kliknięcie top tab bar) ─────────────────
@@ -5061,7 +5083,7 @@
     // ─── _renderPlanTopTabs ──────────────────────────────────────────────────
     // Przebudowuje pasek zakładek. Chip zachowany przez detach/re-attach.
     function _renderPlanTopTabs(cat, activeSub) {
-      const bar  = document.getElementById('planTopTabBar');
+      const bar = document.getElementById('planTopTabBar');
       if (!bar) return;
       const chip = document.getElementById('planCatHeaderChip');
       if (chip && chip.parentNode === bar) bar.removeChild(chip);
@@ -5073,7 +5095,7 @@
         btn.className = 'plan-top-tab' + (tab.id === activeSub ? ' active' : '');
         btn.innerHTML = '<span class="plan-top-tab-icon">' + tab.icon + '</span>' + tab.label;
         btn.setAttribute('data-subtab', tab.id);
-        btn.onclick = (function(c, s) { return function() { switchPlanTab(c, s); }; })(cat, tab.id);
+        btn.onclick = (function (c, s) { return function () { switchPlanTab(c, s); }; })(cat, tab.id);
         bar.appendChild(btn);
       });
       if (chip) bar.appendChild(chip);
@@ -5089,19 +5111,19 @@
     function switchPlanSubtab(sub) {
       // Map legacy sub values to (cat, tab) pairs
       const legacyMap = {
-        'myplan':   ['dieta',   'plan'   ],
-        'diet':     ['dieta',   'plan'   ],
-        'dietdb':   ['dieta',   'kuchnia'],
-        'training': ['trening', 'plan'   ],
-        'sport':    ['sport',   'drills' ],
+        'myplan': ['dieta', 'plan'],
+        'diet': ['dieta', 'plan'],
+        'dietdb': ['dieta', 'kuchnia'],
+        'training': ['trening', 'plan'],
+        'sport': ['sport', 'drills'],
       };
       const [cat, tab] = legacyMap[sub] || ['dieta', 'plan'];
 
       // Update legacy state fields BEFORE render so any code reading state
       // mid-call (e.g. loadPlanForDay) already sees the correct values
       state.planSubtab = sub;
-      if (sub === 'training')                        state.planView = 'training';
-      else if (sub === 'myplan' || sub === 'diet')   state.planView = 'diet';
+      if (sub === 'training') state.planView = 'training';
+      else if (sub === 'myplan' || sub === 'diet') state.planView = 'diet';
 
       // Single atomic call — no race condition, no double-render
       switchPlanTab(cat, tab);
@@ -5185,173 +5207,173 @@
     function refreshExercisesForSlider(count) {
       const trainingContainerForFinally = document.getElementById('planTrainingContainer');
       try {
-      const p = getCurrentProfile();
-      const day = state.days[state.currentDay];
-      const excl = p.exclusions || [];
-      const equip = p.equipment || [];
-      const checkedKey = _checkedKey(p.id, state.currentDay);
-      const checked = state.dayChecked[checkedKey] || {};
+        const p = getCurrentProfile();
+        const day = state.days[state.currentDay];
+        const excl = p.exclusions || [];
+        const equip = p.equipment || [];
+        const checkedKey = _checkedKey(p.id, state.currentDay);
+        const checked = state.dayChecked[checkedKey] || {};
 
-      // Sprawdź czy użytkownik dodał ćwiczenia sportowe dla tego dnia
-      const allSaved = p.trainingPlan[day] || [];
-      const sportExercises = allSaved.filter(e => e._sport && !e.hidden);
-      const manualExercises = allSaved.filter(e => !e._sport && !e.hidden);
+        // Sprawdź czy użytkownik dodał ćwiczenia sportowe dla tego dnia
+        const allSaved = p.trainingPlan[day] || [];
+        const sportExercises = allSaved.filter(e => e._sport && !e.hidden);
+        const manualExercises = allSaved.filter(e => !e._sport && !e.hidden);
 
-      let exercises;
-      if (sportExercises.length > 0) {
-        // Dzień sportowy — pokazuj TYLKO ćwiczenia sportowe (bez siłowych z generatora)
-        exercises = sportExercises;
-      } else if (manualExercises.length > 0) {
-        // Ćwiczenia ręcznie zapisane przez użytkownika — zawsze je pokazuj
-        exercises = manualExercises.slice(0, count);
-      } else {
-        // Brak zapisanych ćwiczeń — generuj z szablonu siłowego
-        const goals = p.goals || [];
-        const sports = p.sports || [];
-        let templateKey = 'default';
-        if (sports.includes('basketball')) templateKey = 'basketball';
-        else if (sports.includes('running')) templateKey = 'running';
-        else if (goals.includes('cardio')) templateKey = 'cardio';
-        else if (goals.includes('strength') || goals.includes('mass')) templateKey = 'strength';
+        let exercises;
+        if (sportExercises.length > 0) {
+          // Dzień sportowy — pokazuj TYLKO ćwiczenia sportowe (bez siłowych z generatora)
+          exercises = sportExercises;
+        } else if (manualExercises.length > 0) {
+          // Ćwiczenia ręcznie zapisane przez użytkownika — zawsze je pokazuj
+          exercises = manualExercises.slice(0, count);
+        } else {
+          // Brak zapisanych ćwiczeń — generuj z szablonu siłowego
+          const goals = p.goals || [];
+          const sports = p.sports || [];
+          let templateKey = 'default';
+          if (sports.includes('basketball')) templateKey = 'basketball';
+          else if (sports.includes('running')) templateKey = 'running';
+          else if (goals.includes('cardio')) templateKey = 'cardio';
+          else if (goals.includes('strength') || goals.includes('mass')) templateKey = 'strength';
 
-        const baseTemplate = PLAN_TEMPLATES[templateKey];
-        const muscleFocus = p.muscleFocus || [];
-        const dayGroups = (baseTemplate[day] || []).slice();
-        const priorityGroups = [...muscleFocus.filter(m => EXERCISE_DB[m] && !dayGroups.includes(m)), ...dayGroups];
-        const muscleGroups = priorityGroups.length > 0 ? priorityGroups : dayGroups;
-        exercises = generateExercisesForDay(muscleGroups, equip, excl, count);
-      }
+          const baseTemplate = PLAN_TEMPLATES[templateKey];
+          const muscleFocus = p.muscleFocus || [];
+          const dayGroups = (baseTemplate[day] || []).slice();
+          const priorityGroups = [...muscleFocus.filter(m => EXERCISE_DB[m] && !dayGroups.includes(m)), ...dayGroups];
+          const muscleGroups = priorityGroups.length > 0 ? priorityGroups : dayGroups;
+          exercises = generateExercisesForDay(muscleGroups, equip, excl, count);
+        }
 
-      // Store for modal
-      state._planExercises = exercises;
+        // Store for modal
+        state._planExercises = exercises;
 
-      const trainingContainer = document.getElementById('planTrainingContainer');
-      if (!trainingContainer) return;
+        const trainingContainer = document.getElementById('planTrainingContainer');
+        if (!trainingContainer) return;
 
-      if (exercises.length === 0) {
-        trainingContainer.innerHTML = '<div class="text-sm text-gray-600 italic text-center py-8">Dzień odpoczynku 🧘<br><span class="text-xs text-gray-700 mt-1 block">Wybierz inny dzień lub zwiększ liczbę ćwiczeń</span></div>';
-        return;
-      }
-
-      // Animate the transition
-      trainingContainer.style.opacity = '0';
-      trainingContainer.style.transform = 'translateY(8px)';
-
-      // ── Secure training card rendering ─────────────────────────────────────────
-      trainingContainer.innerHTML = '';
-      const MUSCLE_COLORS = { klatka: '#00e5ff', plecy: '#7c3aed', nogi: '#f59e0b', ramiona: '#10b981', kardio: '#ef4444', core: '#8b5cf6', brzuch: '#8b5cf6', biceps: '#06b6d4', triceps: '#6366f1' };
-      exercises.forEach((e, idx) => {
-        if (e.hidden) {
-          const hd = document.createElement('div');
-          hd.className = 'p-3 rounded-xl text-xs text-gray-600 italic';
-          hd.textContent = '🚫 ' + e.name + ' — ukryto';
-          trainingContainer.appendChild(hd);
+        if (exercises.length === 0) {
+          trainingContainer.innerHTML = '<div class="text-sm text-gray-600 italic text-center py-8">Dzień odpoczynku 🧘<br><span class="text-xs text-gray-700 mt-1 block">Wybierz inny dzień lub zwiększ liczbę ćwiczeń</span></div>';
           return;
         }
-        const isDone = !!checked['ex_' + idx];
-        const meta = [e.sets > 0 ? e.sets + ' serii' : '', e.reps > 1 ? e.reps + ' powt.' : '', e.weight > 0 ? e.weight + 'kg' : 'BW'].filter(Boolean).join(' · ');
-        const primaryMuscle = (e.muscles || '').split(',')[0].trim();
-        const muscleColor = MUSCLE_COLORS[primaryMuscle] || '#64748b';
 
-        const card = document.createElement('div');
-        card.className = 'glass rounded-xl p-4 cursor-pointer hover:border-cyan-500/30 transition-all' + (isDone ? ' opacity-50' : '');
-        card.style.cssText = 'animation:slideUp 0.3s ease both;animation-delay:' + (idx * 0.05) + 's';
-        card.addEventListener('click', (function (i) { return function () { openExpandByIndex('training', i); }; })(idx));
+        // Animate the transition
+        trainingContainer.style.opacity = '0';
+        trainingContainer.style.transform = 'translateY(8px)';
 
-        const row = document.createElement('div');
-        row.className = 'flex items-start gap-3';
-
-        const chk = document.createElement('div');
-        chk.className = 'check-circle flex-shrink-0 mt-0.5' + (isDone ? ' checked' : '');
-        chk.addEventListener('click', (function (i, pid, d) { return function (ev) { ev.stopPropagation(); togglePlanCheck('ex_' + i, pid, d); }; })(idx, String(p.id), day));
-
-        const inner = document.createElement('div');
-        inner.className = 'flex-1 min-w-0';
-
-        // Name row + muscle badge
-        const nameRow = document.createElement('div');
-        nameRow.className = 'flex items-start justify-between gap-2 mb-1';
-        const nameEl = document.createElement('p');
-        nameEl.className = 'font-semibold text-white text-sm leading-tight' + (isDone ? ' line-through text-gray-500' : '');
-        nameEl.textContent = (idx + 1) + '. ' + e.name;   // textContent — safe
-        const muscleBadge = document.createElement('span');
-        muscleBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0';
-        muscleBadge.style.cssText = 'background:' + muscleColor + '22;color:' + muscleColor + ';border:1px solid ' + muscleColor + '44;';
-        muscleBadge.textContent = primaryMuscle || '—';    // textContent — safe
-        nameRow.appendChild(nameEl);
-        nameRow.appendChild(muscleBadge);
-
-        const metaEl = document.createElement('p');
-        metaEl.className = 'text-xs text-gray-500';
-        metaEl.textContent = meta;
-
-        inner.appendChild(nameRow);
-        inner.appendChild(metaEl);
-
-        // Tags + conditional Video button
-        const hasVideoUrl = isValidVideoUrl(e.video_url);
-        if ((e.tags && e.tags.length) || hasVideoUrl) {
-          const tagsDiv = document.createElement('div');
-          tagsDiv.className = 'flex flex-wrap gap-1 mt-1.5';
-
-          // Regular tags
-          if (e.tags && e.tags.length) {
-            e.tags.forEach(t => {
-              const tspan = document.createElement('span');
-              tspan.className = 'text-[9px] bg-white/5 px-1.5 py-0.5 rounded text-gray-600';
-              tspan.textContent = '#' + t;             // textContent — safe
-              tagsDiv.appendChild(tspan);
-            });
+        // ── Secure training card rendering ─────────────────────────────────────────
+        trainingContainer.innerHTML = '';
+        const MUSCLE_COLORS = { klatka: '#00e5ff', plecy: '#7c3aed', nogi: '#f59e0b', ramiona: '#10b981', kardio: '#ef4444', core: '#8b5cf6', brzuch: '#8b5cf6', biceps: '#06b6d4', triceps: '#6366f1' };
+        exercises.forEach((e, idx) => {
+          if (e.hidden) {
+            const hd = document.createElement('div');
+            hd.className = 'p-3 rounded-xl text-xs text-gray-600 italic';
+            hd.textContent = '🚫 ' + e.name + ' — ukryto';
+            trainingContainer.appendChild(hd);
+            return;
           }
+          const isDone = !!checked['ex_' + idx];
+          const meta = [e.sets > 0 ? e.sets + ' serii' : '', e.reps > 1 ? e.reps + ' powt.' : '', e.weight > 0 ? e.weight + 'kg' : 'BW'].filter(Boolean).join(' · ');
+          const primaryMuscle = (e.muscles || '').split(',')[0].trim();
+          const muscleColor = MUSCLE_COLORS[primaryMuscle] || '#64748b';
 
-          // Video tag — ONLY when video_url is non-empty
-          if (hasVideoUrl) {
-            const vtag = document.createElement('button');
-            vtag.className = 'text-[9px] px-1.5 py-0.5 rounded font-semibold transition-colors';
-            vtag.style.cssText = 'background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);';
-            vtag.textContent = '▶ Video';
-            vtag.title = 'Obejrzyj wideo instruktażowe';
-            vtag.addEventListener('click', (function (url) {
-              return function (ev) {
-                ev.stopPropagation();
-                // Open in lightbox or new tab
-                if (url.includes('embed')) {
-                  const modal = document.createElement('div');
-                  modal.dataset.fitaiLightbox = '1'; // oznaczenie dla switchPlanTab
-                  modal.style.cssText = 'position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.92);cursor:pointer;';
-                  modal.innerHTML = `<div style="width:min(90vw,720px);position:relative;cursor:default;" onclick="event.stopPropagation()">
+          const card = document.createElement('div');
+          card.className = 'glass rounded-xl p-4 cursor-pointer hover:border-cyan-500/30 transition-all' + (isDone ? ' opacity-50' : '');
+          card.style.cssText = 'animation:slideUp 0.3s ease both;animation-delay:' + (idx * 0.05) + 's';
+          card.addEventListener('click', (function (i) { return function () { openExpandByIndex('training', i); }; })(idx));
+
+          const row = document.createElement('div');
+          row.className = 'flex items-start gap-3';
+
+          const chk = document.createElement('div');
+          chk.className = 'check-circle flex-shrink-0 mt-0.5' + (isDone ? ' checked' : '');
+          chk.addEventListener('click', (function (i, pid, d) { return function (ev) { ev.stopPropagation(); togglePlanCheck('ex_' + i, pid, d); }; })(idx, String(p.id), day));
+
+          const inner = document.createElement('div');
+          inner.className = 'flex-1 min-w-0';
+
+          // Name row + muscle badge
+          const nameRow = document.createElement('div');
+          nameRow.className = 'flex items-start justify-between gap-2 mb-1';
+          const nameEl = document.createElement('p');
+          nameEl.className = 'font-semibold text-white text-sm leading-tight' + (isDone ? ' line-through text-gray-500' : '');
+          nameEl.textContent = (idx + 1) + '. ' + e.name;   // textContent — safe
+          const muscleBadge = document.createElement('span');
+          muscleBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0';
+          muscleBadge.style.cssText = 'background:' + muscleColor + '22;color:' + muscleColor + ';border:1px solid ' + muscleColor + '44;';
+          muscleBadge.textContent = primaryMuscle || '—';    // textContent — safe
+          nameRow.appendChild(nameEl);
+          nameRow.appendChild(muscleBadge);
+
+          const metaEl = document.createElement('p');
+          metaEl.className = 'text-xs text-gray-500';
+          metaEl.textContent = meta;
+
+          inner.appendChild(nameRow);
+          inner.appendChild(metaEl);
+
+          // Tags + conditional Video button
+          const hasVideoUrl = isValidVideoUrl(e.video_url);
+          if ((e.tags && e.tags.length) || hasVideoUrl) {
+            const tagsDiv = document.createElement('div');
+            tagsDiv.className = 'flex flex-wrap gap-1 mt-1.5';
+
+            // Regular tags
+            if (e.tags && e.tags.length) {
+              e.tags.forEach(t => {
+                const tspan = document.createElement('span');
+                tspan.className = 'text-[9px] bg-white/5 px-1.5 py-0.5 rounded text-gray-600';
+                tspan.textContent = '#' + t;             // textContent — safe
+                tagsDiv.appendChild(tspan);
+              });
+            }
+
+            // Video tag — ONLY when video_url is non-empty
+            if (hasVideoUrl) {
+              const vtag = document.createElement('button');
+              vtag.className = 'text-[9px] px-1.5 py-0.5 rounded font-semibold transition-colors';
+              vtag.style.cssText = 'background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);';
+              vtag.textContent = '▶ Video';
+              vtag.title = 'Obejrzyj wideo instruktażowe';
+              vtag.addEventListener('click', (function (url) {
+                return function (ev) {
+                  ev.stopPropagation();
+                  // Open in lightbox or new tab
+                  if (url.includes('embed')) {
+                    const modal = document.createElement('div');
+                    modal.dataset.fitaiLightbox = '1'; // oznaczenie dla switchPlanTab
+                    modal.style.cssText = 'position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.92);cursor:pointer;';
+                    modal.innerHTML = `<div style="width:min(90vw,720px);position:relative;cursor:default;" onclick="event.stopPropagation()">
               <button onclick="this.closest('[data-fitai-lightbox]').remove()" style="position:absolute;top:-36px;right:0;background:none;border:none;color:#fff;font-size:24px;cursor:pointer;" title="Zamknij (Esc)">✕</button>
               <iframe src="${url}?autoplay=1&rel=0&modestbranding=1" style="width:100%;aspect-ratio:16/9;border:none;border-radius:12px;" allowfullscreen></iframe>
             </div>`;
-                  // Klik w tło zamknij modal
-                  modal.addEventListener('click', () => modal.remove());
-                  // Klawisz Escape
-                  const _escHandler = (e) => { if (e.key === 'Escape') { modal.remove(); document.removeEventListener('keydown', _escHandler); } };
-                  document.addEventListener('keydown', _escHandler);
-                  document.body.appendChild(modal);
-                } else {
-                  window.open(url, '_blank', 'noopener');
-                }
-              };
-            })(e.video_url));
-            tagsDiv.appendChild(vtag);
+                    // Klik w tło zamknij modal
+                    modal.addEventListener('click', () => modal.remove());
+                    // Klawisz Escape
+                    const _escHandler = (e) => { if (e.key === 'Escape') { modal.remove(); document.removeEventListener('keydown', _escHandler); } };
+                    document.addEventListener('keydown', _escHandler);
+                    document.body.appendChild(modal);
+                  } else {
+                    window.open(url, '_blank', 'noopener');
+                  }
+                };
+              })(e.video_url));
+              tagsDiv.appendChild(vtag);
+            }
+
+            inner.appendChild(tagsDiv);
           }
 
-          inner.appendChild(tagsDiv);
-        }
+          row.appendChild(chk);
+          row.appendChild(inner);
+          card.appendChild(row);
+          trainingContainer.appendChild(card);
+        });
 
-        row.appendChild(chk);
-        row.appendChild(inner);
-        card.appendChild(row);
-        trainingContainer.appendChild(card);
-      });
-
-      // Fade in
-      requestAnimationFrame(() => {
-        trainingContainer.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
-        trainingContainer.style.opacity = '1';
-        trainingContainer.style.transform = 'translateY(0)';
-      });
+        // Fade in
+        requestAnimationFrame(() => {
+          trainingContainer.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+          trainingContainer.style.opacity = '1';
+          trainingContainer.style.transform = 'translateY(0)';
+        });
       } catch (renderErr) {
         console.error('[FitAI] refreshExercisesForSlider error:', renderErr);
         if (trainingContainerForFinally) {
@@ -5671,12 +5693,12 @@
      * bez zawieszania aplikacji.
      */
     async function generatePlanAI() {
-      const token      = localStorage.getItem('fitai_token');
-      const userId     = localStorage.getItem('fitai_user_id') || state.identityId || null;
-      const apiBase    = window.API_BASE || 'http://localhost:8000';
-      const btn        = document.getElementById('generatePlanAIBtn');
-      const dietOut    = document.getElementById('aiPlanDietOutput');
-      const trainOut   = document.getElementById('aiPlanTrainingOutput');
+      const token = localStorage.getItem('fitai_token');
+      const userId = localStorage.getItem('fitai_user_id') || state.identityId || null;
+      const apiBase = window.API_BASE || 'http://localhost:8000';
+      const btn = document.getElementById('generatePlanAIBtn');
+      const dietOut = document.getElementById('aiPlanDietOutput');
+      const trainOut = document.getElementById('aiPlanTrainingOutput');
 
       // Validate token — required to authenticate API call
       if (!token) {
@@ -5696,7 +5718,7 @@
         btn.disabled = true;
         btn.textContent = '⏳ Generuję…';
       }
-      if (dietOut)  { dietOut.textContent  = 'Generowanie planu diety…'; dietOut.className  = 'ai-plan-output loading'; }
+      if (dietOut) { dietOut.textContent = 'Generowanie planu diety…'; dietOut.className = 'ai-plan-output loading'; }
       if (trainOut) { trainOut.textContent = 'Generowanie planu treningu…'; trainOut.className = 'ai-plan-output loading'; }
 
       try {
@@ -5711,11 +5733,11 @@
         if (!res.ok) {
           // Explicit console.error with full status details for debugging
           const errData = await res.json().catch(() => ({ detail: `HTTP ${res.status} ${res.statusText}` }));
-          const errMsg  = errData.detail || errData.message || `HTTP ${res.status} ${res.statusText}`;
+          const errMsg = errData.detail || errData.message || `HTTP ${res.status} ${res.statusText}`;
           console.error(`[generatePlanAI] API error: ${res.status} ${res.statusText} — ${errMsg}`, {
-            url:    res.url,
+            url: res.url,
             status: res.status,
-            body:   errData,
+            body: errData,
           });
           throw new Error(errMsg);
         }
@@ -5741,7 +5763,7 @@
         }
 
         // Upewnij się że klucze istnieją
-        const dietText     = (plan.diet     || '').trim();
+        const dietText = (plan.diet || '').trim();
         const trainingText = (plan.training || '').trim();
 
         if (!dietText && !trainingText) {
@@ -5763,7 +5785,7 @@
 
         // Nie zawiesza aplikacji — pokazuje komunikat błędu w miejscu outputu
         const errMsg = `⚠️ Błąd generowania planu: ${err.message}\n\nSprawdź połączenie z serwerem i spróbuj ponownie.`;
-        if (dietOut)  { dietOut.textContent  = errMsg; dietOut.className  = 'ai-plan-output error'; }
+        if (dietOut) { dietOut.textContent = errMsg; dietOut.className = 'ai-plan-output error'; }
         if (trainOut) { trainOut.textContent = '—'; trainOut.className = 'ai-plan-output error'; }
 
         showToast(`❌ Błąd: ${err.message}`);
@@ -5782,7 +5804,7 @@
      * Używa textContent (XSS-safe), formatuje akapity po \n\n.
      */
     function renderAIPlan(dietText, trainingText) {
-      const dietOut  = document.getElementById('aiPlanDietOutput');
+      const dietOut = document.getElementById('aiPlanDietOutput');
       const trainOut = document.getElementById('aiPlanTrainingOutput');
 
       const renderToEl = (el, text) => {
@@ -5813,7 +5835,7 @@
         });
       };
 
-      renderToEl(dietOut,  dietText);
+      renderToEl(dietOut, dietText);
       renderToEl(trainOut, trainingText);
 
       // Pokaż panel z planem AI jeśli był ukryty
@@ -7014,33 +7036,33 @@
     // Dodaj tutaj nowy sport jeśli piszesz do SPORT_DRILLS z innym kluczem.
     const SPORT_ID_MAP = {
       // SPORTS_CATALOG ids (już poprawne — lewa = prawe strona)
-      'koszykówka':   'koszykówka',
-      'piłka nożna':  'piłka nożna',
-      'tenis':        'tenis',
-      'siatkówka':    'siatkówka',
-      'boks':         'boks',
-      'pływanie':     'pływanie',
-      'bieganie':     'bieganie',
-      'kolarstwo':    'kolarstwo',
+      'koszykówka': 'koszykówka',
+      'piłka nożna': 'piłka nożna',
+      'tenis': 'tenis',
+      'siatkówka': 'siatkówka',
+      'boks': 'boks',
+      'pływanie': 'pływanie',
+      'bieganie': 'bieganie',
+      'kolarstwo': 'kolarstwo',
       // Aliasy angielskie (SPORT_GOALS używa tych kluczy)
-      'basketball':   'koszykówka',
-      'football':     'piłka nożna',
-      'soccer':       'piłka nożna',
-      'tennis':       'tenis',
-      'volleyball':   'siatkówka',
-      'boxing':       'boks',
-      'swimming':     'pływanie',
-      'running':      'bieganie',
-      'cycling':      'kolarstwo',
+      'basketball': 'koszykówka',
+      'football': 'piłka nożna',
+      'soccer': 'piłka nożna',
+      'tennis': 'tenis',
+      'volleyball': 'siatkówka',
+      'boxing': 'boks',
+      'swimming': 'pływanie',
+      'running': 'bieganie',
+      'cycling': 'kolarstwo',
       // Inne możliwe wartości z profilu użytkownika
-      'Koszykówka':   'koszykówka',
-      'Piłka nożna':  'piłka nożna',
-      'Tenis':        'tenis',
-      'Siatkówka':    'siatkówka',
-      'Boks':         'boks',
-      'Pływanie':     'pływanie',
-      'Bieganie':     'bieganie',
-      'Kolarstwo':    'kolarstwo',
+      'Koszykówka': 'koszykówka',
+      'Piłka nożna': 'piłka nożna',
+      'Tenis': 'tenis',
+      'Siatkówka': 'siatkówka',
+      'Boks': 'boks',
+      'Pływanie': 'pływanie',
+      'Bieganie': 'bieganie',
+      'Kolarstwo': 'kolarstwo',
     };
 
     /** Zwraca klucz SPORT_DRILLS dla dowolnego formatu nazwy sportu.
@@ -7049,13 +7071,13 @@
     function resolveSportId(rawId) {
       if (!rawId) return null;
       // Zmiana: zawsze normalizuj do lowercase przed jakimkolwiek porównaniem
-      const s     = String(rawId).trim();
-      const sLow  = s.toLowerCase();
+      const s = String(rawId).trim();
+      const sLow = s.toLowerCase();
       return SPORT_ID_MAP[s]                          // 1. dokładne dopasowanie (oryginał)
-          || SPORT_ID_MAP[sLow]                       // 2. toLowerCase → SPORT_ID_MAP
-          || (SPORT_DRILLS[s]    ? s    : null)       // 3. oryginał jako klucz SPORT_DRILLS
-          || (SPORT_DRILLS[sLow] ? sLow : null)       // 4. toLowerCase jako klucz SPORT_DRILLS
-          || null;
+        || SPORT_ID_MAP[sLow]                       // 2. toLowerCase → SPORT_ID_MAP
+        || (SPORT_DRILLS[s] ? s : null)       // 3. oryginał jako klucz SPORT_DRILLS
+        || (SPORT_DRILLS[sLow] ? sLow : null)       // 4. toLowerCase jako klucz SPORT_DRILLS
+        || null;
     }
 
     window.SPORT_DRILLS = window.SPORT_DRILLS || {};
@@ -7358,7 +7380,7 @@
         // Encode sport color as CSS custom property on each card
         const colorRgba = s.color
           ? s.color.replace(/^#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i, (_, r, g, b) =>
-              `rgba(${parseInt(r,16)},${parseInt(g,16)},${parseInt(b,16)},0.35)`)
+            `rgba(${parseInt(r, 16)},${parseInt(g, 16)},${parseInt(b, 16)},0.35)`)
           : 'rgba(0,229,255,0.35)';
 
         const drillLabel = s.drillCount === 0
@@ -7428,7 +7450,7 @@
       if (!container) return;
 
       const normalized = resolveSportId(sportId) || sportId;
-      const sportData  = SPORT_DRILLS[normalized];
+      const sportData = SPORT_DRILLS[normalized];
       if (!sportData) return;
 
       const meta = SPORTS_CATALOG.find(s => s.id === normalized) || {
@@ -7440,7 +7462,7 @@
 
       const colorRgba = meta.color
         ? meta.color.replace(/^#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i, (_, r, g, b) =>
-            `rgba(${parseInt(r,16)},${parseInt(g,16)},${parseInt(b,16)},0.2)`)
+          `rgba(${parseInt(r, 16)},${parseInt(g, 16)},${parseInt(b, 16)},0.2)`)
         : 'rgba(0,229,255,0.2)';
 
       // ── Preview header (sticky bar at top) ─────────────────────────────────
@@ -7475,11 +7497,11 @@
       const categoriesHtml = categories.map(([catKey, cat], catIdx) => {
         const drills = cat.drills || [];
         const drillsHtml = drills.map((drill, di) => {
-          const history  = (st.drill_history || []).filter(r => r.drill_name === drill.name);
-          const last     = history[0];
-          const lastPct  = last ? Math.round(last.success_count / last.total_attempts * 100) : null;
+          const history = (st.drill_history || []).filter(r => r.drill_name === drill.name);
+          const last = history[0];
+          const lastPct = last ? Math.round(last.success_count / last.total_attempts * 100) : null;
           const metTarget = lastPct !== null && lastPct >= (drill.target_pct || 70);
-          const videoId  = `drill-preview-${catKey}-${di}`;
+          const videoId = `drill-preview-${catKey}-${di}`;
           const hasVideo = isValidVideoUrl(drill.video_url);
 
           return `<div class="drill-row">
@@ -7498,8 +7520,8 @@
                 <span>🔁 ${drill.sets}</span>
                 <span>💪 ${drill.muscle_group}</span>
                 ${lastPct !== null
-                  ? `<span class="${metTarget ? 'text-cyan-400' : 'text-yellow-400'} font-bold">Ostatnio: ${lastPct}%</span>`
-                  : '<span class="text-gray-600 italic">brak wyników</span>'}
+              ? `<span class="${metTarget ? 'text-cyan-400' : 'text-yellow-400'} font-bold">Ostatnio: ${lastPct}%</span>`
+              : '<span class="text-gray-600 italic">brak wyników</span>'}
               </div>
               ${last ? `<div class="progress-bar mt-2" style="height:4px;">
                 <div class="progress-fill ${metTarget ? 'bg-gradient-to-r from-cyan-500 to-green-400' : 'bg-gradient-to-r from-yellow-500 to-cyan-500'}"
@@ -7518,12 +7540,12 @@
             </div>
             <div class="flex flex-col gap-2 shrink-0">
               <button class="drill-add-btn js-drill-add-btn"
-                      data-drill="${drill.name.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}"
+                      data-drill="${drill.name.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}"
                       data-cat="${catKey}"
                       data-sport="${normalized}">➕ Do planu</button>
               <button class="drill-add-btn js-drill-log-btn"
                       style="background:rgba(255,255,255,0.04);border-color:var(--border);color:var(--muted);"
-                      data-drill="${drill.name.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}"
+                      data-drill="${drill.name.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}"
                       data-attempts="${drill.total_attempts}"
                       data-type="${drill.drill_type || 'rzuty'}">📝 Loguj</button>
             </div>
@@ -7605,13 +7627,13 @@
 
       // ── 4. Sync to API (fire-and-forget, don't block UI) ──────────────────
       try {
-        const token   = window._fitaiToken || localStorage.getItem('fitai_token');
+        const token = window._fitaiToken || localStorage.getItem('fitai_token');
         const apiBase = window.API_BASE || 'http://localhost:8000';
         if (token && apiBase) {
           await fetch(`${apiBase}/app/profile`, {
-            method:  'POST',
+            method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body:    JSON.stringify({ sport_focus: normalized }),
+            body: JSON.stringify({ sport_focus: normalized }),
           });
         }
       } catch (e) {
@@ -7640,7 +7662,7 @@
       console.log('[FitAI] renderSportDrills: SPORT_DRILLS =', Object.keys(_effectiveSD).length, 'sportów');
       try {
         const st = loadSportState();
-        const p  = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
+        const p = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
 
         // ── Resolve sport from state → profile → nothing ──────────────────────
         // .toLowerCase() + .trim() ensures "Koszykówka" from the profile
@@ -7658,7 +7680,7 @@
           return;
         }
 
-        const sportId   = resolveSportId(rawSportNormalized);
+        const sportId = resolveSportId(rawSportNormalized);
         const sportData = sportId ? SPORT_DRILLS[sportId] : null;
 
         // ── Sport set but drills not found → catalog with explanation ────────
@@ -7704,13 +7726,13 @@
         const categories = Object.entries(sportData).filter(([k]) => k !== 'emoji');
 
         const generatedHtml = categories.map(([catKey, cat], catIdx) => {
-          const drills    = cat.drills || [];
+          const drills = cat.drills || [];
           const drillsHtml = drills.map((drill, di) => {
-            const history  = (st.drill_history || []).filter(r => r.drill_name === drill.name);
-            const last     = history[0];
-            const lastPct  = last ? Math.round(last.success_count / last.total_attempts * 100) : null;
+            const history = (st.drill_history || []).filter(r => r.drill_name === drill.name);
+            const last = history[0];
+            const lastPct = last ? Math.round(last.success_count / last.total_attempts * 100) : null;
             const metTarget = lastPct !== null && lastPct >= (drill.target_pct || 70);
-            const videoId  = `drill-video-${catKey}-${di}`;
+            const videoId = `drill-video-${catKey}-${di}`;
             const hasVideo = isValidVideoUrl(drill.video_url);
 
             return `<div class="drill-row">
@@ -7729,8 +7751,8 @@
                   <span>🔁 ${drill.sets}</span>
                   <span>💪 ${drill.muscle_group}</span>
                   ${lastPct !== null
-                    ? `<span class="${metTarget ? 'text-cyan-400' : 'text-yellow-400'} font-bold">Ostatnio: ${lastPct}%</span>`
-                    : '<span class="text-gray-600 italic">brak wyników</span>'}
+                ? `<span class="${metTarget ? 'text-cyan-400' : 'text-yellow-400'} font-bold">Ostatnio: ${lastPct}%</span>`
+                : '<span class="text-gray-600 italic">brak wyników</span>'}
                 </div>
                 ${last ? `<div class="progress-bar mt-2" style="height:4px;">
                   <div class="progress-fill ${metTarget ? 'bg-gradient-to-r from-cyan-500 to-green-400' : 'bg-gradient-to-r from-yellow-500 to-cyan-500'}"
@@ -7749,13 +7771,13 @@
               </div>
               <div class="flex flex-col gap-2 shrink-0">
                 <button class="drill-add-btn js-drill-add-btn"
-                        data-drill="${drill.name.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}"
+                        data-drill="${drill.name.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}"
                         data-cat="${catKey}" data-sport="${sportId}">
                   ➕ Do planu
                 </button>
                 <button class="drill-add-btn js-drill-log-btn"
                         style="background:rgba(255,255,255,0.04);border-color:var(--border);color:var(--muted);"
-                        data-drill="${drill.name.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}"
+                        data-drill="${drill.name.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}"
                         data-attempts="${drill.total_attempts}"
                         data-type="${drill.drill_type || 'rzuty'}">
                   📝 Loguj
@@ -7820,7 +7842,7 @@
                   Wybierz dyscyplinę, aby zobaczyć drille
                 </p>
                 <p class="text-xs font-mono" style="color:rgba(255,255,255,0.2);">
-                  ${err && err.message ? err.message.substring(0,80) : 'Nieznany błąd'}
+                  ${err && err.message ? err.message.substring(0, 80) : 'Nieznany błąd'}
                 </p>
               </div>`;
           }
@@ -7844,7 +7866,7 @@
         entries.map(s => {
           const colorRgba = (s.color || '#64748b')
             .replace(/^#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i,
-              (_, r, g, b) => `rgba(${parseInt(r,16)},${parseInt(g,16)},${parseInt(b,16)},0.35)`);
+              (_, r, g, b) => `rgba(${parseInt(r, 16)},${parseInt(g, 16)},${parseInt(b, 16)},0.35)`);
           return `
             <div class="sport-catalog-card" style="--sport-color:${colorRgba};"
                  onclick="_previewSportFromCatalog('${s.id}')">
@@ -8048,8 +8070,8 @@
     // the real implementation at line 4844 already handles drills/log/historia.
     // Side-effects (prepareLogForm, renderDrillHistory) are called from switchPlanSubTab.
     function _sportSubtabSideEffects(tab) {
-      if (tab === 'drills'  && typeof renderSportDrills  === 'function') renderSportDrills();
-      if (tab === 'log'     && typeof prepareLogForm     === 'function') prepareLogForm();
+      if (tab === 'drills' && typeof renderSportDrills === 'function') renderSportDrills();
+      if (tab === 'log' && typeof prepareLogForm === 'function') prepareLogForm();
       if (tab === 'history' && typeof renderDrillHistory === 'function') renderDrillHistory();
     }
 
@@ -8165,11 +8187,11 @@
       </div>
     </div>`;
       // Klik w tło (poza kartę) zamknij modal — żeby nie blokował nawigacji
-      modal.addEventListener('click', function(e) {
+      modal.addEventListener('click', function (e) {
         if (e.target === modal) { modal.remove(); _drillLogCtx = null; }
       });
       // Klawisz Escape
-      const _drillEscClose = function(e) {
+      const _drillEscClose = function (e) {
         if (e.key === 'Escape') {
           const m = document.getElementById('drillLogModal');
           if (m) { m.remove(); _drillLogCtx = null; }
@@ -9177,6 +9199,191 @@
       edRenderCatalog();
     }
 
+    // ════════════════════════════════════════════════════════════════════════════
+    // ETAP 5: Define critical functions as stubs in this script tag
+    // These will be overwritten by full definitions in the third script tag
+    // If they're not overwritten due to errors in third script tag, these stubs exist
+    // ════════════════════════════════════════════════════════════════════════════
+    window.normalizeCategory = function (cat) {
+      if (!cat) return 'all';
+      const s = String(cat).trim().toLowerCase();
+      const maps = {
+        'sniadanie': 'śniadanie', 'breakfast': 'śniadanie',
+        'obiad': 'obiad', 'lunch': 'obiad', 'dinner': 'obiad',
+        'kolacja': 'kolacja', 'supper': 'kolacja',
+        'przekaska': 'przekąska', 'snack': 'przekąska',
+        'klatka': 'klatka', 'chest': 'klatka',
+        'plecy': 'plecy', 'back': 'plecy',
+        'nogi': 'nogi', 'legs': 'nogi',
+        'ramiona': 'ramiona', 'arms': 'ramiona',
+        'biceps': 'biceps', 'triceps': 'triceps',
+        'brzuch': 'brzuch', 'core': 'brzuch', 'abs': 'brzuch',
+        'barki': 'barki', 'shoulders': 'barki',
+        'kardio': 'kardio', 'cardio': 'kardio',
+        'posladki': 'pośladki', 'glutes': 'pośladki',
+      };
+      return maps[s] || (s === 'all' || s === 'wszystkie' ? 'all' : cat.trim().toLowerCase());
+    };
+
+    // Global state variables for diet/exercise filters
+    let _bibliotekaMealCategory = 'all';
+    let _atlasExerciseCategory = 'all';
+
+    window.bibliotekaMealFilter = function () {
+      const _MEAL_DB = (typeof MEAL_DB !== 'undefined' ? MEAL_DB : null) || window.MEAL_DB || {};
+      const grid = document.getElementById('bibliotekaMealGrid');
+      const countEl = document.getElementById('bibliotekaMealCount');
+      const query = (document.getElementById('bibliotekaMealSearch')?.value || '').toLowerCase().trim();
+
+      const rawCat = _bibliotekaMealCategory || 'all';
+      const catNorm = normalizeCategory(rawCat);
+      const showAll = catNorm === 'all';
+      if (!grid) return;
+
+      const MEAL_SEED = [
+        { name: 'Owsianka z owocami', kcal: 380, protein: 12, carbs: 65, fat: 8, _type: 'śniadanie', ingredients: [{ item: 'płatki owsiane', amount: '80g' }, { item: 'mleko', amount: '200ml' }, { item: 'banan', amount: '1 szt' }] },
+        { name: 'Kurczak z ryżem i brokułami', kcal: 520, protein: 45, carbs: 55, fat: 10, _type: 'obiad', ingredients: [{ item: 'pierś z kurczaka', amount: '200g' }, { item: 'ryż brązowy', amount: '100g' }, { item: 'brokuły', amount: '150g' }] },
+        { name: 'Łosoś z warzywami', kcal: 480, protein: 38, carbs: 20, fat: 28, _type: 'kolacja', ingredients: [{ item: 'łosoś', amount: '180g' }, { item: 'szparagi', amount: '150g' }, { item: 'cytryna', amount: '½ szt' }] },
+        { name: 'Twarożek z warzywami', kcal: 210, protein: 22, carbs: 15, fat: 6, _type: 'przekąska', ingredients: [{ item: 'twaróg chudy', amount: '150g' }, { item: 'ogórek', amount: '1 szt' }, { item: 'rzodkiewka', amount: '5 szt' }] },
+      ];
+
+      const allMeals = [];
+      let hasMealDB = false;
+      const _activeMealDB = window.MEAL_DB || (typeof MEAL_DB !== 'undefined' ? MEAL_DB : null) || {};
+      try {
+        Object.entries(_activeMealDB).forEach(([type, meals]) => {
+          if (meals && meals.length) hasMealDB = true;
+          (meals || []).forEach(m => allMeals.push({ ...m, _type: type }));
+        });
+      } catch (dbErr) { }
+      if (!hasMealDB) MEAL_SEED.forEach(m => allMeals.push(m));
+
+      const filtered = allMeals.filter(m => {
+        const typeNorm = normalizeCategory(m._type || '');
+        const matchCat = showAll || typeNorm === catNorm;
+        const matchQ = !query || m.name.toLowerCase().includes(query) || (m.ingredients || []).some(i => (i.item || '').toLowerCase().includes(query));
+        return matchCat && matchQ;
+      });
+
+      if (countEl) countEl.textContent = `${filtered.length} posiłków`;
+      if (!filtered.length) {
+        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:2rem;"><div style="font-size:2.5rem">🍽️</div><p style="color:var(--muted);">Brak pozycji w tej kategorii</p></div>';
+        return;
+      }
+
+      const TYPE_LABELS = { 'śniadanie': '☀️ Śniadanie', 'obiad': '🍲 Obiad', 'kolacja': '🌙 Kolacja', 'przekąska': '🍎 Przekąska' };
+      const TYPE_COLORS = { 'śniadanie': '#fbbf24', 'obiad': '#34d399', 'kolacja': '#a78bfa', 'przekąska': '#f97316' };
+
+      grid.innerHTML = '';
+      filtered.forEach(m => {
+        const typeKey = (m._type || '').toLowerCase();
+        const badgeColor = TYPE_COLORS[typeKey] || '#64748b';
+        const badgeLabel = TYPE_LABELS[typeKey] || m._type;
+        const macros = [
+          { label: 'Kcal', val: m.kcal, color: 'var(--cyan)' },
+          { label: 'B', val: m.protein + 'g', color: '#a78bfa' },
+          { label: 'W', val: m.carbs !== undefined ? m.carbs + 'g' : '—', color: '#fbbf24' },
+          { label: 'T', val: m.fat !== undefined ? m.fat + 'g' : '—', color: '#34d399' },
+        ];
+        const macroHtml = macros.map(mg => `<span style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700;color:${mg.color};">${mg.label}: ${mg.val}</span>`).join('');
+        const ingPrev = (m.ingredients || []).slice(0, 3).map(i => i.item).join(', ');
+
+        const card = document.createElement('div');
+        card.innerHTML = `<div class="flex items-start justify-between gap-2"><h4 style="font-weight:800;color:white;font-size:14px;">${m.name}</h4><span style="background:rgba(255,255,255,0.06);color:${badgeColor};border:1px solid rgba(255,255,255,0.1);border-radius:999px;padding:2px 10px;font-size:10px;font-weight:700;">${badgeLabel}</span></div><div style="display:flex;flex-wrap:wrap;gap:6px;">${macroHtml}</div>${ingPrev ? `<p style="font-size:12px;color:var(--muted);">${ingPrev}</p>` : ''}<div style="display:flex;gap:8px;margin-top:auto;"><button class="flex-shrink-0" style="padding:8px 12px;border-radius:8px;font-size:12px;background:rgba(255,255,255,0.05);color:var(--muted);border:1px solid var(--border);">ℹ️ Info</button><button style="flex:1;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;background:rgba(0,229,255,0.1);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);">+ Dodaj</button></div>`;
+        grid.appendChild(card);
+      });
+    };
+
+    window.renderAtlas = function () {
+      const grid = document.getElementById('atlasExerciseGrid');
+      const countEl = document.getElementById('atlasExerciseCount');
+      const query = (document.getElementById('atlasExerciseSearch')?.value || '').toLowerCase().trim();
+      if (!grid) return;
+
+      const SEED = [
+        { name: 'Pompki', sets: 4, reps: 20, weight: 0, muscles: 'klatka, triceps', desc: 'Klasyczne pompki dla klatki piersiowej', _group: 'klatka' },
+        { name: 'Przysiady', sets: 4, reps: 15, weight: 0, muscles: 'nogi, pośladki', desc: 'Stopy na szerokość bioder. Zejdź do równoległości ud.', _group: 'nogi' },
+        { name: 'Martwy Ciąg', sets: 4, reps: 6, weight: 80, muscles: 'plecy, nogi', desc: 'Angażuj nogi i pośladki, trzymaj plecy proste', _group: 'plecy' },
+        { name: 'Wyciskanie Sztangi', sets: 4, reps: 8, weight: 60, muscles: 'klatka, triceps', desc: 'Sztanga na szerokość barków, opuszczaj do klatki', _group: 'klatka' },
+        { name: 'Plank', sets: 3, reps: 60, weight: 0, muscles: 'core', desc: 'Utrzymuj ciało w linii prostej, napnij core', _group: 'core' },
+      ];
+
+      const allEx = [];
+      let hasDB = false;
+      const exDB = window.EXERCISE_DB || {};
+      Object.entries(exDB).forEach(([group, list]) => {
+        if (list && list.length) hasDB = true;
+        (list || []).forEach(e => allEx.push({ ...e, _group: normalizeCategory(e.category || group) }));
+      });
+      if (!hasDB) SEED.forEach(e => allEx.push(e));
+
+      const cat = normalizeCategory(_atlasExerciseCategory || 'all');
+      const filtered = allEx.filter(e => {
+        const matchQ = !query || e.name.toLowerCase().includes(query) || (e.muscles || '').toLowerCase().includes(query);
+        const matchC = cat === 'all' || normalizeCategory(e._group || '') === cat;
+        return matchQ && matchC;
+      });
+
+      if (countEl) countEl.textContent = `${filtered.length} ćwiczeń`;
+      if (!filtered.length) {
+        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:2rem;"><div style="font-size:2.5rem">🏋️</div><p style="color:var(--muted);">Brak ćwiczeń w tej kategorii</p></div>';
+        return;
+      }
+
+      grid.innerHTML = '';
+      filtered.forEach(e => {
+        const card = document.createElement('div');
+        card.innerHTML = `<div style="display:flex;justify-content:space-between;gap:8px;"><div style="flex:1;"><h4 style="font-weight:800;color:white;font-size:14px;">${e.name}</h4><p style="font-size:12px;color:rgba(255,255,255,0.5);">💪 ${e.muscles || '—'}</p></div></div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"><span style="background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.2);border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700;color:var(--cyan);">Serie: ${e.sets}</span><span style="background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.2);border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700;color:#a78bfa;">Powt: ${e.reps}</span>${e.weight ? `<span style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700;color:#fbbf24;">${e.weight} kg</span>` : ''}</div><p style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:8px;">${e.desc || ''}</p><div style="display:flex;gap:8px;margin-top:8px;"><button style="flex:1;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;background:rgba(0,229,255,0.1);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);">➕ Do planu</button></div>`;
+        grid.appendChild(card);
+      });
+    };
+
+    window.renderSportDrills = function () {
+      const container = document.getElementById('sportDrillsContainer');
+      if (!container) return;
+
+      const SEED = [
+        { name: 'Sprinty 100m', sport: 'atletyka', sets: 5, reps: '100m', desc: 'Szybkie biegi sprinterskie na dystansie 100 metrów' },
+        { name: 'Ćwiczenia Agility Drabinka', sport: 'futbol', sets: 4, reps: '2min', desc: 'Ćwiczenia zwinności na drabince treningowej' },
+        { name: 'Odbicia głową', sport: 'tenis', sets: 3, reps: '20', desc: 'Ćwiczenia odbijania piłki głową dla precyzji' },
+        { name: 'Ukłony i rotacje', sport: 'pływanie', sets: 4, reps: '30', desc: 'Ćwiczenia na elastyczność do pływania' },
+      ];
+
+      container.innerHTML = '';
+      SEED.forEach(d => {
+        const card = document.createElement('div');
+        card.innerHTML = `<div style="padding:12px;border:1px solid rgba(0,229,255,0.2);border-radius:8px;margin-bottom:12px;"><h4 style="font-weight:800;color:white;font-size:14px;margin:0;">${d.name}</h4><p style="font-size:12px;color:rgba(255,255,255,0.5);margin:4px 0;">⚽ ${d.sport}</p><p style="font-size:12px;color:rgba(255,255,255,0.6);margin:8px 0;">${d.desc}</p><div style="display:flex;gap:6px;margin-top:8px;"><span style="background:rgba(0,229,255,0.08);padding:2px 8px;border-radius:6px;font-size:10px;color:var(--cyan);">Serie: ${d.sets}</span><span style="background:rgba(167,139,250,0.08);padding:2px 8px;border-radius:6px;font-size:10px;color:#a78bfa;">Powt: ${d.reps}</span></div><button style="width:100%;margin-top:8px;padding:8px;border-radius:6px;font-size:12px;font-weight:700;background:rgba(0,229,255,0.1);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);">➕ Do planu treningu</button></div>`;
+        container.appendChild(card);
+      });
+    };
+
+    window.atlasSetCategory = function (cat) {
+      _atlasExerciseCategory = cat;
+      document.querySelectorAll('.atlas-cat-btn, [data-atlas-cat]').forEach(b => {
+        const active = b.dataset.cat === cat || b.dataset.atlasCat === cat;
+        b.style.background = active ? 'rgba(0,229,255,0.15)' : 'rgba(255,255,255,0.05)';
+        b.style.color = active ? 'var(--cyan)' : 'var(--muted)';
+        b.style.borderColor = active ? 'rgba(0,229,255,0.3)' : 'var(--border)';
+      });
+      if (typeof window.renderAtlas === 'function') window.renderAtlas();
+    };
+
+    window.bibliotekaMealSetCategory = function (cat) {
+      _bibliotekaMealCategory = cat;
+      document.querySelectorAll('.biblioteka-cat-btn, [data-biblioteka-cat]').forEach(b => {
+        const active = b.dataset.cat === cat || b.dataset.bibliobotekaCat === cat;
+        b.style.background = active ? 'rgba(0,229,255,0.15)' : 'rgba(255,255,255,0.05)';
+        b.style.color = active ? 'var(--cyan)' : 'var(--muted)';
+        b.style.borderColor = active ? 'rgba(0,229,255,0.3)' : 'var(--border)';
+      });
+      if (typeof window.bibliotekaMealFilter === 'function') window.bibliotekaMealFilter();
+    };
+
+    window.bibliotekaMealSetCategory = function (cat) {
+      console.log('[FitAI-Stub] bibliotekaMealSetCategory called:', cat);
+      if (typeof window.bibliotekaMealFilter === 'function') window.bibliotekaMealFilter();
+    };
+
     window.addEventListener('beforeunload', saveState);
   </script>
 
@@ -9187,6 +9394,19 @@
     let _dietDbPendingMeal = null;
     let _bibliotekaMealCategory = 'all';
     let _atlasExerciseCategory = 'all';
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CRITICAL: Ensure all functions are globally accessible (ETAP 5 fix)
+    // Define minimal no-op versions upfront, will be overwritten by full definitions
+    // ═══════════════════════════════════════════════════════════════════════════
+    window.normalizeCategory = window.normalizeCategory || function () { };
+    window.bibliotekaMealFilter = window.bibliotekaMealFilter || function () { };
+    window.renderAtlas = window.renderAtlas || function () { };
+    window.renderSportDrills = window.renderSportDrills || function () { };
+    window.atlasSetCategory = window.atlasSetCategory || function () { };
+    window.bibliotekaMealSetCategory = window.bibliotekaMealSetCategory || function () { };
+    window.switchPlanTab = window.switchPlanTab || function () { };
+
 
     // ═══════════════════════════════════════════════════════════════════════════
     // NORMALIZACJA KATEGORII — odporna na literówki i różne języki
@@ -9219,59 +9439,59 @@
       // ── Mapa kategorii posiłków ─────────────────────────────────────────────
       const MEAL_CATEGORY_MAP = {
         // śniadanie
-        'sniadanie':  'śniadanie', 'sniadania': 'śniadanie',
-        'snadanie':   'śniadanie', 'sniadanko': 'śniadanie',  // literówki
-        'breakfast':  'śniadanie', 'morning':   'śniadanie',
-        'rano':       'śniadanie',
+        'sniadanie': 'śniadanie', 'sniadania': 'śniadanie',
+        'snadanie': 'śniadanie', 'sniadanko': 'śniadanie',  // literówki
+        'breakfast': 'śniadanie', 'morning': 'śniadanie',
+        'rano': 'śniadanie',
         // obiad
-        'obiad':  'obiad', 'obiady': 'obiad',
-        'lunch':  'obiad', 'dinner': 'obiad', 'drugie sniadanie': 'obiad',
+        'obiad': 'obiad', 'obiady': 'obiad',
+        'lunch': 'obiad', 'dinner': 'obiad', 'drugie sniadanie': 'obiad',
         // kolacja
-        'kolacja':  'kolacja', 'kolacje': 'kolacja',
-        'supper':   'kolacja', 'wieczor': 'kolacja',
+        'kolacja': 'kolacja', 'kolacje': 'kolacja',
+        'supper': 'kolacja', 'wieczor': 'kolacja',
         'kolacjia': 'kolacja',  // literówka
         // przekąska
-        'przekaska':    'przekąska', 'przekaski':  'przekąska',
-        'snack':        'przekąska', 'snacks':     'przekąska',
-        'przegryzka':   'przekąska', 'podwieczorek': 'przekąska',
-        'przekashka':   'przekąska',  // literówka
+        'przekaska': 'przekąska', 'przekaski': 'przekąska',
+        'snack': 'przekąska', 'snacks': 'przekąska',
+        'przegryzka': 'przekąska', 'podwieczorek': 'przekąska',
+        'przekashka': 'przekąska',  // literówka
       };
 
       // ── Mapa kategorii ćwiczeń ──────────────────────────────────────────────
       const EXERCISE_CATEGORY_MAP = {
         // klatka
-        'klatka':    'klatka', 'klatki':    'klatka',
-        'chest':     'klatka', 'pecs':      'klatka',
+        'klatka': 'klatka', 'klatki': 'klatka',
+        'chest': 'klatka', 'pecs': 'klatka',
         'piersiowa': 'klatka',
         // plecy
-        'plecy':  'plecy', 'back': 'plecy',
+        'plecy': 'plecy', 'back': 'plecy',
         'grzbet': 'plecy', 'lats': 'plecy',
         // nogi
-        'nogi':   'nogi', 'nog':    'nogi',
-        'legs':   'nogi', 'quads':  'nogi',
-        'uda':    'nogi', 'laskomy': 'nogi',
+        'nogi': 'nogi', 'nog': 'nogi',
+        'legs': 'nogi', 'quads': 'nogi',
+        'uda': 'nogi', 'laskomy': 'nogi',
         // barki (zdefiniowane wyżej przy brzuch)
         // ramiona
-        'ramiona':  'ramiona', 'ramie':     'ramiona',
-        'arms':     'ramiona',
+        'ramiona': 'ramiona', 'ramie': 'ramiona',
+        'arms': 'ramiona',
         // biceps
-        'biceps':  'biceps', 'bicepsy': 'biceps',
-        'bicep':   'biceps', 'guns':    'biceps',
+        'biceps': 'biceps', 'bicepsy': 'biceps',
+        'bicep': 'biceps', 'guns': 'biceps',
         // triceps
-        'triceps':  'triceps', 'trojglowy': 'triceps',
-        'tricep':   'triceps',
+        'triceps': 'triceps', 'trojglowy': 'triceps',
+        'tricep': 'triceps',
         // brzuch / core
-        'brzuch':  'brzuch', 'core': 'core',
-        'abs':     'brzuch', 'abdomen': 'brzuch',
-        'talia':   'brzuch',
+        'brzuch': 'brzuch', 'core': 'core',
+        'abs': 'brzuch', 'abdomen': 'brzuch',
+        'talia': 'brzuch',
         // barki (były pominięte w mapie - EXERCISE_DB ma klucz 'barki')
-        'barki':   'barki', 'bark':  'barki',
+        'barki': 'barki', 'bark': 'barki',
         'shoulders': 'barki', 'deltoids': 'barki', 'delt': 'barki',
         // kardio
-        'kardio':  'kardio', 'cardio': 'kardio',
+        'kardio': 'kardio', 'cardio': 'kardio',
         // pośladki
-        'posladki': 'pośladki', 'glutes':   'pośladki',
-        'pupka':    'pośladki', 'glute':    'pośladki',
+        'posladki': 'pośladki', 'glutes': 'pośladki',
+        'pupka': 'pośladki', 'glute': 'pośladki',
         // kardio (zdefiniowane wyżej przy brzuch)
         'bieganie': 'kardio', 'running': 'kardio',
       };
@@ -9287,7 +9507,7 @@
      * Śledzi nazwy już załadowanych posiłków i ćwiczeń.
      * Resetowane przy każdym pełnym przeładowaniu loadInitialData().
      */
-    const _loadedMealNames     = new Set();
+    const _loadedMealNames = new Set();
     const _loadedExerciseNames = new Set();
 
     /** Zwraca tylko rekordy, których name jeszcze nie ma w danym Set. */
@@ -9388,10 +9608,10 @@
       };
       _preScanInline();
 
-      const _countMeals    = () => typeof MEAL_DB     !== 'undefined' ? Object.values(MEAL_DB).reduce((s, a)     => s + (a || []).length, 0) : 0;
+      const _countMeals = () => typeof MEAL_DB !== 'undefined' ? Object.values(MEAL_DB).reduce((s, a) => s + (a || []).length, 0) : 0;
       const _countExercises = () => typeof EXERCISE_DB !== 'undefined' ? Object.values(EXERCISE_DB).reduce((s, a) => s + (a || []).length, 0) : 0;
 
-      const inlineMeals     = _countMeals();
+      const inlineMeals = _countMeals();
       const inlineExercises = _countExercises();
 
       // ── Krok 2: Spróbuj fetch fitai_seed_data.js ─────────────────────────────
@@ -9399,7 +9619,7 @@
       try {
         // Timestamp cache-buster tylko w dev (localhost)
         const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-        const url     = isLocal ? `fitai_seed_data.js?v=${Date.now()}` : 'fitai_seed_data.js';
+        const url = isLocal ? `fitai_seed_data.js?v=${Date.now()}` : 'fitai_seed_data.js';
 
         const res = await fetch(url, { cache: 'no-store' });
 
@@ -9423,8 +9643,8 @@
 
         const extracted = extractFn();
 
-        if (extracted.MEAL_DB)      _mergeIntoMealDB(extracted.MEAL_DB);
-        if (extracted.EXERCISE_DB)  _mergeIntoExerciseDB(extracted.EXERCISE_DB);
+        if (extracted.MEAL_DB) _mergeIntoMealDB(extracted.MEAL_DB);
+        if (extracted.EXERCISE_DB) _mergeIntoExerciseDB(extracted.EXERCISE_DB);
 
         // Jeśli seed ma SPORT_DRILLS a globalny go nie ma lub ma mniej dyscyplin
         if (extracted.SPORT_DRILLS && typeof SPORT_DRILLS !== 'undefined') {
@@ -9433,7 +9653,7 @@
           });
         }
 
-        const addedMeals     = _countMeals()     - inlineMeals;
+        const addedMeals = _countMeals() - inlineMeals;
         const addedExercises = _countExercises() - inlineExercises;
         console.log(`[FitAI] loadInitialData: seed załadowany ✅ +${addedMeals} posiłków, +${addedExercises} ćwiczeń`);
         fetchedSeedOk = true;
@@ -9453,36 +9673,36 @@
       // ── Krok 4: Odśwież widoki (niezależnie od ścieżki ładowania) ────────────
       // Resetuj flagi renderowania — dane mogły się zmienić po załadowaniu seed
       if (typeof state !== 'undefined') {
-        state._dieta_rendered   = false;
+        state._dieta_rendered = false;
         state._trening_rendered = false;
-        state._sport_rendered   = false;
+        state._sport_rendered = false;
       }
       // Odśwież tylko panele które są aktualnie widoczne (active)
       try {
-        const bibGrid   = document.getElementById('bibliotekaMealGrid');
+        const bibGrid = document.getElementById('bibliotekaMealGrid');
         const atlasGrid = document.getElementById('atlasExerciseGrid');
-        const drillsCt  = document.getElementById('sportDrillsContainer');
+        const drillsCt = document.getElementById('sportDrillsContainer');
         const isVisible = (el) => el && el.closest('.plan-tab-panel.active');
 
-        if (isVisible(bibGrid)   && typeof bibliotekaMealFilter === 'function') bibliotekaMealFilter();
-        if (isVisible(atlasGrid) && typeof renderAtlas === 'function')          renderAtlas();
-        if (isVisible(drillsCt)  && typeof renderSportDrills === 'function')    renderSportDrills();
+        if (isVisible(bibGrid) && typeof bibliotekaMealFilter === 'function') bibliotekaMealFilter();
+        if (isVisible(atlasGrid) && typeof renderAtlas === 'function') renderAtlas();
+        if (isVisible(drillsCt) && typeof renderSportDrills === 'function') renderSportDrills();
 
         // Zawsze wywołaj dla niewidocznych — wypełnią się przy następnym wejściu przez DOMContentLoaded
-        if (!isVisible(bibGrid)   && typeof bibliotekaMealFilter === 'function') bibliotekaMealFilter();
-        if (!isVisible(atlasGrid) && typeof renderAtlas === 'function')          renderAtlas();
-        if (!isVisible(drillsCt)  && typeof renderSportDrills === 'function')    renderSportDrills();
+        if (!isVisible(bibGrid) && typeof bibliotekaMealFilter === 'function') bibliotekaMealFilter();
+        if (!isVisible(atlasGrid) && typeof renderAtlas === 'function') renderAtlas();
+        if (!isVisible(drillsCt) && typeof renderSportDrills === 'function') renderSportDrills();
         if (typeof initAtlasCategoryBtnsFromDB === 'function') initAtlasCategoryBtnsFromDB();
-      } catch(_) {}
+      } catch (_) { }
     }
-      _dietDbCategory = cat;
-      document.querySelectorAll('.diet-cat-btn').forEach(b => {
-        const active = b.dataset.cat === cat;
-        b.style.background = active ? 'rgba(0,229,255,0.15)' : 'rgba(255,255,255,0.05)';
-        b.style.color = active ? 'var(--cyan)' : 'var(--muted)';
-        b.style.borderColor = active ? 'rgba(0,229,255,0.3)' : 'var(--border)';
-      });
-      renderDietDb();
+    _dietDbCategory = cat;
+    document.querySelectorAll('.diet-cat-btn').forEach(b => {
+      const active = b.dataset.cat === cat;
+      b.style.background = active ? 'rgba(0,229,255,0.15)' : 'rgba(255,255,255,0.05)';
+      b.style.color = active ? 'var(--cyan)' : 'var(--muted)';
+      b.style.borderColor = active ? 'rgba(0,229,255,0.3)' : 'var(--border)';
+    });
+    renderDietDb();
     }
 
     // ─── Biblioteka Posiłków (Diet Library) ──────────────────────────────────────
@@ -9502,13 +9722,13 @@
       const _MEAL_DB = (typeof MEAL_DB !== 'undefined' ? MEAL_DB : null) || window.MEAL_DB || {};
       console.log('[FitAI] bibliotekaMealFilter: MEAL_DB =',
         Object.keys(_MEAL_DB).length, 'kategorii,',
-        Object.values(_MEAL_DB).reduce((s,a) => s+(a||[]).length, 0), 'posiłków');
-      const grid    = document.getElementById('bibliotekaMealGrid');
+        Object.values(_MEAL_DB).reduce((s, a) => s + (a || []).length, 0), 'posiłków');
+      const grid = document.getElementById('bibliotekaMealGrid');
       const countEl = document.getElementById('bibliotekaMealCount');
-      const query   = (document.getElementById('bibliotekaMealSearch')?.value || '').toLowerCase().trim();
+      const query = (document.getElementById('bibliotekaMealSearch')?.value || '').toLowerCase().trim();
 
       // Normalize category przez centralny mapper — obsługuje literówki, angielskie nazwy itp.
-      const rawCat  = _bibliotekaMealCategory || 'all';
+      const rawCat = _bibliotekaMealCategory || 'all';
       const catNorm = normalizeCategory(rawCat);  // ← używa normalizeCategory zamiast ręcznego toLowerCase
       const showAll = catNorm === 'all';
 
@@ -9516,11 +9736,11 @@
 
       // ── Seed meal data — displayed when MEAL_DB is empty ─────────────────────
       const MEAL_SEED = [
-        { name: 'Owsianka z owocami', kcal: 380, protein: 12, carbs: 65, fat: 8, _type: 'śniadanie', ingredients: [{item:'płatki owsiane',amount:'80g'},{item:'mleko',amount:'200ml'},{item:'banan',amount:'1 szt'}] },
-        { name: 'Kurczak z ryżem i brokułami', kcal: 520, protein: 45, carbs: 55, fat: 10, _type: 'obiad', ingredients: [{item:'pierś z kurczaka',amount:'200g'},{item:'ryż brązowy',amount:'100g'},{item:'brokuły',amount:'150g'}] },
-        { name: 'Łosoś z warzywami', kcal: 480, protein: 38, carbs: 20, fat: 28, _type: 'kolacja', ingredients: [{item:'łosoś',amount:'180g'},{item:'szparagi',amount:'150g'},{item:'cytryna',amount:'½ szt'}] },
-        { name: 'Twarożek z warzywami', kcal: 210, protein: 22, carbs: 15, fat: 6, _type: 'przekąska', ingredients: [{item:'twaróg chudy',amount:'150g'},{item:'ogórek',amount:'1 szt'},{item:'rzodkiewka',amount:'5 szt'}] },
-        { name: 'Jajecznica z warzywami', kcal: 340, protein: 24, carbs: 8, fat: 22, _type: 'śniadanie', ingredients: [{item:'jaja',amount:'3 szt'},{item:'papryka',amount:'½ szt'},{item:'szpinak',amount:'50g'}] },
+        { name: 'Owsianka z owocami', kcal: 380, protein: 12, carbs: 65, fat: 8, _type: 'śniadanie', ingredients: [{ item: 'płatki owsiane', amount: '80g' }, { item: 'mleko', amount: '200ml' }, { item: 'banan', amount: '1 szt' }] },
+        { name: 'Kurczak z ryżem i brokułami', kcal: 520, protein: 45, carbs: 55, fat: 10, _type: 'obiad', ingredients: [{ item: 'pierś z kurczaka', amount: '200g' }, { item: 'ryż brązowy', amount: '100g' }, { item: 'brokuły', amount: '150g' }] },
+        { name: 'Łosoś z warzywami', kcal: 480, protein: 38, carbs: 20, fat: 28, _type: 'kolacja', ingredients: [{ item: 'łosoś', amount: '180g' }, { item: 'szparagi', amount: '150g' }, { item: 'cytryna', amount: '½ szt' }] },
+        { name: 'Twarożek z warzywami', kcal: 210, protein: 22, carbs: 15, fat: 6, _type: 'przekąska', ingredients: [{ item: 'twaróg chudy', amount: '150g' }, { item: 'ogórek', amount: '1 szt' }, { item: 'rzodkiewka', amount: '5 szt' }] },
+        { name: 'Jajecznica z warzywami', kcal: 340, protein: 24, carbs: 8, fat: 22, _type: 'śniadanie', ingredients: [{ item: 'jaja', amount: '3 szt' }, { item: 'papryka', amount: '½ szt' }, { item: 'szpinak', amount: '50g' }] },
       ];
 
       // Build flat list from MEAL_DB (with seed fallback)
@@ -9545,9 +9765,9 @@
         // normalizeCategory na _type z bazy danych — eliminuje niespójności w danych
         const typeNorm = normalizeCategory(m._type || '');
         const matchCat = showAll || typeNorm === catNorm;
-        const matchQ   = !query
-                      || m.name.toLowerCase().includes(query)
-                      || (m.ingredients || []).some(i => (i.item || '').toLowerCase().includes(query));
+        const matchQ = !query
+          || m.name.toLowerCase().includes(query)
+          || (m.ingredients || []).some(i => (i.item || '').toLowerCase().includes(query));
         return matchCat && matchQ;
       });
 
@@ -9562,9 +9782,9 @@
           <p class="text-sm font-semibold mt-3 text-white">Brak pozycji w tej kategorii</p>
           <p class="text-xs mt-1" style="color:var(--muted);">
             ${query
-              ? `Brak wyników dla: <strong style="color:var(--cyan);">${query}</strong> — spróbuj innej frazy`
-              : 'Żaden posiłek nie pasuje do wybranego filtra. Wybierz inną kategorię.'
-            }
+            ? `Brak wyników dla: <strong style="color:var(--cyan);">${query}</strong> — spróbuj innej frazy`
+            : 'Żaden posiłek nie pasuje do wybranego filtra. Wybierz inną kategorię.'
+          }
           </p>`;
         grid.appendChild(emp);
         return;
@@ -9582,15 +9802,15 @@
         card.onmouseenter = () => { card.style.borderColor = 'rgba(0,229,255,0.25)'; card.style.transform = 'translateY(-2px)'; };
         card.onmouseleave = () => { card.style.borderColor = 'var(--border)'; card.style.transform = ''; };
 
-        const typeKey    = (m._type || '').toLowerCase();
+        const typeKey = (m._type || '').toLowerCase();
         const badgeColor = TYPE_COLORS[typeKey] || '#64748b';
         const badgeLabel = TYPE_LABELS[typeKey] || m._type;
 
         const macros = [
-          { label: 'Kcal', val: m.kcal,                                     color: 'var(--cyan)' },
-          { label: 'B',    val: m.protein + 'g',                            color: '#a78bfa'    },
-          { label: 'W',    val: m.carbs !== undefined ? m.carbs + 'g' : '—', color: '#fbbf24'   },
-          { label: 'T',    val: m.fat   !== undefined ? m.fat   + 'g' : '—', color: '#34d399'   },
+          { label: 'Kcal', val: m.kcal, color: 'var(--cyan)' },
+          { label: 'B', val: m.protein + 'g', color: '#a78bfa' },
+          { label: 'W', val: m.carbs !== undefined ? m.carbs + 'g' : '—', color: '#fbbf24' },
+          { label: 'T', val: m.fat !== undefined ? m.fat + 'g' : '—', color: '#34d399' },
         ];
 
         const macroHtml = macros.map(mg =>
@@ -9648,9 +9868,9 @@
       document.querySelectorAll('.atlas-cat-btn').forEach(btn => {
         const isActive = btn.dataset.cat === category;
         btn.classList.toggle('active', isActive);
-        btn.style.background  = isActive ? 'rgba(0,229,255,0.15)' : 'rgba(255,255,255,0.05)';
-        btn.style.color       = isActive ? 'var(--cyan)'           : 'var(--muted)';
-        btn.style.borderColor = isActive ? 'rgba(0,229,255,0.3)'  : 'var(--border)';
+        btn.style.background = isActive ? 'rgba(0,229,255,0.15)' : 'rgba(255,255,255,0.05)';
+        btn.style.color = isActive ? 'var(--cyan)' : 'var(--muted)';
+        btn.style.borderColor = isActive ? 'rgba(0,229,255,0.3)' : 'var(--border)';
       });
 
       renderAtlas();
@@ -9667,7 +9887,7 @@
       }
       console.log('[FitAI] renderAtlas: EXERCISE_DB =',
         Object.keys(window.EXERCISE_DB || EXERCISE_DB || {}).length, 'kategorii,',
-        Object.values(window.EXERCISE_DB || EXERCISE_DB || {}).reduce((s,a) => s+(a||[]).length, 0), 'ćwiczeń');
+        Object.values(window.EXERCISE_DB || EXERCISE_DB || {}).reduce((s, a) => s + (a || []).length, 0), 'ćwiczeń');
       atlasExerciseFilter();
     }
 
@@ -9676,8 +9896,8 @@
       const countEl = document.getElementById('atlasExerciseCount');
       const query = (document.getElementById('atlasExerciseSearch')?.value || '').toLowerCase().trim();
       // normalizeCategory obsługuje 'Wszystkie', 'All', 'Chest', literówki itp.
-      const rawCat  = _atlasExerciseCategory || 'all';
-      const cat     = normalizeCategory(rawCat);  // ← centralny mapper
+      const rawCat = _atlasExerciseCategory || 'all';
+      const cat = normalizeCategory(rawCat);  // ← centralny mapper
       const noFilter = cat === 'all';
 
       if (!grid) return;
@@ -9709,16 +9929,16 @@
       Object.entries(_activeExDB).forEach(([group, list]) => {
         if (list && list.length) hasExerciseDB = true;
         (list || []).forEach(e => push({
-          name:        e.name,
-          sets:        e.sets,
-          reps:        e.reps,
-          weight:      e.weight,
-          tags:        e.tags  || [],
-          muscles:     e.muscles || e.muscle_group || group,
-          desc:        e.desc  || '',
-          video_url:   e.video_url || null,
-          _group:      normalizeCategory(e.category || group),
-          _source:     'EXERCISE_DB',
+          name: e.name,
+          sets: e.sets,
+          reps: e.reps,
+          weight: e.weight,
+          tags: e.tags || [],
+          muscles: e.muscles || e.muscle_group || group,
+          desc: e.desc || '',
+          video_url: e.video_url || null,
+          _group: normalizeCategory(e.category || group),
+          _source: 'EXERCISE_DB',
         }));
       });
 
@@ -9734,16 +9954,16 @@
           Object.entries(sportData).forEach(([catKey, catData]) => {
             if (catKey === 'emoji' || !catData?.drills) return;
             (catData.drills || []).forEach(d => push({
-              name:        d.name,
-              sets:        d.sets   || '—',
-              reps:        d.total_attempts || '—',
-              weight:      null,
-              tags:        [sport],
-              muscles:     d.muscle_group || '—',
-              desc:        d.description  || '',
-              video_url:   d.video_url    || null,
-              _group:      sport,
-              _source:     'SPORT_DRILLS',
+              name: d.name,
+              sets: d.sets || '—',
+              reps: d.total_attempts || '—',
+              weight: null,
+              tags: [sport],
+              muscles: d.muscle_group || '—',
+              desc: d.description || '',
+              video_url: d.video_url || null,
+              _group: sport,
+              _source: 'SPORT_DRILLS',
             }));
           });
         });
@@ -9753,14 +9973,14 @@
       if (window.TRAINING_DB) {
         Object.values(window.TRAINING_DB).forEach(dayPlan => {
           (dayPlan?.exercises || []).forEach(ex => push({
-            name:    ex.exercise,
-            rpe:     ex.rpe,
-            sets:    ex.sets,
-            reps:    ex.reps,
-            tags:    [],
+            name: ex.exercise,
+            rpe: ex.rpe,
+            sets: ex.sets,
+            reps: ex.reps,
+            tags: [],
             muscles: '—',
-            desc:    '',
-            _group:  'plan',
+            desc: '',
+            _group: 'plan',
             _source: 'TRAINING_DB',
           }));
         });
@@ -9768,14 +9988,14 @@
 
       // ── Filtrowanie ──────────────────────────────────────────────────────────
       const filtered = allExercises.filter(e => {
-        const matchQ   = !query || e.name.toLowerCase().includes(query)
-                                || (e.muscles || '').toLowerCase().includes(query)
-                                || (e.desc    || '').toLowerCase().includes(query);
+        const matchQ = !query || e.name.toLowerCase().includes(query)
+          || (e.muscles || '').toLowerCase().includes(query)
+          || (e.desc || '').toLowerCase().includes(query);
         // normalizeCategory na _group i tagach — eliminuje "Klatka" ≠ "klatka", "Chest" ≠ "klatka" itp.
         const groupNorm = normalizeCategory(e._group || '');
-        const matchCat  = noFilter
-                       || groupNorm === cat
-                       || (e.tags || []).map(t => normalizeCategory(t || '')).includes(cat);
+        const matchCat = noFilter
+          || groupNorm === cat
+          || (e.tags || []).map(t => normalizeCategory(t || '')).includes(cat);
         return matchQ && matchCat;
       });
 
@@ -9791,8 +10011,8 @@
           <p class="text-sm font-semibold mt-3 text-white">Brak pozycji w tej kategorii</p>
           <p class="text-xs mt-1" style="color:var(--muted);">
             ${query
-              ? `Nie znaleziono ćwiczeń dla: <strong style="color:var(--cyan);">${query}</strong> — spróbuj innej frazy`
-              : 'Żadne ćwiczenie nie pasuje do wybranego filtra. Wybierz inną kategorię.'}
+            ? `Nie znaleziono ćwiczeń dla: <strong style="color:var(--cyan);">${query}</strong> — spróbuj innej frazy`
+            : 'Żadne ćwiczenie nie pasuje do wybranego filtra. Wybierz inną kategorię.'}
           </p>`;
         grid.appendChild(emp);
         return;
@@ -9814,20 +10034,20 @@
         card.style.cssText = 'border:1px solid var(--border);cursor:default;';
         card.onmouseenter = () => {
           card.style.borderColor = 'rgba(0,229,255,0.25)';
-          card.style.transform   = 'translateY(-2px)';
-          card.style.boxShadow   = '0 8px 24px rgba(0,229,255,0.06)';
+          card.style.transform = 'translateY(-2px)';
+          card.style.boxShadow = '0 8px 24px rgba(0,229,255,0.06)';
         };
         card.onmouseleave = () => {
           card.style.borderColor = 'var(--border)';
-          card.style.transform   = '';
-          card.style.boxShadow   = '';
+          card.style.transform = '';
+          card.style.boxShadow = '';
         };
 
         // Source badge color
         const srcColors = {
-          EXERCISE_DB:  { bg: 'rgba(0,229,255,0.1)',    color: 'var(--cyan)',  border: 'rgba(0,229,255,0.25)' },
-          SPORT_DRILLS: { bg: 'rgba(249,115,22,0.1)',   color: '#fb923c',      border: 'rgba(249,115,22,0.25)' },
-          TRAINING_DB:  { bg: 'rgba(124,58,237,0.1)',   color: '#a78bfa',      border: 'rgba(124,58,237,0.25)' },
+          EXERCISE_DB: { bg: 'rgba(0,229,255,0.1)', color: 'var(--cyan)', border: 'rgba(0,229,255,0.25)' },
+          SPORT_DRILLS: { bg: 'rgba(249,115,22,0.1)', color: '#fb923c', border: 'rgba(249,115,22,0.25)' },
+          TRAINING_DB: { bg: 'rgba(124,58,237,0.1)', color: '#a78bfa', border: 'rgba(124,58,237,0.25)' },
         };
         const sc = srcColors[e._source] || srcColors.EXERCISE_DB;
 
@@ -9836,14 +10056,14 @@
 
         // Video badge
         const hasVideo = e.video_url && e.video_url.includes('youtube');
-        const videoId  = 'atlas-video-' + e.name.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'');
+        const videoId = 'atlas-video-' + e.name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
 
         // Macro pills
         const pills = [];
-        if (e.sets  != null && e.sets  !== '—') pills.push({ label: `Serie: ${e.sets}`,  color: 'var(--cyan)'  });
-        if (e.reps  != null && e.reps  !== '—') pills.push({ label: `Powt: ${e.reps}`,   color: '#a78bfa'      });
-        if (e.weight != null && e.weight > 0)   pills.push({ label: `${e.weight} kg`,     color: '#fbbf24'      });
-        if (e.rpe)                               pills.push({ label: `RPE: ${e.rpe}`,      color: '#f97316'      });
+        if (e.sets != null && e.sets !== '—') pills.push({ label: `Serie: ${e.sets}`, color: 'var(--cyan)' });
+        if (e.reps != null && e.reps !== '—') pills.push({ label: `Powt: ${e.reps}`, color: '#a78bfa' });
+        if (e.weight != null && e.weight > 0) pills.push({ label: `${e.weight} kg`, color: '#fbbf24' });
+        if (e.rpe) pills.push({ label: `RPE: ${e.rpe}`, color: '#f97316' });
 
         const pillsHtml = pills.map(p =>
           `<span style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
@@ -9896,11 +10116,11 @@
               ▶ Video
             </button>` : ''}
             <button onclick="addExerciseToDay(${JSON.stringify(e).replace(/\/g,'\\').replace(/"/g,'&quot;')})"
-              class="flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all"
-              style="background:rgba(0,229,255,0.08);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);">
+              class= "flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all"
+              style = "background:rgba(0,229,255,0.08);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);" >
               ➕ Do planu
-            </button>
-          </div>`;
+            </button >
+          </div > `;
 
         grid.appendChild(card);
       });
@@ -9936,7 +10156,7 @@
         return matchCat && matchQ;
       });
 
-      if (countEl) countEl.textContent = `${filtered.length} posiłków`;
+      if (countEl) countEl.textContent = `${ filtered.length } posiłków`;
 
       if (!filtered.length) {
         grid.innerHTML = '';
@@ -9972,26 +10192,26 @@
         ];
 
         const macroHtml = macros.map(mg =>
-          `<span style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
-              border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700;color:${mg.color};">
-         ${mg.label}: ${mg.val}
-       </span>`
+          `< span style = "background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
+              border - radius: 999px; padding: 2px 8px; font - size: 10px; font - weight: 700; color:${ mg.color }; ">
+         ${ mg.label }: ${ mg.val }
+       </span > `
         ).join('');
 
         // Ingredients preview
         const ingPrev = (m.ingredients || []).slice(0, 3).map(i => i.item).join(', ');
-        const ingMore = (m.ingredients || []).length > 3 ? ` +${(m.ingredients || []).length - 3}` : '';
+        const ingMore = (m.ingredients || []).length > 3 ? ` + ${ (m.ingredients || []).length - 3 } ` : '';
 
         card.innerHTML = `
-      <div class="flex items-start justify-between gap-2">
+          < div class="flex items-start justify-between gap-2" >
         <h4 class="font-extrabold text-white text-sm leading-tight">${m.name}</h4>
         <span style="background:rgba(255,255,255,0.06);color:${badgeColor};
                      border:1px solid rgba(255,255,255,0.1);border-radius:999px;
                      padding:2px 10px;font-size:10px;font-weight:700;white-space:nowrap;"
               >${badgeLabel}</span>
-      </div>
-      <div class="flex flex-wrap gap-1.5">${macroHtml}</div>
-      ${ingPrev ? `<p class="text-xs" style="color:var(--muted);">${ingPrev}${ingMore}</p>` : ''}
+      </div >
+          <div class="flex flex-wrap gap-1.5">${macroHtml}</div>
+      ${ ingPrev ? `<p class="text-xs" style="color:var(--muted);">${ingPrev}${ingMore}</p>` : '' }
       <div class="flex gap-2 mt-auto">
         <button onclick='dietDbOpenInfoModal(${JSON.stringify(m).replace(/'/g, "\\'")})'
           class="flex-shrink-0 py-2 px-3 rounded-xl text-xs font-bold transition-all"
@@ -9999,14 +10219,15 @@
           title="Szczegóły posiłku">
           ℹ️ Info
         </button>
-        <button onclick='dietDbOpenModal(${JSON.stringify(m).replace(/'/g, "\\'")})'
-          class="flex-1 py-2 rounded-xl text-xs font-extrabold transition-all"
-          style="background:rgba(0,229,255,0.1);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);"
-          onmouseenter="this.style.background='rgba(0,229,255,0.2)'"
-          onmouseleave="this.style.background='rgba(0,229,255,0.1)'">
-          + Dodaj do planu
-        </button>
-      </div>`;
+        <button onclick='dietDbOpenModal(${JSON.stringify(m).replace(/'/g, "\\'")
+    }) '
+    class="flex-1 py-2 rounded-xl text-xs font-extrabold transition-all"
+    style = "background:rgba(0,229,255,0.1);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);"
+    onmouseenter = "this.style.background='rgba(0,229,255,0.2)'"
+    onmouseleave = "this.style.background='rgba(0,229,255,0.1)'" >
+      + Dodaj do planu
+        </button >
+      </div > `;
         grid.appendChild(card);
       });
     }
@@ -10022,17 +10243,17 @@
 
       // Build ingredients table
       const ingRows = (meal.ingredients || []).map(i =>
-        `<tr>
+        `< tr >
        <td style="padding:6px 0;color:var(--text);font-size:13px;">${i.item || i}</td>
        <td style="padding:6px 0;color:var(--muted);font-size:12px;text-align:right;">${i.amount || ''}</td>
-     </tr>`
+     </tr > `
       ).join('');
 
       const macros = [
-        { label: '🔥 Kalorie', val: `${meal.kcal} kcal`, color: 'var(--cyan)' },
-        { label: '💪 Białko', val: `${meal.protein}g`, color: '#a78bfa' },
-        { label: '🌾 Węglowodany', val: meal.carbs !== undefined ? `${meal.carbs}g` : '—', color: '#fbbf24' },
-        { label: '🥑 Tłuszcze', val: meal.fat !== undefined ? `${meal.fat}g` : '—', color: '#34d399' },
+        { label: '🔥 Kalorie', val: `${ meal.kcal } kcal`, color: 'var(--cyan)' },
+        { label: '💪 Białko', val: `${ meal.protein } g`, color: '#a78bfa' },
+        { label: '🌾 Węglowodany', val: meal.carbs !== undefined ? `${ meal.carbs } g` : '—', color: '#fbbf24' },
+        { label: '🥑 Tłuszcze', val: meal.fat !== undefined ? `${ meal.fat } g` : '—', color: '#34d399' },
       ];
 
       const overlay = document.createElement('div');
@@ -10041,26 +10262,26 @@
         'background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);animation:fadeIn 0.2s ease;';
 
       overlay.innerHTML = `
-    <div style="background:#0f1116;border:1px solid rgba(0,229,255,0.2);border-radius:20px;
-                max-width:480px;width:100%;max-height:85vh;overflow-y:auto;
-                box-shadow:0 0 60px rgba(0,229,255,0.08);animation:slideUp 0.3s cubic-bezier(0.4,0,0.2,1);">
+      < div style = "background:#0f1116;border:1px solid rgba(0,229,255,0.2);border-radius:20px;
+    max - width: 480px; width: 100 %; max - height: 85vh; overflow - y: auto;
+    box - shadow: 0 0 60px rgba(0, 229, 255, 0.08); animation:slideUp 0.3s cubic - bezier(0.4, 0, 0.2, 1); ">
       <!-- Header -->
-      <div style="padding:20px 20px 16px;border-bottom:1px solid rgba(255,255,255,0.06);
-                  display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
-        <div>
+      < div style = "padding:20px 20px 16px;border-bottom:1px solid rgba(255,255,255,0.06);
+    display: flex; align - items: flex - start; justify - content: space - between; gap: 12px; ">
+      < div >
           <div style="font-size:10px;font-weight:700;color:${badgeColor};letter-spacing:0.08em;margin-bottom:4px;">
             ${TYPE_LABELS[meal._type] || meal._type || ''}
           </div>
           <h3 style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:#fff;line-height:1.3;">
             ${meal.name}
           </h3>
-        </div>
-        <button onclick="document.getElementById('_dietInfoModal')?.remove()"
-          style="flex-shrink:0;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);
+        </div >
+      <button onclick="document.getElementById('_dietInfoModal')?.remove()"
+        style="flex-shrink:0;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);
                  color:var(--muted);border-radius:50%;width:32px;height:32px;font-size:16px;
                  cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">✕</button>
-      </div>
-      <!-- Macros grid -->
+      </div >
+      < !--Macros grid-- >
       <div style="padding:16px 20px;display:grid;grid-template-columns:1fr 1fr;gap:8px;border-bottom:1px solid rgba(255,255,255,0.06);">
         ${macros.map(mg => `
           <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);
@@ -10069,33 +10290,37 @@
             <div style="font-size:16px;font-weight:800;color:${mg.color};">${mg.val}</div>
           </div>`).join('')}
       </div>
-      <!-- Description -->
-      ${meal.description ? `
+      <!--Description -->
+      ${
+        meal.description ? `
         <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);">
           <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:8px;">Opis</div>
           <p style="font-size:13px;color:#94a3b8;line-height:1.6;">${meal.description}</p>
-        </div>` : ''}
-      <!-- Ingredients -->
-      ${ingRows ? `
+        </div>` : ''
+    }
+      < !--Ingredients -->
+      ${
+        ingRows ? `
         <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);">
           <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:8px;">Składniki</div>
           <table style="width:100%;border-collapse:collapse;">
             ${ingRows}
           </table>
-        </div>` : ''}
-      <!-- CTA -->
+        </div>` : ''
+    }
+      < !--CTA -->
       <div style="padding:16px 20px;">
         <button onclick="document.getElementById('_dietInfoModal')?.remove();dietDbOpenModal(${JSON.stringify(meal).replace(/'/g, "\\'")})"
-          style="width:100%;padding:12px;border-radius:14px;font-size:13px;font-weight:800;cursor:pointer;
-                 background:linear-gradient(135deg,rgba(0,229,255,0.15),rgba(124,58,237,0.15));
-                 color:var(--cyan);border:1px solid rgba(0,229,255,0.3);
-                 transition:all 0.2s;box-shadow:0 0 20px rgba(0,229,255,0.08);"
-          onmouseenter="this.style.background='linear-gradient(135deg,rgba(0,229,255,0.25),rgba(124,58,237,0.2))'"
+        style="width:100%;padding:12px;border-radius:14px;font-size:13px;font-weight:800;cursor:pointer;
+        background:linear-gradient(135deg,rgba(0,229,255,0.15),rgba(124,58,237,0.15));
+        color:var(--cyan);border:1px solid rgba(0,229,255,0.3);
+        transition:all 0.2s;box-shadow:0 0 20px rgba(0,229,255,0.08);"
+        onmouseenter="this.style.background='linear-gradient(135deg,rgba(0,229,255,0.25),rgba(124,58,237,0.2))'"
           onmouseleave="this.style.background='linear-gradient(135deg,rgba(0,229,255,0.15),rgba(124,58,237,0.15))'">
-          + Dodaj do planu diety
-        </button>
-      </div>
-    </div>`;
+        + Dodaj do planu diety
+      </button>
+      </div >
+    </div > `;
 
       // Close on backdrop click
       overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
@@ -10121,10 +10346,10 @@
         { label: '🥑 Tłuszcze', val: (meal.fat !== undefined ? meal.fat + 'g' : '—'), color: '#34d399' },
       ];
       if (macrosEl) macrosEl.innerHTML = macros.map(mg =>
-        `<span style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
-            border-radius:999px;padding:4px 12px;font-weight:700;color:${mg.color};">
-       ${mg.label}: ${mg.val}
-     </span>`
+        `< span style = "background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
+    border - radius: 999px; padding: 4px 12px; font - weight: 700; color:${ mg.color }; ">
+       ${ mg.label }: ${ mg.val }
+     </span > `
       ).join('');
 
       // Pre-select type from meal's category
@@ -10204,9 +10429,9 @@
             meal_type: type,
             ...(logDate ? { log_date: logDate } : {}),
           };
-          const res = await fetch(`${_apiBase}/app/diet/add-meal`, {
+          const res = await fetch(`${ _apiBase } /app/diet / add - meal`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ token } ` },
             body: JSON.stringify(body),
           });
           if (res.ok) {
@@ -10214,16 +10439,16 @@
           } else {
             const err = await res.json().catch(() => ({}));
             console.warn('[FitAI] add-meal API error:', err);
-            _showDietToast(`⚠️ Dodano lokalnie (błąd API: ${res.status})`, true);
+            _showDietToast(`⚠️ Dodano lokalnie(błąd API: ${ res.status })`, true);
           }
         } catch (e) {
           console.warn('[FitAI] add-meal fetch failed:', e);
-          _showDietToast(`✅ Dodano do planu (tryb offline)`, false);
+          _showDietToast(`✅ Dodano do planu(tryb offline)`, false);
         }
       } else {
         // No JWT token — local-only mode
         const dayNames = { Pon: 'Pon', Wt: 'Wt', Śr: 'Śr', Czw: 'Czw', Pt: 'Pt', Sob: 'Sob', Niedz: 'Niedz' };
-        _showDietToast(`✅ Dodano do ${dayNames[day] || day} (${type})`, false);
+        _showDietToast(`✅ Dodano do ${ dayNames[day] || day }(${ type })`, false);
       }
 
       // If we're on that day's plan, refresh
@@ -10388,120 +10613,120 @@
         const _apiBase = window.API_BASE || "http://localhost:8000";
         console.log('🌐 API Base:', _apiBase);
 
-        const pingRes = await fetch(`${_apiBase}/health`, { method: 'GET', signal: AbortSignal.timeout(5000) }).catch(() => null);
-        if (!pingRes) {
-          showToast('❌ Serwer nie odpowiada. Sprawdź połączenie internetowe.');
-          console.error('[KitchenGenerate] Health check failed');
-          return;
-        }
-        console.log('✅ Health check passed');
+        const pingRes = await fetch(`${ _apiBase }/health`, { method: 'GET', signal: AbortSignal.timeout(5000) }).catch (() => null);
+    if (!pingRes) {
+      showToast('❌ Serwer nie odpowiada. Sprawdź połączenie internetowe.');
+      console.error('[KitchenGenerate] Health check failed');
+      return;
+    }
+    console.log('✅ Health check passed');
       } catch (e) {
-        showToast('❌ Serwer niedostępny. Spróbuj ponownie za chwilę.');
-        console.error('[KitchenGenerate] Health check error:', e);
+      showToast('❌ Serwer niedostępny. Spróbuj ponownie za chwilę.');
+      console.error('[KitchenGenerate] Health check error:', e);
+      return;
+    }
+
+    // UI: loading
+    hideEl('fridgeEmptyState'); hideEl('fridgeResult'); hideEl('fridgeError');
+    showEl('fridgeLoading');
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Generuję...';
+
+    // Cycle loading messages
+    let msgIdx = 0;
+    const msgEl = document.getElementById('fridgeLoadingMsg');
+    const msgInterval = setInterval(() => {
+      if (msgEl) msgEl.textContent = FRIDGE_LOADING_MSGS[msgIdx++ % FRIDGE_LOADING_MSGS.length];
+    }, 1800);
+
+    let controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000); // AI fallback can take longer than Groq
+
+    try {
+      const _apiBase = window.API_BASE || "http://localhost:8000";
+
+      // Build headers with Authorization (optional, for future JWT support)
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+        console.log('[KitchenGenerate] Authorization header added');
+      } else {
+        console.log('[KitchenGenerate] Note: No JWT token, using identity_id authentication');
+
+      }
+
+      const payload = {
+        identity_id: identityId,
+        ingredients: _kitchen.fridgeTags,
+        extra_context: document.getElementById('fridgeContext')?.value || '',
+        strict_mode: _kitchen.strictMode,
+      };
+
+      console.log('[KitchenGenerate] Sending request to /app/kitchen/generate');
+      console.log('[KitchenGenerate] Payload:', payload);
+
+      const res = await fetch(`${_apiBase}/app/kitchen/generate`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+      clearInterval(msgInterval);
+      clearTimeout(timeoutId);
+
+      console.log('[KitchenGenerate] Response status:', res.status);
+
+      // ── Detailed error handling ──
+      if (!res.ok) {
+        let errDetail = `HTTP ${res.status}`;
+        try {
+          const err = await res.json();
+          errDetail = err.detail || err.message || errDetail;
+          console.error('[KitchenGenerate] Server error:', err);
+        } catch (e) {
+          console.error('[KitchenGenerate] Could not parse error response:', e);
+          const text = await res.text();
+          console.error('[KitchenGenerate] Raw response:', text.substring(0, 500));
+        }
+
+        hideEl('fridgeLoading');
+        showEl('fridgeError');
+        const errEl = document.getElementById('fridgeErrorMsg');
+        if (errEl) {
+          errEl.innerHTML = `<strong>Błąd serwera (${res.status}):</strong> ${errDetail}`;
+        }
+        showToast(`❌ Błąd: ${errDetail}`);
+        throw new Error(errDetail);
+      }
+
+      const data = await res.json();
+      console.log('[KitchenGenerate] Response data:', data);
+
+      if (!data.recipes || !Array.isArray(data.recipes)) {
+        throw new Error('Nieprawidłowy format odpowiedzi - brak tablicy przepisów');
+      }
+
+      if (data.recipes.length === 0) {
+        hideEl('fridgeLoading');
+        showEl('fridgeError');
+        const errEl = document.getElementById('fridgeErrorMsg');
+        if (errEl) errEl.textContent = '🥕 Zbyt mało składników do stworzenia pełnych dań. Dodaj coś więcej!';
+        showToast('⚠️ Zbyt mało składników');
         return;
       }
 
-      // UI: loading
-      hideEl('fridgeEmptyState'); hideEl('fridgeResult'); hideEl('fridgeError');
-      showEl('fridgeLoading');
-      btn.disabled = true;
-      btn.innerHTML = '⏳ Generuję...';
+      _kitchen.lastFridgeRecipe = data.recipes;
 
-      // Cycle loading messages
-      let msgIdx = 0;
-      const msgEl = document.getElementById('fridgeLoadingMsg');
-      const msgInterval = setInterval(() => {
-        if (msgEl) msgEl.textContent = FRIDGE_LOADING_MSGS[msgIdx++ % FRIDGE_LOADING_MSGS.length];
-      }, 1800);
+      // Show result
+      hideEl('fridgeLoading');
+      showEl('fridgeResult');
 
-      let controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 45000); // AI fallback can take longer than Groq
-
-      try {
-        const _apiBase = window.API_BASE || "http://localhost:8000";
-
-        // Build headers with Authorization (optional, for future JWT support)
-        const headers = { 'Content-Type': 'application/json' };
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-          console.log('[KitchenGenerate] Authorization header added');
-        } else {
-          console.log('[KitchenGenerate] Note: No JWT token, using identity_id authentication');
-
-        }
-
-        const payload = {
-          identity_id: identityId,
-          ingredients: _kitchen.fridgeTags,
-          extra_context: document.getElementById('fridgeContext')?.value || '',
-          strict_mode: _kitchen.strictMode,
-        };
-
-        console.log('[KitchenGenerate] Sending request to /app/kitchen/generate');
-        console.log('[KitchenGenerate] Payload:', payload);
-
-        const res = await fetch(`${_apiBase}/app/kitchen/generate`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(payload),
-          signal: controller.signal,
-        });
-        clearInterval(msgInterval);
-        clearTimeout(timeoutId);
-
-        console.log('[KitchenGenerate] Response status:', res.status);
-
-        // ── Detailed error handling ──
-        if (!res.ok) {
-          let errDetail = `HTTP ${res.status}`;
-          try {
-            const err = await res.json();
-            errDetail = err.detail || err.message || errDetail;
-            console.error('[KitchenGenerate] Server error:', err);
-          } catch (e) {
-            console.error('[KitchenGenerate] Could not parse error response:', e);
-            const text = await res.text();
-            console.error('[KitchenGenerate] Raw response:', text.substring(0, 500));
-          }
-
-          hideEl('fridgeLoading');
-          showEl('fridgeError');
-          const errEl = document.getElementById('fridgeErrorMsg');
-          if (errEl) {
-            errEl.innerHTML = `<strong>Błąd serwera (${res.status}):</strong> ${errDetail}`;
-          }
-          showToast(`❌ Błąd: ${errDetail}`);
-          throw new Error(errDetail);
-        }
-
-        const data = await res.json();
-        console.log('[KitchenGenerate] Response data:', data);
-
-        if (!data.recipes || !Array.isArray(data.recipes)) {
-          throw new Error('Nieprawidłowy format odpowiedzi - brak tablicy przepisów');
-        }
-
-        if (data.recipes.length === 0) {
-          hideEl('fridgeLoading');
-          showEl('fridgeError');
-          const errEl = document.getElementById('fridgeErrorMsg');
-          if (errEl) errEl.textContent = '🥕 Zbyt mało składników do stworzenia pełnych dań. Dodaj coś więcej!';
-          showToast('⚠️ Zbyt mało składników');
-          return;
-        }
-
-        _kitchen.lastFridgeRecipe = data.recipes;
-
-        // Show result
-        hideEl('fridgeLoading');
-        showEl('fridgeResult');
-
-        const contentEl = document.getElementById('fridgeRecipeContent');
-        if (contentEl) {
-          // Render recipes as structured HTML
-          let html = '<div style="display:flex;flex-direction:column;gap:16px;">';
-          data.recipes.forEach((recipe, idx) => {
-            html += `
+      const contentEl = document.getElementById('fridgeRecipeContent');
+      if (contentEl) {
+        // Render recipes as structured HTML
+        let html = '<div style="display:flex;flex-direction:column;gap:16px;">';
+        data.recipes.forEach((recipe, idx) => {
+          html += `
               <div style="background:rgba(0,229,255,0.05);border:1px solid rgba(0,229,255,0.2);border-radius:12px;padding:12px;gap:8px;">
                 <div style="font-weight:bold;font-size:16px;color:var(--cyan);">🍽️ Przepis ${idx + 1}: ${recipe.nazwa || 'Bez nazwy'}</div>
                 <div style="margin-top:8px;">
@@ -10526,49 +10751,49 @@
                 </div>
               </div>
             `;
-          });
-          html += '</div>';
-          contentEl.innerHTML = html;
-        }
-
-        // Save to history
-        const historyItem = {
-          tags: [..._kitchen.fridgeTags],
-          recipes: data.recipes,
-          ts: new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }),
-          strictMode: _kitchen.strictMode,
-        };
-        _kitchen.fridgeHistory.unshift(historyItem);
-        fridgeRenderHistory();
-
-        showToast('✅ Przepisy wygenerowane!');
-        console.log('[KitchenGenerate] SUCCESS ✓');
-
-      } catch (err) {
-        clearInterval(msgInterval);
-        clearTimeout(timeoutId);
-
-        // Handle AbortController timeout
-        if (err.name === 'AbortError') {
-          hideEl('fridgeLoading');
-          showEl('fridgeError');
-          const errEl = document.getElementById('fridgeErrorMsg');
-          if (errEl) errEl.textContent = '⏱️ Żądanie przekroczyło czas oczekiwania (45s). Serwer może być przeciążony.';
-          showToast('⏱️ Przekroczono limit czasu (45 sekund)');
-          console.error('[KitchenGenerate] Request timeout');
-        } else {
-          hideEl('fridgeLoading');
-          showEl('fridgeError');
-          const errEl = document.getElementById('fridgeErrorMsg');
-          const msg = err.message || 'Nieznany błąd połączenia';
-          if (errEl) errEl.innerHTML = `<strong>Błąd:</strong> ${msg}`;
-          showToast(`❌ ${msg}`);
-          console.error('[KitchenGenerate] Error:', err);
-        }
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalBtnText;
+        });
+        html += '</div>';
+        contentEl.innerHTML = html;
       }
+
+      // Save to history
+      const historyItem = {
+        tags: [..._kitchen.fridgeTags],
+        recipes: data.recipes,
+        ts: new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }),
+        strictMode: _kitchen.strictMode,
+      };
+      _kitchen.fridgeHistory.unshift(historyItem);
+      fridgeRenderHistory();
+
+      showToast('✅ Przepisy wygenerowane!');
+      console.log('[KitchenGenerate] SUCCESS ✓');
+
+    } catch (err) {
+      clearInterval(msgInterval);
+      clearTimeout(timeoutId);
+
+      // Handle AbortController timeout
+      if (err.name === 'AbortError') {
+        hideEl('fridgeLoading');
+        showEl('fridgeError');
+        const errEl = document.getElementById('fridgeErrorMsg');
+        if (errEl) errEl.textContent = '⏱️ Żądanie przekroczyło czas oczekiwania (45s). Serwer może być przeciążony.';
+        showToast('⏱️ Przekroczono limit czasu (45 sekund)');
+        console.error('[KitchenGenerate] Request timeout');
+      } else {
+        hideEl('fridgeLoading');
+        showEl('fridgeError');
+        const errEl = document.getElementById('fridgeErrorMsg');
+        const msg = err.message || 'Nieznany błąd połączenia';
+        if (errEl) errEl.innerHTML = `<strong>Błąd:</strong> ${msg}`;
+        showToast(`❌ ${msg}`);
+        console.error('[KitchenGenerate] Error:', err);
+      }
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = originalBtnText;
+    }
     }
 
     async function fridgeGenerate() {
@@ -11584,6 +11809,31 @@
 
     // refreshStats — alias for initCharts
     async function refreshStats() { await initCharts(); }
+
+    // ══════════════════════════════════════════════════════════════════════════════
+    // ETAP 5: Ensure all critical functions are globally accessible
+    // Override the stub versions from script tag 2 with full implementations
+    // ══════════════════════════════════════════════════════════════════════════════
+    console.log('[FitAI ETAP 5] Registering full function implementations...');
+
+    window.normalizeCategory = normalizeCategory;
+    window.bibliotekaMealFilter = bibliotekaMealFilter;
+    window.renderAtlas = renderAtlas;
+    window.renderSportDrills = renderSportDrills;
+    window.atlasSetCategory = atlasSetCategory;
+    window.atlasExerciseSetCategory = atlasExerciseSetCategory;
+    window.bibliotekaMealSetCategory = bibliotekaMealSetCategory;
+    window.switchPlanTab = switchPlanTab;
+    window.loadInitialData = loadInitialData;
+
+    console.log('[FitAI ETAP 5] ✅ All functions registered to window object');
+    console.log('[FitAI ETAP 5] Available functions:', {
+      normalizeCategory: typeof window.normalizeCategory,
+      bibliotekaMealFilter: typeof window.bibliotekaMealFilter,
+      renderAtlas: typeof window.renderAtlas,
+      renderSportDrills: typeof window.renderSportDrills,
+      atlasSetCategory: typeof window.atlasSetCategory,
+    });
 
   </script>
 
@@ -12855,13 +13105,13 @@
           btn.dataset.cat = group;
           btn.className = 'atlas-cat-btn text-xs px-3 py-1.5 rounded-full font-bold transition-all';
           btn.style.cssText = 'background:rgba(255,255,255,0.05);color:var(--muted);border:1px solid var(--border);';
-          btn.onmouseenter = () => { if (!btn.classList.contains('active')) { btn.style.background='rgba(0,229,255,0.08)'; btn.style.color='var(--cyan)'; } };
-          btn.onmouseleave = () => { if (!btn.classList.contains('active')) { btn.style.background='rgba(255,255,255,0.05)'; btn.style.color='var(--muted)'; } };
+          btn.onmouseenter = () => { if (!btn.classList.contains('active')) { btn.style.background = 'rgba(0,229,255,0.08)'; btn.style.color = 'var(--cyan)'; } };
+          btn.onmouseleave = () => { if (!btn.classList.contains('active')) { btn.style.background = 'rgba(255,255,255,0.05)'; btn.style.color = 'var(--muted)'; } };
           btn.onclick = () => {
             if (typeof atlasSetCategory === 'function') atlasSetCategory(group);
             else { _atlasExerciseCategory = group; renderAtlas(); }
           };
-          const LABEL_MAP = { klatka:'💪 Klatka', plecy:'🔙 Plecy', nogi:'🦵 Nogi', ramiona:'🏋️ Ramiona', biceps:'💪 Biceps', triceps:'🦾 Triceps', core:'⚡ Core', kardio:'🏃 Kardio', pośladki:'🍑 Pośladki', barki:'📌 Barki' };
+          const LABEL_MAP = { klatka: '💪 Klatka', plecy: '🔙 Plecy', nogi: '🦵 Nogi', ramiona: '🏋️ Ramiona', biceps: '💪 Biceps', triceps: '🦾 Triceps', core: '⚡ Core', kardio: '🏃 Kardio', pośladki: '🍑 Pośladki', barki: '📌 Barki' };
           btn.textContent = LABEL_MAP[group] || ('🏷️ ' + group.charAt(0).toUpperCase() + group.slice(1));
           btnRow.appendChild(btn);
         });
@@ -12871,7 +13121,7 @@
       // renderAtlas() — Atlas Ćwiczeń: pierwszy render. Jeśli baza pusta → dane startowe
       try {
         if (typeof renderAtlas === 'function') renderAtlas();
-      } catch(e) {
+      } catch (e) {
         console.warn('[FitAI] renderAtlas() failed at DOMContentLoaded:', e);
         const grid = document.getElementById('atlasExerciseGrid');
         if (grid) grid.innerHTML = '<div class="col-span-full text-center py-12"><div style="font-size:2.5rem">🏋️</div><p class="text-sm mt-2" style="color:var(--muted);">Brak danych, dodaj pierwsze ćwiczenie</p></div>';
@@ -12880,7 +13130,7 @@
       // renderSportDrills() — Baza Drilli: pierwszy render
       try {
         if (typeof renderSportDrills === 'function') renderSportDrills();
-      } catch(e) {
+      } catch (e) {
         console.warn('[FitAI] renderSportDrills() failed at DOMContentLoaded:', e);
         const cont = document.getElementById('sportDrillsContainer');
         if (cont) cont.innerHTML = '<div class="glass p-6 text-center text-gray-500 italic">Brak danych, dodaj pierwsze ćwiczenie</div>';
@@ -12889,7 +13139,7 @@
       // bibliotekaMealFilter() — Biblioteka Posiłków: pierwszy render
       try {
         if (typeof bibliotekaMealFilter === 'function') bibliotekaMealFilter();
-      } catch(e) {
+      } catch (e) {
         console.warn('[FitAI] bibliotekaMealFilter() failed at DOMContentLoaded:', e);
         const grid = document.getElementById('bibliotekaMealGrid');
         if (grid) grid.innerHTML = '<div class="col-span-full text-center py-12"><div style="font-size:2.5rem">🍽️</div><p class="text-sm mt-2" style="color:var(--muted);">Brak danych, dodaj pierwszy posiłek</p></div>';
@@ -12915,555 +13165,555 @@
          FitAI.help()              → lista wszystkich komend
        ═══════════════════════════════════════════════════════════════════════════ -->
   <script>
-  (function() {
-    'use strict';
+    (function () {
+      'use strict';
 
-    // ── Styl logów konsoli ────────────────────────────────────────────────────
-    const S = {
-      header:  'background:#0a0b10;color:#00e5ff;font-weight:bold;font-size:13px;padding:4px 8px;border-left:3px solid #00e5ff;',
-      ok:      'color:#22c55e;font-weight:bold;',
-      warn:    'color:#f59e0b;font-weight:bold;',
-      error:   'color:#ef4444;font-weight:bold;',
-      info:    'color:#94a3b8;',
-      fix:     'color:#a78bfa;font-style:italic;',
-      bold:    'color:#e2e8f0;font-weight:bold;',
-      section: 'background:#1e293b;color:#7dd3fc;font-weight:bold;padding:2px 6px;',
-    };
+      // ── Styl logów konsoli ────────────────────────────────────────────────────
+      const S = {
+        header: 'background:#0a0b10;color:#00e5ff;font-weight:bold;font-size:13px;padding:4px 8px;border-left:3px solid #00e5ff;',
+        ok: 'color:#22c55e;font-weight:bold;',
+        warn: 'color:#f59e0b;font-weight:bold;',
+        error: 'color:#ef4444;font-weight:bold;',
+        info: 'color:#94a3b8;',
+        fix: 'color:#a78bfa;font-style:italic;',
+        bold: 'color:#e2e8f0;font-weight:bold;',
+        section: 'background:#1e293b;color:#7dd3fc;font-weight:bold;padding:2px 6px;',
+      };
 
-    // ── Pomocnik wypisywania ──────────────────────────────────────────────────
-    function _log(style, msg) { console.log(`%c${msg}`, S[style] || S.info); }
-    function _ok(msg)         { _log('ok',   '  ✅ ' + msg); }
-    function _warn(msg)       { _log('warn', '  ⚠️  ' + msg); }
-    function _err(msg)        { _log('error','  ❌ ' + msg); }
-    function _fix(msg)        { _log('fix',  '     💡 Rozwiązanie: ' + msg); }
-    function _info(msg)       { _log('info', '     ℹ️  ' + msg); }
-    function _section(title)  { console.log('%c' + title, S.section); }
+      // ── Pomocnik wypisywania ──────────────────────────────────────────────────
+      function _log(style, msg) { console.log(`%c${msg}`, S[style] || S.info); }
+      function _ok(msg) { _log('ok', '  ✅ ' + msg); }
+      function _warn(msg) { _log('warn', '  ⚠️  ' + msg); }
+      function _err(msg) { _log('error', '  ❌ ' + msg); }
+      function _fix(msg) { _log('fix', '     💡 Rozwiązanie: ' + msg); }
+      function _info(msg) { _log('info', '     ℹ️  ' + msg); }
+      function _section(title) { console.log('%c' + title, S.section); }
 
-    // ── Dostęp do zmiennych aplikacji (definiowanych w tym samym scope) ───────
-    // Musimy użyć funkcji, bo MEAL_DB etc. są const w closure — nie są na window.
-    // Trick: mamy dostęp dzięki temu, że <script> jest w tym samym dokumencie.
-    // Używamy eval() wyłącznie do odczytu zmiennych z zamkniętego scope.
-    function _safeRead(varName) {
-      try {
-        // Najpierw sprawdź window (gdyby ktoś wyeksponował zmienną globalnie)
-        if (typeof window[varName] !== 'undefined') return window[varName];
-        // Fallback: eval w kontekście dokumentu
-        // eslint-disable-next-line no-eval
-        return eval(varName);
-      } catch (_) {
-        return undefined;
+      // ── Dostęp do zmiennych aplikacji (definiowanych w tym samym scope) ───────
+      // Musimy użyć funkcji, bo MEAL_DB etc. są const w closure — nie są na window.
+      // Trick: mamy dostęp dzięki temu, że <script> jest w tym samym dokumencie.
+      // Używamy eval() wyłącznie do odczytu zmiennych z zamkniętego scope.
+      function _safeRead(varName) {
+        try {
+          // Najpierw sprawdź window (gdyby ktoś wyeksponował zmienną globalnie)
+          if (typeof window[varName] !== 'undefined') return window[varName];
+          // Fallback: eval w kontekście dokumentu
+          // eslint-disable-next-line no-eval
+          return eval(varName);
+        } catch (_) {
+          return undefined;
+        }
       }
-    }
 
-    function _getState() {
-      // state jest zdefiniowany jako const w zamkniętym scope — używamy eval
-      return _safeRead('state');
-    }
+      function _getState() {
+        // state jest zdefiniowany jako const w zamkniętym scope — używamy eval
+        return _safeRead('state');
+      }
 
-    function _getMealDB()     { return _safeRead('MEAL_DB'); }
-    function _getExerciseDB() { return _safeRead('EXERCISE_DB'); }
-    function _getSportDrills(){ return _safeRead('SPORT_DRILLS'); }
-    function _getSportIdMap() { return _safeRead('SPORT_ID_MAP'); }
+      function _getMealDB() { return _safeRead('MEAL_DB'); }
+      function _getExerciseDB() { return _safeRead('EXERCISE_DB'); }
+      function _getSportDrills() { return _safeRead('SPORT_DRILLS'); }
+      function _getSportIdMap() { return _safeRead('SPORT_ID_MAP'); }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // 1. FitAI.checkDB() — Stan baz danych
-    // ─────────────────────────────────────────────────────────────────────────
-    function checkDB() {
-      _section('▶ BAZY DANYCH');
-      let issueCount = 0;
+      // ─────────────────────────────────────────────────────────────────────────
+      // 1. FitAI.checkDB() — Stan baz danych
+      // ─────────────────────────────────────────────────────────────────────────
+      function checkDB() {
+        _section('▶ BAZY DANYCH');
+        let issueCount = 0;
 
-      // ── MEAL_DB ──────────────────────────────────────────────────────────
-      const _localMealDB = _getMealDB(); const MEAL_DB = _localMealDB;
-      if (typeof MEAL_DB === 'undefined' || MEAL_DB === null) {
-        _err('MEAL_DB nie istnieje (undefined)');
-        _fix('Uruchom FitAI.reload() lub sprawdź czy fitai_seed_data.js jest dostępny');
-        issueCount++;
-      } else {
-        const cats = Object.keys(MEAL_DB);
-        const totalMeals = cats.reduce((s, k) => s + (MEAL_DB[k] || []).length, 0);
-        const emptyCats  = cats.filter(k => (MEAL_DB[k] || []).length === 0);
-
-        if (totalMeals === 0) {
-          _err(`MEAL_DB istnieje, ale jest PUSTA (0 posiłków)`);
-          _fix('Uruchom FitAI.reload() aby załadować dane z fitai_seed_data.js');
+        // ── MEAL_DB ──────────────────────────────────────────────────────────
+        const _localMealDB = _getMealDB(); const MEAL_DB = _localMealDB;
+        if (typeof MEAL_DB === 'undefined' || MEAL_DB === null) {
+          _err('MEAL_DB nie istnieje (undefined)');
+          _fix('Uruchom FitAI.reload() lub sprawdź czy fitai_seed_data.js jest dostępny');
           issueCount++;
         } else {
-          _ok(`MEAL_DB: ${totalMeals} posiłków w ${cats.length} kategoriach`);
-          cats.forEach(k => _info(`  ${k}: ${(MEAL_DB[k] || []).length} pozycji`));
-        }
+          const cats = Object.keys(MEAL_DB);
+          const totalMeals = cats.reduce((s, k) => s + (MEAL_DB[k] || []).length, 0);
+          const emptyCats = cats.filter(k => (MEAL_DB[k] || []).length === 0);
 
-        // Sprawdź wymagane kategorie
-        const requiredMealCats = ['śniadanie', 'obiad', 'kolacja', 'przekąska'];
-        requiredMealCats.forEach(cat => {
-          const key = Object.keys(MEAL_DB).find(k => k.toLowerCase() === cat);
-          if (!key) {
-            _warn(`Brak kategorii "${cat}" w MEAL_DB`);
-            _fix(`Dodaj kategorię "${cat}" do fitai_seed_data.js`);
-            issueCount++;
-          }
-        });
-
-        if (emptyCats.length > 0) {
-          _warn(`Puste kategorie w MEAL_DB: ${emptyCats.join(', ')}`);
-          issueCount++;
-        }
-
-        // Walidacja struktury — sprawdź pierwsze 3 rekordy z każdej kategorii
-        const requiredMealFields = ['id', 'name', 'calories', 'protein', 'carbs', 'fat', 'category'];
-        let malformedMeals = 0;
-        cats.forEach(cat => {
-          (MEAL_DB[cat] || []).slice(0, 3).forEach(meal => {
-            const missing = requiredMealFields.filter(f => meal[f] === undefined);
-            if (missing.length > 0) {
-              malformedMeals++;
-              _warn(`Posiłek "${meal.name || '(brak name)'}" w "${cat}" — brak pól: ${missing.join(', ')}`);
-            }
-          });
-        });
-        if (malformedMeals === 0) _ok('Struktura posiłków: wszystkie pola wymagane obecne (próbka)');
-      }
-
-      // ── EXERCISE_DB ───────────────────────────────────────────────────────
-      const _localExerciseDB = _getExerciseDB(); const EXERCISE_DB = _localExerciseDB;
-      if (typeof EXERCISE_DB === 'undefined' || EXERCISE_DB === null) {
-        _err('EXERCISE_DB nie istnieje (undefined)');
-        _fix('Uruchom FitAI.reload() lub sprawdź czy fitai_seed_data.js jest dostępny');
-        issueCount++;
-      } else {
-        const cats = Object.keys(EXERCISE_DB);
-        const totalEx = cats.reduce((s, k) => s + (EXERCISE_DB[k] || []).length, 0);
-        const emptyCats = cats.filter(k => (EXERCISE_DB[k] || []).length === 0);
-
-        if (totalEx === 0) {
-          _err('EXERCISE_DB istnieje, ale jest PUSTA (0 ćwiczeń)');
-          _fix('Uruchom FitAI.reload() aby załadować dane z fitai_seed_data.js');
-          issueCount++;
-        } else {
-          _ok(`EXERCISE_DB: ${totalEx} ćwiczeń w ${cats.length} kategoriach`);
-          cats.forEach(k => _info(`  ${k}: ${(EXERCISE_DB[k] || []).length} pozycji`));
-        }
-
-        // Sprawdź wymagane partie mięśniowe
-        const requiredExCats = ['klatka piersiowa', 'plecy', 'nogi', 'barki', 'ramiona', 'brzuch'];
-        requiredExCats.forEach(cat => {
-          const key = cats.find(k => k.toLowerCase() === cat);
-          if (!key) {
-            _warn(`Brak kategorii "${cat}" w EXERCISE_DB`);
-            _fix(`Dodaj kategorię "${cat}" do fitai_seed_data.js`);
-            issueCount++;
-          }
-        });
-
-        // Walidacja struktury — próbka
-        const requiredExFields = ['id', 'name', 'category', 'difficulty'];
-        let malformedEx = 0;
-        cats.forEach(cat => {
-          (EXERCISE_DB[cat] || []).slice(0, 3).forEach(ex => {
-            const missing = requiredExFields.filter(f => ex[f] === undefined);
-            if (missing.length > 0) {
-              malformedEx++;
-              _warn(`Ćwiczenie "${ex.name || '(brak name)'}" w "${cat}" — brak pól: ${missing.join(', ')}`);
-            }
-          });
-        });
-        if (malformedEx === 0) _ok('Struktura ćwiczeń: wszystkie pola wymagane obecne (próbka)');
-
-        if (emptyCats.length > 0) {
-          _warn(`Puste kategorie w EXERCISE_DB: ${emptyCats.join(', ')}`);
-          issueCount++;
-        }
-      }
-
-      // ── SPORT_DRILLS ──────────────────────────────────────────────────────
-      const SPORT_DRILLS = _getSportDrills();
-      if (typeof SPORT_DRILLS === 'undefined' || SPORT_DRILLS === null) {
-        _err('SPORT_DRILLS nie istnieje (undefined)');
-        _fix('Sprawdź czy SPORT_DRILLS jest zdefiniowany w index.html lub fitai_seed_data.js');
-        issueCount++;
-      } else {
-        const sports = Object.keys(SPORT_DRILLS);
-        const totalDrills = sports.reduce((s, sport) => {
-          const drills = SPORT_DRILLS[sport]?.drills || SPORT_DRILLS[sport] || [];
-          return s + (Array.isArray(drills) ? drills.length : 0);
-        }, 0);
-        _ok(`SPORT_DRILLS: ${sports.length} dyscyplin, ${totalDrills} drilli`);
-        sports.forEach(sp => {
-          const drills = SPORT_DRILLS[sp]?.drills || SPORT_DRILLS[sp] || [];
-          const count = Array.isArray(drills) ? drills.length : 0;
-          if (count === 0) {
-            _warn(`SPORT_DRILLS["${sp}"] — brak drilli`);
+          if (totalMeals === 0) {
+            _err(`MEAL_DB istnieje, ale jest PUSTA (0 posiłków)`);
+            _fix('Uruchom FitAI.reload() aby załadować dane z fitai_seed_data.js');
             issueCount++;
           } else {
-            _info(`  ${sp}: ${count} drilli`);
+            _ok(`MEAL_DB: ${totalMeals} posiłków w ${cats.length} kategoriach`);
+            cats.forEach(k => _info(`  ${k}: ${(MEAL_DB[k] || []).length} pozycji`));
+          }
+
+          // Sprawdź wymagane kategorie
+          const requiredMealCats = ['śniadanie', 'obiad', 'kolacja', 'przekąska'];
+          requiredMealCats.forEach(cat => {
+            const key = Object.keys(MEAL_DB).find(k => k.toLowerCase() === cat);
+            if (!key) {
+              _warn(`Brak kategorii "${cat}" w MEAL_DB`);
+              _fix(`Dodaj kategorię "${cat}" do fitai_seed_data.js`);
+              issueCount++;
+            }
+          });
+
+          if (emptyCats.length > 0) {
+            _warn(`Puste kategorie w MEAL_DB: ${emptyCats.join(', ')}`);
+            issueCount++;
+          }
+
+          // Walidacja struktury — sprawdź pierwsze 3 rekordy z każdej kategorii
+          const requiredMealFields = ['id', 'name', 'calories', 'protein', 'carbs', 'fat', 'category'];
+          let malformedMeals = 0;
+          cats.forEach(cat => {
+            (MEAL_DB[cat] || []).slice(0, 3).forEach(meal => {
+              const missing = requiredMealFields.filter(f => meal[f] === undefined);
+              if (missing.length > 0) {
+                malformedMeals++;
+                _warn(`Posiłek "${meal.name || '(brak name)'}" w "${cat}" — brak pól: ${missing.join(', ')}`);
+              }
+            });
+          });
+          if (malformedMeals === 0) _ok('Struktura posiłków: wszystkie pola wymagane obecne (próbka)');
+        }
+
+        // ── EXERCISE_DB ───────────────────────────────────────────────────────
+        const _localExerciseDB = _getExerciseDB(); const EXERCISE_DB = _localExerciseDB;
+        if (typeof EXERCISE_DB === 'undefined' || EXERCISE_DB === null) {
+          _err('EXERCISE_DB nie istnieje (undefined)');
+          _fix('Uruchom FitAI.reload() lub sprawdź czy fitai_seed_data.js jest dostępny');
+          issueCount++;
+        } else {
+          const cats = Object.keys(EXERCISE_DB);
+          const totalEx = cats.reduce((s, k) => s + (EXERCISE_DB[k] || []).length, 0);
+          const emptyCats = cats.filter(k => (EXERCISE_DB[k] || []).length === 0);
+
+          if (totalEx === 0) {
+            _err('EXERCISE_DB istnieje, ale jest PUSTA (0 ćwiczeń)');
+            _fix('Uruchom FitAI.reload() aby załadować dane z fitai_seed_data.js');
+            issueCount++;
+          } else {
+            _ok(`EXERCISE_DB: ${totalEx} ćwiczeń w ${cats.length} kategoriach`);
+            cats.forEach(k => _info(`  ${k}: ${(EXERCISE_DB[k] || []).length} pozycji`));
+          }
+
+          // Sprawdź wymagane partie mięśniowe
+          const requiredExCats = ['klatka piersiowa', 'plecy', 'nogi', 'barki', 'ramiona', 'brzuch'];
+          requiredExCats.forEach(cat => {
+            const key = cats.find(k => k.toLowerCase() === cat);
+            if (!key) {
+              _warn(`Brak kategorii "${cat}" w EXERCISE_DB`);
+              _fix(`Dodaj kategorię "${cat}" do fitai_seed_data.js`);
+              issueCount++;
+            }
+          });
+
+          // Walidacja struktury — próbka
+          const requiredExFields = ['id', 'name', 'category', 'difficulty'];
+          let malformedEx = 0;
+          cats.forEach(cat => {
+            (EXERCISE_DB[cat] || []).slice(0, 3).forEach(ex => {
+              const missing = requiredExFields.filter(f => ex[f] === undefined);
+              if (missing.length > 0) {
+                malformedEx++;
+                _warn(`Ćwiczenie "${ex.name || '(brak name)'}" w "${cat}" — brak pól: ${missing.join(', ')}`);
+              }
+            });
+          });
+          if (malformedEx === 0) _ok('Struktura ćwiczeń: wszystkie pola wymagane obecne (próbka)');
+
+          if (emptyCats.length > 0) {
+            _warn(`Puste kategorie w EXERCISE_DB: ${emptyCats.join(', ')}`);
+            issueCount++;
+          }
+        }
+
+        // ── SPORT_DRILLS ──────────────────────────────────────────────────────
+        const SPORT_DRILLS = _getSportDrills();
+        if (typeof SPORT_DRILLS === 'undefined' || SPORT_DRILLS === null) {
+          _err('SPORT_DRILLS nie istnieje (undefined)');
+          _fix('Sprawdź czy SPORT_DRILLS jest zdefiniowany w index.html lub fitai_seed_data.js');
+          issueCount++;
+        } else {
+          const sports = Object.keys(SPORT_DRILLS);
+          const totalDrills = sports.reduce((s, sport) => {
+            const drills = SPORT_DRILLS[sport]?.drills || SPORT_DRILLS[sport] || [];
+            return s + (Array.isArray(drills) ? drills.length : 0);
+          }, 0);
+          _ok(`SPORT_DRILLS: ${sports.length} dyscyplin, ${totalDrills} drilli`);
+          sports.forEach(sp => {
+            const drills = SPORT_DRILLS[sp]?.drills || SPORT_DRILLS[sp] || [];
+            const count = Array.isArray(drills) ? drills.length : 0;
+            if (count === 0) {
+              _warn(`SPORT_DRILLS["${sp}"] — brak drilli`);
+              issueCount++;
+            } else {
+              _info(`  ${sp}: ${count} drilli`);
+            }
+          });
+        }
+
+        return issueCount;
+      }
+
+      // ─────────────────────────────────────────────────────────────────────────
+      // 2. FitAI.checkDOM() — Weryfikacja krytycznych elementów HTML
+      // ─────────────────────────────────────────────────────────────────────────
+      function checkDOM() {
+        _section('▶ KONTENERY DOM');
+        let issueCount = 0;
+
+        // Krytyczne kontenery z opisem ich roli
+        const CRITICAL_IDS = [
+          // Nawigacja i strony
+          { id: 'mainNav', role: 'Nawigacja górna' },
+          { id: 'landingPage', role: 'Strona startowa (niezalogowany)' },
+          { id: 'dashboardPage', role: 'Główna aplikacja (zalogowany)' },
+          { id: 'mainContent', role: 'Główny kontener treści' },
+          // Plan
+          { id: 'planDietContainer', role: 'Kontener diety w planie' },
+          { id: 'planTrainingContainer', role: 'Kontener treningu w planie' },
+          { id: 'planHybridLayout', role: 'Układ hybrydowy planu' },
+          { id: 'planSubSidebar', role: 'Sidebar kategorii planu' },
+          { id: 'planContentArea', role: 'Obszar treści planu' },
+          // Atlas ćwiczeń
+          { id: 'atlasExerciseGrid', role: 'Siatka atlasu ćwiczeń' },
+          { id: 'atlasExerciseSearch', role: 'Wyszukiwarka w atlasie' },
+          { id: 'atlasCategoryBtns', role: 'Przyciski kategorii atlasu' },
+          // Dashboard
+          { id: 'kpiWeight', role: 'KPI — waga użytkownika' },
+          { id: 'kpiGoal', role: 'KPI — cele' },
+          { id: 'greetingName', role: 'Powitanie z imieniem' },
+          { id: 'headerUserBadge', role: 'Badge użytkownika w nagłówku' },
+          { id: 'currentUserName', role: 'Nazwa użytkownika w sidebarze' },
+          // Checklist planu
+          { id: 'planChecklistContainer', role: 'Checklist posiłków/treningów' },
+        ];
+
+        let missing = [];
+        let found = [];
+
+        CRITICAL_IDS.forEach(({ id, role }) => {
+          const el = document.getElementById(id);
+          if (!el) {
+            missing.push({ id, role });
+            issueCount++;
+          } else {
+            found.push(id);
           }
         });
+
+        _ok(`Znaleziono ${found.length}/${CRITICAL_IDS.length} krytycznych elementów`);
+
+        if (missing.length > 0) {
+          _err(`Brak ${missing.length} elementów DOM:`);
+          missing.forEach(({ id, role }) => {
+            _warn(`  #${id} — "${role}"`);
+            _fix(`Sprawdź czy element id="${id}" istnieje w HTML. Może być ukryty przez display:none`);
+          });
+        }
+
+        // Sprawdź widoczność kluczowych stron
+        const dashPage = document.getElementById('dashboardPage');
+        const landPage = document.getElementById('landingPage');
+        if (dashPage && landPage) {
+          const dashVisible = dashPage.style.display !== 'none' && !dashPage.classList.contains('hidden');
+          const landVisible = landPage.style.display !== 'none' && !landPage.classList.contains('hidden');
+          _info(`Aktywna strona: ${dashVisible ? 'dashboardPage ✅' : landVisible ? 'landingPage (niezalogowany)' : 'żadna (!)'}`)
+          if (!dashVisible && !landVisible) {
+            _warn('Ani dashboardPage ani landingPage nie są widoczne!');
+            _fix('Sprawdź funkcję initApp() — powinna przełączyć widok po załadowaniu');
+            issueCount++;
+          }
+        }
+
+        return issueCount;
       }
 
-      return issueCount;
-    }
+      // ─────────────────────────────────────────────────────────────────────────
+      // 3. FitAI.checkProfile() — Walidacja aktywnego profilu użytkownika
+      // ─────────────────────────────────────────────────────────────────────────
+      function checkProfile() {
+        _section('▶ PROFIL UŻYTKOWNIKA');
+        let issueCount = 0;
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // 2. FitAI.checkDOM() — Weryfikacja krytycznych elementów HTML
-    // ─────────────────────────────────────────────────────────────────────────
-    function checkDOM() {
-      _section('▶ KONTENERY DOM');
-      let issueCount = 0;
-
-      // Krytyczne kontenery z opisem ich roli
-      const CRITICAL_IDS = [
-        // Nawigacja i strony
-        { id: 'mainNav',              role: 'Nawigacja górna' },
-        { id: 'landingPage',          role: 'Strona startowa (niezalogowany)' },
-        { id: 'dashboardPage',        role: 'Główna aplikacja (zalogowany)' },
-        { id: 'mainContent',          role: 'Główny kontener treści' },
-        // Plan
-        { id: 'planDietContainer',    role: 'Kontener diety w planie' },
-        { id: 'planTrainingContainer',role: 'Kontener treningu w planie' },
-        { id: 'planHybridLayout',     role: 'Układ hybrydowy planu' },
-        { id: 'planSubSidebar',       role: 'Sidebar kategorii planu' },
-        { id: 'planContentArea',      role: 'Obszar treści planu' },
-        // Atlas ćwiczeń
-        { id: 'atlasExerciseGrid',    role: 'Siatka atlasu ćwiczeń' },
-        { id: 'atlasExerciseSearch',  role: 'Wyszukiwarka w atlasie' },
-        { id: 'atlasCategoryBtns',    role: 'Przyciski kategorii atlasu' },
-        // Dashboard
-        { id: 'kpiWeight',            role: 'KPI — waga użytkownika' },
-        { id: 'kpiGoal',              role: 'KPI — cele' },
-        { id: 'greetingName',         role: 'Powitanie z imieniem' },
-        { id: 'headerUserBadge',      role: 'Badge użytkownika w nagłówku' },
-        { id: 'currentUserName',      role: 'Nazwa użytkownika w sidebarze' },
-        // Checklist planu
-        { id: 'planChecklistContainer', role: 'Checklist posiłków/treningów' },
-      ];
-
-      let missing = [];
-      let found   = [];
-
-      CRITICAL_IDS.forEach(({ id, role }) => {
-        const el = document.getElementById(id);
-        if (!el) {
-          missing.push({ id, role });
-          issueCount++;
-        } else {
-          found.push(id);
+        const st = _getState();
+        if (!st) {
+          _err('Obiekt "state" jest niedostępny — aplikacja nie zainicjalizowana?');
+          _fix('Poczekaj na załadowanie strony i wywołaj FitAI.checkProfile() ponownie');
+          return 1;
         }
-      });
 
-      _ok(`Znaleziono ${found.length}/${CRITICAL_IDS.length} krytycznych elementów`);
+        // Aktywny profil
+        const profile = st.profiles?.find(p => p.id === st.currentProfile) || st.profiles?.[0];
+        if (!profile) {
+          _err('Brak aktywnego profilu w state.profiles');
+          _fix('Utwórz profil przez UI lub zresetuj localStorage: localStorage.clear()');
+          return 1;
+        }
 
-      if (missing.length > 0) {
-        _err(`Brak ${missing.length} elementów DOM:`);
-        missing.forEach(({ id, role }) => {
-          _warn(`  #${id} — "${role}"`);
-          _fix(`Sprawdź czy element id="${id}" istnieje w HTML. Może być ukryty przez display:none`);
+        _ok(`Aktywny profil: "${profile.name || '(brak imienia)'}" (id: ${profile.id})`);
+        _info(`Liczba profili: ${(st.profiles || []).length}`);
+
+        // Wymagane pola
+        const REQUIRED_FIELDS = [
+          { key: 'name', label: 'Imię' },
+          { key: 'age', label: 'Wiek' },
+          { key: 'weight', label: 'Waga (kg)' },
+          { key: 'height', label: 'Wzrost (cm)' },
+          { key: 'gender', label: 'Płeć' },
+          { key: 'goal', label: 'Cel (np. redukcja, masa)' },
+          { key: 'frequency', label: 'Częstotliwość treningów' },
+        ];
+
+        let missingFields = [];
+        REQUIRED_FIELDS.forEach(({ key, label }) => {
+          const val = profile[key];
+          if (val === undefined || val === null || val === '') {
+            missingFields.push({ key, label });
+            issueCount++;
+          } else {
+            _ok(`${label}: ${val}`);
+          }
         });
-      }
 
-      // Sprawdź widoczność kluczowych stron
-      const dashPage = document.getElementById('dashboardPage');
-      const landPage = document.getElementById('landingPage');
-      if (dashPage && landPage) {
-        const dashVisible = dashPage.style.display !== 'none' && !dashPage.classList.contains('hidden');
-        const landVisible = landPage.style.display !== 'none' && !landPage.classList.contains('hidden');
-        _info(`Aktywna strona: ${dashVisible ? 'dashboardPage ✅' : landVisible ? 'landingPage (niezalogowany)' : 'żadna (!)'}`)
-        if (!dashVisible && !landVisible) {
-          _warn('Ani dashboardPage ani landingPage nie są widoczne!');
-          _fix('Sprawdź funkcję initApp() — powinna przełączyć widok po załadowaniu');
-          issueCount++;
+        if (missingFields.length > 0) {
+          _err(`Brak ${missingFields.length} wymaganych pól profilu:`);
+          missingFields.forEach(({ key, label }) => {
+            _warn(`  Brak: "${key}" (${label})`);
+            _fix(`Uzupełnij pole "${label}" w ustawieniach profilu w aplikacji`);
+          });
         }
-      }
 
-      return issueCount;
-    }
+        // Walidacja sport_focus vs SPORT_DRILLS
+        const SPORT_DRILLS = _getSportDrills();
+        const SPORT_ID_MAP = _getSportIdMap();
+        const sportFocus = profile.sport_focus
+          || (Array.isArray(profile.sports) && profile.sports[0])
+          || st.sport_focus;
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // 3. FitAI.checkProfile() — Walidacja aktywnego profilu użytkownika
-    // ─────────────────────────────────────────────────────────────────────────
-    function checkProfile() {
-      _section('▶ PROFIL UŻYTKOWNIKA');
-      let issueCount = 0;
-
-      const st = _getState();
-      if (!st) {
-        _err('Obiekt "state" jest niedostępny — aplikacja nie zainicjalizowana?');
-        _fix('Poczekaj na załadowanie strony i wywołaj FitAI.checkProfile() ponownie');
-        return 1;
-      }
-
-      // Aktywny profil
-      const profile = st.profiles?.find(p => p.id === st.currentProfile) || st.profiles?.[0];
-      if (!profile) {
-        _err('Brak aktywnego profilu w state.profiles');
-        _fix('Utwórz profil przez UI lub zresetuj localStorage: localStorage.clear()');
-        return 1;
-      }
-
-      _ok(`Aktywny profil: "${profile.name || '(brak imienia)'}" (id: ${profile.id})`);
-      _info(`Liczba profili: ${(st.profiles || []).length}`);
-
-      // Wymagane pola
-      const REQUIRED_FIELDS = [
-        { key: 'name',      label: 'Imię' },
-        { key: 'age',       label: 'Wiek' },
-        { key: 'weight',    label: 'Waga (kg)' },
-        { key: 'height',    label: 'Wzrost (cm)' },
-        { key: 'gender',    label: 'Płeć' },
-        { key: 'goal',      label: 'Cel (np. redukcja, masa)' },
-        { key: 'frequency', label: 'Częstotliwość treningów' },
-      ];
-
-      let missingFields = [];
-      REQUIRED_FIELDS.forEach(({ key, label }) => {
-        const val = profile[key];
-        if (val === undefined || val === null || val === '') {
-          missingFields.push({ key, label });
+        if (!sportFocus) {
+          _warn('Brak sport_focus w profilu — drille sportowe nie będą działać');
+          _fix('Ustaw sport w ustawieniach: FitAI.dumpState() → szukaj sport_focus');
           issueCount++;
         } else {
-          _ok(`${label}: ${val}`);
-        }
-      });
+          // Normalizacja — tak jak robi resolveSportId()
+          const sportLow = String(sportFocus).trim().toLowerCase();
+          const resolvedId = (SPORT_ID_MAP && (SPORT_ID_MAP[sportFocus] || SPORT_ID_MAP[sportLow])) || sportLow;
+          const drillsExist = SPORT_DRILLS && (SPORT_DRILLS[resolvedId] || SPORT_DRILLS[sportFocus] || SPORT_DRILLS[sportLow]);
 
-      if (missingFields.length > 0) {
-        _err(`Brak ${missingFields.length} wymaganych pól profilu:`);
-        missingFields.forEach(({ key, label }) => {
-          _warn(`  Brak: "${key}" (${label})`);
-          _fix(`Uzupełnij pole "${label}" w ustawieniach profilu w aplikacji`);
+          if (!SPORT_DRILLS) {
+            _warn(`sport_focus = "${sportFocus}" — SPORT_DRILLS nie załadowane (sprawdź checkDB)`);
+            issueCount++;
+          } else if (!drillsExist) {
+            _err(`sport_focus = "${sportFocus}" → resolvedId = "${resolvedId}" — BRAK klucza w SPORT_DRILLS!`);
+            _fix(`Dostępne dyscypliny: ${Object.keys(SPORT_DRILLS).join(', ')}`);
+            _fix(`Zmień sport_focus na jedną z powyższych lub dodaj "${resolvedId}" do SPORT_DRILLS`);
+            issueCount++;
+          } else {
+            const drills = drillsExist?.drills || drillsExist || [];
+            const count = Array.isArray(drills) ? drills.length : 0;
+            _ok(`sport_focus = "${sportFocus}" → resolvedId = "${resolvedId}" → ${count} drilli ✅`);
+          }
+        }
+
+        // Ostrzeżenia dla wartości poza zakresem
+        if (profile.age && (profile.age < 10 || profile.age > 100)) { _warn(`Wiek ${profile.age} poza zakresem (10-100)`); issueCount++; }
+        if (profile.weight && (profile.weight < 30 || profile.weight > 300)) { _warn(`Waga ${profile.weight} poza zakresem (30-300)`); issueCount++; }
+        if (profile.height && (profile.height < 100 || profile.height > 250)) { _warn(`Wzrost ${profile.height} poza zakresem (100-250)`); issueCount++; }
+
+        // identityId
+        _info(`identityId: ${st.identityId || window.FITAI_USER_ID || '(brak!)'}`);
+        if (!st.identityId && !window.FITAI_USER_ID) {
+          _warn('Brak identityId — synchronizacja z backendem nie działa');
+          _fix('Sprawdź initDeviceId() i czy localStorage["fitai_device_id"] jest ustawiony');
+          issueCount++;
+        }
+
+        return issueCount;
+      }
+
+      // ─────────────────────────────────────────────────────────────────────────
+      // 4. FitAI.checkAPI() — Test połączenia z backendem
+      // ─────────────────────────────────────────────────────────────────────────
+      async function checkAPI() {
+        _section('▶ POŁĄCZENIE Z API');
+
+        const apiBase = window.API_BASE || 'http://localhost:8000';
+        _info(`Testowany endpoint: ${apiBase}`);
+
+        // Test 1: /health lub /
+        try {
+          const start = performance.now();
+          const res = await fetch(apiBase + '/health', { signal: AbortSignal.timeout(5000) });
+          const ms = Math.round(performance.now() - start);
+
+          if (res.ok) {
+            _ok(`Backend odpowiada: HTTP ${res.status} (${ms}ms)`);
+            try {
+              const body = await res.json();
+              _info(`Wersja API: ${body.version || body.app_version || '(brak pola version)'}`);
+            } catch (_) { }
+          } else {
+            _warn(`Backend odpowiedział kodem ${res.status} — może być problem z konfiguracją`);
+            _fix(`Sprawdź logi uvicorn. Endpoint /health powinien zwracać 200`);
+          }
+        } catch (err) {
+          if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+            _err(`Timeout (5s) — backend nie odpowiada pod ${apiBase}`);
+          } else {
+            _err(`Błąd połączenia: ${err.message}`);
+          }
+          _fix(`1. Uruchom start_fitai.bat`);
+          _fix(`2. Sprawdź czy PORT 8000 jest wolny: netstat -ano | findstr :8000`);
+          _fix(`3. Sprawdź zmienną window.API_BASE: ${apiBase}`);
+          _info('CORS: Upewnij się że ${location.origin} jest w CORS_ORIGINS w .env');
+        }
+
+        // Test 2: Czy CORS działa (preflight)
+        try {
+          const corsRes = await fetch(apiBase + '/health', {
+            method: 'OPTIONS',
+            signal: AbortSignal.timeout(3000),
+          });
+          const corsHeader = corsRes.headers.get('access-control-allow-origin');
+          if (corsHeader) {
+            _ok(`CORS: access-control-allow-origin = "${corsHeader}"`);
+          } else {
+            _warn('CORS: brak nagłówka access-control-allow-origin w OPTIONS response');
+            _fix(`Dodaj "${location.origin}" do CORS_ORIGINS w pliku .env i zrestartuj serwer`);
+          }
+        } catch (_) {
+          _info('CORS preflight: nie można przetestować (brak odpowiedzi na OPTIONS)');
+        }
+      }
+
+      // ─────────────────────────────────────────────────────────────────────────
+      // 5. FitAI.checkIntegrity() — Pełny raport (wywołuje wszystko)
+      // ─────────────────────────────────────────────────────────────────────────
+      function checkIntegrity() {
+        console.log('%c╔══════════════════════════════════════════════════════╗', S.header);
+        console.log('%c║          FitAI — RAPORT INTEGRALNOŚCI DANYCH         ║', S.header);
+        console.log('%c╚══════════════════════════════════════════════════════╝', S.header);
+        console.log(`%c  ${new Date().toLocaleString('pl-PL')}  |  ${location.href}`, S.info);
+        console.log('');
+
+        let totalIssues = 0;
+
+        totalIssues += checkDB();
+        console.log('');
+        totalIssues += checkDOM();
+        console.log('');
+        totalIssues += checkProfile();
+        console.log('');
+
+        // Podsumowanie
+        console.log('%c▶ PODSUMOWANIE', S.section);
+        if (totalIssues === 0) {
+          _ok(`Wszystko w porządku — brak problemów ✅`);
+          _info('Możesz uruchomić FitAI.checkAPI() aby przetestować połączenie z backendem');
+        } else {
+          _err(`Znaleziono ${totalIssues} problem${totalIssues === 1 ? '' : totalIssues < 5 ? 'y' : 'ów'}`);
+          _info('Sprawdź instrukcje 💡 powyżej lub uruchom FitAI.help()');
+        }
+
+        console.log('');
+        return totalIssues;
+      }
+
+      // ─────────────────────────────────────────────────────────────────────────
+      // 6. FitAI.reload() — Wymuś ponowne załadowanie danych seed
+      // ─────────────────────────────────────────────────────────────────────────
+      async function reload() {
+        _section('▶ PRZEŁADOWANIE DANYCH SEED');
+        try {
+          // Zresetuj flagę stanu ładowania żeby loadInitialData() mogło ruszyć ponownie
+          // eslint-disable-next-line no-eval
+          eval('_seedDataLoadState = "idle"');
+          _info('Flaga _seedDataLoadState → "idle"');
+        } catch (_) {
+          _warn('Nie można zresetować _seedDataLoadState — spróbuj odświeżyć stronę (F5)');
+        }
+        try {
+          // eslint-disable-next-line no-eval
+          await eval('loadInitialData()');
+          _ok('loadInitialData() wykonane — sprawdź FitAI.checkDB() za chwilę');
+        } catch (err) {
+          _err(`loadInitialData() rzuciło wyjątek: ${err.message}`);
+          _fix('Odśwież stronę (F5) lub sprawdź błędy w zakładce Network');
+        }
+      }
+
+      // ─────────────────────────────────────────────────────────────────────────
+      // 7. FitAI.dumpState() — Zrzut obiektu state
+      // ─────────────────────────────────────────────────────────────────────────
+      function dumpState() {
+        _section('▶ ZRZUT STATE');
+        const st = _getState();
+        if (!st) {
+          _err('"state" jest niedostępny');
+          return null;
+        }
+        // Wypisz bez zbyt długich tablic (truncate)
+        const safe = JSON.parse(JSON.stringify(st, (key, val) => {
+          if (Array.isArray(val) && val.length > 5) return `[Array(${val.length}) — skrócono]`;
+          if (typeof val === 'string' && val.length > 200) return val.slice(0, 197) + '…';
+          return val;
+        }));
+        console.log('%cstate =', S.bold, safe);
+        _info('Pełny state: window._fitaiDebugState (przypisany teraz)');
+        window._fitaiDebugState = st;
+        return st;
+      }
+
+      // ─────────────────────────────────────────────────────────────────────────
+      // 8. FitAI.help() — Lista komend
+      // ─────────────────────────────────────────────────────────────────────────
+      function help() {
+        console.log('%c╔══════════════════════════════════════════════════╗', S.header);
+        console.log('%c║         FitAI — KONSOLA DIAGNOSTYCZNA            ║', S.header);
+        console.log('%c╚══════════════════════════════════════════════════╝', S.header);
+        const cmds = [
+          ['FitAI.checkIntegrity()', 'Pełny raport: bazy + DOM + profil'],
+          ['FitAI.checkDB()', 'Weryfikacja MEAL_DB, EXERCISE_DB, SPORT_DRILLS'],
+          ['FitAI.checkDOM()', 'Weryfikacja krytycznych elementów HTML'],
+          ['FitAI.checkProfile()', 'Walidacja aktywnego profilu użytkownika'],
+          ['FitAI.checkAPI()', 'Async test połączenia z backendem FastAPI'],
+          ['FitAI.reload()', 'Wymuś ponowne załadowanie fitai_seed_data.js'],
+          ['FitAI.dumpState()', 'Zrzut state aplikacji (do debugowania)'],
+          ['FitAI.help()', 'Ta lista komend'],
+        ];
+        cmds.forEach(([cmd, desc]) => {
+          console.log(`%c  ${cmd.padEnd(34)}%c ${desc}`, S.bold, S.info);
         });
+        console.log('');
+        _info('Tip: FitAI.checkIntegrity() zwraca liczbę problemów (0 = wszystko OK)');
       }
 
-      // Walidacja sport_focus vs SPORT_DRILLS
-      const SPORT_DRILLS = _getSportDrills();
-      const SPORT_ID_MAP = _getSportIdMap();
-      const sportFocus = profile.sport_focus
-        || (Array.isArray(profile.sports) && profile.sports[0])
-        || st.sport_focus;
+      // ─────────────────────────────────────────────────────────────────────────
+      // Eksport na window.FitAI
+      // ─────────────────────────────────────────────────────────────────────────
+      window.FitAI = {
+        checkIntegrity,
+        checkDB,
+        checkDOM,
+        checkProfile,
+        checkAPI,
+        reload,
+        dumpState,
+        help,
+        // Wersja modułu diagnostycznego
+        _diagnosticVersion: '1.0.0',
+        _installedAt: new Date().toISOString(),
+      };
 
-      if (!sportFocus) {
-        _warn('Brak sport_focus w profilu — drille sportowe nie będą działać');
-        _fix('Ustaw sport w ustawieniach: FitAI.dumpState() → szukaj sport_focus');
-        issueCount++;
-      } else {
-        // Normalizacja — tak jak robi resolveSportId()
-        const sportLow    = String(sportFocus).trim().toLowerCase();
-        const resolvedId  = (SPORT_ID_MAP && (SPORT_ID_MAP[sportFocus] || SPORT_ID_MAP[sportLow])) || sportLow;
-        const drillsExist = SPORT_DRILLS && (SPORT_DRILLS[resolvedId] || SPORT_DRILLS[sportFocus] || SPORT_DRILLS[sportLow]);
+      // Komunikat potwierdzający dostępność modułu (widoczny w konsoli przy każdym ładowaniu)
+      console.log(
+        '%c[FitAI Diagnostics] Gotowy ✅  →  wpisz %cFitAI.checkIntegrity()%c lub %cFitAI.help()%c',
+        'color:#64748b;',
+        'color:#00e5ff;font-weight:bold;',
+        'color:#64748b;',
+        'color:#00e5ff;font-weight:bold;',
+        'color:#64748b;',
+      );
 
-        if (!SPORT_DRILLS) {
-          _warn(`sport_focus = "${sportFocus}" — SPORT_DRILLS nie załadowane (sprawdź checkDB)`);
-          issueCount++;
-        } else if (!drillsExist) {
-          _err(`sport_focus = "${sportFocus}" → resolvedId = "${resolvedId}" — BRAK klucza w SPORT_DRILLS!`);
-          _fix(`Dostępne dyscypliny: ${Object.keys(SPORT_DRILLS).join(', ')}`);
-          _fix(`Zmień sport_focus na jedną z powyższych lub dodaj "${resolvedId}" do SPORT_DRILLS`);
-          issueCount++;
-        } else {
-          const drills = drillsExist?.drills || drillsExist || [];
-          const count  = Array.isArray(drills) ? drills.length : 0;
-          _ok(`sport_focus = "${sportFocus}" → resolvedId = "${resolvedId}" → ${count} drilli ✅`);
-        }
-      }
-
-      // Ostrzeżenia dla wartości poza zakresem
-      if (profile.age    && (profile.age    < 10 || profile.age    > 100)) { _warn(`Wiek ${profile.age} poza zakresem (10-100)`); issueCount++; }
-      if (profile.weight && (profile.weight <  30 || profile.weight > 300)) { _warn(`Waga ${profile.weight} poza zakresem (30-300)`); issueCount++; }
-      if (profile.height && (profile.height < 100 || profile.height > 250)) { _warn(`Wzrost ${profile.height} poza zakresem (100-250)`); issueCount++; }
-
-      // identityId
-      _info(`identityId: ${st.identityId || window.FITAI_USER_ID || '(brak!)'}`);
-      if (!st.identityId && !window.FITAI_USER_ID) {
-        _warn('Brak identityId — synchronizacja z backendem nie działa');
-        _fix('Sprawdź initDeviceId() i czy localStorage["fitai_device_id"] jest ustawiony');
-        issueCount++;
-      }
-
-      return issueCount;
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // 4. FitAI.checkAPI() — Test połączenia z backendem
-    // ─────────────────────────────────────────────────────────────────────────
-    async function checkAPI() {
-      _section('▶ POŁĄCZENIE Z API');
-
-      const apiBase = window.API_BASE || 'http://localhost:8000';
-      _info(`Testowany endpoint: ${apiBase}`);
-
-      // Test 1: /health lub /
-      try {
-        const start = performance.now();
-        const res   = await fetch(apiBase + '/health', { signal: AbortSignal.timeout(5000) });
-        const ms    = Math.round(performance.now() - start);
-
-        if (res.ok) {
-          _ok(`Backend odpowiada: HTTP ${res.status} (${ms}ms)`);
-          try {
-            const body = await res.json();
-            _info(`Wersja API: ${body.version || body.app_version || '(brak pola version)'}`);
-          } catch (_) {}
-        } else {
-          _warn(`Backend odpowiedział kodem ${res.status} — może być problem z konfiguracją`);
-          _fix(`Sprawdź logi uvicorn. Endpoint /health powinien zwracać 200`);
-        }
-      } catch (err) {
-        if (err.name === 'TimeoutError' || err.name === 'AbortError') {
-          _err(`Timeout (5s) — backend nie odpowiada pod ${apiBase}`);
-        } else {
-          _err(`Błąd połączenia: ${err.message}`);
-        }
-        _fix(`1. Uruchom start_fitai.bat`);
-        _fix(`2. Sprawdź czy PORT 8000 jest wolny: netstat -ano | findstr :8000`);
-        _fix(`3. Sprawdź zmienną window.API_BASE: ${apiBase}`);
-        _info('CORS: Upewnij się że ${location.origin} jest w CORS_ORIGINS w .env');
-      }
-
-      // Test 2: Czy CORS działa (preflight)
-      try {
-        const corsRes = await fetch(apiBase + '/health', {
-          method: 'OPTIONS',
-          signal: AbortSignal.timeout(3000),
-        });
-        const corsHeader = corsRes.headers.get('access-control-allow-origin');
-        if (corsHeader) {
-          _ok(`CORS: access-control-allow-origin = "${corsHeader}"`);
-        } else {
-          _warn('CORS: brak nagłówka access-control-allow-origin w OPTIONS response');
-          _fix(`Dodaj "${location.origin}" do CORS_ORIGINS w pliku .env i zrestartuj serwer`);
-        }
-      } catch (_) {
-        _info('CORS preflight: nie można przetestować (brak odpowiedzi na OPTIONS)');
-      }
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // 5. FitAI.checkIntegrity() — Pełny raport (wywołuje wszystko)
-    // ─────────────────────────────────────────────────────────────────────────
-    function checkIntegrity() {
-      console.log('%c╔══════════════════════════════════════════════════════╗', S.header);
-      console.log('%c║          FitAI — RAPORT INTEGRALNOŚCI DANYCH         ║', S.header);
-      console.log('%c╚══════════════════════════════════════════════════════╝', S.header);
-      console.log(`%c  ${new Date().toLocaleString('pl-PL')}  |  ${location.href}`, S.info);
-      console.log('');
-
-      let totalIssues = 0;
-
-      totalIssues += checkDB();
-      console.log('');
-      totalIssues += checkDOM();
-      console.log('');
-      totalIssues += checkProfile();
-      console.log('');
-
-      // Podsumowanie
-      console.log('%c▶ PODSUMOWANIE', S.section);
-      if (totalIssues === 0) {
-        _ok(`Wszystko w porządku — brak problemów ✅`);
-        _info('Możesz uruchomić FitAI.checkAPI() aby przetestować połączenie z backendem');
-      } else {
-        _err(`Znaleziono ${totalIssues} problem${totalIssues === 1 ? '' : totalIssues < 5 ? 'y' : 'ów'}`);
-        _info('Sprawdź instrukcje 💡 powyżej lub uruchom FitAI.help()');
-      }
-
-      console.log('');
-      return totalIssues;
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // 6. FitAI.reload() — Wymuś ponowne załadowanie danych seed
-    // ─────────────────────────────────────────────────────────────────────────
-    async function reload() {
-      _section('▶ PRZEŁADOWANIE DANYCH SEED');
-      try {
-        // Zresetuj flagę stanu ładowania żeby loadInitialData() mogło ruszyć ponownie
-        // eslint-disable-next-line no-eval
-        eval('_seedDataLoadState = "idle"');
-        _info('Flaga _seedDataLoadState → "idle"');
-      } catch (_) {
-        _warn('Nie można zresetować _seedDataLoadState — spróbuj odświeżyć stronę (F5)');
-      }
-      try {
-        // eslint-disable-next-line no-eval
-        await eval('loadInitialData()');
-        _ok('loadInitialData() wykonane — sprawdź FitAI.checkDB() za chwilę');
-      } catch (err) {
-        _err(`loadInitialData() rzuciło wyjątek: ${err.message}`);
-        _fix('Odśwież stronę (F5) lub sprawdź błędy w zakładce Network');
-      }
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // 7. FitAI.dumpState() — Zrzut obiektu state
-    // ─────────────────────────────────────────────────────────────────────────
-    function dumpState() {
-      _section('▶ ZRZUT STATE');
-      const st = _getState();
-      if (!st) {
-        _err('"state" jest niedostępny');
-        return null;
-      }
-      // Wypisz bez zbyt długich tablic (truncate)
-      const safe = JSON.parse(JSON.stringify(st, (key, val) => {
-        if (Array.isArray(val) && val.length > 5) return `[Array(${val.length}) — skrócono]`;
-        if (typeof val === 'string' && val.length > 200) return val.slice(0, 197) + '…';
-        return val;
-      }));
-      console.log('%cstate =', S.bold, safe);
-      _info('Pełny state: window._fitaiDebugState (przypisany teraz)');
-      window._fitaiDebugState = st;
-      return st;
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // 8. FitAI.help() — Lista komend
-    // ─────────────────────────────────────────────────────────────────────────
-    function help() {
-      console.log('%c╔══════════════════════════════════════════════════╗', S.header);
-      console.log('%c║         FitAI — KONSOLA DIAGNOSTYCZNA            ║', S.header);
-      console.log('%c╚══════════════════════════════════════════════════╝', S.header);
-      const cmds = [
-        ['FitAI.checkIntegrity()', 'Pełny raport: bazy + DOM + profil'],
-        ['FitAI.checkDB()',        'Weryfikacja MEAL_DB, EXERCISE_DB, SPORT_DRILLS'],
-        ['FitAI.checkDOM()',       'Weryfikacja krytycznych elementów HTML'],
-        ['FitAI.checkProfile()',   'Walidacja aktywnego profilu użytkownika'],
-        ['FitAI.checkAPI()',       'Async test połączenia z backendem FastAPI'],
-        ['FitAI.reload()',         'Wymuś ponowne załadowanie fitai_seed_data.js'],
-        ['FitAI.dumpState()',      'Zrzut state aplikacji (do debugowania)'],
-        ['FitAI.help()',           'Ta lista komend'],
-      ];
-      cmds.forEach(([cmd, desc]) => {
-        console.log(`%c  ${cmd.padEnd(34)}%c ${desc}`, S.bold, S.info);
-      });
-      console.log('');
-      _info('Tip: FitAI.checkIntegrity() zwraca liczbę problemów (0 = wszystko OK)');
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Eksport na window.FitAI
-    // ─────────────────────────────────────────────────────────────────────────
-    window.FitAI = {
-      checkIntegrity,
-      checkDB,
-      checkDOM,
-      checkProfile,
-      checkAPI,
-      reload,
-      dumpState,
-      help,
-      // Wersja modułu diagnostycznego
-      _diagnosticVersion: '1.0.0',
-      _installedAt: new Date().toISOString(),
-    };
-
-    // Komunikat potwierdzający dostępność modułu (widoczny w konsoli przy każdym ładowaniu)
-    console.log(
-      '%c[FitAI Diagnostics] Gotowy ✅  →  wpisz %cFitAI.checkIntegrity()%c lub %cFitAI.help()%c',
-      'color:#64748b;',
-      'color:#00e5ff;font-weight:bold;',
-      'color:#64748b;',
-      'color:#00e5ff;font-weight:bold;',
-      'color:#64748b;',
-    );
-
-  })();
+    })();
   </script>
 
 </body>

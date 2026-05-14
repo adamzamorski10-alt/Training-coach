@@ -13,9 +13,13 @@ Struktura:
 - app/utils/ — Helpers, exceptions
 """
 
+import os
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import SQLAlchemyError, OperationalError
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -92,6 +96,49 @@ async def generic_exception_handler(request, exc):
         status_code=500,
         content={"detail": "Internal server error"},
     )
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# STATIC FILES — Serve HTML, CSS, JS, and SPA fallback
+# ════════════════════════════════════════════════════════════════════════════════
+
+# Define static directory (parent of app/ module)
+STATIC_DIR = Path(__file__).parent.parent
+
+# Mount public static files (if /public directory exists)
+public_dir = STATIC_DIR / "public"
+if public_dir.exists():
+    app.mount("/public", StaticFiles(directory=str(public_dir), html=True), name="public")
+
+
+# Root route — serve index.html for SPA
+@app.get("/")
+async def serve_root():
+    """Serve main index.html for single-page app."""
+    index_path = STATIC_DIR / "index.html"
+    if index_path.exists():
+        return FileResponse(str(index_path), media_type="text/html")
+    return JSONResponse({"error": "Frontend not found"}, status_code=404)
+
+
+# Catch-all for SPA routing — serve index.html for any unmatched path
+@app.get("/{path:path}")
+async def serve_spa(path: str):
+    """
+    Fallback route for SPA routing. Serves index.html for any path
+    that isn't matched by API routes or known static files.
+    """
+    # Skip API routes and known assets
+    skip_paths = {".json", ".js", ".css", ".png", ".jpg", ".gif", ".svg", ".ico", ".woff", ".woff2"}
+    if any(path.endswith(ext) for ext in skip_paths):
+        return JSONResponse({"error": "File not found"}, status_code=404)
+    
+    # For all other paths, serve index.html (SPA routing)
+    index_path = STATIC_DIR / "index.html"
+    if index_path.exists():
+        return FileResponse(str(index_path), media_type="text/html")
+    
+    return JSONResponse({"error": "Frontend not found"}, status_code=404)
 
 
 # Startup events
