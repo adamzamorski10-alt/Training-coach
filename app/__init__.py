@@ -30,6 +30,7 @@ from app.health.routes import router as health_router
 from app.config import CORS_ORIGINS, APP_NAME, APP_VERSION, DEBUG
 from app.database import create_db_and_tables
 from app.legacy_routes import router as legacy_router
+from app.meta.routes import router as meta_router
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -64,6 +65,7 @@ from app.ai.routes import router as ai_router
 
 app.include_router(fitness_router)
 app.include_router(ai_router)
+app.include_router(meta_router)
 app.include_router(legacy_router)
 
 

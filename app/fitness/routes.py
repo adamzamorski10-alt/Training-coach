@@ -18,12 +18,15 @@ from app.config import (
 )
 from app.database import engine
 from app.fitness.calculations import (
+    _XP_WATER_LOGGED,
+    _xp_to_next_level,
     award_xp,
     calc_calories,
     calc_protein,
     calc_daily_macros,
     day_type,
     day_type_label,
+    suggest_progression,
 )
 from app.fitness.dashboard import (
     build_dashboard,
@@ -252,6 +255,129 @@ def log_exercise_result(
         "status": "ok",
         "result": result.to_dict(),
         "message": f"Ćwiczenie '{req.exercise_name}' zalogowane",
+    }
+
+
+@router.get("/exercise-history", tags=["exercise"])
+def get_exercise_history(
+    exercise_name: Optional[str] = None,
+    limit: int = 20,
+    user: UserDB = Depends(get_current_user),
+):
+    """Zwraca historię wyników ćwiczeń z sugestią progresji."""
+    with Session(engine) as session:
+        query = select(ExerciseResultDB).where(ExerciseResultDB.user_id == user.id)
+        if exercise_name:
+            query = query.where(ExerciseResultDB.exercise_name == exercise_name)
+        results = list(
+            session.exec(query.order_by(ExerciseResultDB.session_date.desc())).all()
+        )[:limit]
+
+        progression = None
+        if exercise_name and results:
+            progression = suggest_progression(exercise_name, results)
+
+        return {
+            "results": [result.to_dict() for result in results],
+            "progression": progression,
+        }
+
+
+@router.get("/progression-summary", tags=["exercise"])
+def get_progression_summary(user: UserDB = Depends(get_current_user)):
+    """Zwraca podsumowanie progresji dla wszystkich ćwiczeń użytkownika."""
+    with Session(engine) as session:
+        all_results = list(
+            session.exec(
+                select(ExerciseResultDB)
+                .where(ExerciseResultDB.user_id == user.id)
+                .order_by(ExerciseResultDB.session_date.desc())
+            ).all()
+        )
+
+        by_exercise: dict[str, list[ExerciseResultDB]] = {}
+        for result in all_results:
+            by_exercise.setdefault(result.exercise_name, []).append(result)
+
+        summary = []
+        for name, history in by_exercise.items():
+            summary.append(
+                {
+                    "exercise_name": name,
+                    "total_sessions": len(history),
+                    "last_session": history[0].to_dict(),
+                    "progression": suggest_progression(name, history),
+                }
+            )
+
+        return {"exercises": summary, "total_exercises_tracked": len(summary)}
+
+
+@router.post("/water", tags=["checkin"])
+def log_water(body: dict, user: UserDB = Depends(get_current_user)):
+    """
+    Inkrementuje spożycie wody w DailyLogDB dla bieżącego dnia.
+    Body: {"ml": 250}
+    """
+    ml = int(body.get("ml", 0))
+    if ml <= 0:
+        raise HTTPException(status_code=400, detail="Ilość wody musi być większa niż 0 ml.")
+    if ml > 5000:
+        raise HTTPException(status_code=400, detail="Maksymalna jednorazowa porcja to 5000 ml.")
+
+    liters_to_add = round(ml / 1000, 4)
+    today = date.today()
+
+    with Session(engine) as session:
+        db_user = session.get(UserDB, user.id)
+        if not db_user:
+            raise HTTPException(status_code=404, detail="Użytkownik nie znaleziony")
+
+        existing = session.exec(
+            select(DailyLogDB)
+            .where(DailyLogDB.user_id == db_user.id)
+            .where(DailyLogDB.log_date == today)
+        ).first()
+
+        prev_total = existing.water_liters if existing else 0
+        if existing:
+            existing.water_liters = round((existing.water_liters or 0) + liters_to_add, 4)
+            existing.logged_at = datetime.now()
+            session.add(existing)
+            total_liters = existing.water_liters
+        else:
+            entry = DailyLogDB(
+                user_id=db_user.id,
+                log_date=today,
+                water_liters=liters_to_add,
+            )
+            session.add(entry)
+            total_liters = liters_to_add
+
+        xp_info = {}
+        if prev_total == 0:
+            db_user.total_xp = (db_user.total_xp or 0) + _XP_WATER_LOGGED
+            session.add(db_user)
+            xp_info = {"xp_earned": _XP_WATER_LOGGED, "total_xp": db_user.total_xp}
+
+        session.commit()
+
+    return {
+        "status": "ok",
+        "added_ml": ml,
+        "water_liters_today": total_liters,
+        "water_ml_today": round(total_liters * 1000),
+        **xp_info,
+    }
+
+
+@router.get("/xp", tags=["gamification"])
+def get_xp(user: UserDB = Depends(get_current_user)):
+    """Zwraca poziom XP, level i postęp do następnego poziomu."""
+    return {
+        "total_xp": user.total_xp,
+        **_xp_to_next_level(user.total_xp),
+        "injuries": [item.strip() for item in (user.injuries or "").split(",") if item.strip()],
     }
 
 

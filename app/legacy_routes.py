@@ -1573,51 +1573,6 @@ def get_logs(user_id: str, limit: int = 30):
         return {"logs": [l.to_dict() for l in logs[:limit]]}
 
 
-@router.get("/app/exercise-history", tags=["exercise"])
-def get_exercise_history(exercise_name: Optional[str] = None, limit: int = 20, user: UserDB = Depends(get_current_user)):
-    """Zwraca historię wyników ćwiczeń z sugestią progresji."""
-    with Session(engine) as session:
-        query = select(ExerciseResultDB).where(ExerciseResultDB.user_id == user.id)
-        if exercise_name:
-            query = query.where(ExerciseResultDB.exercise_name == exercise_name)
-        results = list(session.exec(query.order_by(ExerciseResultDB.session_date.desc())).all())[:limit]
-
-        data = [r.to_dict() for r in results]
-        progression = None
-        if exercise_name and results:
-            progression = _suggest_progression(exercise_name, results)
-
-        return {"results": data, "progression": progression}
-
-
-@router.get("/app/progression-summary", tags=["exercise"])
-def get_progression_summary(user: UserDB = Depends(get_current_user)):
-    """Zwraca podsumowanie progresji dla wszystkich ćwiczeń użytkownika."""
-    with Session(engine) as session:
-        # Pobierz unikalne nazwy ćwiczeń
-        all_results = list(session.exec(
-            select(ExerciseResultDB)
-            .where(ExerciseResultDB.user_id == user.id)
-            .order_by(ExerciseResultDB.session_date.desc())
-        ).all())
-
-        by_exercise: dict[str, list[ExerciseResultDB]] = {}
-        for r in all_results:
-            by_exercise.setdefault(r.exercise_name, []).append(r)
-
-        summary = []
-        for name, hist in by_exercise.items():
-            prog = _suggest_progression(name, hist)
-            summary.append({
-                "exercise_name": name,
-                "total_sessions": len(hist),
-                "last_session": hist[0].to_dict(),
-                "progression": prog,
-            })
-
-        return {"exercises": summary, "total_exercises_tracked": len(summary)}
-
-
 @router.post("/app/onboarding")
 def app_onboarding(payload: AppOnboardingRequest):
     user_key = _web_user_key(payload.identity_id)
@@ -1635,73 +1590,6 @@ def app_onboarding(payload: AppOnboardingRequest):
             "plan": user.plan,
             "role": user.role,
         }
-
-
-@router.post("/app/water", tags=["checkin"])
-def app_log_water(body: dict, user: UserDB = Depends(get_current_user)):
-    """
-    POST /app/water/{identity_id}
-    Body: { "ml": 250 }
-
-    Inkrementuje spożycie wody w DailyLogDB dla bieżącego dnia.
-    Zwraca aktualny stan (water_liters) po dodaniu.
-    """
-    ml = int(body.get("ml", 0))
-    if ml <= 0:
-        raise HTTPException(status_code=400, detail="Ilość wody musi być większa niż 0 ml.")
-    if ml > 5000:
-        raise HTTPException(status_code=400, detail="Maksymalna jednorazowa porcja to 5000 ml.")
-
-    liters_to_add = round(ml / 1000, 4)
-
-    with Session(engine) as session:
-        user = _get_user_or_404(user_key, session)
-        today = date.today().isoformat()
-
-        existing = session.exec(
-            select(DailyLogDB)
-            .where(DailyLogDB.user_id == user.id)
-            .where(DailyLogDB.log_date == today)
-        ).first()
-
-        prev_total = existing.water_liters if existing else 0
-        if existing:
-            existing.water_liters = round((existing.water_liters or 0) + liters_to_add, 4)
-            session.add(existing)
-            total_liters = existing.water_liters
-        else:
-            entry = DailyLogDB(
-                user_id=user.id,
-                log_date=today,
-                water_liters=liters_to_add,
-            )
-            session.add(entry)
-            total_liters = liters_to_add
-
-        session.commit()
-
-    # ── XP za wodę (5 XP za każde zalogowanie wody, max raz dziennie) ────────
-    # Używamy prostego heurystiku: przyznaj XP jeśli to pierwsze dodanie (prev=0)
-    xp_info = {}
-    user_for_xp = None
-    if prev_total == 0:  # pierwsze logowanie wody dziś
-        with Session(engine) as xp_session:
-            try:
-                user_for_xp = _get_user_or_404(user_key, xp_session)
-                user_for_xp.total_xp = (user_for_xp.total_xp or 0) + _XP_WATER_LOGGED
-                xp_session.add(user_for_xp)
-                xp_session.commit()
-                xp_info = {"xp_earned": _XP_WATER_LOGGED, "total_xp": user_for_xp.total_xp}
-            except Exception:
-                pass
-
-    return {
-        "status": "ok",
-        "added_ml": ml,
-        "water_liters_today": total_liters,
-        "water_ml_today": round(total_liters * 1000),
-        **xp_info,
-    }
 
 
 @router.post("/app/link-discord")
@@ -2553,16 +2441,6 @@ def ai_analyze_log(request: Request, req: AIRequest, user: UserDB = Depends(get_
             }
 
 
-@router.get("/app/xp", tags=["gamification"])
-def app_get_xp(user: UserDB = Depends(get_current_user)):
-    """Zwraca poziom XP, level i postęp do następnego poziomu."""
-    return {
-        "total_xp": user.total_xp,
-        **_xp_to_next_level(user.total_xp),
-        "injuries": [i.strip() for i in (user.injuries or "").split(",") if i.strip()],
-    }
-
-
 @router.post("/app/injuries", tags=["safety"])
 def app_update_injuries(payload: InjuryUpdateRequest, user: UserDB = Depends(get_current_user)):
     """Aktualizuje listę kontuzji użytkownika."""
@@ -3265,11 +3143,3 @@ def app_logout(user: UserDB = Depends(get_current_user)):
     }
 
 
-@router.get("/app/version")
-def get_version():
-    try:
-        with open("package.json", "r") as f:
-            version = json.load(f).get("version", "2.0.0")
-    except (FileNotFoundError, json.JSONDecodeError, KeyError):
-        version = "2.0.0"
-    return {"version": version, "build_date": datetime.now().strftime("%Y-%m-%d"), "api_version": "2.0.0"}
