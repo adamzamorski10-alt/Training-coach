@@ -2882,9 +2882,80 @@
           </div>
         </div>
 
-      </section>
+        <!-- Drill Info Modal -->
+        <div id="drillInfoModal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4"
+          style="background:rgba(0,0,0,0.85);backdrop-filter:blur(12px);">
+          <div class="glass rounded-3xl w-full max-w-md p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center sticky top-0">
+              <h5 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">Info Drilla</h5>
+              <button onclick="closeDrillInfoModal()"
+                class="text-gray-500 hover:text-white text-2xl leading-none">×</button>
+            </div>
+            <div>
+              <div id="drillInfoName" class="font-bold text-lg" style="color:var(--cyan);margin-bottom:4px;"></div>
+              <div id="drillInfoDuration" class="text-sm" style="color:rgba(255,255,255,0.6);"></div>
+            </div>
+            <div>
+              <p class="text-xs font-semibold mb-2" style="color:var(--muted);">Sposób Wykonania:</p>
+              <div id="drillInfoExecution" class="text-sm" style="color:rgba(255,255,255,0.7);line-height:1.6;"></div>
+            </div>
+            <div>
+              <p class="text-xs font-semibold mb-2" style="color:var(--muted);">Korzyści:</p>
+              <div id="drillInfoBenefits" class="text-sm" style="color:rgba(255,255,255,0.7);"></div>
+            </div>
+            <div>
+              <p class="text-xs font-semibold mb-2" style="color:var(--muted);">Zaawansowanie:</p>
+              <div id="drillInfoProgression" class="text-sm" style="color:rgba(255,255,255,0.7);"></div>
+            </div>
+            <button onclick="openTrainingExerciseAddModal()" class="w-full py-3 rounded-xl font-extrabold text-sm"
+              style="background:linear-gradient(135deg,var(--cyan),var(--violet));color:#000;">
+              ✅ Dodaj do planu
+            </button>
+          </div>
+        </div>
 
-      <!-- ====== TAB: PROFILE ====== -->
+        <!-- Training Exercise Add Modal -->
+        <div id="trainingExerciseAddModal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4"
+          style="background:rgba(0,0,0,0.85);backdrop-filter:blur(12px);">
+          <div class="glass rounded-3xl w-full max-w-md p-6 space-y-5">
+            <div class="flex justify-between items-center">
+              <h5 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">+ Dodaj do planu</h5>
+              <button onclick="closeTrainingExerciseAddModal()"
+                class="text-gray-500 hover:text-white text-2xl leading-none">×</button>
+            </div>
+            <div id="trainingExerciseName" class="font-bold" style="color:var(--cyan);"></div>
+            <div id="trainingExerciseInfo" class="text-sm" style="color:rgba(255,255,255,0.6);"></div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="text-xs font-semibold block mb-2" style="color:var(--muted);">Serie</label>
+                <input type="number" id="trainingExerciseSets" value="3" class="w-full px-3 py-2 rounded-lg text-sm" style="background:rgba(255,255,255,0.05);color:white;border:1px solid rgba(0,229,255,0.2);">
+              </div>
+              <div>
+                <label class="text-xs font-semibold block mb-2" style="color:var(--muted);">Dzień</label>
+                <select id="trainingExerciseDay" class="w-full px-3 py-2 rounded-lg text-sm" style="background:rgba(255,255,255,0.05);color:white;border:1px solid rgba(0,229,255,0.2);">
+                  <option value="Pon">Poniedziałek</option>
+                  <option value="Wt">Wtorek</option>
+                  <option value="Śr">Środa</option>
+                  <option value="Czw">Czwartek</option>
+                  <option value="Pt">Piątek</option>
+                  <option value="Sob">Sobota</option>
+                  <option value="Niedz">Niedziela</option>
+                </select>
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <button onclick="trainingExerciseConfirmAdd()" class="flex-1 py-3 rounded-xl font-extrabold text-sm"
+                style="background:linear-gradient(135deg,var(--cyan),var(--violet));color:#000;">
+                ✅ Dodaj do planu
+              </button>
+              <button onclick="closeTrainingExerciseAddModal()" class="px-5 py-3 rounded-xl text-sm font-bold"
+                style="background:rgba(255,255,255,0.05);color:var(--muted);">
+                Anuluj
+              </button>
+            </div>
+          </div>
+        </div>
+
       <section id="tab-profile" class="hidden space-y-6">
         <h3 class="text-3xl font-bold" style="font-family:'Syne',sans-serif;">Profil</h3>
         <div class="glass p-2 flex gap-2 overflow-x-auto">
@@ -9320,10 +9391,10 @@
         card.innerHTML = `<div class="flex items-start justify-between gap-2"><h4 style="font-weight:800;color:white;font-size:14px;">${m.name}</h4><span style="background:rgba(255,255,255,0.06);color:${badgeColor};border:1px solid rgba(255,255,255,0.1);border-radius:999px;padding:2px 10px;font-size:10px;font-weight:700;">${badgeLabel}</span></div><div style="display:flex;flex-wrap:wrap;gap:6px;">${macroHtml}</div>${ingPrev ? `<p style="font-size:12px;color:var(--muted);">${ingPrev}</p>` : ''}<div style="display:flex;gap:8px;margin-top:auto;"><button data-meal-info="${idx}" class="flex-shrink-0" style="padding:8px 12px;border-radius:8px;font-size:12px;background:rgba(255,255,255,0.05);color:var(--muted);border:1px solid var(--border);cursor:pointer;">ℹ️ Info</button><button data-meal-add="${idx}" style="flex:1;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;background:rgba(0,229,255,0.1);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);cursor:pointer;">+ Dodaj</button></div>`;
         grid.appendChild(card);
       });
-      
+
       // Add event delegation for buttons
       grid.removeEventListener('click', window._bibliotekaMealGridClickHandler);
-      window._bibliotekaMealGridClickHandler = function(e) {
+      window._bibliotekaMealGridClickHandler = function (e) {
         if (e.target.dataset.mealInfo !== undefined) {
           const idx = parseInt(e.target.dataset.mealInfo);
           window.showMealInfo(filtered[idx]);
@@ -9379,15 +9450,24 @@
         card.innerHTML = `<div style="display:flex;justify-content:space-between;gap:8px;"><div style="flex:1;"><h4 style="font-weight:800;color:white;font-size:14px;">${e.name}</h4><p style="font-size:12px;color:rgba(255,255,255,0.5);">💪 ${e.muscles || '—'}</p></div></div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"><span style="background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.2);border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700;color:var(--cyan);">Serie: ${e.sets}</span><span style="background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.2);border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700;color:#a78bfa;">Powt: ${e.reps}</span>${e.weight ? `<span style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700;color:#fbbf24;">${e.weight} kg</span>` : ''}</div><p style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:8px;">${e.desc || ''}</p><div style="display:flex;gap:8px;margin-top:8px;"><button data-exercise-add="${idx}" style="flex:1;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;background:rgba(0,229,255,0.1);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);cursor:pointer;">➕ Do planu</button></div>`;
         grid.appendChild(card);
       });
-      
+
       // Add event delegation for buttons
       grid.removeEventListener('click', window._atlasExerciseGridClickHandler);
-      window._atlasExerciseGridClickHandler = function(e) {
+      window._atlasExerciseGridClickHandler = function (e) {
         if (e.target.dataset.exerciseAdd !== undefined) {
           const idx = parseInt(e.target.dataset.exerciseAdd);
-          window._pendingExerciseForTraining = filtered[idx];
-          // Show simple alert or toast for now
-          alert('✅ Ćwiczenie "' + filtered[idx].name + '" dodane do planu!');
+          window._pendingExercise = filtered[idx];
+          if (typeof window.openTrainingExerciseAddModalForExercise === 'function') {
+            window.openTrainingExerciseAddModalForExercise();
+          } else {
+            // Fallback - open modal manually
+            const modal = document.getElementById('trainingExerciseAddModal');
+            if (modal) {
+              document.getElementById('trainingExerciseName').textContent = filtered[idx].name;
+              document.getElementById('trainingExerciseInfo').textContent = `${filtered[idx].muscles || '—'} | ${filtered[idx].sets} series x ${filtered[idx].reps} reps`;
+              modal.classList.remove('hidden');
+            }
+          }
         }
       };
       grid.addEventListener('click', window._atlasExerciseGridClickHandler);
@@ -9435,41 +9515,41 @@
         return;
       }
 
-      // Simple drill rendering for selected sport
+      // Enhanced drill data with execution methods and progression
       const mockDrills = {
         'koszykówka': [
-          { name: 'Rzuty z linii wolnych', description: 'Precyzja przy rzutach', duration: '30 min', sets: '5×10' },
-          { name: 'Drybling 1v1', description: 'Ćwiczenia dryblingu w obronie', duration: '20 min', sets: '3×5min' },
-          { name: 'Przebijanie piłki', description: 'Zwinne przebijanie w ataku', duration: '15 min', sets: '4×15' },
+          { name: 'Rzuty z linii wolnych', description: 'Precyzja przy rzutach', duration: '30 min', sets: '5×10', execution: 'Ustaw się za linią wolnych. Nogi na szerokość bioder, kolana lekko zgięte. Rzut z wysokości oczu, łokieć na poziomie ramienia. Wykonuj 10 rzutów, odpocznik 30s.', benefits: 'Precyzja, stabilność, siła ramion', progression: 'Początkujący: 50% trafianych • Zaawansowany: 70% trafianych • Mistrz: 90% trafianych' },
+          { name: 'Drybling 1v1', description: 'Ćwiczenia dryblingu w obronie', duration: '20 min', sets: '3×5min', execution: 'W polu 3×3m dryblujesz piłkę z jedną ręką, druga ręka jest przed Tobą do obrony. Zmień ręce co 2 min. Utrzymuj piłkę nisko, głowę wysoko.', benefits: 'Koordynacja ręka-oko, zwinność, kontrola piłki', progression: 'Początkujący: drybling praworękowy • Zaawansowany: zmiana nóg • Mistrz: drybling plecami' },
+          { name: 'Przebijanie piłki', description: 'Zwinne przebijanie w ataku', duration: '15 min', sets: '4×15', execution: 'Stań tyłem do kosza, partner podrzuca piłkę. Szybko się obróć i przebij piłkę do przodu z siłą. Wykonaj 15 powtórzeń.', benefits: 'Zwinność, siła eksplozywna, timing', progression: 'Początkujący: przebijanie z miejsca • Zaawansowany: z ruchu • Mistrz: z przyspieszeniem' },
         ],
         'piłka nożna': [
-          { name: 'Sprinty 100m', description: 'Szybkie biegi sprinterskie', duration: '25 min', sets: '5×100m' },
-          { name: 'Agility Drabinka', description: 'Ćwiczenia zwinności', duration: '20 min', sets: '4×2min' },
-          { name: 'Kopania na bramkę', description: 'Technika i celność', duration: '30 min', sets: '3×10' },
+          { name: 'Sprinty 100m', description: 'Szybkie biegi sprinterskie', duration: '25 min', sets: '5×100m', execution: 'Rozgrzej się 5 minut. Wykonaj 5 sprintów na 100m z pełną mocą, odpocznik 2 min między seriami.', benefits: 'Szybkość, moc nóg, system anaerobowy', progression: 'Początkujący: 80% maksymalnego tempa • Zaawansowany: 90% • Mistrz: 100%' },
+          { name: 'Agility Drabinka', description: 'Ćwiczenia zwinności', duration: '20 min', sets: '4×2min', execution: 'Postaw drabinkę na trawie. Biegnij wzdłuż niej, umieszczając każdą nogę w każdym polu. Następnie przejdź bokiem. Powtórz 4 razy po 2 min.', benefits: 'Zwinność, koordynacja, prędkość boczna', progression: 'Początkujący: normalnym tempem • Zaawansowany: szybko • Mistrz: z piłką' },
+          { name: 'Kopania na bramkę', description: 'Technika i celność', duration: '30 min', sets: '3×10', execution: 'Postaw stożki w 15m od bramki. Podaj sobie piłkę, zrób 2-3 kroki i kopnij na bramkę. Każdy stożek = 10 kopnięć.', benefits: 'Precyzja, siła kopnięcia, technika', progression: 'Początkujący: 3 trafienia na 10 • Zaawansowany: 6 trafień • Mistrz: 8+ trafień' },
         ],
         'tenis': [
-          { name: 'Odbicia głową', description: 'Ćwiczenia odbijania', duration: '20 min', sets: '3×20' },
-          { name: 'Serwy', description: 'Technika serwu', duration: '25 min', sets: '4×15' },
+          { name: 'Odbicia głową', description: 'Ćwiczenia odbijania', duration: '20 min', sets: '3×20', execution: 'Stań naprzeciw ściany w 2m od niej. Rzuć piłkę, odbij ją głową w ścianę. Wykonaj 20 odbić, odpocznik 30s.', benefits: 'Timing, precyzja, siła szyi', progression: 'Początkujący: stojąc nieruchomo • Zaawansowany: z ruchem • Mistrz: z zmianą wysokości' },
+          { name: 'Serwy', description: 'Technika serwu', duration: '25 min', sets: '4×15', execution: 'Stań za linią końcową. Rzuć piłkę wysoko, odbij ją rakietą powyżej głowy. Serwuj 15 razy, odpocznik 30s. Zmień strony co 15 serwów.', benefits: 'Precyzja serwu, moc, kontrola', progression: 'Początkujący: 50% serwów w polu • Zaawansowany: 75% • Mistrz: 90%' },
         ],
         'siatkówka': [
-          { name: 'Bloki siatki', description: 'Blokowanie przy siatce', duration: '20 min', sets: '4×12' },
-          { name: 'Przybitki', description: 'Technika przybitek', duration: '25 min', sets: '4×15' },
+          { name: 'Bloki siatki', description: 'Blokowanie przy siatce', duration: '20 min', sets: '4×12', execution: 'Stań przy siatce. Partner rzuca piłkę wysoko, Ty skok i blokuj piłkę obydwiema rękami. Wykonaj 12 bloków, odpocznik 45s.', benefits: 'Moc skoku, timing, siła ramion', progression: 'Początkujący: jeden blok • Zaawansowany: podwójny blok • Mistrz: z przesunięciem' },
+          { name: 'Przybitki', description: 'Technika przybitek', duration: '25 min', sets: '4×15', execution: 'Stań w pozycji przyjętej. Partner podrzuca piłkę, Ty przybijaasz ją dolnym uderzeniem do przodu. Wykonaj 15 przybitek.', benefits: 'Kontrola piłki, stabilność, precyzja', progression: 'Początkujący: na miejscu • Zaawansowany: z krokiem • Mistrz: akcja kompleksowa' },
         ],
         'boks': [
-          { name: 'Kombinacje ciosów', description: 'Jab-cross-hook', duration: '30 min', sets: '5×3min' },
-          { name: 'Praca na workingach', description: 'Uderzanie w worek', duration: '30 min', sets: '4×3min' },
+          { name: 'Kombinacje ciosów', description: 'Jab-cross-hook', duration: '30 min', sets: '5×3min', execution: 'Stań w pozycji bokserskiej. Wykonaj: jab lewą, cross prawą, hook lewą. Powtarzaj przez 3 min z pełną mocą, odpocznik 1 min. 5 rund.', benefits: 'Szybkość rąk, koordynacja, wytrzymałość', progression: 'Początkujący: wolne tempo • Zaawansowany: normalne • Mistrz: szybkie kombinacje' },
+          { name: 'Praca na workingach', description: 'Uderzanie w worek', duration: '30 min', sets: '4×3min', execution: 'Pracuj na ciężkim worku przez 3 minuty z pełną mocą, zmieniając kombinacje ciosów. Odpocznik 1 min między rundami. 4 rundy.', benefits: 'Siła uderzenia, wytrzymałość, technika', progression: 'Początkujący: kontrolowane • Zaawansowany: średnia moc • Mistrz: maksymalna moc' },
         ],
         'pływanie': [
-          { name: 'Pływanie styl dowolny', description: 'Trening wytrwałości', duration: '30 min', sets: '4×100m' },
-          { name: 'Ćwiczenia nóg', description: 'Technika kopania', duration: '20 min', sets: '3×50m' },
+          { name: 'Pływanie styl dowolny', description: 'Trening wytrwałości', duration: '30 min', sets: '4×100m', execution: 'Pływaj styl dowolny przez 100m z kontrolowanym tempem. Odpocznik 30s między podejściami. Wykon aj 4 podejścia.', benefits: 'Wytrzymałość kardio, technika, siła', progression: 'Początkujący: 3:00 na 100m • Zaawansowany: 2:20 • Mistrz: 1:50' },
+          { name: 'Ćwiczenia nóg', description: 'Technika kopania', duration: '20 min', sets: '3×50m', execution: 'Trzymając tablicę, kop nogami przez 50m. Wykonaj 3 podejścia z różnymi technikami kopania (prosto, ukośnie).', benefits: 'Siła nóg, technika, prędkość', progression: 'Początkujący: normalne tempo • Zaawansowany: szybsze • Mistrz: sprinterskie' },
         ],
         'bieganie': [
-          { name: 'Bieg interwałowy', description: 'Zmiana tempa', duration: '20 min', sets: '5×(1min fast)' },
-          { name: 'Bieg górski', description: 'Bieg pod górę', duration: '25 min', sets: '3×500m' },
+          { name: 'Bieg interwałowy', description: 'Zmiana tempa', duration: '20 min', sets: '5×(1min fast)', execution: 'Rozgrzej się 5 min. Następnie: 1 min szybko (85-90% maks), 1 min wolniej (65%). Powtórz 5 razy. Schłodź się 3 min.', benefits: 'Szybkość, VO2 max, wytrzymałość', progression: 'Początkujący: 3 rundy • Zaawansowany: 6 rund • Mistrz: 8+ rund' },
+          { name: 'Bieg górski', description: 'Bieg pod górę', duration: '25 min', sets: '3×500m', execution: 'Znajdź wzgórze o nachyleniu 5-10%. Biegaj w górę 500m z kontrolowanym tempem, schodzisz powoli. Powtórz 3 razy.', benefits: 'Siła nóg, moc, wytrzymałość', progression: 'Początkujący: 60% maks • Zaawansowany: 75% • Mistrz: 85%' },
         ],
         'kolarstwo': [
-          { name: 'Jazda w górę', description: 'Jazda po nachyleniu', duration: '25 min', sets: '4×3min' },
-          { name: 'Czasówka', description: 'Maksymalny wysiłek', duration: '30 min', sets: '2×20min' },
+          { name: 'Jazda w górę', description: 'Jazda po nachyleniu', duration: '25 min', sets: '4×3min', execution: 'Na rowerze: jedź w górę o nachyleniu 6-8% przez 3 min z dużym oporem, wracaj powoli. Powtórz 4 razy.', benefits: 'Siła nóg, moc, wytrzymałość', progression: 'Początkujący: mały opór • Zaawansowany: średni • Mistrz: duży opór' },
+          { name: 'Czasówka', description: 'Maksymalny wysiłek', duration: '30 min', sets: '2×20min', execution: 'Rozgrzej 5 min. Jedź 20 min z maksymalnym wysiłkiem, którego możesz utrzymać. Odpocznik 3 min. Powtórz.', benefits: 'Siła, wytrzymałość, moc', progression: 'Początkujący: tempo dialogu • Zaawansowany: tempo wysiłku • Mistrz: maksymalne' },
         ],
       };
 
@@ -9481,7 +9561,10 @@
           <h4 style="font-weight:800;color:white;font-size:14px;margin:0;">${d.name}</h4>
           <p style="font-size:12px;color:rgba(255,255,255,0.5);margin:4px 0;">⏱ ${d.duration} | Serie: ${d.sets}</p>
           <p style="font-size:12px;color:rgba(255,255,255,0.6);margin:8px 0;">${d.description}</p>
-          <button data-drill-add="${i}" style="width:100%;margin-top:8px;padding:8px;border-radius:6px;font-size:12px;font-weight:700;background:rgba(0,229,255,0.1);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);cursor:pointer;">➕ Do planu treningu</button>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button data-drill-info="${i}" style="flex:0.5;padding:8px;border-radius:6px;font-size:12px;font-weight:700;background:rgba(167,139,250,0.1);color:#a78bfa;border:1px solid rgba(167,139,250,0.2);cursor:pointer;">ℹ️ Info</button>
+            <button data-drill-add="${i}" style="flex:1;padding:8px;border-radius:6px;font-size:12px;font-weight:700;background:rgba(0,229,255,0.1);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);cursor:pointer;">➕ Do planu</button>
+          </div>
         </div>
       `).join('');
 
@@ -9489,10 +9572,16 @@
 
       // Event delegation for buttons
       container.removeEventListener('click', window._sportDrillsGridClickHandler);
-      window._sportDrillsGridClickHandler = function(e) {
-        if (e.target.dataset.drillAdd !== undefined) {
+      window._sportDrillsGridClickHandler = function (e) {
+        if (e.target.dataset.drillInfo !== undefined) {
+          const idx = parseInt(e.target.dataset.drillInfo);
+          window._currentDrill = drills[idx];
+          window._currentDrillSport = selectedSport;
+          if (typeof window.showDrillInfo === 'function') window.showDrillInfo(drills[idx]);
+        } else if (e.target.dataset.drillAdd !== undefined) {
           const idx = parseInt(e.target.dataset.drillAdd);
-          alert('✅ Drill "' + (drills[idx]?.name || 'Drill') + '" dodany do planu!');
+          window._pendingDrill = drills[idx];
+          if (typeof window.openTrainingExerciseAddModal === 'function') window.openTrainingExerciseAddModal();
         }
       };
       container.addEventListener('click', window._sportDrillsGridClickHandler);
@@ -9511,8 +9600,8 @@
 
     window.bibliotekaMealSetCategory = function (cat) {
       _bibliotekaMealCategory = cat;
-      document.querySelectorAll('.biblioteka-cat-btn, [data-biblioteka-cat]').forEach(b => {
-        const active = b.dataset.cat === cat || b.dataset.bibliobotekaCat === cat;
+      document.querySelectorAll('.biblioteka-cat-btn').forEach(b => {
+        const active = b.dataset.cat === cat;
         b.style.background = active ? 'rgba(0,229,255,0.15)' : 'rgba(255,255,255,0.05)';
         b.style.color = active ? 'var(--cyan)' : 'var(--muted)';
         b.style.borderColor = active ? 'rgba(0,229,255,0.3)' : 'var(--border)';
@@ -9520,26 +9609,21 @@
       if (typeof window.bibliotekaMealFilter === 'function') window.bibliotekaMealFilter();
     };
 
-    window.bibliotekaMealSetCategory = function (cat) {
-      console.log('[FitAI-Stub] bibliotekaMealSetCategory called:', cat);
-      if (typeof window.bibliotekaMealFilter === 'function') window.bibliotekaMealFilter();
-    };
-
     // ════════════════════════════════════════════════════════════════════════════
     // MODAL FUNCTIONS FOR MEALS & EXERCISES
     // ════════════════════════════════════════════════════════════════════════════
-    
-    window.showMealInfo = function(meal) {
+
+    window.showMealInfo = function (meal) {
       const modal = document.getElementById('mealInfoModal');
       const TYPE_LABELS = { 'śniadanie': '☀️ Śniadanie', 'obiad': '🍲 Obiad', 'kolacja': '🌙 Kolacja', 'przekąska': '🍎 Przekąska' };
       if (!modal || !meal) return;
-      
+
       // Store current meal for later use in openDietDbModalFromInfo
       window._currentMealInfo = meal;
-      
+
       document.getElementById('mealInfoName').textContent = meal.name;
       document.getElementById('mealInfoType').textContent = TYPE_LABELS[meal._type?.toLowerCase()] || meal._type || 'Posiłek';
-      
+
       const macros = [
         { label: 'Kalorie', val: meal.kcal, color: 'var(--cyan)' },
         { label: 'Białko', val: meal.protein + 'g', color: '#a78bfa' },
@@ -9548,34 +9632,34 @@
       ];
       const macroHtml = macros.map(m => `<span style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:999px;padding:4px 10px;font-size:11px;font-weight:600;"><span style="color:${m.color}; font-weight:700;">${m.val}</span> ${m.label}</span>`).join('');
       document.getElementById('mealInfoMacros').innerHTML = macroHtml;
-      
+
       const ingHtml = (meal.ingredients || []).map(i => `<div>🔹 <strong>${i.item}</strong> — ${i.amount}</div>`).join('');
       document.getElementById('mealInfoIngredients').innerHTML = ingHtml || '<p style="color:var(--muted);">Brak danych</p>';
-      
-      document.getElementById('mealInfoPrep').textContent = meal.prep || 'Brak instrukcji przygotowania';
-      
+
+      document.getElementById('mealInfoPrep').textContent = meal.prep || meal.recipe || 'Brak instrukcji przygotowania';
+
       modal.classList.remove('hidden');
     };
-    
-    window.closeMealInfoModal = function() {
+
+    window.closeMealInfoModal = function () {
       document.getElementById('mealInfoModal')?.classList.add('hidden');
     };
-    
-    window.openDietDbModalFromInfo = function() {
+
+    window.openDietDbModalFromInfo = function () {
       window.closeMealInfoModal();
       const meal = window._currentMealInfo;
       if (meal) window.openDietDbModal(meal);
     };
-    
-    window.openDietDbModal = function() {
+
+    window.openDietDbModal = function () {
       if (!_dietDbPendingMeal) return;
       const modal = document.getElementById('dietDbAddModal');
       const nameEl = document.getElementById('dietDbModalMealName');
       const macrosEl = document.getElementById('dietDbModalMacros');
       if (!modal) return;
-      
+
       if (nameEl) nameEl.textContent = _dietDbPendingMeal.name || '?';
-      
+
       const macros = [
         { label: 'Kcal', val: _dietDbPendingMeal.kcal, color: 'var(--cyan)' },
         { label: 'B', val: _dietDbPendingMeal.protein + 'g', color: '#a78bfa' },
@@ -9585,16 +9669,16 @@
       if (macrosEl) {
         macrosEl.innerHTML = macros.map(m => `<span style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:999px;padding:2px 8px;font-size:11px;font-weight:600;"><span style="color:${m.color};">${m.label}: ${m.val}</span></span>`).join('');
       }
-      
+
       const dayEl = document.getElementById('dietDbModalDay');
       const days = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
       if (dayEl) dayEl.value = days[state.currentDay] || 'Pon';
-      
+
       modal.classList.remove('hidden');
     };
-    
+
     // Update sport drills filter
-    window.setSportDrillsFilter = function(sport) {
+    window.setSportDrillsFilter = function (sport) {
       window._selectedSportDrill = sport;
       if (typeof window.renderSportDrills === 'function') window.renderSportDrills();
     };
@@ -9605,7 +9689,7 @@
 
     let _dietDbPendingMeal = null;
 
-    window.openDietDbModal = function(meal) {
+    window.openDietDbModal = function (meal) {
       _dietDbPendingMeal = meal;
       const modal = document.getElementById('dietDbAddModal');
       if (!modal) return;
@@ -9616,7 +9700,7 @@
       const dayEl = document.getElementById('dietDbModalDay');
 
       if (mealNameEl) mealNameEl.textContent = meal.name || '—';
-      
+
       const macros = [
         { label: '🔥 Kcal', val: meal.kcal, color: 'var(--cyan)' },
         { label: '💪 Białko', val: meal.protein + 'g', color: '#a78bfa' },
@@ -9634,12 +9718,12 @@
       modal.classList.remove('hidden');
     };
 
-    window.closeDietDbModal = function() {
+    window.closeDietDbModal = function () {
       document.getElementById('dietDbAddModal')?.classList.add('hidden');
       _dietDbPendingMeal = null;
     };
 
-    window.dietDbConfirmAdd = async function() {
+    window.dietDbConfirmAdd = async function () {
       if (!_dietDbPendingMeal) return;
       const p = state.profiles[state.activeProfileIdx || 0];
       const dayEl = document.getElementById('dietDbModalDay');
@@ -9660,6 +9744,105 @@
       const toast = document.createElement('div');
       toast.style.cssText = 'position:fixed;bottom:88px;left:50%;transform:translateX(-50%);background:rgba(0,229,255,0.12);color:var(--cyan);border:1px solid rgba(0,229,255,0.3);padding:10px 22px;border-radius:14px;font-size:13px;font-weight:700;z-index:9999;backdrop-filter:blur(14px);box-shadow:0 4px 24px rgba(0,0,0,0.4);';
       toast.textContent = '✅ Posiłek dodany do planu!';
+      document.body.appendChild(toast);
+      setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.4s'; }, 2400);
+      setTimeout(() => toast.remove(), 2850);
+    };
+
+    // ════════════════════════════════════════════════════════════════════════════
+    // DRILL INFO MODAL FUNCTIONS
+    // ════════════════════════════════════════════════════════════════════════════
+
+    window.showDrillInfo = function (drill) {
+      const modal = document.getElementById('drillInfoModal');
+      if (!modal || !drill) return;
+
+      document.getElementById('drillInfoName').textContent = drill.name;
+      document.getElementById('drillInfoDuration').textContent = `⏱️ ${drill.duration} | 📊 Serie: ${drill.sets}`;
+      document.getElementById('drillInfoExecution').textContent = drill.execution || 'Brak opisu.';
+      document.getElementById('drillInfoBenefits').textContent = drill.benefits || 'Brak informacji.';
+      document.getElementById('drillInfoProgression').innerHTML = (drill.progression || 'Brak danych').split(' • ').map(p => `<div>✓ ${p.trim()}</div>`).join('');
+
+      modal.classList.remove('hidden');
+    };
+
+    window.closeDrillInfoModal = function () {
+      document.getElementById('drillInfoModal')?.classList.add('hidden');
+    };
+
+    // ════════════════════════════════════════════════════════════════════════════
+    // TRAINING EXERCISE ADD MODAL FUNCTIONS
+    // ════════════════════════════════════════════════════════════════════════════
+
+    window.openTrainingExerciseAddModal = function () {
+      window.closeDrillInfoModal();
+      const drill = window._pendingDrill;
+      if (!drill) return;
+
+      const modal = document.getElementById('trainingExerciseAddModal');
+      if (!modal) return;
+
+      document.getElementById('trainingExerciseName').textContent = drill.name;
+      document.getElementById('trainingExerciseInfo').textContent = `${drill.duration} | ${drill.sets}`;
+
+      modal.classList.remove('hidden');
+    };
+
+    window.openTrainingExerciseAddModalForExercise = function () {
+      const exercise = window._pendingExercise;
+      if (!exercise) return;
+
+      const modal = document.getElementById('trainingExerciseAddModal');
+      if (!modal) return;
+
+      document.getElementById('trainingExerciseName').textContent = exercise.name;
+      document.getElementById('trainingExerciseInfo').textContent = `${exercise.muscles || '—'} | ${exercise.sets} series x ${exercise.reps} reps`;
+
+      modal.classList.remove('hidden');
+    };
+
+    window.closeTrainingExerciseAddModal = function () {
+      document.getElementById('trainingExerciseAddModal')?.classList.add('hidden');
+      window._pendingDrill = null;
+      window._pendingExercise = null;
+    };
+
+    window.trainingExerciseConfirmAdd = async function () {
+      const modal = document.getElementById('trainingExerciseAddModal');
+      const drill = window._pendingDrill;
+      const exercise = window._pendingExercise;
+      const item = drill || exercise;
+
+      if (!item) return;
+
+      const p = state.profiles[state.activeProfileIdx || 0];
+      const setsEl = document.getElementById('trainingExerciseSets');
+      const dayEl = document.getElementById('trainingExerciseDay');
+
+      if (!p || !dayEl) return;
+
+      const day = dayEl.value;
+      const sets = parseInt(setsEl?.value) || 3;
+
+      if (!p.trainingPlan) p.trainingPlan = {};
+      if (!p.trainingPlan[day]) p.trainingPlan[day] = [];
+
+      const trainingItem = {
+        id: 't' + Date.now(),
+        name: item.name,
+        type: drill ? 'drill' : 'exercise',
+        sets: sets,
+        data: item,
+      };
+
+      p.trainingPlan[day].push(trainingItem);
+      saveState();
+      window.closeTrainingExerciseAddModal();
+
+      // Toast notification
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:88px;left:50%;transform:translateX(-50%);background:rgba(0,229,255,0.12);color:var(--cyan);border:1px solid rgba(0,229,255,0.3);padding:10px 22px;border-radius:14px;font-size:13px;font-weight:700;z-index:9999;backdrop-filter:blur(14px);box-shadow:0 4px 24px rgba(0,0,0,0.4);';
+      toast.textContent = `✅ "${item.name}" dodane do planu treningowego!`;
       document.body.appendChild(toast);
       setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.4s'; }, 2400);
       setTimeout(() => toast.remove(), 2850);
@@ -10569,7 +10752,7 @@
       </div>
       <!--Description -->
       ${
-        meal.description ? `
+      meal.description ? `
         <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);">
           <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:8px;">Opis</div>
           <p style="font-size:13px;color:#94a3b8;line-height:1.6;">${meal.description}</p>
@@ -10577,7 +10760,7 @@
     }
       < !--Ingredients -->
       ${
-        ingRows ? `
+      ingRows ? `
         <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);">
           <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:8px;">Składniki</div>
           <table style="width:100%;border-collapse:collapse;">
@@ -10623,7 +10806,7 @@
         { label: '🥑 Tłuszcze', val: (meal.fat !== undefined ? meal.fat + 'g' : '—'), color: '#34d399' },
       ];
       if (macrosEl) macrosEl.innerHTML = macros.map(mg =>
-        `<span style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:999px;padding:4px 12px;font-weight:700;color:${mg.color};">${mg.label}: ${mg.val}</span>`
+        `< span style = "background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:999px;padding:4px 12px;font-weight:700;color:${mg.color};" > ${ mg.label }: ${ mg.val }</span > `
       ).join('');
 
       // Pre-select type from meal's category
@@ -10706,9 +10889,9 @@
             meal_type: type,
             ...(logDate ? { log_date: logDate } : {}),
           };
-          const res = await fetch(`${_apiBase}/app/diet/add-meal`, {
+          const res = await fetch(`${ _apiBase } /app/diet / add - meal`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ token } ` },
             body: JSON.stringify(body),
           });
           if (res.ok) {
