@@ -49,3 +49,9 @@ def health_check():
         "app_version": APP_VERSION,
         "ai_modes": ai_modes,
     }
+
+
+@router.get("", include_in_schema=False)
+def health_check_no_slash():
+    """Backward-compatible /health endpoint from fitai_api.py."""
+    return health_check()
