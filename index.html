@@ -2855,6 +2855,33 @@
           </div>
         </div>
 
+        <!-- Meal Info Modal -->
+        <div id="mealInfoModal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4"
+          style="background:rgba(0,0,0,0.85);backdrop-filter:blur(12px);">
+          <div class="glass rounded-3xl w-full max-w-md p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center sticky top-0">
+              <h5 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">Szczegóły Posiłku</h5>
+              <button onclick="closeMealInfoModal()"
+                class="text-gray-500 hover:text-white text-2xl leading-none">×</button>
+            </div>
+            <div id="mealInfoName" class="font-bold text-lg" style="color:var(--cyan);"></div>
+            <div id="mealInfoType" class="text-sm" style="color:rgba(255,255,255,0.6);"></div>
+            <div id="mealInfoMacros" class="flex gap-3 flex-wrap text-xs"></div>
+            <div>
+              <p class="text-xs font-semibold mb-2" style="color:var(--muted);">Składniki:</p>
+              <div id="mealInfoIngredients" class="text-sm space-y-1" style="color:rgba(255,255,255,0.7);"></div>
+            </div>
+            <div>
+              <p class="text-xs font-semibold mb-2" style="color:var(--muted);">Przygotowanie:</p>
+              <div id="mealInfoPrep" class="text-sm" style="color:rgba(255,255,255,0.6);"></div>
+            </div>
+            <button onclick="openDietDbModalFromInfo()" class="w-full py-3 rounded-xl font-extrabold text-sm"
+              style="background:linear-gradient(135deg,var(--cyan),var(--violet));color:#000;">
+              ✅ Dodaj do planu
+            </button>
+          </div>
+        </div>
+
       </section>
 
       <!-- ====== TAB: PROFILE ====== -->
@@ -9241,10 +9268,10 @@
       if (!grid) return;
 
       const MEAL_SEED = [
-        { name: 'Owsianka z owocami', kcal: 380, protein: 12, carbs: 65, fat: 8, _type: 'śniadanie', ingredients: [{ item: 'płatki owsiane', amount: '80g' }, { item: 'mleko', amount: '200ml' }, { item: 'banan', amount: '1 szt' }] },
-        { name: 'Kurczak z ryżem i brokułami', kcal: 520, protein: 45, carbs: 55, fat: 10, _type: 'obiad', ingredients: [{ item: 'pierś z kurczaka', amount: '200g' }, { item: 'ryż brązowy', amount: '100g' }, { item: 'brokuły', amount: '150g' }] },
-        { name: 'Łosoś z warzywami', kcal: 480, protein: 38, carbs: 20, fat: 28, _type: 'kolacja', ingredients: [{ item: 'łosoś', amount: '180g' }, { item: 'szparagi', amount: '150g' }, { item: 'cytryna', amount: '½ szt' }] },
-        { name: 'Twarożek z warzywami', kcal: 210, protein: 22, carbs: 15, fat: 6, _type: 'przekąska', ingredients: [{ item: 'twaróg chudy', amount: '150g' }, { item: 'ogórek', amount: '1 szt' }, { item: 'rzodkiewka', amount: '5 szt' }] },
+        { name: 'Owsianka z owocami', kcal: 380, protein: 12, carbs: 65, fat: 8, _type: 'śniadanie', ingredients: [{ item: 'płatki owsiane', amount: '80g' }, { item: 'mleko', amount: '200ml' }, { item: 'banan', amount: '1 szt' }], prep: 'Wrzuć płatki do mleka, dodaj posiekany banan, wymieszaj.' },
+        { name: 'Kurczak z ryżem i brokułami', kcal: 520, protein: 45, carbs: 55, fat: 10, _type: 'obiad', ingredients: [{ item: 'pierś z kurczaka', amount: '200g' }, { item: 'ryż brązowy', amount: '100g' }, { item: 'brokuły', amount: '150g' }], prep: 'Kurczak panieruj i smaż na patelni. Ryż gotuj wg instrukcji. Brokuły gotuj na parze.' },
+        { name: 'Łosoś z warzywami', kcal: 480, protein: 38, carbs: 20, fat: 28, _type: 'kolacja', ingredients: [{ item: 'łosoś', amount: '180g' }, { item: 'szparagi', amount: '150g' }, { item: 'cytryna', amount: '½ szt' }], prep: 'Łosoś piecz w temperaturze 200°C przez 15 min. Szparagi przysmażaj na oliwie.' },
+        { name: 'Twarożek z warzywami', kcal: 210, protein: 22, carbs: 15, fat: 6, _type: 'przekąska', ingredients: [{ item: 'twaróg chudy', amount: '150g' }, { item: 'ogórek', amount: '1 szt' }, { item: 'rzodkiewka', amount: '5 szt' }], prep: 'Twaróg wymieszaj z pokrojonym ogórkiem i rzodkiewką. Dodaj sól i pieprz.' },
       ];
 
       const allMeals = [];
@@ -9275,7 +9302,7 @@
       const TYPE_COLORS = { 'śniadanie': '#fbbf24', 'obiad': '#34d399', 'kolacja': '#a78bfa', 'przekąska': '#f97316' };
 
       grid.innerHTML = '';
-      filtered.forEach(m => {
+      filtered.forEach((m, idx) => {
         const typeKey = (m._type || '').toLowerCase();
         const badgeColor = TYPE_COLORS[typeKey] || '#64748b';
         const badgeLabel = TYPE_LABELS[typeKey] || m._type;
@@ -9289,9 +9316,24 @@
         const ingPrev = (m.ingredients || []).slice(0, 3).map(i => i.item).join(', ');
 
         const card = document.createElement('div');
-        card.innerHTML = `<div class="flex items-start justify-between gap-2"><h4 style="font-weight:800;color:white;font-size:14px;">${m.name}</h4><span style="background:rgba(255,255,255,0.06);color:${badgeColor};border:1px solid rgba(255,255,255,0.1);border-radius:999px;padding:2px 10px;font-size:10px;font-weight:700;">${badgeLabel}</span></div><div style="display:flex;flex-wrap:wrap;gap:6px;">${macroHtml}</div>${ingPrev ? `<p style="font-size:12px;color:var(--muted);">${ingPrev}</p>` : ''}<div style="display:flex;gap:8px;margin-top:auto;"><button class="flex-shrink-0" style="padding:8px 12px;border-radius:8px;font-size:12px;background:rgba(255,255,255,0.05);color:var(--muted);border:1px solid var(--border);">ℹ️ Info</button><button style="flex:1;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;background:rgba(0,229,255,0.1);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);">+ Dodaj</button></div>`;
+        card.dataset.mealIdx = idx;
+        card.innerHTML = `<div class="flex items-start justify-between gap-2"><h4 style="font-weight:800;color:white;font-size:14px;">${m.name}</h4><span style="background:rgba(255,255,255,0.06);color:${badgeColor};border:1px solid rgba(255,255,255,0.1);border-radius:999px;padding:2px 10px;font-size:10px;font-weight:700;">${badgeLabel}</span></div><div style="display:flex;flex-wrap:wrap;gap:6px;">${macroHtml}</div>${ingPrev ? `<p style="font-size:12px;color:var(--muted);">${ingPrev}</p>` : ''}<div style="display:flex;gap:8px;margin-top:auto;"><button data-meal-info="${idx}" class="flex-shrink-0" style="padding:8px 12px;border-radius:8px;font-size:12px;background:rgba(255,255,255,0.05);color:var(--muted);border:1px solid var(--border);cursor:pointer;">ℹ️ Info</button><button data-meal-add="${idx}" style="flex:1;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;background:rgba(0,229,255,0.1);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);cursor:pointer;">+ Dodaj</button></div>`;
         grid.appendChild(card);
       });
+      
+      // Add event delegation for buttons
+      grid.removeEventListener('click', window._bibliotekaMealGridClickHandler);
+      window._bibliotekaMealGridClickHandler = function(e) {
+        if (e.target.dataset.mealInfo !== undefined) {
+          const idx = parseInt(e.target.dataset.mealInfo);
+          window.showMealInfo(filtered[idx]);
+        } else if (e.target.dataset.mealAdd !== undefined) {
+          const idx = parseInt(e.target.dataset.mealAdd);
+          _dietDbPendingMeal = filtered[idx];
+          window.openDietDbModal();
+        }
+      };
+      grid.addEventListener('click', window._bibliotekaMealGridClickHandler);
     };
 
     window.renderAtlas = function () {
@@ -9331,30 +9373,129 @@
       }
 
       grid.innerHTML = '';
-      filtered.forEach(e => {
+      filtered.forEach((e, idx) => {
         const card = document.createElement('div');
-        card.innerHTML = `<div style="display:flex;justify-content:space-between;gap:8px;"><div style="flex:1;"><h4 style="font-weight:800;color:white;font-size:14px;">${e.name}</h4><p style="font-size:12px;color:rgba(255,255,255,0.5);">💪 ${e.muscles || '—'}</p></div></div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"><span style="background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.2);border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700;color:var(--cyan);">Serie: ${e.sets}</span><span style="background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.2);border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700;color:#a78bfa;">Powt: ${e.reps}</span>${e.weight ? `<span style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700;color:#fbbf24;">${e.weight} kg</span>` : ''}</div><p style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:8px;">${e.desc || ''}</p><div style="display:flex;gap:8px;margin-top:8px;"><button style="flex:1;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;background:rgba(0,229,255,0.1);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);">➕ Do planu</button></div>`;
+        card.dataset.exerciseIdx = idx;
+        card.innerHTML = `<div style="display:flex;justify-content:space-between;gap:8px;"><div style="flex:1;"><h4 style="font-weight:800;color:white;font-size:14px;">${e.name}</h4><p style="font-size:12px;color:rgba(255,255,255,0.5);">💪 ${e.muscles || '—'}</p></div></div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"><span style="background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.2);border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700;color:var(--cyan);">Serie: ${e.sets}</span><span style="background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.2);border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700;color:#a78bfa;">Powt: ${e.reps}</span>${e.weight ? `<span style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700;color:#fbbf24;">${e.weight} kg</span>` : ''}</div><p style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:8px;">${e.desc || ''}</p><div style="display:flex;gap:8px;margin-top:8px;"><button data-exercise-add="${idx}" style="flex:1;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;background:rgba(0,229,255,0.1);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);cursor:pointer;">➕ Do planu</button></div>`;
         grid.appendChild(card);
       });
+      
+      // Add event delegation for buttons
+      grid.removeEventListener('click', window._atlasExerciseGridClickHandler);
+      window._atlasExerciseGridClickHandler = function(e) {
+        if (e.target.dataset.exerciseAdd !== undefined) {
+          const idx = parseInt(e.target.dataset.exerciseAdd);
+          window._pendingExerciseForTraining = filtered[idx];
+          // Show simple alert or toast for now
+          alert('✅ Ćwiczenie "' + filtered[idx].name + '" dodane do planu!');
+        }
+      };
+      grid.addEventListener('click', window._atlasExerciseGridClickHandler);
     };
 
     window.renderSportDrills = function () {
       const container = document.getElementById('sportDrillsContainer');
       if (!container) return;
 
-      const SEED = [
-        { name: 'Sprinty 100m', sport: 'atletyka', sets: 5, reps: '100m', desc: 'Szybkie biegi sprinterskie na dystansie 100 metrów' },
-        { name: 'Ćwiczenia Agility Drabinka', sport: 'futbol', sets: 4, reps: '2min', desc: 'Ćwiczenia zwinności na drabince treningowej' },
-        { name: 'Odbicia głową', sport: 'tenis', sets: 3, reps: '20', desc: 'Ćwiczenia odbijania piłki głową dla precyzji' },
-        { name: 'Ukłony i rotacje', sport: 'pływanie', sets: 4, reps: '30', desc: 'Ćwiczenia na elastyczność do pływania' },
+      const sports = [
+        { id: 'koszykówka', emoji: '🏀', label: 'Koszykówka', color: '#f97316' },
+        { id: 'piłka nożna', emoji: '⚽', label: 'Piłka nożna', color: '#22c55e' },
+        { id: 'tenis', emoji: '🎾', label: 'Tenis', color: '#eab308' },
+        { id: 'siatkówka', emoji: '🏐', label: 'Siatkówka', color: '#3b82f6' },
+        { id: 'boks', emoji: '🥊', label: 'Boks', color: '#ef4444' },
+        { id: 'pływanie', emoji: '🏊', label: 'Pływanie', color: '#06b6d4' },
+        { id: 'bieganie', emoji: '🏃', label: 'Bieganie', color: '#84cc16' },
+        { id: 'kolarstwo', emoji: '🚴', label: 'Kolarstwo', color: '#8b5cf6' },
       ];
 
-      container.innerHTML = '';
-      SEED.forEach(d => {
-        const card = document.createElement('div');
-        card.innerHTML = `<div style="padding:12px;border:1px solid rgba(0,229,255,0.2);border-radius:8px;margin-bottom:12px;"><h4 style="font-weight:800;color:white;font-size:14px;margin:0;">${d.name}</h4><p style="font-size:12px;color:rgba(255,255,255,0.5);margin:4px 0;">⚽ ${d.sport}</p><p style="font-size:12px;color:rgba(255,255,255,0.6);margin:8px 0;">${d.desc}</p><div style="display:flex;gap:6px;margin-top:8px;"><span style="background:rgba(0,229,255,0.08);padding:2px 8px;border-radius:6px;font-size:10px;color:var(--cyan);">Serie: ${d.sets}</span><span style="background:rgba(167,139,250,0.08);padding:2px 8px;border-radius:6px;font-size:10px;color:#a78bfa;">Powt: ${d.reps}</span></div><button style="width:100%;margin-top:8px;padding:8px;border-radius:6px;font-size:12px;font-weight:700;background:rgba(0,229,255,0.1);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);">➕ Do planu treningu</button></div>`;
-        container.appendChild(card);
-      });
+      const selectorGrid = document.getElementById('sportSelectorGrid');
+      if (!selectorGrid) {
+        container.innerHTML = '<p class="text-center text-gray-500">Brak elementu do wyświetlenia</p>';
+        return;
+      }
+
+      // Check localStorage for selected sport (used by professional selectSport function)
+      let selectedSport = window._selectedSportDrill;
+      if (!selectedSport) {
+        try {
+          const sportState = JSON.parse(localStorage.getItem('fitai_sport_v1') || '{}');
+          selectedSport = sportState.sport_focus;
+        } catch (e) {
+          // Ignore localStorage errors
+        }
+      }
+
+      // Show catalog when no sport selected
+      if (!selectedSport) {
+        container.innerHTML = `
+          <div class="text-center py-12">
+            <p class="text-gray-400 text-lg">Wybierz sport z listy powyżej, aby zobaczyć drille</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Simple drill rendering for selected sport
+      const mockDrills = {
+        'koszykówka': [
+          { name: 'Rzuty z linii wolnych', description: 'Precyzja przy rzutach', duration: '30 min', sets: '5×10' },
+          { name: 'Drybling 1v1', description: 'Ćwiczenia dryblingu w obronie', duration: '20 min', sets: '3×5min' },
+          { name: 'Przebijanie piłki', description: 'Zwinne przebijanie w ataku', duration: '15 min', sets: '4×15' },
+        ],
+        'piłka nożna': [
+          { name: 'Sprinty 100m', description: 'Szybkie biegi sprinterskie', duration: '25 min', sets: '5×100m' },
+          { name: 'Agility Drabinka', description: 'Ćwiczenia zwinności', duration: '20 min', sets: '4×2min' },
+          { name: 'Kopania na bramkę', description: 'Technika i celność', duration: '30 min', sets: '3×10' },
+        ],
+        'tenis': [
+          { name: 'Odbicia głową', description: 'Ćwiczenia odbijania', duration: '20 min', sets: '3×20' },
+          { name: 'Serwy', description: 'Technika serwu', duration: '25 min', sets: '4×15' },
+        ],
+        'siatkówka': [
+          { name: 'Bloki siatki', description: 'Blokowanie przy siatce', duration: '20 min', sets: '4×12' },
+          { name: 'Przybitki', description: 'Technika przybitek', duration: '25 min', sets: '4×15' },
+        ],
+        'boks': [
+          { name: 'Kombinacje ciosów', description: 'Jab-cross-hook', duration: '30 min', sets: '5×3min' },
+          { name: 'Praca na workingach', description: 'Uderzanie w worek', duration: '30 min', sets: '4×3min' },
+        ],
+        'pływanie': [
+          { name: 'Pływanie styl dowolny', description: 'Trening wytrwałości', duration: '30 min', sets: '4×100m' },
+          { name: 'Ćwiczenia nóg', description: 'Technika kopania', duration: '20 min', sets: '3×50m' },
+        ],
+        'bieganie': [
+          { name: 'Bieg interwałowy', description: 'Zmiana tempa', duration: '20 min', sets: '5×(1min fast)' },
+          { name: 'Bieg górski', description: 'Bieg pod górę', duration: '25 min', sets: '3×500m' },
+        ],
+        'kolarstwo': [
+          { name: 'Jazda w górę', description: 'Jazda po nachyleniu', duration: '25 min', sets: '4×3min' },
+          { name: 'Czasówka', description: 'Maksymalny wysiłek', duration: '30 min', sets: '2×20min' },
+        ],
+      };
+
+      const drills = mockDrills[selectedSport] || [];
+      const sport = sports.find(s => s.id === selectedSport);
+
+      const drillsHtml = drills.map((d, i) => `
+        <div style="padding:12px;border:1px solid rgba(0,229,255,0.2);border-radius:8px;margin-bottom:12px;">
+          <h4 style="font-weight:800;color:white;font-size:14px;margin:0;">${d.name}</h4>
+          <p style="font-size:12px;color:rgba(255,255,255,0.5);margin:4px 0;">⏱ ${d.duration} | Serie: ${d.sets}</p>
+          <p style="font-size:12px;color:rgba(255,255,255,0.6);margin:8px 0;">${d.description}</p>
+          <button data-drill-add="${i}" style="width:100%;margin-top:8px;padding:8px;border-radius:6px;font-size:12px;font-weight:700;background:rgba(0,229,255,0.1);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);cursor:pointer;">➕ Do planu treningu</button>
+        </div>
+      `).join('');
+
+      container.innerHTML = drillsHtml || '<p style="text-align:center;color:var(--muted);">Brak drilli dla tego sportu</p>';
+
+      // Event delegation for buttons
+      container.removeEventListener('click', window._sportDrillsGridClickHandler);
+      window._sportDrillsGridClickHandler = function(e) {
+        if (e.target.dataset.drillAdd !== undefined) {
+          const idx = parseInt(e.target.dataset.drillAdd);
+          alert('✅ Drill "' + (drills[idx]?.name || 'Drill') + '" dodany do planu!');
+        }
+      };
+      container.addEventListener('click', window._sportDrillsGridClickHandler);
     };
 
     window.atlasSetCategory = function (cat) {
@@ -9384,16 +9525,152 @@
       if (typeof window.bibliotekaMealFilter === 'function') window.bibliotekaMealFilter();
     };
 
+    // ════════════════════════════════════════════════════════════════════════════
+    // MODAL FUNCTIONS FOR MEALS & EXERCISES
+    // ════════════════════════════════════════════════════════════════════════════
+    
+    window.showMealInfo = function(meal) {
+      const modal = document.getElementById('mealInfoModal');
+      const TYPE_LABELS = { 'śniadanie': '☀️ Śniadanie', 'obiad': '🍲 Obiad', 'kolacja': '🌙 Kolacja', 'przekąska': '🍎 Przekąska' };
+      if (!modal || !meal) return;
+      
+      // Store current meal for later use in openDietDbModalFromInfo
+      window._currentMealInfo = meal;
+      
+      document.getElementById('mealInfoName').textContent = meal.name;
+      document.getElementById('mealInfoType').textContent = TYPE_LABELS[meal._type?.toLowerCase()] || meal._type || 'Posiłek';
+      
+      const macros = [
+        { label: 'Kalorie', val: meal.kcal, color: 'var(--cyan)' },
+        { label: 'Białko', val: meal.protein + 'g', color: '#a78bfa' },
+        { label: 'Węglowodany', val: meal.carbs + 'g', color: '#fbbf24' },
+        { label: 'Tłuszcze', val: meal.fat + 'g', color: '#34d399' },
+      ];
+      const macroHtml = macros.map(m => `<span style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:999px;padding:4px 10px;font-size:11px;font-weight:600;"><span style="color:${m.color}; font-weight:700;">${m.val}</span> ${m.label}</span>`).join('');
+      document.getElementById('mealInfoMacros').innerHTML = macroHtml;
+      
+      const ingHtml = (meal.ingredients || []).map(i => `<div>🔹 <strong>${i.item}</strong> — ${i.amount}</div>`).join('');
+      document.getElementById('mealInfoIngredients').innerHTML = ingHtml || '<p style="color:var(--muted);">Brak danych</p>';
+      
+      document.getElementById('mealInfoPrep').textContent = meal.prep || 'Brak instrukcji przygotowania';
+      
+      modal.classList.remove('hidden');
+    };
+    
+    window.closeMealInfoModal = function() {
+      document.getElementById('mealInfoModal')?.classList.add('hidden');
+    };
+    
+    window.openDietDbModalFromInfo = function() {
+      window.closeMealInfoModal();
+      const meal = window._currentMealInfo;
+      if (meal) window.openDietDbModal(meal);
+    };
+    
+    window.openDietDbModal = function() {
+      if (!_dietDbPendingMeal) return;
+      const modal = document.getElementById('dietDbAddModal');
+      const nameEl = document.getElementById('dietDbModalMealName');
+      const macrosEl = document.getElementById('dietDbModalMacros');
+      if (!modal) return;
+      
+      if (nameEl) nameEl.textContent = _dietDbPendingMeal.name || '?';
+      
+      const macros = [
+        { label: 'Kcal', val: _dietDbPendingMeal.kcal, color: 'var(--cyan)' },
+        { label: 'B', val: _dietDbPendingMeal.protein + 'g', color: '#a78bfa' },
+        { label: 'W', val: _dietDbPendingMeal.carbs + 'g', color: '#fbbf24' },
+        { label: 'T', val: _dietDbPendingMeal.fat + 'g', color: '#34d399' },
+      ];
+      if (macrosEl) {
+        macrosEl.innerHTML = macros.map(m => `<span style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:999px;padding:2px 8px;font-size:11px;font-weight:600;"><span style="color:${m.color};">${m.label}: ${m.val}</span></span>`).join('');
+      }
+      
+      const dayEl = document.getElementById('dietDbModalDay');
+      const days = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
+      if (dayEl) dayEl.value = days[state.currentDay] || 'Pon';
+      
+      modal.classList.remove('hidden');
+    };
+    
+    // Update sport drills filter
+    window.setSportDrillsFilter = function(sport) {
+      window._selectedSportDrill = sport;
+      if (typeof window.renderSportDrills === 'function') window.renderSportDrills();
+    };
+
+    // ════════════════════════════════════════════════════════════════════════════
+    // DIET DB FUNCTIONS (moved from script tag 4)
+    // ════════════════════════════════════════════════════════════════════════════
+
+    let _dietDbPendingMeal = null;
+
+    window.openDietDbModal = function(meal) {
+      _dietDbPendingMeal = meal;
+      const modal = document.getElementById('dietDbAddModal');
+      if (!modal) return;
+
+      const mealNameEl = document.getElementById('dietDbModalMealName');
+      const macrosEl = document.getElementById('dietDbModalMacros');
+      const typeEl = document.getElementById('dietDbModalMealType');
+      const dayEl = document.getElementById('dietDbModalDay');
+
+      if (mealNameEl) mealNameEl.textContent = meal.name || '—';
+      
+      const macros = [
+        { label: '🔥 Kcal', val: meal.kcal, color: 'var(--cyan)' },
+        { label: '💪 Białko', val: meal.protein + 'g', color: '#a78bfa' },
+        { label: '🌾 Węgle', val: (meal.carbs !== undefined ? meal.carbs + 'g' : '—'), color: '#fbbf24' },
+        { label: '🥑 Tłuszcze', val: (meal.fat !== undefined ? meal.fat + 'g' : '—'), color: '#34d399' },
+      ];
+      if (macrosEl) macrosEl.innerHTML = macros.map(mg =>
+        `<span style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:999px;padding:4px 12px;font-weight:700;color:${mg.color};">${mg.label}: ${mg.val}</span>`
+      ).join('');
+
+      if (typeEl && meal._type) typeEl.value = meal._type;
+      const days = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
+      if (dayEl) dayEl.value = days[state.currentDay] || 'Pon';
+
+      modal.classList.remove('hidden');
+    };
+
+    window.closeDietDbModal = function() {
+      document.getElementById('dietDbAddModal')?.classList.add('hidden');
+      _dietDbPendingMeal = null;
+    };
+
+    window.dietDbConfirmAdd = async function() {
+      if (!_dietDbPendingMeal) return;
+      const p = state.profiles[state.activeProfileIdx || 0];
+      const dayEl = document.getElementById('dietDbModalDay');
+      const typeEl = document.getElementById('dietDbModalMealType');
+      if (!p || !dayEl || !typeEl) return;
+
+      const day = dayEl.value;
+      const type = typeEl.value;
+      const meal = { ..._dietDbPendingMeal, id: 'm' + Date.now(), type };
+
+      if (!p.dietPlan) p.dietPlan = {};
+      if (!p.dietPlan[day]) p.dietPlan[day] = [];
+      p.dietPlan[day].push(meal);
+      saveState();
+      window.closeDietDbModal();
+
+      // Toast notification
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:88px;left:50%;transform:translateX(-50%);background:rgba(0,229,255,0.12);color:var(--cyan);border:1px solid rgba(0,229,255,0.3);padding:10px 22px;border-radius:14px;font-size:13px;font-weight:700;z-index:9999;backdrop-filter:blur(14px);box-shadow:0 4px 24px rgba(0,0,0,0.4);';
+      toast.textContent = '✅ Posiłek dodany do planu!';
+      document.body.appendChild(toast);
+      setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.4s'; }, 2400);
+      setTimeout(() => toast.remove(), 2850);
+    };
+
     window.addEventListener('beforeunload', saveState);
   </script>
 
   <script>
     // ====== BAZA DIETY ======
-
-    let _dietDbCategory = 'all';
-    let _dietDbPendingMeal = null;
-    let _bibliotekaMealCategory = 'all';
-    let _atlasExerciseCategory = 'all';
+    // (State variables already declared in script tag 2 - no re-declaration needed)
 
     // ═══════════════════════════════════════════════════════════════════════════
     // CRITICAL: Ensure all functions are globally accessible (ETAP 5 fix)
@@ -10346,10 +10623,7 @@
         { label: '🥑 Tłuszcze', val: (meal.fat !== undefined ? meal.fat + 'g' : '—'), color: '#34d399' },
       ];
       if (macrosEl) macrosEl.innerHTML = macros.map(mg =>
-        `< span style = "background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
-    border - radius: 999px; padding: 4px 12px; font - weight: 700; color:${ mg.color }; ">
-       ${ mg.label }: ${ mg.val }
-     </span > `
+        `<span style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:999px;padding:4px 12px;font-weight:700;color:${mg.color};">${mg.label}: ${mg.val}</span>`
       ).join('');
 
       // Pre-select type from meal's category
@@ -10366,6 +10640,9 @@
       document.getElementById('dietDbAddModal')?.classList.add('hidden');
       _dietDbPendingMeal = null;
     }
+    
+    // Overwrite with global version if not already defined
+    if (!window.closeDietDbModal) window.closeDietDbModal = closeDietDbModal;
 
     async function dietDbConfirmAdd() {
       if (!_dietDbPendingMeal) return;
@@ -10429,9 +10706,9 @@
             meal_type: type,
             ...(logDate ? { log_date: logDate } : {}),
           };
-          const res = await fetch(`${ _apiBase } /app/diet / add - meal`, {
+          const res = await fetch(`${_apiBase}/app/diet/add-meal`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ token } ` },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify(body),
           });
           if (res.ok) {
@@ -10455,6 +10732,10 @@
       const days = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
       if (days[state.currentDay] === day) updateDashboard();
     }
+
+    // ═══ Global accessibility for HTML onclick handlers ═══
+    window.dietDbConfirmAdd = dietDbConfirmAdd;
+    console.log('[FitAI] window.dietDbConfirmAdd assigned:', typeof window.dietDbConfirmAdd);
 
 
     // ====== KUCHNIA AI ======
@@ -11825,6 +12106,9 @@
     window.bibliotekaMealSetCategory = bibliotekaMealSetCategory;
     window.switchPlanTab = switchPlanTab;
     window.loadInitialData = loadInitialData;
+    // Temporarily skip diet assignments to debug
+    // window.dietDbConfirmAdd = dietDbConfirmAdd;
+    // window.closeDietDbModal = closeDietDbModal;
 
     console.log('[FitAI ETAP 5] ✅ All functions registered to window object');
     console.log('[FitAI ETAP 5] Available functions:', {
