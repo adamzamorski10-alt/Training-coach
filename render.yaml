@@ -2,11 +2,9 @@ services:
   - type: web
     name: fitai-api
     runtime: python311
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn fitai_api:app --host 0.0.0.0 --port $PORT
+    buildCommand: pip install -r requirements.txt && alembic upgrade head
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
-      - key: ANTHROPIC_API_KEY
-        sync: false
       - key: GROQ_API_KEY
         sync: false
       - key: GEMINI_API_KEY
