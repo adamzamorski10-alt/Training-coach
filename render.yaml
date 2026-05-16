@@ -9,5 +9,7 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
+      - key: JWT_SECRET_KEY
+        sync: false
       - key: CORS_ORIGINS
         value: "https://adamzamorski10-alt.github.io,https://training-coach.netlify.app,https://training-coach-app.netlify.app,https://fitai-api-v83w.onrender.com,http://localhost:3000,http://127.0.0.1:3000"

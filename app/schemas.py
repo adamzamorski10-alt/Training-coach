@@ -123,6 +123,10 @@ class DailyLog(BaseModel):
     weight: Optional[float] = None
 
 
+class WaterLogRequest(BaseModel):
+    ml: int
+
+
 class AppDailyCheckinRequest(BaseModel):
     food: str = ""
     workout: str = ""

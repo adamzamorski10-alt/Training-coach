@@ -1573,25 +1573,6 @@ def get_logs(user_id: str, limit: int = 30):
         return {"logs": [l.to_dict() for l in logs[:limit]]}
 
 
-@router.post("/app/onboarding")
-def app_onboarding(payload: AppOnboardingRequest):
-    user_key = _web_user_key(payload.identity_id)
-    with Session(engine) as session:
-        user = _upsert_user_from_profile(
-            user_key,
-            payload.model_dump(),
-            session,
-            identity_id=payload.identity_id,
-            email=payload.email,
-        )
-        return {
-            "status": "ok",
-            "user_id": user_key,
-            "plan": user.plan,
-            "role": user.role,
-        }
-
-
 @router.post("/app/link-discord")
 def app_link_discord(payload: DiscordLinkRequest):
     user_key = _web_user_key(payload.identity_id)
@@ -1721,86 +1702,6 @@ def app_get_plan(user: UserDB = Depends(get_current_user)):
     except Exception as exc:
         print(f"[FitAI][app_get_plan] ERROR user_id={user.id} - {type(exc).__name__}: {exc}")
         return {**_EMPTY, "source": "error"}
-
-
-@router.post("/app/plan/generate", tags=["plan"])
-def app_generate_plan(payload: PlanGenerateRequest, user: UserDB = Depends(get_current_user)):
-    try:
-        with Session(engine) as session:
-            if not _is_profile_ready_for_plan(user):
-                raise HTTPException(status_code=400, detail="Najpierw uzupełnij pełny onboarding")
-            if payload.force or not user.weekly_plan_json:
-                plan = _build_weekly_plan(user)
-                user.set_dict("weekly_plan_json", plan)
-                # Wzbogać plan o sugestie progresji
-                for day in plan.get("days", []):
-                    exercises = day.get("workout", {}).get("exercises", [])
-                    if exercises:
-                        day["workout"]["exercises"] = _enrich_exercises_with_progression(exercises, user, session)
-                user.set_dict("weekly_plan_json", plan)
-                user.updated_at = datetime.now().isoformat()
-                try:
-                    session.commit()
-                except IntegrityError as exc:
-                    session.rollback()
-                    print(f"[FitAI][app_generate_plan] IntegrityError user_id={user.id}: {exc}")
-                    raise HTTPException(status_code=409, detail="Konflikt zapisu planu - spróbuj ponownie.")
-                except SQLAlchemyError as exc:
-                    session.rollback()
-                    print(f"[FitAI][app_generate_plan] SQLAlchemyError user_id={user.id}: {exc}")
-                    raise HTTPException(status_code=503, detail="Błąd bazy danych podczas zapisu planu.")
-            return {"status": "ok", "plan": user.get_dict("weekly_plan_json")}
-    except HTTPException:
-        raise   # przekaż HTTPException bez zmian
-    except Exception as exc:
-        print(f"[FitAI][app_generate_plan] ERROR user_id={user.id} - {type(exc).__name__}: {exc}")
-        raise HTTPException(status_code=500, detail="Błąd generowania planu. Spróbuj ponownie.")
-
-
-@router.post("/app/plan/swap", tags=["plan"])
-def app_swap_plan_item(payload: PlanSwapRequest, user: UserDB = Depends(get_current_user)):
-    with Session(engine) as session:
-        if not user.weekly_plan_json:
-            raise HTTPException(status_code=404, detail="Plan nie został jeszcze wygenerowany")
-        plan = user.get_dict("weekly_plan_json")
-        days = plan.get("days", [])
-        if not (0 <= payload.day_index < len(days)):
-            raise HTTPException(status_code=400, detail="Niepoprawny day_index")
-        day = days[payload.day_index]
-        section = (payload.section or "").strip().lower()
-
-        if section == "meal":
-            items = day.get("meals", [])
-            if not (0 <= payload.item_index < len(items)):
-                raise HTTPException(status_code=400, detail="Niepoprawny item_index dla meal")
-            item = items[payload.item_index]
-            alts = item.get("alternatives", [])
-            if not (0 <= payload.alternative_index < len(alts)):
-                raise HTTPException(status_code=400, detail="Niepoprawny alternative_index")
-            current = {"name": item["name"], "kcal": item["kcal"]}
-            selected = alts[payload.alternative_index]
-            item.update({"name": selected["name"], "kcal": selected["kcal"]})
-            item["alternatives"] = [a for i, a in enumerate(alts) if i != payload.alternative_index] + [current]
-
-        elif section == "exercise":
-            exercises = day.get("workout", {}).get("exercises", [])
-            if not (0 <= payload.item_index < len(exercises)):
-                raise HTTPException(status_code=400, detail="Niepoprawny item_index dla exercise")
-            item = exercises[payload.item_index]
-            alts = item.get("alternatives", [])
-            if not (0 <= payload.alternative_index < len(alts)):
-                raise HTTPException(status_code=400, detail="Niepoprawny alternative_index")
-            current = {k: item.get(k) for k in ["name", "sets", "reps", "notes", "how_to"]}
-            selected = alts[payload.alternative_index]
-            item.update({k: selected.get(k) for k in ["name", "sets", "reps", "notes", "how_to"]})
-            item["alternatives"] = [a for i, a in enumerate(alts) if i != payload.alternative_index] + [current]
-        else:
-            raise HTTPException(status_code=400, detail="section musi być meal albo exercise")
-
-        user.set_dict("weekly_plan_json", plan)
-        user.updated_at = datetime.now().isoformat()
-        session.commit()
-        return {"status": "ok", "plan": plan}
 
 
 @router.get("/app/sport-suggest-day", tags=["sport"])
@@ -2289,76 +2190,6 @@ def list_sport_drills(sport: str = "", specialization: str = ""):
             "available_sports": sorted(SPORT_DRILLS_DB.keys()),
             "message":          "Błąd serwera przy pobieraniu drilli. Spróbuj ponownie.",
         }
-
-
-@router.get("/app/drill-history", tags=["sport"])
-def get_drill_history(
-    drill_name: Optional[str] = None,
-    limit: int = 20,
-    user: UserDB = Depends(get_current_user),
-):
-    """
-    GET /app/drill-history?drill_name=...&limit=20
-
-    Zawsze zwraca HTTP 200.
-    Pusty wynik -> {"results": [], "progressions": {}} zamiast 500.
-    """
-    MODULE = "get_drill_history"  # used in print statements below
-
-    # Ogranicz limit do rozsądnej wartości
-    limit = max(1, min(limit, 200))
-
-    try:
-        with Session(engine) as session:
-            query = (
-                select(DrillResultDB)
-                .where(DrillResultDB.user_id == user.id)
-            )
-            if drill_name and drill_name.strip():
-                query = query.where(DrillResultDB.drill_name == drill_name.strip())
-
-            query = query.order_by(DrillResultDB.session_date.desc())
-            results = list(session.exec(query).all())[:limit]
-
-            if not results:
-                print(
-                    f"[FitAI][get_drill_history] user_id={user.id} drill='{drill_name}' "
-                    f"- brak wyników w bazie, zwracam []"
-                )
-                return {"results": [], "progressions": {}}
-
-            # Pogrupuj po nazwie drilla -> oblicz progresję
-            by_name: dict[str, list] = {}
-            for r in results:
-                by_name.setdefault(r.drill_name, []).append(r)
-
-            progressions = {}
-            for name, hist in by_name.items():
-                try:
-                    progressions[name] = _suggest_drill_progression(name, hist)
-                except Exception as prog_exc:
-                    print(
-                        f"[FitAI][get_drill_history] WARN progresja drill='{name}' "
-                        f"- {type(prog_exc).__name__}: {prog_exc}"
-                    )
-                    progressions[name] = {"tip": "Brak danych do analizy progresji."}
-
-            print(
-                f"[FitAI][get_drill_history] user_id={user.id} drill='{drill_name}' "
-                f"- wyniki={len(results)} unique_drills={len(by_name)}"
-            )
-            return {
-                "results":      [r.to_dict() for r in results],
-                "progressions": progressions,
-            }
-
-    except Exception as exc:
-        print(
-            f"[FitAI][get_drill_history] ERROR user_id={user.id} drill='{drill_name}' "
-            f"- {type(exc).__name__}: {exc}"
-        )
-        # Nigdy nie zwracaj 500 - frontend zawsze dostaje pustą listę
-        return {"results": [], "progressions": {}}
 
 
 @router.post("/billing/plan", tags=["billing"])

@@ -6,9 +6,10 @@ from datetime import date, datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import Session, select
 
-from app.auth import get_current_user
+from app.auth.dependencies import get_current_user
 from app.config import (
     _XP_CHECKIN,
     _XP_MEAL_LOGGED,
@@ -16,7 +17,7 @@ from app.config import (
     _XP_WEIGHT_LOGGED,
     _XP_WORKOUT_LOGGED,
 )
-from app.database import engine
+from app.database import engine, get_session
 from app.fitness.calculations import (
     _XP_WATER_LOGGED,
     _xp_to_next_level,
@@ -26,6 +27,7 @@ from app.fitness.calculations import (
     calc_daily_macros,
     day_type,
     day_type_label,
+    suggest_drill_progression,
     suggest_progression,
 )
 from app.fitness.dashboard import (
@@ -33,17 +35,49 @@ from app.fitness.dashboard import (
     compute_streak_days_from_logs,
     get_user_logs,
 )
-from app.models import DailyLogDB, ExerciseResultDB, UserDB
+from app.models import DailyLogDB, DrillResultDB, ExerciseResultDB, UserDB
 from app.schemas import (
     AppDailyCheckinRequest,
+    AppOnboardingRequest,
     DrillResultRequest,
     ExerciseResultRequest,
     ProfileUpdateRequest,
     SportConfigRequest,
+    WaterLogRequest,
 )
 from app.fitness.utils import upsert_user_from_profile
 
 router = APIRouter(prefix="/app", tags=["fitness"])
+
+
+def _web_user_key(identity_id: str) -> str:
+    return f"web:{identity_id}"
+
+
+@router.post("/onboarding")
+def app_onboarding(
+    payload: AppOnboardingRequest,
+    user: UserDB = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    user_key = _web_user_key(payload.identity_id)
+    try:
+        user = upsert_user_from_profile(
+            user_key,
+            payload.model_dump(),
+            session,
+            identity_id=payload.identity_id,
+            email=payload.email,
+        )
+        return {
+            "status": "ok",
+            "user_id": user_key,
+            "plan": user.plan,
+            "role": user.role,
+        }
+    except SQLAlchemyError as exc:
+        session.rollback()
+        raise HTTPException(status_code=500, detail="Database error — please try again later") from exc
 
 
 @router.get("/profile")
@@ -263,9 +297,10 @@ def get_exercise_history(
     exercise_name: Optional[str] = None,
     limit: int = 20,
     user: UserDB = Depends(get_current_user),
+    session: Session = Depends(get_session),
 ):
     """Zwraca historię wyników ćwiczeń z sugestią progresji."""
-    with Session(engine) as session:
+    try:
         query = select(ExerciseResultDB).where(ExerciseResultDB.user_id == user.id)
         if exercise_name:
             query = query.where(ExerciseResultDB.exercise_name == exercise_name)
@@ -281,12 +316,17 @@ def get_exercise_history(
             "results": [result.to_dict() for result in results],
             "progression": progression,
         }
+    except SQLAlchemyError as exc:
+        raise HTTPException(status_code=500, detail="Database error — please try again later") from exc
 
 
 @router.get("/progression-summary", tags=["exercise"])
-def get_progression_summary(user: UserDB = Depends(get_current_user)):
+def get_progression_summary(
+    user: UserDB = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
     """Zwraca podsumowanie progresji dla wszystkich ćwiczeń użytkownika."""
-    with Session(engine) as session:
+    try:
         all_results = list(
             session.exec(
                 select(ExerciseResultDB)
@@ -311,15 +351,21 @@ def get_progression_summary(user: UserDB = Depends(get_current_user)):
             )
 
         return {"exercises": summary, "total_exercises_tracked": len(summary)}
+    except SQLAlchemyError as exc:
+        raise HTTPException(status_code=500, detail="Database error — please try again later") from exc
 
 
 @router.post("/water", tags=["checkin"])
-def log_water(body: dict, user: UserDB = Depends(get_current_user)):
+def app_log_water(
+    body: WaterLogRequest,
+    user: UserDB = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
     """
     Inkrementuje spożycie wody w DailyLogDB dla bieżącego dnia.
     Body: {"ml": 250}
     """
-    ml = int(body.get("ml", 0))
+    ml = int(body.ml)
     if ml <= 0:
         raise HTTPException(status_code=400, detail="Ilość wody musi być większa niż 0 ml.")
     if ml > 5000:
@@ -328,7 +374,7 @@ def log_water(body: dict, user: UserDB = Depends(get_current_user)):
     liters_to_add = round(ml / 1000, 4)
     today = date.today()
 
-    with Session(engine) as session:
+    try:
         db_user = session.get(UserDB, user.id)
         if not db_user:
             raise HTTPException(status_code=404, detail="Użytkownik nie znaleziony")
@@ -361,6 +407,9 @@ def log_water(body: dict, user: UserDB = Depends(get_current_user)):
             xp_info = {"xp_earned": _XP_WATER_LOGGED, "total_xp": db_user.total_xp}
 
         session.commit()
+    except SQLAlchemyError as exc:
+        session.rollback()
+        raise HTTPException(status_code=500, detail="Database error — please try again later") from exc
 
     return {
         "status": "ok",
@@ -415,6 +464,69 @@ def log_drill_result(
         "drill": drill.to_dict(),
         "message": f"Drill '{req.drill_name}' zalogowany",
     }
+
+
+@router.get("/drill-history", tags=["sport"])
+def get_drill_history(
+    drill_name: Optional[str] = None,
+    limit: int = 20,
+    user: UserDB = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    """
+    GET /app/drill-history?drill_name=...&limit=20
+
+    Zawsze zwraca HTTP 200.
+    Pusty wynik → {"results": [], "progressions": {}} zamiast 500.
+    """
+    limit = max(1, min(limit, 200))
+
+    try:
+        query = select(DrillResultDB).where(DrillResultDB.user_id == user.id)
+        if drill_name and drill_name.strip():
+            query = query.where(DrillResultDB.drill_name == drill_name.strip())
+
+        query = query.order_by(DrillResultDB.session_date.desc())
+        results = list(session.exec(query).all())[:limit]
+
+        if not results:
+            print(
+                f"[FitAI][get_drill_history] user_id={user.id} drill='{drill_name}' "
+                f"— brak wyników w bazie, zwracam []"
+            )
+            return {"results": [], "progressions": {}}
+
+        by_name: dict[str, list] = {}
+        for result in results:
+            by_name.setdefault(result.drill_name, []).append(result)
+
+        progressions = {}
+        for name, history in by_name.items():
+            try:
+                progressions[name] = suggest_drill_progression(name, history)
+            except Exception as prog_exc:
+                print(
+                    f"[FitAI][get_drill_history] WARN progresja drill='{name}' "
+                    f"— {type(prog_exc).__name__}: {prog_exc}"
+                )
+                progressions[name] = {"tip": "Brak danych do analizy progresji."}
+
+        print(
+            f"[FitAI][get_drill_history] user_id={user.id} drill='{drill_name}' "
+            f"— wyniki={len(results)} unique_drills={len(by_name)}"
+        )
+        return {
+            "results": [result.to_dict() for result in results],
+            "progressions": progressions,
+        }
+    except SQLAlchemyError as exc:
+        raise HTTPException(status_code=500, detail="Database error — please try again later") from exc
+    except Exception as exc:
+        print(
+            f"[FitAI][get_drill_history] ERROR user_id={user.id} drill='{drill_name}' "
+            f"— {type(exc).__name__}: {exc}"
+        )
+        return {"results": [], "progressions": {}}
 
 
 @router.post("/sport-config")
