@@ -3808,81 +3808,7 @@
     })();
 
     // Ensure total number of drills/exercises across sports is at least N
-    window.ensureTotalExercises = function ensureTotalExercises(totalExercises = 500) {
-      try {
-        // Prefer any server/seed-provided SPORT_DRILLS (global) and merge into window.SPORT_DRILLS
-        const SD = window.SPORT_DRILLS = window.SPORT_DRILLS || (typeof SPORT_DRILLS !== 'undefined' ? SPORT_DRILLS : {});
-        if (typeof SPORT_DRILLS !== 'undefined' && SPORT_DRILLS && SD !== SPORT_DRILLS) {
-          // merge missing sports from global SPORT_DRILLS into window.SPORT_DRILLS
-          Object.entries(SPORT_DRILLS).forEach(([k, v]) => { if (!window.SPORT_DRILLS[k]) window.SPORT_DRILLS[k] = v; });
-        }
-        const sports = Object.keys(SD).filter(k => k !== 'meta' && k !== 'emoji');
-        if (!sports.length) return 0;
-        const currentTotal = sports.reduce((s, sport) => {
-          const meta = SD[sport] || {};
-          return s + Object.values(meta).reduce((ss, cat) => ss + ((cat && cat.drills && cat.drills.length) || 0), 0);
-        }, 0);
-        if (currentTotal >= totalExercises) { console.log('[FitAI] SPORT_DRILLS already >=', totalExercises); return currentTotal; }
-
-        const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-        let genIdx = 1;
-        let sportIdx = 0;
-        let total = currentTotal;
-        const equipmentPool = ['Hantle', 'Kettlebell', 'Guma oporowa', 'Ławka', 'Drążek', 'Piłka lekarska', 'Brak sprzętu'];
-        const musclesPool = ['nogi', 'plecy', 'klatka', 'barki', 'brzuch', 'pośladki', 'ramiona', 'core', 'hip'];
-
-        while (total < totalExercises) {
-          const sport = sports[sportIdx % sports.length];
-          const meta = SD[sport] = SD[sport] || {};
-          const genKey = '_generated';
-          if (!meta[genKey]) meta[genKey] = { emoji: '✨', label: 'Dodatkowe', drills: [] };
-          const dest = meta[genKey].drills;
-
-          const name = `Dodatkowe ćwiczenie ${total + 1}`;
-          const duration = `${rand(5, 45)} min`;
-          const setsNum = rand(1, 5);
-          const repsNum = rand(4, 20);
-          const sets = `${setsNum} serie po ${repsNum} powt.`;
-          const total_attempts = rand(1, 12);
-          const equipment = [equipmentPool[rand(0, equipmentPool.length - 1)]];
-          const muscles = [musclesPool[rand(0, musclesPool.length - 1)]];
-          const muscle_group = muscles[0];
-          const difficulty = ['łatwe', 'średnie', 'trudne'][rand(0, 2)];
-          const description = `Wygenerowane ćwiczenie dla sportu ${sport}. Skup się na technice i kontrolowanym ruchu.`;
-          const execution = `Wykonanie: Stań stabilnie, wykonaj ruch kontrolowany. Tempo: 2s ekscentryczna / 1s koncentryczna.`;
-          const benefits = ['poprawa siły', 'stabilizacja', 'poprawa wytrzymałości'];
-          const progression_tip = 'Zwiększ obciążenie lub liczbę powtórzeń co 1-2 tygodnie.';
-          const video_url = '';
-          const id = 'dgen' + Date.now().toString(36) + '_' + genIdx;
-
-          dest.push({
-            id,
-            name,
-            duration,
-            sets,
-            total_attempts,
-            equipment,
-            muscles,
-            muscle_group,
-            difficulty,
-            description,
-            execution,
-            benefits,
-            progression_tip,
-            video_url,
-            tags: ['wygenerowane'],
-            source: 'auto',
-            target_pct: rand(50, 95)
-          });
-
-          total += 1; genIdx += 1; sportIdx += 1;
-          if (genIdx > 20000) break; // safety
-        }
-        if (typeof window.normalizeSportDrillsPart1 === 'function') window.normalizeSportDrillsPart1();
-        console.log('[FitAI] ensureTotalExercises: total drills now', total);
-        return total;
-      } catch (e) { console.warn('[FitAI] ensureTotalExercises failed', e); return 0; }
-    };
+    window.ensureTotalExercises = function () { return 0; };
     // Auto-run at startup to ensure UI shows updated totals
     try { if (typeof window.ensureTotalExercises === 'function') window.ensureTotalExercises(500); } catch (e) { console.warn('[FitAI] initial ensureTotalExercises failed', e); }
 
@@ -16569,8 +16495,16 @@
       // ── Ładowanie danych seed (async — fetch fitai_seed_data.js + fallback) ──
       // loadInitialData() samo wywołuje bibliotekaMealFilter() i renderAtlas() po załadowaniu.
       loadInitialData();
-      // safety: ensureTotalExercises may need to run after seeds merge; call shortly after loadInitialData
-      setTimeout(() => { try { if (typeof window.ensureTotalExercises === 'function') window.ensureTotalExercises(500); } catch (e) { console.warn('[FitAI] deferred ensureTotalExercises failed', e); } }, 1200);
+      window.SPORT_DRILLS = window.SPORT_DRILLS || {};
+      Object.keys(window.SPORT_DRILLS).forEach((key) => { delete window.SPORT_DRILLS[key]; });
+      window.SPORT_DRILLS.basketball = window.SPORT_DRILLS.basketball || {};
+      window.SPORT_DRILLS.football = window.SPORT_DRILLS.football || {};
+      window.SPORT_DRILLS.tennis = window.SPORT_DRILLS.tennis || {};
+      window.SPORT_DRILLS.volleyball = window.SPORT_DRILLS.volleyball || {};
+      window.SPORT_DRILLS.boxing = window.SPORT_DRILLS.boxing || {};
+      window.SPORT_DRILLS.swimming = window.SPORT_DRILLS.swimming || {};
+      window.SPORT_DRILLS.running = window.SPORT_DRILLS.running || {};
+      window.SPORT_DRILLS.cycling = window.SPORT_DRILLS.cycling || {};
 
       // ── Atlas Ćwiczeń: wygeneruj przyciski kategorii z EXERCISE_DB ──────────
       // Musi być wywołane przed pierwszym wejściem na zakładkę Atlas.
