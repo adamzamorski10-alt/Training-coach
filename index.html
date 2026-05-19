@@ -7562,13 +7562,41 @@
       }
     }
 
+    // Local fallback validator for sections that render before late-bound helpers.
+    // Some runtime paths can call training rendering before the global helper exists.
+    function isValidVideoUrlSafe(url) {
+      if (typeof isValidVideoUrl === 'function') return isValidVideoUrl(url);
+      if (!url || typeof url !== 'string') return false;
+      const trimmed = url.trim();
+      if (!trimmed) return false;
+      const placeholders = ['#', '/', '.', 'http', 'https', 'http://', 'https://'];
+      if (placeholders.includes(trimmed)) return false;
+      if (!/^https?:\/\//i.test(trimmed)) return false;
+      try {
+        const parsed = new URL(trimmed);
+        return parsed.hostname.includes('.');
+      } catch {
+        return false;
+      }
+    }
+
     function refreshExercisesForSlider(count) {
       const trainingContainerForFinally = document.getElementById('planTrainingContainer');
       try {
         const p = getCurrentProfile();
+        console.log('[renderTraining] EXERCISE_DB:', typeof window.EXERCISE_DB);
+        console.log('[renderTraining] profile:', p || state?.profile || null);
+        console.log('[renderTraining] trainingPlan:', p?.trainingPlan || state?.weeklyPlan || null);
+        if (!p) {
+          throw new Error('Brak aktywnego profilu użytkownika.');
+        }
+        if (!p.trainingPlan || typeof p.trainingPlan !== 'object') {
+          p.trainingPlan = {};
+        }
         const day = state.days[state.currentDay];
         const excl = p.exclusions || [];
         const equip = p.equipment || [];
+        const exDb = (typeof window !== 'undefined' && window.EXERCISE_DB) ? window.EXERCISE_DB : {};
         const checkedKey = _checkedKey(p.id, state.currentDay);
         const checked = state.dayChecked[checkedKey] || {};
 
@@ -7597,7 +7625,7 @@
           const baseTemplate = PLAN_TEMPLATES[templateKey];
           const muscleFocus = p.muscleFocus || [];
           const dayGroups = (baseTemplate[day] || []).slice();
-          const priorityGroups = [...muscleFocus.filter(m => EXERCISE_DB[m] && !dayGroups.includes(m)), ...dayGroups];
+          const priorityGroups = [...muscleFocus.filter(m => exDb[m] && !dayGroups.includes(m)), ...dayGroups];
           const muscleGroups = priorityGroups.length > 0 ? priorityGroups : dayGroups;
           exercises = generateExercisesForDay(muscleGroups, equip, excl, count);
         }
@@ -7669,7 +7697,7 @@
           inner.appendChild(metaEl);
 
           // Tags + conditional Video button
-          const hasVideoUrl = isValidVideoUrl(e.video_url);
+          const hasVideoUrl = isValidVideoUrlSafe(e.video_url);
           if ((e.tags && e.tags.length) || hasVideoUrl) {
             const tagsDiv = document.createElement('div');
             tagsDiv.className = 'flex flex-wrap gap-1 mt-1.5';
@@ -7733,9 +7761,15 @@
           trainingContainer.style.transform = 'translateY(0)';
         });
       } catch (renderErr) {
-        console.error('[FitAI] refreshExercisesForSlider error:', renderErr);
+        console.error('[renderTraining] błąd:', renderErr);
         if (trainingContainerForFinally) {
-          trainingContainerForFinally.innerHTML = '<div class="glass p-6 text-center rounded-2xl"><div style="font-size:2rem;">\u26A0\uFE0F</div><p class="text-sm font-bold text-yellow-400 mt-2">Błąd ładowania treningu</p></div>';
+          const errMsg = renderErr && renderErr.message ? renderErr.message : 'Nieznany błąd renderowania.';
+          trainingContainerForFinally.innerHTML = `
+            <div class="glass p-4 rounded-xl" style="border:1px solid rgba(239,68,68,0.3);">
+              <p class="text-red-400 text-sm font-medium">⚠️ Błąd ładowania treningu</p>
+              <p class="text-gray-500 text-xs mt-1">${errMsg}</p>
+              <button onclick="location.reload()" class="mt-2 text-xs text-cyan-400 underline">Odśwież stronę</button>
+            </div>`;
         }
       } finally {
         // Zawsze wyczyść opacity:0 żeby kontener nie był niewidoczny po błędzie
