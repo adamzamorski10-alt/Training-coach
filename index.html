@@ -7600,6 +7600,25 @@
         const checkedKey = _checkedKey(p.id, state.currentDay);
         const checked = state.dayChecked[checkedKey] || {};
 
+        const hasDayTrainingPlan = Array.isArray(p.trainingPlan[day]);
+        if (!hasDayTrainingPlan) {
+          if (trainingContainerForFinally) {
+            trainingContainerForFinally.innerHTML = `
+              <div class="glass p-6 rounded-xl text-center">
+                <p class="text-2xl mb-2">💪</p>
+                <p class="text-white font-medium mb-1">Brak planu treningu</p>
+                <p class="text-gray-400 text-sm mb-4">
+                  Kliknij "Generuj plan AI" aby stworzyć plan na podstawie Twojego profilu
+                </p>
+                <button onclick="generatePlanAI()"
+                  class="btn-neon px-6 py-2 rounded-xl font-bold text-sm">
+                  🤖 Generuj plan AI
+                </button>
+              </div>`;
+          }
+          return;
+        }
+
         // Sprawdź czy użytkownik dodał ćwiczenia sportowe dla tego dnia
         const allSaved = p.trainingPlan[day] || [];
         const sportExercises = allSaved.filter(e => e._sport && !e.hidden);
@@ -7613,21 +7632,8 @@
           // Ćwiczenia ręcznie zapisane przez użytkownika — zawsze je pokazuj
           exercises = manualExercises.slice(0, count);
         } else {
-          // Brak zapisanych ćwiczeń — generuj z szablonu siłowego
-          const goals = p.goals || [];
-          const sports = p.sports || [];
-          let templateKey = 'default';
-          if (sports.includes('basketball')) templateKey = 'basketball';
-          else if (sports.includes('running')) templateKey = 'running';
-          else if (goals.includes('cardio')) templateKey = 'cardio';
-          else if (goals.includes('strength') || goals.includes('mass')) templateKey = 'strength';
-
-          const baseTemplate = PLAN_TEMPLATES[templateKey];
-          const muscleFocus = p.muscleFocus || [];
-          const dayGroups = (baseTemplate[day] || []).slice();
-          const priorityGroups = [...muscleFocus.filter(m => exDb[m] && !dayGroups.includes(m)), ...dayGroups];
-          const muscleGroups = priorityGroups.length > 0 ? priorityGroups : dayGroups;
-          exercises = generateExercisesForDay(muscleGroups, equip, excl, count);
+          // Plan istnieje, ale dany dzień nie ma widocznych ćwiczeń (np. rest day).
+          exercises = [];
         }
 
         // Store for modal
@@ -8051,23 +8057,37 @@
     function selectDay(i) {
       state.currentDay = i;
       renderDayCarousel();
-      // Sync exercise slider to actual saved count for this day
       const p = getCurrentProfile();
       const day = state.days[i];
-      const savedEx = (p.trainingPlan[day] || []).filter(e => !e.hidden);
-      if (savedEx.length > 0) {
-        const exCount = Math.min(Math.max(savedEx.length, 1), 8);
-        state.exerciseCount = exCount;
-        const exSlider = document.getElementById('exerciseCountSlider');
-        if (exSlider) { exSlider.value = exCount; updateExerciseSlider(exCount); return; }
+
+      // Dieta i Trening działają niezależnie — synchronizujemy tylko aktywny widok.
+      const activeCategory = state.planCategory || 'dieta';
+      const activeSub = state.planSubTab || 'plan';
+      const isTrainingPlanView = activeCategory === 'trening' && activeSub === 'plan';
+      const isDietPlanView = activeCategory === 'dieta' && activeSub === 'plan';
+
+      if (isTrainingPlanView) {
+        const savedEx = ((p.trainingPlan && p.trainingPlan[day]) || []).filter(e => !e.hidden);
+        if (savedEx.length > 0) {
+          const exCount = Math.min(Math.max(savedEx.length, 1), 8);
+          state.exerciseCount = exCount;
+          const exSlider = document.getElementById('exerciseCountSlider');
+          if (exSlider) exSlider.value = exCount;
+        }
+        loadPlanForDay();
+        return;
       }
-      const savedMeals = (p.dietPlan[day] || []).filter(m => !m.hidden);
-      if (savedMeals.length > 0) {
-        const mCount = Math.min(Math.max(savedMeals.length, 2), 7);
-        p.mealsPerDay = mCount;
-        const mSlider = document.getElementById('mealCountSlider');
-        if (mSlider) { mSlider.value = mCount; updateMealSlider(mCount, false); }
+
+      if (isDietPlanView) {
+        const savedMeals = ((p.dietPlan && p.dietPlan[day]) || []).filter(m => !m.hidden);
+        if (savedMeals.length > 0) {
+          const mCount = Math.min(Math.max(savedMeals.length, 2), 7);
+          p.mealsPerDay = mCount;
+          const mSlider = document.getElementById('mealCountSlider');
+          if (mSlider) mSlider.value = mCount;
+        }
       }
+
       loadPlanForDay();
     }
     function prevDay() { selectDay((state.currentDay - 1 + 7) % 7); }
@@ -8085,6 +8105,13 @@
      * bez zawieszania aplikacji.
      */
     async function generatePlanAI() {
+      const p = typeof getCurrentProfile === 'function' ? getCurrentProfile()
+        : (state.profile || state.users?.[state.currentUser]);
+      if (!p) {
+        alert('Uzupełnij najpierw profil użytkownika w zakładce Profil.');
+        return;
+      }
+
       const token = localStorage.getItem('fitai_token');
       const userId = localStorage.getItem('fitai_user_id') || state.identityId || null;
       const apiBase = window.API_BASE || 'http://localhost:8000';
@@ -8092,28 +8119,41 @@
       const dietOut = document.getElementById('aiPlanDietOutput');
       const trainOut = document.getElementById('aiPlanTrainingOutput');
 
-      // Validate token — required to authenticate API call
-      if (!token) {
-        console.error('[generatePlanAI] Brak tokenu — użytkownik nie jest zalogowany.',
-          { fitai_token: token, fitai_user_id: userId });
-        showToast('⚠️ Zaloguj się, aby wygenerować plan AI');
-        return;
-      }
-
-      // Warn (but don't block) if user_id is missing — backend may derive it from token
-      if (!userId) {
-        console.warn('[generatePlanAI] Brak fitai_user_id w localStorage — plan może być anonimowy.');
-      }
-
-      // ── Stan ładowania ───────────────────────────────────────────────────
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = '⏳ Generuję…';
-      }
-      if (dietOut) { dietOut.textContent = 'Generowanie planu diety…'; dietOut.className = 'ai-plan-output loading'; }
-      if (trainOut) { trainOut.textContent = 'Generowanie planu treningu…'; trainOut.className = 'ai-plan-output loading'; }
+      if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Generuję...'; }
 
       try {
+        // Lokalny fallback bez tokenu/API
+        if (typeof generateFullPlanForProfile === 'function' && !token) {
+          const generated = generateFullPlanForProfile(p);
+          p.dietPlan = generated?.dietPlan || {};
+          p.trainingPlan = generated?.trainingPlan || {};
+          if (typeof saveState === 'function') saveState();
+          if (typeof updateDashboard === 'function') updateDashboard();
+          if (typeof renderCurrentDay === 'function') renderCurrentDay();
+          if (typeof renderPlanWeekView === 'function') renderPlanWeekView();
+          if (typeof loadPlanForDay === 'function') loadPlanForDay();
+          showToastMsg('✅ Plan wygenerowany!', 'success');
+          return;
+        }
+
+        // Integracja z istniejącym adapterem API
+        if (typeof fetchAndRenderPlan === 'function' && token) {
+          await fetchAndRenderPlan(true);
+          showToastMsg('✅ Plan wygenerowany!', 'success');
+          return;
+        }
+
+        if (!token) {
+          throw new Error('Brak tokenu i brak lokalnego generatora planu.');
+        }
+
+        if (!userId) {
+          console.warn('[generatePlanAI] Brak fitai_user_id w localStorage — plan może być anonimowy.');
+        }
+
+        if (dietOut) { dietOut.textContent = 'Generowanie planu diety…'; dietOut.className = 'ai-plan-output loading'; }
+        if (trainOut) { trainOut.textContent = 'Generowanie planu treningu…'; trainOut.className = 'ai-plan-output loading'; }
+
         const res = await fetch(`${apiBase}/app/plan/generate-ai-text`, {
           method: 'POST',
           headers: {
@@ -8123,7 +8163,6 @@
         });
 
         if (!res.ok) {
-          // Explicit console.error with full status details for debugging
           const errData = await res.json().catch(() => ({ detail: `HTTP ${res.status} ${res.statusText}` }));
           const errMsg = errData.detail || errData.message || `HTTP ${res.status} ${res.statusText}`;
           console.error(`[generatePlanAI] API error: ${res.status} ${res.statusText} — ${errMsg}`, {
@@ -8135,59 +8174,61 @@
         }
 
         const data = await res.json();
-
-        // ── Parsowanie JSON: data.plan może być stringiem lub obiektem ──────
         let plan;
         if (typeof data.plan === 'string') {
-          // Backend zwrócił plan jako string — parsuj go
           try {
             plan = JSON.parse(data.plan);
           } catch (_parseErr) {
-            // Plan jest tekstem, nie JSON — traktuj jako dietę
             console.warn('[generatePlanAI] data.plan nie jest JSON, używam jako tekst:', _parseErr.message);
             plan = { diet: data.plan, training: '' };
           }
         } else if (data.plan && typeof data.plan === 'object') {
-          // Plan już jest obiektem (prawidłowa ścieżka)
           plan = data.plan;
         } else {
           throw new Error('Nieprawidłowy format odpowiedzi z serwera');
         }
 
-        // Upewnij się że klucze istnieją
         const dietText = (plan.diet || '').trim();
         const trainingText = (plan.training || '').trim();
-
         if (!dietText && !trainingText) {
           throw new Error('AI zwróciło pusty plan — spróbuj ponownie');
         }
 
-        // ── Renderuj plan w UI ────────────────────────────────────────────
         renderAIPlan(dietText, trainingText);
-
-        // Jeśli plan ma flagę błędu parsowania z backendu, pokaż ostrzeżenie
-        if (plan._parse_error) {
-          showToast('⚠️ AI zwróciło niestandarowy format — wyświetlono plan zastępczy');
-        } else {
-          showToast('✅ Plan AI wygenerowany pomyślnie!');
+        showToastMsg('✅ Plan wygenerowany!', 'success');
+      } catch (e) {
+        console.error('[generatePlanAI]', e);
+        if (dietOut) {
+          dietOut.textContent = `⚠️ Błąd generowania planu: ${e.message}`;
+          dietOut.className = 'ai-plan-output error';
         }
-
-      } catch (err) {
-        console.error('[generatePlanAI] Błąd:', err.message);
-
-        // Nie zawiesza aplikacji — pokazuje komunikat błędu w miejscu outputu
-        const errMsg = `⚠️ Błąd generowania planu: ${err.message}\n\nSprawdź połączenie z serwerem i spróbuj ponownie.`;
-        if (dietOut) { dietOut.textContent = errMsg; dietOut.className = 'ai-plan-output error'; }
-        if (trainOut) { trainOut.textContent = '—'; trainOut.className = 'ai-plan-output error'; }
-
-        showToast(`❌ Błąd: ${err.message}`);
+        if (trainOut) {
+          trainOut.textContent = '—';
+          trainOut.className = 'ai-plan-output error';
+        }
+        showToastMsg('❌ Błąd generowania planu: ' + e.message, 'error');
       } finally {
-        // Zawsze przywróć przycisk
         if (btn) {
           btn.disabled = false;
-          btn.textContent = '🤖 Generuj plan AI';
+          btn.innerHTML = '🤖 Generuj plan AI';
         }
       }
+    }
+
+    function showToastMsg(msg, type) {
+      if (typeof showToast === 'function') {
+        showToast(msg, type);
+        return;
+      }
+      const t = document.createElement('div');
+      t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);'
+        + 'padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;z-index:9999;'
+        + (type === 'error'
+          ? 'background:rgba(239,68,68,0.9);color:#fff;'
+          : 'background:rgba(0,229,255,0.15);color:#00e5ff;border:1px solid rgba(0,229,255,0.3);');
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 3000);
     }
 
     /**
@@ -11774,6 +11815,23 @@
     }
 
     function openEditPlanModal() {
+      const days = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
+      const currentDayKey = days[state.currentDay || 0];
+
+      // Fallback for alternate modal implementation
+      const dayEditModal = document.getElementById('dayEditModal');
+      if (dayEditModal) {
+        if (typeof openDayEditModal === 'function') openDayEditModal(currentDayKey);
+        else dayEditModal.classList.remove('hidden');
+        return;
+      }
+
+      const editPlanModal = document.getElementById('editPlanModal');
+      if (!editPlanModal) {
+        showToastMsg(`Edycja dnia ${currentDayKey} — funkcja w przygotowaniu`, 'info');
+        return;
+      }
+
       const p = getCurrentProfile();
       const day = state.days[state.currentDay];
 
