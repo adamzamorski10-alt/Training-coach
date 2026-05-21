@@ -2977,870 +2977,963 @@
           </div>
         </div>
 
-        </section>
+      </section>
 
-        <section id="tab-profile" class="hidden space-y-6">
-          <h3 class="text-3xl font-bold" style="font-family:'Syne',sans-serif;">Profil</h3>
-          <div class="glass p-2 flex gap-2 overflow-x-auto">
-            <button onclick="switchProfileTab('data')" data-ptab="data"
-              class="profile-tab active px-4 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap">👤
-              Dane</button>
-            <button onclick="switchProfileTab('goals')" data-ptab="goals"
-              class="profile-tab px-4 py-2 rounded-xl text-sm font-medium text-gray-400 transition-colors whitespace-nowrap">🎯
-              Cele</button>
-            <button onclick="switchProfileTab('prefs')" data-ptab="prefs"
-              class="profile-tab px-4 py-2 rounded-xl text-sm font-medium text-gray-400 transition-colors whitespace-nowrap">⚙️
-              Preferencje</button>
-            <button onclick="switchProfileTab('payments')" data-ptab="payments"
-              class="profile-tab px-4 py-2 rounded-xl text-sm font-medium text-gray-400 transition-colors whitespace-nowrap">💳
-              Płatności</button>
-            <button onclick="switchProfileTab('videos')" data-ptab="videos"
-              class="profile-tab px-4 py-2 rounded-xl text-sm font-medium text-gray-400 transition-colors whitespace-nowrap">📹
-              Wideo</button>
+      <section id="tab-profile" class="hidden space-y-6">
+        <h3 class="text-3xl font-bold" style="font-family:'Syne',sans-serif;">Profil</h3>
+        <div class="glass p-2 flex gap-2 overflow-x-auto">
+          <button onclick="switchProfileTab('data')" data-ptab="data"
+            class="profile-tab active px-4 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap">👤
+            Dane</button>
+          <button onclick="switchProfileTab('preferences')" data-ptab="preferences"
+            class="profile-tab px-4 py-2 rounded-xl text-sm font-medium text-gray-400 transition-colors whitespace-nowrap">
+            ⚙️ Preferencje
+          </button>
+          <button onclick="switchProfileTab('payments')" data-ptab="payments"
+            class="profile-tab px-4 py-2 rounded-xl text-sm font-medium text-gray-400 transition-colors whitespace-nowrap">💳
+            Płatności</button>
+        </div>
+
+        <!-- DATA tab -->
+        <div id="ptab-data" class="profile-tab-panel space-y-6">
+
+          <!-- Karta powitalna z awatarem -->
+          <div class="glass rounded-2xl p-6 flex items-center gap-5" style="border:1px solid rgba(0,229,255,0.2);
+                     background:linear-gradient(135deg,rgba(0,229,255,0.04),rgba(124,58,237,0.04));">
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 text-3xl" style="background:linear-gradient(135deg,rgba(0,229,255,0.15),rgba(124,58,237,0.15));
+                       border:1px solid rgba(0,229,255,0.3);">
+              👤
+            </div>
+            <div class="flex-1 min-w-0">
+              <h4 id="profileWelcomeName" class="text-xl font-bold text-white truncate"
+                style="font-family:'Syne',sans-serif;">
+                Cześć, Użytkowniku!
+              </h4>
+              <p id="profileWelcomeSub" class="text-sm text-gray-400 mt-0.5"></p>
+            </div>
+            <div class="flex-shrink-0 text-right">
+              <p class="text-xs text-gray-500 uppercase tracking-wider">Poziom</p>
+              <p class="text-lg font-bold text-cyan-400" id="profileLevelDisplay">—</p>
+            </div>
           </div>
 
-          <!-- DATA tab -->
-          <div id="ptab-data" class="profile-tab-panel space-y-6">
+          <!-- Główna siatka: Dane osobowe + Kalkulator -->
+          <div class="grid md:grid-cols-2 gap-6">
 
-            <!-- Karta powitalna z awatarem -->
-            <div class="glass rounded-2xl p-6 flex items-center gap-5" style="border:1px solid rgba(0,229,255,0.2);
-                     background:linear-gradient(135deg,rgba(0,229,255,0.04),rgba(124,58,237,0.04));">
-              <div class="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 text-3xl" style="background:linear-gradient(135deg,rgba(0,229,255,0.15),rgba(124,58,237,0.15));
-                       border:1px solid rgba(0,229,255,0.3);">
-                👤
-              </div>
-              <div class="flex-1 min-w-0">
-                <h4 id="profileWelcomeName" class="text-xl font-bold text-white truncate"
-                  style="font-family:'Syne',sans-serif;">
-                  Cześć, Użytkowniku!
+            <!-- LEWA: Dane osobowe -->
+            <div class="glass rounded-2xl overflow-hidden" style="border:1px solid rgba(0,229,255,0.12);">
+
+              <div class="px-5 py-4" style="background:rgba(0,229,255,0.04);
+                         border-bottom:1px solid rgba(255,255,255,0.07);">
+                <h4 class="text-sm font-bold text-white uppercase tracking-wider">
+                  📋 Dane osobowe
                 </h4>
-                <p id="profileWelcomeSub" class="text-sm text-gray-400 mt-0.5">
-                  Uzupełnij swój profil aby otrzymać spersonalizowany plan
-                </p>
               </div>
-              <div class="flex-shrink-0 text-right">
-                <p class="text-xs text-gray-500 uppercase tracking-wider">Poziom</p>
-                <p class="text-lg font-bold text-cyan-400" id="profileLevelDisplay">—</p>
+
+              <div class="p-5 space-y-4">
+
+                <!-- Imię -->
+                <div>
+                  <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
+                    Imię
+                  </label>
+                  <input type="text" id="pName" placeholder="Twoje imię"
+                    class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
+                    style="background:rgba(255,255,255,0.06);
+                             border:1px solid rgba(255,255,255,0.1);"
+                    onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
+                    onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                </div>
+
+                <!-- Wiek + Płeć -->
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
+                      Wiek
+                    </label>
+                    <input type="number" id="pAge" placeholder="25" min="10" max="99"
+                      class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
+                      style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);"
+                      onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
+                      onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
+                      Płeć
+                    </label>
+                    <select id="pGender"
+                      class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
+                      style="background:rgba(20,20,30,0.95);border:1px solid rgba(255,255,255,0.1);"
+                      onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
+                      onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                      <option value="mężczyzna">Mężczyzna</option>
+                      <option value="kobieta">Kobieta</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Wzrost + Waga -->
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
+                      Wzrost (cm)
+                    </label>
+                    <input type="number" id="pHeight" placeholder="175" min="100" max="250"
+                      class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
+                      style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);"
+                      onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
+                      onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
+                      Waga (kg)
+                    </label>
+                    <input type="number" id="pWeight" placeholder="70" min="30" max="300" step="0.1"
+                      class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
+                      style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);"
+                      onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
+                      onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                  </div>
+                </div>
+
+                <!-- Waga docelowa + Aktywność -->
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
+                      Waga cel (kg)
+                    </label>
+                    <input type="number" id="pTargetWeight" placeholder="65" min="30" max="300" step="0.1"
+                      class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
+                      style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);"
+                      onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
+                      onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
+                      Aktywność
+                    </label>
+                    <select id="pFrequency"
+                      class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
+                      style="background:rgba(20,20,30,0.95);border:1px solid rgba(255,255,255,0.1);"
+                      onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
+                      onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                      <option value="sedentaryczny">Brak aktywności</option>
+                      <option value="1-2">1–2 razy/tydz.</option>
+                      <option value="3-4" selected>3–4 razy/tydz.</option>
+                      <option value="5-6">5–6 razy/tydz.</option>
+                      <option value="codziennie">Codziennie</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Posiłki/dzień + Dieta -->
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
+                      Posiłki/dzień
+                    </label>
+                    <input type="number" id="pMealsPerDay" placeholder="4" min="2" max="8"
+                      class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
+                      style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);"
+                      onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
+                      onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
+                      Typ diety
+                    </label>
+                    <select id="pDietType"
+                      class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
+                      style="background:rgba(20,20,30,0.95);border:1px solid rgba(255,255,255,0.1);"
+                      onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
+                      onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                      <option value="standard">Standardowa</option>
+                      <option value="highprotein">High-protein</option>
+                      <option value="lowcarb">Low-carb</option>
+                      <option value="vege">Wegetariańska</option>
+                      <option value="vegan">Wegańska</option>
+                      <option value="keto">Keto</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Cel główny -->
+                <div>
+                  <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
+                    Cel główny
+                  </label>
+                  <input type="text" id="pGoal" placeholder="np. Redukcja tkanki tłuszczowej"
+                    class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
+                    style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);"
+                    onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
+                    onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                </div>
+
+                <!-- Alergie -->
+                <div>
+                  <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
+                    Alergie / wykluczone produkty
+                  </label>
+                  <input type="text" id="pAllergies" placeholder="np. gluten, orzeszki ziemne, nabiał"
+                    class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
+                    style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);"
+                    onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
+                    onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                </div>
+
               </div>
             </div>
 
-            <!-- Główna siatka: Dane osobowe + Kalkulator -->
-            <div class="grid md:grid-cols-2 gap-6">
+            <!-- PRAWA: Kalkulator + Zapisz -->
+            <div class="space-y-5">
 
-              <!-- LEWA: Dane osobowe -->
-              <div class="glass rounded-2xl overflow-hidden" style="border:1px solid rgba(0,229,255,0.12);">
-
-                <div class="px-5 py-4" style="background:rgba(0,229,255,0.04);
-                         border-bottom:1px solid rgba(255,255,255,0.07);">
+              <!-- Kalkulator makro -->
+              <div class="glass rounded-2xl overflow-hidden" style="border:1px solid rgba(124,58,237,0.2);">
+                <div class="px-5 py-4" style="background:rgba(124,58,237,0.04);
+                           border-bottom:1px solid rgba(255,255,255,0.07);">
                   <h4 class="text-sm font-bold text-white uppercase tracking-wider">
-                    📋 Dane osobowe
+                    📊 Kalkulator makro
                   </h4>
+                  <p class="text-xs text-gray-500 mt-0.5">
+                    Aktualizuje się automatycznie
+                  </p>
                 </div>
-
-                <div class="p-5 space-y-4">
-
-                  <!-- Imię -->
-                  <div>
-                    <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
-                      Imię
-                    </label>
-                    <input type="text" id="pName" placeholder="Twoje imię"
-                      class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
-                      style="background:rgba(255,255,255,0.06);
-                             border:1px solid rgba(255,255,255,0.1);"
-                      onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
-                      onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                <div class="p-5 space-y-3">
+                  <div class="flex justify-between items-center py-2"
+                    style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <span class="text-sm text-gray-400">BMR (spoczynek)</span>
+                    <span class="font-bold text-white" id="calcBMR">—</span>
                   </div>
-
-                  <!-- Wiek + Płeć -->
-                  <div class="grid grid-cols-2 gap-3">
-                    <div>
-                      <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
-                        Wiek
-                      </label>
-                      <input type="number" id="pAge" placeholder="25" min="10" max="99"
-                        class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
-                        style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);"
-                        onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
-                        onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
-                    </div>
-                    <div>
-                      <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
-                        Płeć
-                      </label>
-                      <select id="pGender"
-                        class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
-                        style="background:rgba(20,20,30,0.95);border:1px solid rgba(255,255,255,0.1);"
-                        onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
-                        onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
-                        <option value="mężczyzna">Mężczyzna</option>
-                        <option value="kobieta">Kobieta</option>
-                      </select>
-                    </div>
+                  <div class="flex justify-between items-center py-2"
+                    style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <span class="text-sm text-gray-400">TDEE (z aktywnością)</span>
+                    <span class="font-bold text-cyan-400" id="calcTDEE">—</span>
                   </div>
-
-                  <!-- Wzrost + Waga -->
-                  <div class="grid grid-cols-2 gap-3">
-                    <div>
-                      <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
-                        Wzrost (cm)
-                      </label>
-                      <input type="number" id="pHeight" placeholder="175" min="100" max="250"
-                        class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
-                        style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);"
-                        onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
-                        onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
-                    </div>
-                    <div>
-                      <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
-                        Waga (kg)
-                      </label>
-                      <input type="number" id="pWeight" placeholder="70" min="30" max="300" step="0.1"
-                        class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
-                        style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);"
-                        onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
-                        onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
-                    </div>
+                  <div class="flex justify-between items-center py-2"
+                    style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <span class="text-sm text-gray-400">Białko docelowe</span>
+                    <span class="font-bold text-violet-400" id="calcProtein">—</span>
                   </div>
-
-                  <!-- Waga docelowa + Aktywność -->
-                  <div class="grid grid-cols-2 gap-3">
-                    <div>
-                      <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
-                        Waga cel (kg)
-                      </label>
-                      <input type="number" id="pTargetWeight" placeholder="65" min="30" max="300" step="0.1"
-                        class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
-                        style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);"
-                        onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
-                        onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
-                    </div>
-                    <div>
-                      <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
-                        Aktywność
-                      </label>
-                      <select id="pFrequency"
-                        class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
-                        style="background:rgba(20,20,30,0.95);border:1px solid rgba(255,255,255,0.1);"
-                        onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
-                        onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
-                        <option value="sedentaryczny">Brak aktywności</option>
-                        <option value="1-2">1–2 razy/tydz.</option>
-                        <option value="3-4" selected>3–4 razy/tydz.</option>
-                        <option value="5-6">5–6 razy/tydz.</option>
-                        <option value="codziennie">Codziennie</option>
-                      </select>
-                    </div>
+                  <div class="flex justify-between items-center py-3 mt-1 rounded-xl px-3"
+                    style="background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.15);">
+                    <span class="text-sm font-bold text-white">🎯 Cel kaloryczny</span>
+                    <span class="font-bold text-lg" id="calcGoalKcal" style="background:linear-gradient(135deg,#00e5ff,#7c3aed);
+                               -webkit-background-clip:text;-webkit-text-fill-color:transparent;">
+                      —
+                    </span>
                   </div>
-
-                  <!-- Posiłki/dzień + Dieta -->
-                  <div class="grid grid-cols-2 gap-3">
-                    <div>
-                      <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
-                        Posiłki/dzień
-                      </label>
-                      <input type="number" id="pMealsPerDay" placeholder="4" min="2" max="8"
-                        class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
-                        style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);"
-                        onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
-                        onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
-                    </div>
-                    <div>
-                      <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
-                        Typ diety
-                      </label>
-                      <select id="pDietType"
-                        class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
-                        style="background:rgba(20,20,30,0.95);border:1px solid rgba(255,255,255,0.1);"
-                        onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
-                        onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
-                        <option value="standard">Standardowa</option>
-                        <option value="highprotein">High-protein</option>
-                        <option value="lowcarb">Low-carb</option>
-                        <option value="vege">Wegetariańska</option>
-                        <option value="vegan">Wegańska</option>
-                        <option value="keto">Keto</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <!-- Cel główny -->
-                  <div>
-                    <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
-                      Cel główny
-                    </label>
-                    <input type="text" id="pGoal" placeholder="np. Redukcja tkanki tłuszczowej"
-                      class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
-                      style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);"
-                      onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
-                      onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
-                  </div>
-
-                  <!-- Alergie -->
-                  <div>
-                    <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
-                      Alergie / wykluczone produkty
-                    </label>
-                    <input type="text" id="pAllergies" placeholder="np. gluten, orzeszki ziemne, nabiał"
-                      class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
-                      style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);"
-                      onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
-                      onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
-                  </div>
-
                 </div>
               </div>
 
-              <!-- PRAWA: Kalkulator + Zapisz -->
-              <div class="space-y-5">
-
-                <!-- Kalkulator makro -->
-                <div class="glass rounded-2xl overflow-hidden" style="border:1px solid rgba(124,58,237,0.2);">
-                  <div class="px-5 py-4" style="background:rgba(124,58,237,0.04);
+              <!-- Szybkie statystyki -->
+              <div class="glass rounded-2xl overflow-hidden" style="border:1px solid rgba(255,255,255,0.07);">
+                <div class="px-5 py-4" style="background:rgba(255,255,255,0.02);
                            border-bottom:1px solid rgba(255,255,255,0.07);">
-                    <h4 class="text-sm font-bold text-white uppercase tracking-wider">
-                      📊 Kalkulator makro
-                    </h4>
-                    <p class="text-xs text-gray-500 mt-0.5">
-                      Aktualizuje się automatycznie
-                    </p>
+                  <h4 class="text-sm font-bold text-white uppercase tracking-wider">
+                    ⚡ Aktywność
+                  </h4>
+                </div>
+                <div class="p-5 grid grid-cols-2 gap-3">
+                  <div class="text-center p-3 rounded-xl"
+                    style="background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.12);">
+                    <p class="text-2xl font-bold text-cyan-400" id="profileStreakVal">—</p>
+                    <p class="text-xs text-gray-500 mt-0.5">dni streak</p>
                   </div>
-                  <div class="p-5 space-y-3">
-                    <div class="flex justify-between items-center py-2"
-                      style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                      <span class="text-sm text-gray-400">BMR (spoczynek)</span>
-                      <span class="font-bold text-white" id="calcBMR">—</span>
-                    </div>
-                    <div class="flex justify-between items-center py-2"
-                      style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                      <span class="text-sm text-gray-400">TDEE (z aktywnością)</span>
-                      <span class="font-bold text-cyan-400" id="calcTDEE">—</span>
-                    </div>
-                    <div class="flex justify-between items-center py-2"
-                      style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                      <span class="text-sm text-gray-400">Białko docelowe</span>
-                      <span class="font-bold text-violet-400" id="calcProtein">—</span>
-                    </div>
-                    <div class="flex justify-between items-center py-3 mt-1 rounded-xl px-3"
-                      style="background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.15);">
-                      <span class="text-sm font-bold text-white">🎯 Cel kaloryczny</span>
-                      <span class="font-bold text-lg" id="calcGoalKcal" style="background:linear-gradient(135deg,#00e5ff,#7c3aed);
-                               -webkit-background-clip:text;-webkit-text-fill-color:transparent;">
-                        —
-                      </span>
-                    </div>
+                  <div class="text-center p-3 rounded-xl"
+                    style="background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.12);">
+                    <p class="text-2xl font-bold text-violet-400" id="profileXpVal">—</p>
+                    <p class="text-xs text-gray-500 mt-0.5">punktów XP</p>
                   </div>
                 </div>
+              </div>
 
-                <!-- Szybkie statystyki -->
-                <div class="glass rounded-2xl overflow-hidden" style="border:1px solid rgba(255,255,255,0.07);">
-                  <div class="px-5 py-4" style="background:rgba(255,255,255,0.02);
-                           border-bottom:1px solid rgba(255,255,255,0.07);">
-                    <h4 class="text-sm font-bold text-white uppercase tracking-wider">
-                      ⚡ Aktywność
-                    </h4>
-                  </div>
-                  <div class="p-5 grid grid-cols-2 gap-3">
-                    <div class="text-center p-3 rounded-xl"
-                      style="background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.12);">
-                      <p class="text-2xl font-bold text-cyan-400" id="profileStreakVal">—</p>
-                      <p class="text-xs text-gray-500 mt-0.5">dni streak</p>
-                    </div>
-                    <div class="text-center p-3 rounded-xl"
-                      style="background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.12);">
-                      <p class="text-2xl font-bold text-violet-400" id="profileXpVal">—</p>
-                      <p class="text-xs text-gray-500 mt-0.5">punktów XP</p>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Przycisk zapisu -->
-                <button onclick="saveProfileData()" class="w-full py-3.5 rounded-xl font-bold text-sm transition-all"
-                  style="background:linear-gradient(135deg,rgba(0,229,255,0.2),rgba(124,58,237,0.2));
+              <!-- Przycisk zapisu -->
+              <button onclick="saveProfileData()" class="w-full py-3.5 rounded-xl font-bold text-sm transition-all"
+                style="background:linear-gradient(135deg,rgba(0,229,255,0.2),rgba(124,58,237,0.2));
                          border:1px solid rgba(0,229,255,0.4);
                          color:#00e5ff;
                          letter-spacing:0.03em;">
-                  💾 Zapisz profil
-                </button>
+                💾 Zapisz profil
+              </button>
 
-                <!-- Zmiana hasła -->
-                <button onclick="switchProfileTab('security')"
-                  class="w-full py-2.5 rounded-xl text-sm font-medium transition-all" style="background:rgba(255,255,255,0.03);
+              <!-- Zmiana hasła -->
+              <button onclick="switchProfileTab('security')"
+                class="w-full py-2.5 rounded-xl text-sm font-medium transition-all" style="background:rgba(255,255,255,0.03);
                          border:1px solid rgba(255,255,255,0.08);
                          color:#64748b;">
-                  🔒 Zmień hasło
+                🔒 Zmień hasło
+              </button>
+
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ═══════════════ PREFERENCES TAB ═══════════════ -->
+        <div id="ptab-preferences" class="profile-tab-panel hidden space-y-5">
+
+          <!-- Pod-zakładki: Trening / Dieta -->
+          <div class="flex gap-2 p-1 rounded-xl w-fit"
+            style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+            <button onclick="switchPrefsTab('training')" id="prefsTab_training"
+              class="px-5 py-2 rounded-lg text-sm font-bold transition-all"
+              style="background:rgba(0,229,255,0.15);color:#00e5ff;">
+              💪 Trening
+            </button>
+            <button onclick="switchPrefsTab('diet')" id="prefsTab_diet"
+              class="px-5 py-2 rounded-lg text-sm font-medium transition-all"
+              style="color:#64748b;">
+              🥗 Dieta
+            </button>
+          </div>
+
+          <!-- ─── TRENING ─── -->
+          <div id="prefsPanel_training" class="space-y-5">
+
+            <!-- Sprzęt domowy -->
+            <div class="glass rounded-2xl overflow-hidden"
+              style="border:1px solid rgba(0,229,255,0.12);">
+              <div class="px-5 py-4"
+                style="background:rgba(0,229,255,0.04);border-bottom:1px solid rgba(255,255,255,0.07);">
+                <h4 class="text-sm font-bold text-white uppercase tracking-wider">🏠 Sprzęt w domu</h4>
+                <p class="text-xs text-gray-500 mt-0.5">Zaznacz co posiadasz — plan uwzględni tylko dostępny sprzęt</p>
+              </div>
+              <div class="p-5 grid grid-cols-3 md:grid-cols-4 gap-2" id="homeEquipGrid">
+              </div>
+            </div>
+
+            <!-- Poziom trudności -->
+            <div class="glass rounded-2xl overflow-hidden"
+              style="border:1px solid rgba(0,229,255,0.12);">
+              <div class="px-5 py-4"
+                style="background:rgba(0,229,255,0.04);border-bottom:1px solid rgba(255,255,255,0.07);">
+                <h4 class="text-sm font-bold text-white uppercase tracking-wider">⚡ Domyślna intensywność</h4>
+                <p class="text-xs text-gray-500 mt-0.5">Wpływa na liczbę powtórzeń i dobór ćwiczeń</p>
+              </div>
+              <div class="p-5 grid grid-cols-3 gap-3">
+                <button onclick="setPrefsDifficulty('easy')" id="diff_easy"
+                  class="prefs-diff-btn py-3 rounded-xl text-sm font-bold border transition-all text-center"
+                  style="background:rgba(74,222,128,0.08);border-color:rgba(74,222,128,0.2);color:#4ade80;">
+                  🟢<br><span class="text-xs mt-1 block">Łatwy</span>
+                  <span class="text-xs text-gray-500 block">8–12 powt.</span>
                 </button>
-
+                <button onclick="setPrefsDifficulty('medium')" id="diff_medium"
+                  class="prefs-diff-btn py-3 rounded-xl text-sm font-bold border transition-all text-center"
+                  style="background:rgba(250,204,21,0.15);border-color:rgba(250,204,21,0.4);color:#facc15;">
+                  🟡<br><span class="text-xs mt-1 block">Średni</span>
+                  <span class="text-xs text-gray-500 block">6–10 powt.</span>
+                </button>
+                <button onclick="setPrefsDifficulty('hard')" id="diff_hard"
+                  class="prefs-diff-btn py-3 rounded-xl text-sm font-bold border transition-all text-center"
+                  style="background:rgba(248,113,113,0.08);border-color:rgba(248,113,113,0.2);color:#f87171;">
+                  🔴<br><span class="text-xs mt-1 block">Ciężki</span>
+                  <span class="text-xs text-gray-500 block">3–6 powt.</span>
+                </button>
               </div>
             </div>
 
-          </div>
+            <!-- Ulubione partie -->
+            <div class="glass rounded-2xl overflow-hidden"
+              style="border:1px solid rgba(124,58,237,0.15);">
+              <div class="px-5 py-4"
+                style="background:rgba(124,58,237,0.04);border-bottom:1px solid rgba(255,255,255,0.07);">
+                <h4 class="text-sm font-bold text-white uppercase tracking-wider">🎯 Priorytetowe partie</h4>
+                <p class="text-xs text-gray-500 mt-0.5">Zaznaczone partie będą trenowane częściej</p>
+              </div>
+              <div class="p-5 grid grid-cols-4 md:grid-cols-6 gap-2" id="focusMusclesGrid">
+              </div>
+            </div>
 
-          <!-- GOALS tab -->
-          <div id="ptab-goals" class="profile-tab-panel hidden space-y-6">
-            <div class="glass p-6">
-              <h4 class="text-lg font-bold text-white mb-4" style="font-family:'Syne',sans-serif;">🎯 Cele treningowe
-              </h4>
-              <div id="goalsGrid" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4"></div>
-              <h4 class="text-lg font-bold text-white mb-3 mt-6" style="font-family:'Syne',sans-serif;">💪 Priorytet
-                partii mięśniowych</h4>
-              <p class="text-xs text-gray-500 mb-4">Kliknij partie na sylwetce lub na kartach. Wybrane partie dostaną
-                więcej ćwiczeń w planie.</p>
-
-              <!-- Body map + legend side by side -->
-              <div class="flex flex-col md:flex-row gap-6 mb-4">
-                <!-- SVG Body Map -->
-                <div class="flex-shrink-0 flex justify-center">
-                  <div class="relative" style="width:160px;">
-                    <svg id="bodyMapSvg" viewBox="0 0 160 340" width="160" height="340"
-                      xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 0 8px rgba(0,229,255,0.08))">
-                      <!-- Background -->
-                      <defs>
-                        <radialGradient id="bodyGrad" cx="50%" cy="50%" r="50%">
-                          <stop offset="0%" stop-color="#1e293b" />
-                          <stop offset="100%" stop-color="#0a0b10" />
-                        </radialGradient>
-                      </defs>
-
-                      <!-- HEAD -->
-                      <ellipse cx="80" cy="28" rx="20" ry="24" fill="#1e293b" stroke="#334155" stroke-width="1.5" />
-                      <!-- NECK -->
-                      <rect x="73" y="50" width="14" height="12" rx="4" fill="#1e293b" stroke="#334155"
-                        stroke-width="1.5" />
-
-                      <!-- TORSO / KLATKA -->
-                      <path id="bm-klatka" d="M52 62 Q80 58 108 62 L112 110 Q80 114 48 110 Z" fill="#1e293b"
-                        stroke="#334155" stroke-width="1.5" class="body-part cursor-pointer"
-                        onclick="toggleMuscleOnMap('klatka')" data-muscle="klatka" />
-                      <!-- Text label -->
-                      <text x="80" y="90" text-anchor="middle" font-size="7" fill="#64748b"
-                        pointer-events="none">Klatka</text>
-
-                      <!-- BRZUCH -->
-                      <path id="bm-brzuch" d="M52 110 L48 110 L50 150 Q80 154 110 150 L112 110 Z" fill="#1e293b"
-                        stroke="#334155" stroke-width="1.5" class="body-part cursor-pointer"
-                        onclick="toggleMuscleOnMap('brzuch')" data-muscle="brzuch" />
-                      <text x="80" y="134" text-anchor="middle" font-size="7" fill="#64748b"
-                        pointer-events="none">Brzuch</text>
-                      <!-- Abs lines -->
-                      <line x1="80" y1="112" x2="80" y2="148" stroke="#334155" stroke-width="0.8"
-                        pointer-events="none" />
-                      <line x1="58" y1="122" x2="102" y2="122" stroke="#334155" stroke-width="0.8"
-                        pointer-events="none" />
-                      <line x1="55" y1="134" x2="105" y2="134" stroke="#334155" stroke-width="0.8"
-                        pointer-events="none" />
-
-                      <!-- PLECY (shown left outline) -->
-                      <path id="bm-plecy" d="M52 62 L44 64 L40 110 L50 110 L48 110 L52 62 Z" fill="#1e293b"
-                        stroke="#334155" stroke-width="1.5" class="body-part cursor-pointer"
-                        onclick="toggleMuscleOnMap('plecy')" data-muscle="plecy" />
-                      <path d="M108 62 L116 64 L120 110 L110 110 L108 62 Z" fill="#1e293b" stroke="#334155"
-                        stroke-width="1.5" class="body-part cursor-pointer" onclick="toggleMuscleOnMap('plecy')"
-                        data-muscle="plecy" />
-                      <text x="38" y="90" text-anchor="middle" font-size="6" fill="#64748b" pointer-events="none"
-                        transform="rotate(-15,38,90)">Plecy</text>
-
-                      <!-- RAMIONA -->
-                      <ellipse id="bm-ramiona-l" cx="36" cy="80" rx="10" ry="18" fill="#1e293b" stroke="#334155"
-                        stroke-width="1.5" class="body-part cursor-pointer" onclick="toggleMuscleOnMap('ramiona')"
-                        data-muscle="ramiona" />
-                      <ellipse id="bm-ramiona-r" cx="124" cy="80" rx="10" ry="18" fill="#1e293b" stroke="#334155"
-                        stroke-width="1.5" class="body-part cursor-pointer" onclick="toggleMuscleOnMap('ramiona')"
-                        data-muscle="ramiona" />
-                      <text x="80" y="78" text-anchor="middle" font-size="6" fill="#64748b" pointer-events="none"
-                        opacity="0">R</text>
-
-                      <!-- BICEPS -->
-                      <ellipse id="bm-biceps-l" cx="30" cy="108" rx="8" ry="14" fill="#1e293b" stroke="#334155"
-                        stroke-width="1.5" class="body-part cursor-pointer" onclick="toggleMuscleOnMap('biceps')"
-                        data-muscle="biceps" />
-                      <ellipse id="bm-biceps-r" cx="130" cy="108" rx="8" ry="14" fill="#1e293b" stroke="#334155"
-                        stroke-width="1.5" class="body-part cursor-pointer" onclick="toggleMuscleOnMap('biceps')"
-                        data-muscle="biceps" />
-
-                      <!-- TRICEPS -->
-                      <ellipse id="bm-triceps-l" cx="22" cy="130" rx="7" ry="13" fill="#1e293b" stroke="#334155"
-                        stroke-width="1.5" class="body-part cursor-pointer" onclick="toggleMuscleOnMap('triceps')"
-                        data-muscle="triceps" />
-                      <ellipse id="bm-triceps-r" cx="138" cy="130" rx="7" ry="13" fill="#1e293b" stroke="#334155"
-                        stroke-width="1.5" class="body-part cursor-pointer" onclick="toggleMuscleOnMap('triceps')"
-                        data-muscle="triceps" />
-
-                      <!-- FOREARMS (decorative) -->
-                      <ellipse cx="20" cy="155" rx="5" ry="12" fill="#1e293b" stroke="#2d3748" stroke-width="1" />
-                      <ellipse cx="140" cy="155" rx="5" ry="12" fill="#1e293b" stroke="#2d3748" stroke-width="1" />
-
-                      <!-- POŚLADKI -->
-                      <path id="bm-posladki" d="M50 150 Q80 154 110 150 L114 175 Q80 182 46 175 Z" fill="#1e293b"
-                        stroke="#334155" stroke-width="1.5" class="body-part cursor-pointer"
-                        onclick="toggleMuscleOnMap('pośladki')" data-muscle="pośladki" />
-                      <text x="80" y="168" text-anchor="middle" font-size="7" fill="#64748b"
-                        pointer-events="none">Pośladki</text>
-
-                      <!-- NOGI -->
-                      <rect id="bm-nogi-ll" x="52" y="175" width="24" height="70" rx="8" fill="#1e293b" stroke="#334155"
-                        stroke-width="1.5" class="body-part cursor-pointer" onclick="toggleMuscleOnMap('nogi')"
-                        data-muscle="nogi" />
-                      <rect id="bm-nogi-rl" x="84" y="175" width="24" height="70" rx="8" fill="#1e293b" stroke="#334155"
-                        stroke-width="1.5" class="body-part cursor-pointer" onclick="toggleMuscleOnMap('nogi')"
-                        data-muscle="nogi" />
-                      <text x="64" y="215" text-anchor="middle" font-size="7" fill="#64748b"
-                        pointer-events="none">Nogi</text>
-                      <text x="96" y="215" text-anchor="middle" font-size="7" fill="#64748b"
-                        pointer-events="none">Nogi</text>
-
-                      <!-- CALVES (decorative) -->
-                      <rect x="54" y="248" width="20" height="40" rx="6" fill="#1e293b" stroke="#2d3748"
-                        stroke-width="1" />
-                      <rect x="86" y="248" width="20" height="40" rx="6" fill="#1e293b" stroke="#2d3748"
-                        stroke-width="1" />
-
-                      <!-- CORE overlay on abdomen -->
-                      <path id="bm-core" d="M63 112 L63 148 Q80 151 97 148 L97 112 Z" fill="transparent"
-                        stroke="transparent" class="body-part cursor-pointer" onclick="toggleMuscleOnMap('core')"
-                        data-muscle="core" />
-
-                      <!-- Muscle labels on sides -->
-                      <text x="28" y="110" text-anchor="middle" font-size="5.5" fill="#64748b"
-                        pointer-events="none">Biceps</text>
-                      <text x="132" y="110" text-anchor="middle" font-size="5.5" fill="#64748b"
-                        pointer-events="none">Biceps</text>
-                      <text x="20" y="133" text-anchor="middle" font-size="5.5" fill="#64748b"
-                        pointer-events="none">Tri</text>
-                      <text x="140" y="133" text-anchor="middle" font-size="5.5" fill="#64748b"
-                        pointer-events="none">Tri</text>
-                      <text x="36" y="83" text-anchor="middle" font-size="5.5" fill="#64748b"
-                        pointer-events="none">Bark</text>
-                      <text x="124" y="83" text-anchor="middle" font-size="5.5" fill="#64748b"
-                        pointer-events="none">Bark</text>
-                    </svg>
-                    <div class="text-center mt-2 text-xs text-gray-600">Kliknij partie na sylwetce</div>
-                  </div>
+            <!-- Wykluczenie ćwiczeń -->
+            <div class="glass rounded-2xl overflow-hidden"
+              style="border:1px solid rgba(239,68,68,0.15);">
+              <div class="px-5 py-4"
+                style="background:rgba(239,68,68,0.03);border-bottom:1px solid rgba(255,255,255,0.07);">
+                <h4 class="text-sm font-bold text-white uppercase tracking-wider">🚫 Wykluczone ćwiczenia</h4>
+                <p class="text-xs text-gray-500 mt-0.5">Te ćwiczenia nie pojawią się w Twoim planie</p>
+              </div>
+              <div class="p-5 space-y-3">
+                <div class="flex gap-2">
+                  <input type="text" id="excludeExerciseSearch"
+                    placeholder="🔍 Szukaj ćwiczenia do wykluczenia..."
+                    oninput="searchExercisesToExclude(this.value)"
+                    class="flex-1 px-3 py-2 rounded-xl text-sm"
+                    style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#fff;">
                 </div>
-
-                <!-- Muscle cards grid -->
-                <div class="flex-1">
-                  <div id="muscleGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3"></div>
-                  <div id="muscleMapTooltip"
-                    class="hidden text-xs text-cyan-400 font-bold mt-2 text-center py-1.5 px-3 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
-                  </div>
+                <div id="excludeExerciseResults" class="hidden space-y-1 max-h-40 overflow-y-auto rounded-xl"
+                  style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);">
                 </div>
-              </div>
-              <button onclick="saveGoals()" class="btn-neon px-6 py-2 rounded-xl font-bold text-sm">Zapisz cele</button>
-            </div>
-          </div>
-
-          <!-- PREFS tab -->
-          <div id="ptab-prefs" class="profile-tab-panel hidden space-y-6">
-            <div class="glass p-6">
-              <h4 class="text-lg font-bold text-white mb-4" style="font-family:'Syne',sans-serif;">🏋️ Dostępny sprzęt
-              </h4>
-              <div id="equipmentGrid" class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4"></div>
-              <h4 class="text-lg font-bold text-white mb-3 mt-6" style="font-family:'Syne',sans-serif;">🚫 Wykluczenia
-                żywności</h4>
-              <div id="foodExclusionChips" class="flex flex-wrap gap-1 mb-3"></div>
-              <h4 class="text-lg font-bold text-white mb-3 mt-4" style="font-family:'Syne',sans-serif;">⛔ Wykluczenia
-                treningu</h4>
-              <div id="exerciseExclusionChips" class="flex flex-wrap gap-1 mb-3"></div>
-              <div class="flex gap-2 mt-4">
-                <input type="text" id="customExclusionInput" placeholder="Dodaj własne wykluczenie..." class="flex-1">
-                <button onclick="addCustomExclusion()"
-                  class="btn-outline-cyan px-4 py-2 rounded-xl text-sm font-bold">Dodaj</button>
-              </div>
-              <div id="activeExclusions" class="flex flex-wrap gap-1 mt-3"></div>
-              <button onclick="saveExclusions()" class="btn-neon px-6 py-2 rounded-xl font-bold text-sm mt-4">Zapisz
-                preferencje</button>
-            </div>
-          </div>
-
-          <!-- PAYMENTS tab -->
-          <!-- ══════════ VIDEO LIBRARY PANEL ══════════ -->
-          <div id="ptab-videos" class="profile-tab-panel hidden space-y-6">
-            <div class="glass p-6 rounded-2xl">
-              <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
                 <div>
-                  <h4 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">📹 Biblioteka Wideo
-                  </h4>
-                  <p class="text-xs text-gray-500 mt-0.5">Instruktażowe GIFy i wskazówki do każdego ćwiczenia</p>
+                  <p class="text-xs text-gray-500 mb-2">Wykluczone:</p>
+                  <div id="excludedExercisesTags" class="flex flex-wrap gap-2 min-h-8">
+                    <span class="text-xs text-gray-600 italic">Brak wykluczeń</span>
+                  </div>
                 </div>
-                <div class="flex gap-2 flex-wrap" id="videoFilterChips">
-                  <button onclick="filterVideos('all')" data-vcat="all" class="chip selected">Wszystkie</button>
-                  <button onclick="filterVideos('klatka')" data-vcat="klatka" class="chip">Klatka</button>
-                  <button onclick="filterVideos('nogi')" data-vcat="nogi" class="chip">Nogi</button>
-                  <button onclick="filterVideos('plecy')" data-vcat="plecy" class="chip">Plecy</button>
-                  <button onclick="filterVideos('barki')" data-vcat="barki" class="chip">Barki</button>
-                  <button onclick="filterVideos('core')" data-vcat="core" class="chip">Core</button>
+                <div>
+                  <label class="text-xs font-medium text-gray-400 uppercase tracking-wider block mb-1.5">
+                    🩹 Kontuzje / ograniczenia
+                  </label>
+                  <input type="text" id="injuriesInput"
+                    placeholder="np. kolano lewe, bark prawy, dolny kręgosłup"
+                    class="w-full px-3 py-2 rounded-xl text-sm"
+                    style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#fff;">
                 </div>
               </div>
-              <div class="relative mb-5">
-                <span
-                  class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none">🔍</span>
-                <input type="text" id="videoSearch" placeholder="Szukaj ćwiczenia lub partii…" oninput="filterVideos()"
-                  class="w-full pl-9 text-sm">
-              </div>
-              <div id="videoGrid" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div>
             </div>
+
+            <!-- Dni treningowe -->
+            <div class="glass rounded-2xl overflow-hidden"
+              style="border:1px solid rgba(0,229,255,0.12);">
+              <div class="px-5 py-4"
+                style="background:rgba(0,229,255,0.04);border-bottom:1px solid rgba(255,255,255,0.07);">
+                <h4 class="text-sm font-bold text-white uppercase tracking-wider">📅 Preferowane dni treningowe</h4>
+                <p class="text-xs text-gray-500 mt-0.5">Plan będzie generowany z treningiem w te dni</p>
+              </div>
+              <div class="p-5 grid grid-cols-7 gap-2">
+                <button onclick="toggleTrainingDay('Pon')" id="tday_Pon"
+                  class="prefs-day-btn py-3 rounded-xl text-xs font-bold border transition-all text-center"
+                  style="background:rgba(0,229,255,0.15);border-color:rgba(0,229,255,0.4);color:#00e5ff;">
+                  Pon
+                </button>
+                <button onclick="toggleTrainingDay('Wt')" id="tday_Wt"
+                  class="prefs-day-btn py-3 rounded-xl text-xs font-bold border transition-all text-center"
+                  style="background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.1);color:#9ca3af;">
+                  Wt
+                </button>
+                <button onclick="toggleTrainingDay('Śr')" id="tday_Sr"
+                  class="prefs-day-btn py-3 rounded-xl text-xs font-bold border transition-all text-center"
+                  style="background:rgba(0,229,255,0.15);border-color:rgba(0,229,255,0.4);color:#00e5ff;">
+                  Śr
+                </button>
+                <button onclick="toggleTrainingDay('Czw')" id="tday_Czw"
+                  class="prefs-day-btn py-3 rounded-xl text-xs font-bold border transition-all text-center"
+                  style="background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.1);color:#9ca3af;">
+                  Czw
+                </button>
+                <button onclick="toggleTrainingDay('Pt')" id="tday_Pt"
+                  class="prefs-day-btn py-3 rounded-xl text-xs font-bold border transition-all text-center"
+                  style="background:rgba(0,229,255,0.15);border-color:rgba(0,229,255,0.4);color:#00e5ff;">
+                  Pt
+                </button>
+                <button onclick="toggleTrainingDay('Sob')" id="tday_Sob"
+                  class="prefs-day-btn py-3 rounded-xl text-xs font-bold border transition-all text-center"
+                  style="background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.1);color:#9ca3af;">
+                  Sob
+                </button>
+                <button onclick="toggleTrainingDay('Niedz')" id="tday_Niedz"
+                  class="prefs-day-btn py-3 rounded-xl text-xs font-bold border transition-all text-center"
+                  style="background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.1);color:#9ca3af;">
+                  Niedz
+                </button>
+              </div>
+            </div>
+
+            <button onclick="saveTrainingPrefs()"
+              class="w-full py-3 rounded-xl font-bold text-sm transition-all"
+              style="background:linear-gradient(135deg,rgba(0,229,255,0.2),rgba(124,58,237,0.2));
+                     border:1px solid rgba(0,229,255,0.4);color:#00e5ff;">
+              💾 Zapisz preferencje treningu
+            </button>
+
           </div>
 
-          <div id="ptab-payments" class="profile-tab-panel hidden">
-            <div class="glass p-6">
-              <h4 class="text-lg font-bold text-white mb-4" style="font-family:'Syne',sans-serif;">💳 Plan płatności
-              </h4>
-              <div class="alert-neon mb-4">
-                <p class="text-sm text-cyan-400">Aktualnie na planie <strong>Free</strong>. Płatności w przygotowaniu.
-                </p>
+          <!-- ─── DIETA ─── -->
+          <div id="prefsPanel_diet" class="space-y-5 hidden">
+
+            <!-- Typ diety -->
+            <div class="glass rounded-2xl overflow-hidden"
+              style="border:1px solid rgba(0,229,255,0.12);">
+              <div class="px-5 py-4"
+                style="background:rgba(0,229,255,0.04);border-bottom:1px solid rgba(255,255,255,0.07);">
+                <h4 class="text-sm font-bold text-white uppercase tracking-wider">🍽️ Styl odżywiania</h4>
+                <p class="text-xs text-gray-500 mt-0.5">Wpływa na dobór posiłków w planie diety</p>
               </div>
-              <div class="grid md:grid-cols-2 gap-4">
-                <div class="glass rounded-2xl p-5 plan-card featured"
-                  style="border-color:var(--border-cyan)!important;">
-                  <p class="text-sm font-bold text-cyan-400 mb-1">Pro — 49 zł/mies.</p>
-                  <p class="text-xs text-gray-400 mb-3">Odblokuj 3 profile, AI bez limitu i więcej.</p><button
-                    class="btn-neon px-4 py-2 rounded-xl text-xs font-bold w-full">Wybierz Pro (wkrótce)</button>
+              <div class="p-5 grid grid-cols-2 md:grid-cols-3 gap-2" id="dietStyleGrid">
+              </div>
+            </div>
+
+            <!-- Alergie -->
+            <div class="glass rounded-2xl overflow-hidden"
+              style="border:1px solid rgba(239,68,68,0.2);">
+              <div class="px-5 py-4"
+                style="background:rgba(239,68,68,0.03);border-bottom:1px solid rgba(255,255,255,0.07);">
+                <h4 class="text-sm font-bold text-white uppercase tracking-wider">⚠️ Alergie i nietolerancje</h4>
+                <p class="text-xs text-gray-500 mt-0.5">Posiłki z tymi składnikami NIGDY nie pojawią się w planie</p>
+              </div>
+              <div class="p-5 grid grid-cols-3 md:grid-cols-4 gap-2" id="allergensGrid">
+              </div>
+            </div>
+
+            <!-- Wykluczenie konkretnych posiłków -->
+            <div class="glass rounded-2xl overflow-hidden"
+              style="border:1px solid rgba(239,68,68,0.15);">
+              <div class="px-5 py-4"
+                style="background:rgba(239,68,68,0.03);border-bottom:1px solid rgba(255,255,255,0.07);">
+                <h4 class="text-sm font-bold text-white uppercase tracking-wider">🚫 Wykluczone posiłki</h4>
+                <p class="text-xs text-gray-500 mt-0.5">Te konkretne posiłki nie będą proponowane</p>
+              </div>
+              <div class="p-5 space-y-3">
+                <div class="flex gap-2">
+                  <input type="text" id="excludeMealSearch"
+                    placeholder="🔍 Szukaj posiłku do wykluczenia..."
+                    oninput="searchMealsToExclude(this.value)"
+                    class="flex-1 px-3 py-2 rounded-xl text-sm"
+                    style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#fff;">
                 </div>
-                <div class="glass rounded-2xl p-5 plan-card">
-                  <p class="text-sm font-bold text-violet-400 mb-1">Elite — 129 zł/mies.</p>
-                  <p class="text-xs text-gray-400 mb-3">Trener personalny AI, Discord, eksport PDF.</p><button
-                    class="btn-outline-cyan px-4 py-2 rounded-xl text-xs font-bold w-full">Wybierz Elite
-                    (wkrótce)</button>
+                <div id="excludeMealResults" class="hidden space-y-1 max-h-40 overflow-y-auto rounded-xl"
+                  style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);">
                 </div>
+                <div>
+                  <p class="text-xs text-gray-500 mb-2">Wykluczone posiłki:</p>
+                  <div id="excludedMealsTags" class="flex flex-wrap gap-2 min-h-8">
+                    <span class="text-xs text-gray-600 italic">Brak wykluczeń</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Unikane składniki -->
+            <div class="glass rounded-2xl overflow-hidden"
+              style="border:1px solid rgba(255,165,0,0.15);">
+              <div class="px-5 py-4"
+                style="background:rgba(255,165,0,0.03);border-bottom:1px solid rgba(255,255,255,0.07);">
+                <h4 class="text-sm font-bold text-white uppercase tracking-wider">⛔ Unikane składniki</h4>
+                <p class="text-xs text-gray-500 mt-0.5">Składniki których wolisz unikać (posiłki z nimi będą rzadsze)</p>
+              </div>
+              <div class="p-5 space-y-3">
+                <div class="flex gap-2">
+                  <input type="text" id="avoidIngredientInput"
+                    placeholder="np. brokuły, ryż brązowy, fasola..."
+                    class="flex-1 px-3 py-2 rounded-xl text-sm"
+                    style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#fff;">
+                  <button onclick="addAvoidIngredient()"
+                    class="px-4 py-2 rounded-xl text-sm font-bold transition-all flex-shrink-0"
+                    style="background:rgba(255,165,0,0.1);border:1px solid rgba(255,165,0,0.3);color:#fb923c;">
+                    + Dodaj
+                  </button>
+                </div>
+                <div id="avoidIngredientTags" class="flex flex-wrap gap-2 min-h-8">
+                  <span class="text-xs text-gray-600 italic">Brak</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Preferowane składniki -->
+            <div class="glass rounded-2xl overflow-hidden"
+              style="border:1px solid rgba(74,222,128,0.2);">
+              <div class="px-5 py-4"
+                style="background:rgba(74,222,128,0.03);border-bottom:1px solid rgba(255,255,255,0.07);">
+                <h4 class="text-sm font-bold text-white uppercase tracking-wider">✅ Preferowane składniki</h4>
+                <p class="text-xs text-gray-500 mt-0.5">Posiłki z tymi składnikami będą proponowane częściej</p>
+              </div>
+              <div class="p-5 space-y-3">
+                <div class="flex gap-2">
+                  <input type="text" id="preferIngredientInput"
+                    placeholder="np. kurczak, jajka, ryż, owoce..."
+                    class="flex-1 px-3 py-2 rounded-xl text-sm"
+                    style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#fff;">
+                  <button onclick="addPreferIngredient()"
+                    class="px-4 py-2 rounded-xl text-sm font-bold transition-all flex-shrink-0"
+                    style="background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.3);color:#4ade80;">
+                    + Dodaj
+                  </button>
+                </div>
+                <div id="preferIngredientTags" class="flex flex-wrap gap-2 min-h-8">
+                  <span class="text-xs text-gray-600 italic">Brak</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Liczba posiłków dziennie -->
+            <div class="glass rounded-2xl overflow-hidden"
+              style="border:1px solid rgba(0,229,255,0.12);">
+              <div class="px-5 py-4"
+                style="background:rgba(0,229,255,0.04);border-bottom:1px solid rgba(255,255,255,0.07);">
+                <h4 class="text-sm font-bold text-white uppercase tracking-wider">🍱 Liczba posiłków dziennie</h4>
+              </div>
+              <div class="p-5">
+                <div class="flex items-center justify-between mb-3">
+                  <span class="text-sm text-gray-400">Posiłki dziennie</span>
+                  <span id="mealsPerDayDisplay" class="text-2xl font-bold text-cyan-400">4</span>
+                </div>
+                <input type="range" id="mealsPerDayRange" min="3" max="6" value="4"
+                  oninput="document.getElementById('mealsPerDayDisplay').textContent=this.value"
+                  class="w-full accent-cyan-400">
+                <div class="flex justify-between text-xs text-gray-600 mt-1">
+                  <span>3 — minimum</span>
+                  <span>4 — klasyczny</span>
+                  <span>5 — sportowy</span>
+                  <span>6 — max</span>
+                </div>
+              </div>
+            </div>
+
+            <button onclick="saveDietPrefs()"
+              class="w-full py-3 rounded-xl font-bold text-sm transition-all"
+              style="background:linear-gradient(135deg,rgba(0,229,255,0.2),rgba(124,58,237,0.2));
+                     border:1px solid rgba(0,229,255,0.4);color:#00e5ff;">
+              💾 Zapisz preferencje diety
+            </button>
+
+          </div>
+
+        </div>
+
+        <!-- PAYMENTS tab -->
+        <div id="ptab-payments" class="profile-tab-panel hidden">
+          <div class="glass p-6">
+            <h4 class="text-lg font-bold text-white mb-4" style="font-family:'Syne',sans-serif;">💳 Plan płatności
+            </h4>
+            <div class="alert-neon mb-4">
+              <p class="text-sm text-cyan-400">Aktualnie na planie <strong>Free</strong>. Płatności w przygotowaniu.
+              </p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-4">
+              <div class="glass rounded-2xl p-5 plan-card featured" style="border-color:var(--border-cyan)!important;">
+                <p class="text-sm font-bold text-cyan-400 mb-1">Pro — 49 zł/mies.</p>
+                <p class="text-xs text-gray-400 mb-3">Odblokuj 3 profile, AI bez limitu i więcej.</p><button
+                  class="btn-neon px-4 py-2 rounded-xl text-xs font-bold w-full">Wybierz Pro (wkrótce)</button>
+              </div>
+              <div class="glass rounded-2xl p-5 plan-card">
+                <p class="text-sm font-bold text-violet-400 mb-1">Elite — 129 zł/mies.</p>
+                <p class="text-xs text-gray-400 mb-3">Trener personalny AI, Discord, eksport PDF.</p><button
+                  class="btn-outline-cyan px-4 py-2 rounded-xl text-xs font-bold w-full">Wybierz Elite
+                  (wkrótce)</button>
               </div>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <!-- ====== TAB: SPORT ====== -->
-        <!-- ---- MODAL: Wybierz dzień do planu ---- -->
-        <div id="addToPlanModal"
-          class="hidden fixed inset-0 z-[110] flex items-center justify-center p-4 modal-backdrop">
-          <div class="glass rounded-3xl w-full max-w-sm p-6 space-y-5"
-            style="border-color:var(--border-cyan)!important;">
-            <div class="flex justify-between items-center">
-              <h5 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">📅 Dodaj do planu</h5>
-              <button onclick="closeAddToPlanModal()" class="text-gray-500 hover:text-white text-xl">✕</button>
+      <!-- ====== TAB: SPORT ====== -->
+      <!-- ---- MODAL: Wybierz dzień do planu ---- -->
+      <div id="addToPlanModal" class="hidden fixed inset-0 z-[110] flex items-center justify-center p-4 modal-backdrop">
+        <div class="glass rounded-3xl w-full max-w-sm p-6 space-y-5" style="border-color:var(--border-cyan)!important;">
+          <div class="flex justify-between items-center">
+            <h5 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">📅 Dodaj do planu</h5>
+            <button onclick="closeAddToPlanModal()" class="text-gray-500 hover:text-white text-xl">✕</button>
+          </div>
+          <div id="addToPlanDrillName" class="text-sm text-cyan-400 font-semibold"></div>
+          <!-- AI sugestia najlżejszego dnia -->
+          <div id="addToPlanAiSuggest" class="hidden"></div>
+          <div>
+            <p class="text-xs text-gray-400 mb-3">Wybierz dzień tygodnia:</p>
+            <div class="grid grid-cols-4 gap-2" id="addToPlanDayGrid"></div>
+          </div>
+          <div id="addToPlanFeedback" class="text-xs text-center hidden"></div>
+          <div class="flex gap-3 pt-1">
+            <button onclick="confirmAddToPlan()" class="flex-1 btn-neon py-2.5 rounded-xl font-bold text-sm">✅
+              Dodaj</button>
+            <button onclick="closeAddToPlanModal()" class="flex-1 btn-ghost py-2.5 rounded-xl text-sm">Anuluj</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== TAB: CONTACT ====== -->
+      <section id="tab-contact" class="hidden space-y-6">
+        <h3 class="text-3xl font-bold" style="font-family:'Syne',sans-serif;">Kontakt</h3>
+        <div class="grid md:grid-cols-2 gap-6">
+          <div class="glass p-6 feature-card rounded-2xl">
+            <div class="text-4xl mb-3">💬</div>
+            <h4 class="text-xl font-bold text-white mb-2" style="font-family:'Syne',sans-serif;">Discord</h4>
+            <p class="text-gray-400 text-sm mb-4">Dołącz do naszej społeczności i uzyskaj wsparcie w czasie
+              rzeczywistym.</p>
+            <div class="flex gap-2">
+              <span class="text-cyan-400 font-bold text-sm">z3tol</span>
+              <button onclick="copyToClipboard('z3tol')" class="btn-ghost px-3 py-1 rounded-lg text-xs">Kopiuj</button>
             </div>
-            <div id="addToPlanDrillName" class="text-sm text-cyan-400 font-semibold"></div>
-            <!-- AI sugestia najlżejszego dnia -->
-            <div id="addToPlanAiSuggest" class="hidden"></div>
+          </div>
+          <div class="glass p-6 feature-card rounded-2xl">
+            <div class="text-4xl mb-3">📧</div>
+            <h4 class="text-xl font-bold text-white mb-2" style="font-family:'Syne',sans-serif;">Email</h4>
+            <p class="text-gray-400 text-sm mb-4">Pisz z każdym pytaniem — odpowiemy w ciągu 24h.</p>
+            <div class="flex gap-2">
+              <a href="mailto:adam.zamorski.10@gmail.com"
+                class="text-cyan-400 font-bold text-sm hover:underline">adam.zamorski.10@gmail.com</a>
+              <button onclick="copyToClipboard('adam.zamorski.10@gmail.com')"
+                class="btn-ghost px-3 py-1 rounded-lg text-xs">Kopiuj</button>
+            </div>
+          </div>
+        </div>
+        <div class="glass p-6 rounded-2xl">
+          <h4 class="text-lg font-bold text-white mb-4" style="font-family:'Syne',sans-serif;">❓ FAQ</h4>
+          <div class="space-y-4">
             <div>
-              <p class="text-xs text-gray-400 mb-3">Wybierz dzień tygodnia:</p>
-              <div class="grid grid-cols-4 gap-2" id="addToPlanDayGrid"></div>
+              <p class="text-sm font-bold text-white mb-1">Czy FitAI działa offline?</p>
+              <p class="text-sm text-gray-400">Tak! Aplikacja jest PWA i cachuje dane lokalnie. Działa bez internetu.
+              </p>
             </div>
-            <div id="addToPlanFeedback" class="text-xs text-center hidden"></div>
-            <div class="flex gap-3 pt-1">
-              <button onclick="confirmAddToPlan()" class="flex-1 btn-neon py-2.5 rounded-xl font-bold text-sm">✅
-                Dodaj</button>
-              <button onclick="closeAddToPlanModal()" class="flex-1 btn-ghost py-2.5 rounded-xl text-sm">Anuluj</button>
+            <div>
+              <p class="text-sm font-bold text-white mb-1">Ile profili mogę mieć?</p>
+              <p class="text-sm text-gray-400">Na planie Free — 1 profil. Na Pro i Elite — do 3 profili.</p>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-white mb-1">Czy dane są bezpieczne?</p>
+              <p class="text-sm text-gray-400">Dane przechowywane lokalnie w przeglądarce (localStorage). Nie wysyłamy
+                ich bez zgody.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====== TAB: KUCHNIA AI ====== -->
+      <!-- ====== TAB: POSTĘPY ====== -->
+      <section id="tab-postepy" class="hidden space-y-6">
+
+        <!-- ── XP Level Bar ── -->
+        <div class="glass p-4 rounded-2xl flex items-center gap-4" id="xpBanner">
+          <div class="flex-shrink-0 text-center" style="min-width:60px;">
+            <span id="xpLevel" class="text-xl font-extrabold"
+              style="font-family:'Syne',sans-serif;color:var(--cyan);">Lv 1</span>
+          </div>
+          <div class="flex-1">
+            <div class="flex justify-between text-xs mb-1">
+              <span id="xpLabel" style="color:var(--muted);">0 XP</span>
+              <span id="xpNextLabel" style="color:var(--muted);">Do Lv 2: 500 XP</span>
+            </div>
+            <div class="progress-bar" style="height:8px;background:rgba(0,229,255,0.08);">
+              <div id="xpBar" class="progress-fill"
+                style="width:0%;background:linear-gradient(90deg,var(--cyan),var(--violet));border-radius:4px;transition:width 1s cubic-bezier(0.4,0,0.2,1);">
+              </div>
+            </div>
+          </div>
+          <div class="flex-shrink-0 text-2xl">⚡</div>
+        </div>
+
+        <!-- ── Stagnation banner (hidden until detected) ── -->
+        <div id="stagnationBanner" class="hidden flex items-start gap-3 rounded-2xl px-4 py-3"
+          style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);">
+        </div>
+
+        <!-- ── Overload alert (hidden until detected) ── -->
+        <div id="overloadAlert" class="hidden flex items-start gap-3 rounded-2xl px-4 py-3"
+          style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);">
+        </div>
+
+        <!-- Header -->
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-2xl font-extrabold text-white" style="font-family:'Syne',sans-serif;">Postępy</h1>
+            <p class="text-xs text-gray-500 mt-0.5">Twoje dane w czasie — szczere, bez filtrów.</p>
+          </div>
+          <!-- Time range switcher -->
+          <div class="flex gap-1 p-1 rounded-xl"
+            style="background:rgba(255,255,255,0.04);border:1px solid var(--border);">
+            <button onclick="setStatsRange(7)" id="rangeBtn7"
+              class="range-btn px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+              style="color:var(--muted);">7d</button>
+            <button onclick="setStatsRange(30)" id="rangeBtn30"
+              class="range-btn px-3 py-1.5 rounded-lg text-xs font-bold transition-all active-range"
+              style="background:rgba(0,229,255,0.15);color:var(--cyan);">30d</button>
+            <button onclick="setStatsRange(0)" id="rangeBtn0"
+              class="range-btn px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+              style="color:var(--muted);">Wszystko</button>
+          </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-3 gap-3" id="kpiCards">
+          <!-- Weight delta -->
+          <div class="glass p-4 rounded-2xl relative overflow-hidden">
+            <div
+              style="position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle,rgba(0,229,255,0.08) 0%,transparent 70%);pointer-events:none;">
+            </div>
+            <p class="text-xs font-semibold uppercase tracking-wider"
+              style="color:var(--muted);font-family:'Syne',sans-serif;">Zmiana wagi</p>
+            <p id="kpiWeightDelta" class="text-3xl font-extrabold mt-2"
+              style="font-family:'Syne',sans-serif;color:var(--cyan);">—</p>
+            <p class="text-xs mt-1" style="color:var(--muted);">od pierwszego wpisu</p>
+          </div>
+          <!-- Avg RPE -->
+          <div class="glass p-4 rounded-2xl relative overflow-hidden">
+            <div
+              style="position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle,rgba(124,58,237,0.1) 0%,transparent 70%);pointer-events:none;">
+            </div>
+            <p class="text-xs font-semibold uppercase tracking-wider"
+              style="color:var(--muted);font-family:'Syne',sans-serif;">Średnie RPE</p>
+            <p id="kpiAvgRpe" class="text-3xl font-extrabold mt-2" style="font-family:'Syne',sans-serif;color:#a78bfa;">
+              —</p>
+            <p class="text-xs mt-1" style="color:var(--muted);">intensywność, ostatnie 7 dni</p>
+          </div>
+          <!-- Goal date -->
+          <div class="glass p-4 rounded-2xl relative overflow-hidden">
+            <div
+              style="position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle,rgba(245,158,11,0.08) 0%,transparent 70%);pointer-events:none;">
+            </div>
+            <p class="text-xs font-semibold uppercase tracking-wider"
+              style="color:var(--muted);font-family:'Syne',sans-serif;">Cel wagowy</p>
+            <p id="kpiGoalDate" class="text-xl font-extrabold mt-2 leading-tight"
+              style="font-family:'Syne',sans-serif;color:#fbbf24;">—</p>
+            <p class="text-xs mt-1" style="color:var(--muted);">prognozowana data</p>
+          </div>
+        </div>
+
+        <!-- Weight Trend Chart -->
+        <div class="glass p-5 rounded-2xl">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">Trend wagowy</h2>
+              <p class="text-xs mt-0.5" style="color:var(--muted);">Waga dzienna + linia celu</p>
+            </div>
+            <div class="flex items-center gap-3 text-xs" style="color:var(--muted);">
+              <span class="flex items-center gap-1.5"><span
+                  style="display:inline-block;width:20px;height:2px;background:linear-gradient(90deg,var(--cyan),var(--violet));border-radius:2px;"></span>Waga</span>
+              <span class="flex items-center gap-1.5"><span
+                  style="display:inline-block;width:20px;height:2px;background:rgba(251,191,36,0.7);border-radius:2px;border-top:2px dashed rgba(251,191,36,0.7);"></span>Cel</span>
+            </div>
+          </div>
+          <div id="weightChartWrap" style="position:relative;">
+            <canvas id="weightChart" style="max-height:260px;width:100%;"></canvas>
+            <div id="weightChartEmpty" class="hidden"
+              style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
+              <div style="font-size:2.5rem;">⚖️</div>
+              <p class="font-bold text-white text-sm" style="font-family:'Syne',sans-serif;">Zacznij logować
+                treningi,<br>aby zobaczyć magię danych</p>
+              <p class="text-xs text-center" style="color:var(--muted);">Dodaj pierwszą wagę w zakładce Mój Dzień</p>
             </div>
           </div>
         </div>
 
-        <!-- ====== TAB: CONTACT ====== -->
-        <section id="tab-contact" class="hidden space-y-6">
-          <h3 class="text-3xl font-bold" style="font-family:'Syne',sans-serif;">Kontakt</h3>
-          <div class="grid md:grid-cols-2 gap-6">
-            <div class="glass p-6 feature-card rounded-2xl">
-              <div class="text-4xl mb-3">💬</div>
-              <h4 class="text-xl font-bold text-white mb-2" style="font-family:'Syne',sans-serif;">Discord</h4>
-              <p class="text-gray-400 text-sm mb-4">Dołącz do naszej społeczności i uzyskaj wsparcie w czasie
-                rzeczywistym.</p>
-              <div class="flex gap-2">
-                <span class="text-cyan-400 font-bold text-sm">z3tol</span>
-                <button onclick="copyToClipboard('z3tol')"
-                  class="btn-ghost px-3 py-1 rounded-lg text-xs">Kopiuj</button>
-              </div>
-            </div>
-            <div class="glass p-6 feature-card rounded-2xl">
-              <div class="text-4xl mb-3">📧</div>
-              <h4 class="text-xl font-bold text-white mb-2" style="font-family:'Syne',sans-serif;">Email</h4>
-              <p class="text-gray-400 text-sm mb-4">Pisz z każdym pytaniem — odpowiemy w ciągu 24h.</p>
-              <div class="flex gap-2">
-                <a href="mailto:adam.zamorski.10@gmail.com"
-                  class="text-cyan-400 font-bold text-sm hover:underline">adam.zamorski.10@gmail.com</a>
-                <button onclick="copyToClipboard('adam.zamorski.10@gmail.com')"
-                  class="btn-ghost px-3 py-1 rounded-lg text-xs">Kopiuj</button>
-              </div>
-            </div>
-          </div>
-          <div class="glass p-6 rounded-2xl">
-            <h4 class="text-lg font-bold text-white mb-4" style="font-family:'Syne',sans-serif;">❓ FAQ</h4>
-            <div class="space-y-4">
-              <div>
-                <p class="text-sm font-bold text-white mb-1">Czy FitAI działa offline?</p>
-                <p class="text-sm text-gray-400">Tak! Aplikacja jest PWA i cachuje dane lokalnie. Działa bez internetu.
-                </p>
-              </div>
-              <div>
-                <p class="text-sm font-bold text-white mb-1">Ile profili mogę mieć?</p>
-                <p class="text-sm text-gray-400">Na planie Free — 1 profil. Na Pro i Elite — do 3 profili.</p>
-              </div>
-              <div>
-                <p class="text-sm font-bold text-white mb-1">Czy dane są bezpieczne?</p>
-                <p class="text-sm text-gray-400">Dane przechowywane lokalnie w przeglądarce (localStorage). Nie wysyłamy
-                  ich bez zgody.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ====== TAB: KUCHNIA AI ====== -->
-        <!-- ====== TAB: POSTĘPY ====== -->
-        <section id="tab-postepy" class="hidden space-y-6">
-
-          <!-- ── XP Level Bar ── -->
-          <div class="glass p-4 rounded-2xl flex items-center gap-4" id="xpBanner">
-            <div class="flex-shrink-0 text-center" style="min-width:60px;">
-              <span id="xpLevel" class="text-xl font-extrabold"
-                style="font-family:'Syne',sans-serif;color:var(--cyan);">Lv 1</span>
-            </div>
-            <div class="flex-1">
-              <div class="flex justify-between text-xs mb-1">
-                <span id="xpLabel" style="color:var(--muted);">0 XP</span>
-                <span id="xpNextLabel" style="color:var(--muted);">Do Lv 2: 500 XP</span>
-              </div>
-              <div class="progress-bar" style="height:8px;background:rgba(0,229,255,0.08);">
-                <div id="xpBar" class="progress-fill"
-                  style="width:0%;background:linear-gradient(90deg,var(--cyan),var(--violet));border-radius:4px;transition:width 1s cubic-bezier(0.4,0,0.2,1);">
-                </div>
-              </div>
-            </div>
-            <div class="flex-shrink-0 text-2xl">⚡</div>
-          </div>
-
-          <!-- ── Stagnation banner (hidden until detected) ── -->
-          <div id="stagnationBanner" class="hidden flex items-start gap-3 rounded-2xl px-4 py-3"
-            style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);">
-          </div>
-
-          <!-- ── Overload alert (hidden until detected) ── -->
-          <div id="overloadAlert" class="hidden flex items-start gap-3 rounded-2xl px-4 py-3"
-            style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);">
-          </div>
-
-          <!-- Header -->
-          <div class="flex items-center justify-between">
-            <div>
-              <h1 class="text-2xl font-extrabold text-white" style="font-family:'Syne',sans-serif;">Postępy</h1>
-              <p class="text-xs text-gray-500 mt-0.5">Twoje dane w czasie — szczere, bez filtrów.</p>
-            </div>
-            <!-- Time range switcher -->
-            <div class="flex gap-1 p-1 rounded-xl"
-              style="background:rgba(255,255,255,0.04);border:1px solid var(--border);">
-              <button onclick="setStatsRange(7)" id="rangeBtn7"
-                class="range-btn px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                style="color:var(--muted);">7d</button>
-              <button onclick="setStatsRange(30)" id="rangeBtn30"
-                class="range-btn px-3 py-1.5 rounded-lg text-xs font-bold transition-all active-range"
-                style="background:rgba(0,229,255,0.15);color:var(--cyan);">30d</button>
-              <button onclick="setStatsRange(0)" id="rangeBtn0"
-                class="range-btn px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                style="color:var(--muted);">Wszystko</button>
-            </div>
-          </div>
-
-          <!-- KPI Cards -->
-          <div class="grid grid-cols-3 gap-3" id="kpiCards">
-            <!-- Weight delta -->
-            <div class="glass p-4 rounded-2xl relative overflow-hidden">
-              <div
-                style="position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle,rgba(0,229,255,0.08) 0%,transparent 70%);pointer-events:none;">
-              </div>
-              <p class="text-xs font-semibold uppercase tracking-wider"
-                style="color:var(--muted);font-family:'Syne',sans-serif;">Zmiana wagi</p>
-              <p id="kpiWeightDelta" class="text-3xl font-extrabold mt-2"
-                style="font-family:'Syne',sans-serif;color:var(--cyan);">—</p>
-              <p class="text-xs mt-1" style="color:var(--muted);">od pierwszego wpisu</p>
-            </div>
-            <!-- Avg RPE -->
-            <div class="glass p-4 rounded-2xl relative overflow-hidden">
-              <div
-                style="position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle,rgba(124,58,237,0.1) 0%,transparent 70%);pointer-events:none;">
-              </div>
-              <p class="text-xs font-semibold uppercase tracking-wider"
-                style="color:var(--muted);font-family:'Syne',sans-serif;">Średnie RPE</p>
-              <p id="kpiAvgRpe" class="text-3xl font-extrabold mt-2"
-                style="font-family:'Syne',sans-serif;color:#a78bfa;">
-                —</p>
-              <p class="text-xs mt-1" style="color:var(--muted);">intensywność, ostatnie 7 dni</p>
-            </div>
-            <!-- Goal date -->
-            <div class="glass p-4 rounded-2xl relative overflow-hidden">
-              <div
-                style="position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle,rgba(245,158,11,0.08) 0%,transparent 70%);pointer-events:none;">
-              </div>
-              <p class="text-xs font-semibold uppercase tracking-wider"
-                style="color:var(--muted);font-family:'Syne',sans-serif;">Cel wagowy</p>
-              <p id="kpiGoalDate" class="text-xl font-extrabold mt-2 leading-tight"
-                style="font-family:'Syne',sans-serif;color:#fbbf24;">—</p>
-              <p class="text-xs mt-1" style="color:var(--muted);">prognozowana data</p>
-            </div>
-          </div>
-
-          <!-- Weight Trend Chart -->
+        <!-- Training Volume Chart + Diet Compliance row -->
+        <div class="grid gap-4" style="grid-template-columns:2fr 1fr;">
+          <!-- Volume bar chart -->
           <div class="glass p-5 rounded-2xl">
-            <div class="flex items-center justify-between mb-4">
-              <div>
-                <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">Trend wagowy</h2>
-                <p class="text-xs mt-0.5" style="color:var(--muted);">Waga dzienna + linia celu</p>
-              </div>
-              <div class="flex items-center gap-3 text-xs" style="color:var(--muted);">
-                <span class="flex items-center gap-1.5"><span
-                    style="display:inline-block;width:20px;height:2px;background:linear-gradient(90deg,var(--cyan),var(--violet));border-radius:2px;"></span>Waga</span>
-                <span class="flex items-center gap-1.5"><span
-                    style="display:inline-block;width:20px;height:2px;background:rgba(251,191,36,0.7);border-radius:2px;border-top:2px dashed rgba(251,191,36,0.7);"></span>Cel</span>
-              </div>
+            <div class="mb-4">
+              <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">Wolumen
+                treningowy
+              </h2>
+              <p class="text-xs mt-0.5" style="color:var(--muted);">Serie × powtórzenia × ciężar [kg]</p>
             </div>
-            <div id="weightChartWrap" style="position:relative;">
-              <canvas id="weightChart" style="max-height:260px;width:100%;"></canvas>
-              <div id="weightChartEmpty" class="hidden"
-                style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
-                <div style="font-size:2.5rem;">⚖️</div>
-                <p class="font-bold text-white text-sm" style="font-family:'Syne',sans-serif;">Zacznij logować
-                  treningi,<br>aby zobaczyć magię danych</p>
-                <p class="text-xs text-center" style="color:var(--muted);">Dodaj pierwszą wagę w zakładce Mój Dzień</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Training Volume Chart + Diet Compliance row -->
-          <div class="grid gap-4" style="grid-template-columns:2fr 1fr;">
-            <!-- Volume bar chart -->
-            <div class="glass p-5 rounded-2xl">
-              <div class="mb-4">
-                <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">Wolumen
-                  treningowy
-                </h2>
-                <p class="text-xs mt-0.5" style="color:var(--muted);">Serie × powtórzenia × ciężar [kg]</p>
-              </div>
-              <div id="volumeChartWrap" style="position:relative;">
-                <canvas id="volumeChart" style="max-height:180px;width:100%;"></canvas>
-                <div id="volumeChartEmpty" class="hidden"
-                  style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">
-                  <div style="font-size:2rem;">🏋️</div>
-                  <p class="text-xs font-semibold text-white text-center" style="font-family:'Syne',sans-serif;">Brak
-                    historii ćwiczeń</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Diet Compliance + Streak mini-cards -->
-            <div class="flex flex-col gap-4">
-              <div class="glass p-5 rounded-2xl flex-1 flex flex-col justify-between">
-                <p class="text-xs font-semibold uppercase tracking-wider"
-                  style="color:var(--muted);font-family:'Syne',sans-serif;">Diet Compliance</p>
-                <div class="text-center my-2">
-                  <svg viewBox="0 0 80 80" width="80" height="80" style="margin:0 auto;display:block;">
-                    <circle cx="40" cy="40" r="32" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="7" />
-                    <circle id="dietComplianceRing" cx="40" cy="40" r="32" fill="none" stroke="url(#statsGrad)"
-                      stroke-width="7" stroke-linecap="round" stroke-dasharray="201" stroke-dashoffset="201"
-                      style="transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1)" />
-                    <defs>
-                      <linearGradient id="statsGrad" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%" stop-color="#00e5ff" />
-                        <stop offset="100%" stop-color="#7c3aed" />
-                      </linearGradient>
-                    </defs>
-                    <text x="40" y="45" text-anchor="middle" font-size="14" font-weight="800" fill="white"
-                      id="dietComplianceText" style="font-family:'Syne',sans-serif;">—</text>
-                  </svg>
-                </div>
-                <p class="text-xs text-center" style="color:var(--muted);">dni z posiłkami</p>
-              </div>
-              <div class="glass p-5 rounded-2xl flex-1 flex flex-col justify-center items-center gap-2">
-                <p class="text-xs font-semibold uppercase tracking-wider"
-                  style="color:var(--muted);font-family:'Syne',sans-serif;">Streak</p>
-                <p id="kpiStreak" class="text-4xl font-extrabold"
-                  style="font-family:'Syne',sans-serif;background:linear-gradient(135deg,var(--cyan),var(--violet));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
-                  0</p>
-                <p class="text-xs" style="color:var(--muted);">dni z rzędu 🔥</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- ── Body Measurements Chart ── -->
-          <div class="glass p-5 rounded-2xl">
-            <div class="flex items-center justify-between mb-4">
-              <div>
-                <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">📐 Obwody ciała
-                </h2>
-                <p class="text-xs mt-0.5" style="color:var(--muted);">Pas i klatka piersiowa (cm)</p>
-              </div>
-              <div class="flex items-center gap-3 text-xs" style="color:var(--muted);">
-                <span class="flex items-center gap-1.5"><span
-                    style="display:inline-block;width:14px;height:2px;background:#00e5ff;border-radius:2px;"></span>Pas</span>
-                <span class="flex items-center gap-1.5"><span
-                    style="display:inline-block;width:14px;height:2px;background:#a78bfa;border-radius:2px;"></span>Klatka</span>
-              </div>
-            </div>
-            <div id="measurementsChartWrap" style="position:relative;">
-              <canvas id="measurementsChart" style="max-height:220px;width:100%;"></canvas>
-              <div id="measurementsChartEmpty"
-                style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
-                <div style="font-size:2rem;">📏</div>
+            <div id="volumeChartWrap" style="position:relative;">
+              <canvas id="volumeChart" style="max-height:180px;width:100%;"></canvas>
+              <div id="volumeChartEmpty" class="hidden"
+                style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">
+                <div style="font-size:2rem;">🏋️</div>
                 <p class="text-xs font-semibold text-white text-center" style="font-family:'Syne',sans-serif;">Brak
-                  pomiarów</p>
-                <p class="text-xs text-center" style="color:var(--muted);">Uzupełnij obwody w Check-inie</p>
+                  historii ćwiczeń</p>
               </div>
             </div>
           </div>
 
-          <!-- ── Wellness Chart (Sen / Energia / Stres) ── -->
-          <div class="glass p-5 rounded-2xl">
-            <div class="flex items-center justify-between mb-4">
-              <div>
-                <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">🧠 Wellness — Sen
-                  ·
-                  Energia · Stres</h2>
-                <p class="text-xs mt-0.5" style="color:var(--muted);">Skala 1–10 z dziennych check-inów</p>
-              </div>
-            </div>
-            <canvas id="wellnessChart" style="max-height:200px;width:100%;"></canvas>
-          </div>
-
-          <!-- ── Activity Heatmap ── -->
-          <div class="glass p-5 rounded-2xl">
-            <div class="flex items-center justify-between mb-4">
-              <div>
-                <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">📅 Heatmapa
-                  aktywności</h2>
-                <p class="text-xs mt-0.5" style="color:var(--muted);">Dni z pełną realizacją planu — ostatnie 365 dni
-                </p>
-              </div>
-            </div>
-            <div id="activityHeatmap" style="min-height:80px;"></div>
-          </div>
-
-          <!-- ── AI Insights ── -->
-          <div class="glass p-5 rounded-2xl">
-            <div class="flex items-center gap-3 mb-4">
-              <div class="w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0"
-                style="background:linear-gradient(135deg,rgba(0,229,255,0.15),rgba(124,58,237,0.15));border:1px solid rgba(0,229,255,0.25);">
-                🤖</div>
-              <div>
-                <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">Wnioski AI</h2>
-                <p class="text-xs mt-0.5" style="color:var(--muted);">Automatyczna analiza Twoich danych</p>
-              </div>
-              <button onclick="refreshStats()"
-                class="ml-auto btn-ghost px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <path d="M21 2v6h-6" />
-                  <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
-                  <path d="M3 22v-6h6" />
-                  <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+          <!-- Diet Compliance + Streak mini-cards -->
+          <div class="flex flex-col gap-4">
+            <div class="glass p-5 rounded-2xl flex-1 flex flex-col justify-between">
+              <p class="text-xs font-semibold uppercase tracking-wider"
+                style="color:var(--muted);font-family:'Syne',sans-serif;">Diet Compliance</p>
+              <div class="text-center my-2">
+                <svg viewBox="0 0 80 80" width="80" height="80" style="margin:0 auto;display:block;">
+                  <circle cx="40" cy="40" r="32" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="7" />
+                  <circle id="dietComplianceRing" cx="40" cy="40" r="32" fill="none" stroke="url(#statsGrad)"
+                    stroke-width="7" stroke-linecap="round" stroke-dasharray="201" stroke-dashoffset="201"
+                    style="transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1)" />
+                  <defs>
+                    <linearGradient id="statsGrad" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stop-color="#00e5ff" />
+                      <stop offset="100%" stop-color="#7c3aed" />
+                    </linearGradient>
+                  </defs>
+                  <text x="40" y="45" text-anchor="middle" font-size="14" font-weight="800" fill="white"
+                    id="dietComplianceText" style="font-family:'Syne',sans-serif;">—</text>
                 </svg>
-                Odśwież
-              </button>
-            </div>
-            <div id="aiInsightsList" class="space-y-2">
-              <div class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm"
-                style="background:rgba(255,255,255,0.03);border:1px solid var(--border);">
-                <span class="text-lg flex-shrink-0">📊</span>
-                <span style="color:var(--muted);">Wejdź w zakładkę Postępy, aby zobaczyć wnioski po zalogowaniu
-                  check-inów.</span>
               </div>
+              <p class="text-xs text-center" style="color:var(--muted);">dni z posiłkami</p>
+            </div>
+            <div class="glass p-5 rounded-2xl flex-1 flex flex-col justify-center items-center gap-2">
+              <p class="text-xs font-semibold uppercase tracking-wider"
+                style="color:var(--muted);font-family:'Syne',sans-serif;">Streak</p>
+              <p id="kpiStreak" class="text-4xl font-extrabold"
+                style="font-family:'Syne',sans-serif;background:linear-gradient(135deg,var(--cyan),var(--violet));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+                0</p>
+              <p class="text-xs" style="color:var(--muted);">dni z rzędu 🔥</p>
             </div>
           </div>
+        </div>
 
-        </section>
+        <!-- ── Body Measurements Chart ── -->
+        <div class="glass p-5 rounded-2xl">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">📐 Obwody ciała
+              </h2>
+              <p class="text-xs mt-0.5" style="color:var(--muted);">Pas i klatka piersiowa (cm)</p>
+            </div>
+            <div class="flex items-center gap-3 text-xs" style="color:var(--muted);">
+              <span class="flex items-center gap-1.5"><span
+                  style="display:inline-block;width:14px;height:2px;background:#00e5ff;border-radius:2px;"></span>Pas</span>
+              <span class="flex items-center gap-1.5"><span
+                  style="display:inline-block;width:14px;height:2px;background:#a78bfa;border-radius:2px;"></span>Klatka</span>
+            </div>
+          </div>
+          <div id="measurementsChartWrap" style="position:relative;">
+            <canvas id="measurementsChart" style="max-height:220px;width:100%;"></canvas>
+            <div id="measurementsChartEmpty"
+              style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
+              <div style="font-size:2rem;">📏</div>
+              <p class="text-xs font-semibold text-white text-center" style="font-family:'Syne',sans-serif;">Brak
+                pomiarów</p>
+              <p class="text-xs text-center" style="color:var(--muted);">Uzupełnij obwody w Check-inie</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Wellness Chart (Sen / Energia / Stres) ── -->
+        <div class="glass p-5 rounded-2xl">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">🧠 Wellness — Sen
+                ·
+                Energia · Stres</h2>
+              <p class="text-xs mt-0.5" style="color:var(--muted);">Skala 1–10 z dziennych check-inów</p>
+            </div>
+          </div>
+          <canvas id="wellnessChart" style="max-height:200px;width:100%;"></canvas>
+        </div>
+
+        <!-- ── Activity Heatmap ── -->
+        <div class="glass p-5 rounded-2xl">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">📅 Heatmapa
+                aktywności</h2>
+              <p class="text-xs mt-0.5" style="color:var(--muted);">Dni z pełną realizacją planu — ostatnie 365 dni
+              </p>
+            </div>
+          </div>
+          <div id="activityHeatmap" style="min-height:80px;"></div>
+        </div>
+
+        <!-- ── AI Insights ── -->
+        <div class="glass p-5 rounded-2xl">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0"
+              style="background:linear-gradient(135deg,rgba(0,229,255,0.15),rgba(124,58,237,0.15));border:1px solid rgba(0,229,255,0.25);">
+              🤖</div>
+            <div>
+              <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">Wnioski AI</h2>
+              <p class="text-xs mt-0.5" style="color:var(--muted);">Automatyczna analiza Twoich danych</p>
+            </div>
+            <button onclick="refreshStats()"
+              class="ml-auto btn-ghost px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M21 2v6h-6" />
+                <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+                <path d="M3 22v-6h6" />
+                <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+              </svg>
+              Odśwież
+            </button>
+          </div>
+          <div id="aiInsightsList" class="space-y-2">
+            <div class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm"
+              style="background:rgba(255,255,255,0.03);border:1px solid var(--border);">
+              <span class="text-lg flex-shrink-0">📊</span>
+              <span style="color:var(--muted);">Wejdź w zakładkę Postępy, aby zobaczyć wnioski po zalogowaniu
+                check-inów.</span>
+            </div>
+          </div>
+        </div>
+
+      </section>
 
     </main>
   </div>
@@ -8156,13 +8249,11 @@
       if (panel) panel.classList.remove('hidden');
       const btn = document.querySelector(`[data-ptab="${tab}"]`);
       if (btn) { btn.classList.add('active', 'text-cyan-400'); btn.classList.remove('text-gray-400'); }
+      if (tab === 'preferences') loadPrefsUI();
     }
 
     function renderProfileTabs() {
       loadProfileFormData();
-      renderGoalsGrid();
-      renderExclusionChips();
-      renderEquipmentGrid();
     }
 
     function loadProfileFormData() {
@@ -8174,10 +8265,8 @@
 
       const welcomeSub = document.getElementById('profileWelcomeSub');
       if (welcomeSub) {
-        const goal = p?.goal || '';
-        welcomeSub.textContent = goal
-          ? 'Cel: ' + goal
-          : 'Uzupełnij profil aby otrzymać spersonalizowany plan';
+        welcomeSub.textContent = '';
+        welcomeSub.style.display = 'none';
       }
 
       const streakEl = document.getElementById('profileStreakVal');
@@ -8270,6 +8359,432 @@
       showToast('✅ Profil i plan zapisane!');
       updateDashboard();
       loadProfileFormData();
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // PREFERENCES TAB — dane, stany, renderowanie
+    // ══════════════════════════════════════════════════════════════════
+
+    const HOME_EQUIP_LIST = [
+      { k: 'hantle', l: 'Hantle', e: '🏋️' },
+      { k: 'sztanga', l: 'Sztanga', e: '⚡' },
+      { k: 'drążek', l: 'Drążek', e: '🔝' },
+      { k: 'gumy', l: 'Gumy oporowe', e: '🟢' },
+      { k: 'kettlebell', l: 'Kettlebell', e: '🔵' },
+      { k: 'TRX', l: 'TRX', e: '🔗' },
+      { k: 'mata', l: 'Mata', e: '🟫' },
+      { k: 'skakanka', l: 'Skakanka', e: '🪢' },
+      { k: 'lawka', l: 'Ławka', e: '🛋️' },
+      { k: 'porecze', l: 'Poręcze', e: '🤸' },
+      { k: 'brak', l: 'Bez sprzętu', e: '✊' },
+    ];
+
+    const MUSCLE_FOCUS_LIST = [
+      { k: 'klatka', l: 'Klatka', e: '🫁' },
+      { k: 'plecy', l: 'Plecy', e: '🔙' },
+      { k: 'nogi', l: 'Nogi', e: '🦵' },
+      { k: 'barki', l: 'Barki', e: '💪' },
+      { k: 'biceps', l: 'Biceps', e: '💪' },
+      { k: 'triceps', l: 'Triceps', e: '💪' },
+      { k: 'core', l: 'Core', e: '⚙️' },
+      { k: 'brzuch', l: 'Brzuch', e: '🎯' },
+      { k: 'pośladki', l: 'Pośladki', e: '🍑' },
+      { k: 'kardio', l: 'Kardio', e: '❤️' },
+      { k: 'mobilność', l: 'Mobilność', e: '🧘' },
+    ];
+
+    const DIET_STYLES = [
+      { k: 'standard', l: 'Standardowa', e: '🍽️' },
+      { k: 'highprotein', l: 'Wysokobiałkowa', e: '🥩' },
+      { k: 'lowcarb', l: 'Niskowęglowodanowa', e: '🥑' },
+      { k: 'vegetarian', l: 'Wegetariańska', e: '🌱' },
+      { k: 'vegan', l: 'Wegańska', e: '🌿' },
+      { k: 'keto', l: 'Ketogeniczna', e: '🧀' },
+    ];
+
+    const ALLERGENS_LIST = [
+      { k: 'gluten', l: 'Gluten', e: '🌾' },
+      { k: 'nabiał', l: 'Nabiał', e: '🥛' },
+      { k: 'jajka', l: 'Jajka', e: '🥚' },
+      { k: 'orzechy', l: 'Orzechy', e: '🥜' },
+      { k: 'ryby', l: 'Ryby', e: '🐟' },
+      { k: 'soja', l: 'Soja', e: '🫘' },
+      { k: 'skorupiaki', l: 'Skorupiaki', e: '🦐' },
+      { k: 'seler', l: 'Seler', e: '🌿' },
+      { k: 'gorczyca', l: 'Gorczyca', e: '🌼' },
+    ];
+
+    const TRAINING_DAYS_ALL = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
+    const DAY_IDS = { Pon: 'Pon', Wt: 'Wt', 'Śr': 'Sr', Czw: 'Czw', Pt: 'Pt', Sob: 'Sob', Niedz: 'Niedz' };
+
+    let _prefsState = {
+      homeEquip: new Set(),
+      difficulty: 'medium',
+      focusMuscles: new Set(),
+      excludedEx: [],
+      injuries: '',
+      trainingDays: new Set(['Pon', 'Śr', 'Pt']),
+      dietStyle: 'standard',
+      allergens: new Set(),
+      excludedMeals: [],
+      avoidIngredients: [],
+      preferIngredients: [],
+      mealsPerDay: 4,
+    };
+
+    function switchPrefsTab(tab) {
+      const panels = ['training', 'diet'];
+      panels.forEach(p => {
+        const el = document.getElementById('prefsPanel_' + p);
+        if (el) el.classList.toggle('hidden', p !== tab);
+      });
+      ['training', 'diet'].forEach(t => {
+        const btn = document.getElementById('prefsTab_' + t);
+        if (!btn) return;
+        const active = t === tab;
+        btn.style.background = active ? 'rgba(0,229,255,0.15)' : 'transparent';
+        btn.style.color = active ? '#00e5ff' : '#64748b';
+        btn.style.fontWeight = active ? '700' : '500';
+      });
+    }
+
+    function _renderToggleGrid(containerId, items, selectedSet, toggleFn, activeColor, activeBg) {
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      el.innerHTML = items.map(item => {
+        const on = selectedSet.has(item.k);
+        return `<button onclick="${toggleFn}('${item.k}')"
+          class="py-2.5 rounded-xl text-xs font-medium border transition-all flex flex-col items-center gap-1"
+          style="background:${on ? activeBg : 'rgba(255,255,255,0.04)'};
+                 border-color:${on ? activeColor : 'rgba(255,255,255,0.08)'};
+                 color:${on ? activeColor : '#64748b'};">
+          <span class="text-base">${item.e}</span>
+          <span>${item.l}</span>
+        </button>`;
+      }).join('');
+    }
+
+    function _renderIngredientTags(containerId, arr, removeFn, color, bg) {
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      if (!arr.length) {
+        el.innerHTML = '<span class="text-xs text-gray-600 italic">Brak</span>';
+        return;
+      }
+      el.innerHTML = arr.map((item, i) =>
+        `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium"
+          style="background:${bg};border:1px solid ${color}30;color:${color};">
+          ${item}
+          <button onclick="${removeFn}(${i})" class="ml-1 opacity-60 hover:opacity-100">×</button>
+        </span>`
+      ).join('');
+    }
+
+    function _renderExcludedExTags() {
+      const el = document.getElementById('excludedExercisesTags');
+      if (!el) return;
+      if (_prefsState.excludedEx.length === 0) {
+        el.innerHTML = '<span class="text-xs text-gray-600 italic">Brak wykluczeń</span>';
+        return;
+      }
+      el.innerHTML = _prefsState.excludedEx.map((name, i) =>
+        `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium"
+          style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);color:#f87171;">
+          🚫 ${name}
+          <button onclick="removeExcludedExercise(${i})" class="opacity-60 hover:opacity-100 ml-1">×</button>
+        </span>`
+      ).join('');
+    }
+
+    function _renderExcludedMealsTags() {
+      const el = document.getElementById('excludedMealsTags');
+      if (!el) return;
+      if (_prefsState.excludedMeals.length === 0) {
+        el.innerHTML = '<span class="text-xs text-gray-600 italic">Brak wykluczeń</span>';
+        return;
+      }
+      el.innerHTML = _prefsState.excludedMeals.map((name, i) =>
+        `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium"
+          style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);color:#f87171;">
+          🚫 ${name}
+          <button onclick="removeExcludedMeal(${i})" class="opacity-60 hover:opacity-100 ml-1">×</button>
+        </span>`
+      ).join('');
+    }
+
+    function _escapeOnclickValue(value) {
+      return String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    }
+
+    function _normalizeSearchText(value) {
+      return String(value || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+    }
+
+    function _matchesSearchText(name, query) {
+      const normalizedName = _normalizeSearchText(name);
+      const normalizedQuery = _normalizeSearchText(query).replace(/[^a-z0-9]/g, '');
+      if (!normalizedQuery) return false;
+      if (normalizedName.includes(normalizedQuery)) return true;
+      const prefix = normalizedQuery.slice(0, Math.max(4, Math.min(5, normalizedQuery.length)));
+      if (prefix && normalizedName.includes(prefix)) return true;
+      return normalizedName.split(/[^a-z0-9]+/).some(token => token.startsWith(prefix));
+    }
+
+    function loadPrefsUI() {
+      const saved = JSON.parse(localStorage.getItem('fitai_prefs') || '{}');
+      _prefsState = {
+        homeEquip: new Set(saved.homeEquip || []),
+        difficulty: saved.difficulty || 'medium',
+        focusMuscles: new Set(saved.focusMuscles || []),
+        excludedEx: saved.excludedEx || [],
+        injuries: saved.injuries || '',
+        trainingDays: new Set(saved.trainingDays || ['Pon', 'Śr', 'Pt']),
+        dietStyle: saved.dietStyle || 'standard',
+        allergens: new Set(saved.allergens || []),
+        excludedMeals: saved.excludedMeals || [],
+        avoidIngredients: saved.avoidIngredients || [],
+        preferIngredients: saved.preferIngredients || [],
+        mealsPerDay: Number(saved.mealsPerDay) || 4,
+      };
+
+      _renderToggleGrid('homeEquipGrid', HOME_EQUIP_LIST, _prefsState.homeEquip, 'toggleHomeEquip', '#00e5ff', 'rgba(0,229,255,0.12)');
+      _renderToggleGrid('focusMusclesGrid', MUSCLE_FOCUS_LIST, _prefsState.focusMuscles, 'toggleFocusMuscle', '#a78bfa', 'rgba(124,58,237,0.15)');
+      _renderToggleGrid('dietStyleGrid', DIET_STYLES, new Set([_prefsState.dietStyle]), 'selectDietStyle', '#00e5ff', 'rgba(0,229,255,0.12)');
+      _renderToggleGrid('allergensGrid', ALLERGENS_LIST, _prefsState.allergens, 'toggleAllergen', '#f87171', 'rgba(239,68,68,0.12)');
+
+      setPrefsDifficulty(_prefsState.difficulty);
+
+      TRAINING_DAYS_ALL.forEach(day => {
+        const id = 'tday_' + DAY_IDS[day];
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        const on = _prefsState.trainingDays.has(day);
+        btn.style.background = on ? 'rgba(0,229,255,0.15)' : 'rgba(255,255,255,0.05)';
+        btn.style.borderColor = on ? 'rgba(0,229,255,0.4)' : 'rgba(255,255,255,0.1)';
+        btn.style.color = on ? '#00e5ff' : '#9ca3af';
+      });
+
+      const injEl = document.getElementById('injuriesInput');
+      if (injEl) injEl.value = _prefsState.injuries;
+
+      _renderExcludedExTags();
+      _renderExcludedMealsTags();
+      _renderIngredientTags('avoidIngredientTags', _prefsState.avoidIngredients, 'removeAvoidIngredient', '#fb923c', 'rgba(255,165,0,0.1)');
+      _renderIngredientTags('preferIngredientTags', _prefsState.preferIngredients, 'removePreferIngredient', '#4ade80', 'rgba(74,222,128,0.1)');
+
+      const slider = document.getElementById('mealsPerDayRange');
+      const display = document.getElementById('mealsPerDayDisplay');
+      if (slider) slider.value = _prefsState.mealsPerDay;
+      if (display) display.textContent = _prefsState.mealsPerDay;
+
+      switchPrefsTab('training');
+    }
+
+    function toggleHomeEquip(k) {
+      _prefsState.homeEquip.has(k) ? _prefsState.homeEquip.delete(k) : _prefsState.homeEquip.add(k);
+      _renderToggleGrid('homeEquipGrid', HOME_EQUIP_LIST, _prefsState.homeEquip, 'toggleHomeEquip', '#00e5ff', 'rgba(0,229,255,0.12)');
+    }
+
+    function toggleFocusMuscle(k) {
+      _prefsState.focusMuscles.has(k) ? _prefsState.focusMuscles.delete(k) : _prefsState.focusMuscles.add(k);
+      _renderToggleGrid('focusMusclesGrid', MUSCLE_FOCUS_LIST, _prefsState.focusMuscles, 'toggleFocusMuscle', '#a78bfa', 'rgba(124,58,237,0.15)');
+    }
+
+    function selectDietStyle(k) {
+      _prefsState.dietStyle = k;
+      _renderToggleGrid('dietStyleGrid', DIET_STYLES, new Set([k]), 'selectDietStyle', '#00e5ff', 'rgba(0,229,255,0.12)');
+    }
+
+    function toggleAllergen(k) {
+      _prefsState.allergens.has(k) ? _prefsState.allergens.delete(k) : _prefsState.allergens.add(k);
+      _renderToggleGrid('allergensGrid', ALLERGENS_LIST, _prefsState.allergens, 'toggleAllergen', '#f87171', 'rgba(239,68,68,0.12)');
+    }
+
+    function setPrefsDifficulty(level) {
+      _prefsState.difficulty = level;
+      const configs = {
+        easy: { bg: 'rgba(74,222,128,0.15)', border: 'rgba(74,222,128,0.5)', color: '#4ade80' },
+        medium: { bg: 'rgba(250,204,21,0.15)', border: 'rgba(250,204,21,0.5)', color: '#facc15' },
+        hard: { bg: 'rgba(248,113,113,0.15)', border: 'rgba(248,113,113,0.5)', color: '#f87171' },
+      };
+      ['easy', 'medium', 'hard'].forEach(d => {
+        const btn = document.getElementById('diff_' + d);
+        if (!btn) return;
+        const on = d === level;
+        const cfg = configs[d];
+        btn.style.background = on ? cfg.bg : 'rgba(255,255,255,0.04)';
+        btn.style.borderColor = on ? cfg.border : 'rgba(255,255,255,0.08)';
+        btn.style.color = on ? cfg.color : '#64748b';
+      });
+    }
+
+    function toggleTrainingDay(day) {
+      const id = 'tday_' + DAY_IDS[day];
+      if (_prefsState.trainingDays.has(day)) {
+        _prefsState.trainingDays.delete(day);
+      } else {
+        _prefsState.trainingDays.add(day);
+      }
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      const on = _prefsState.trainingDays.has(day);
+      btn.style.background = on ? 'rgba(0,229,255,0.15)' : 'rgba(255,255,255,0.05)';
+      btn.style.borderColor = on ? 'rgba(0,229,255,0.4)' : 'rgba(255,255,255,0.1)';
+      btn.style.color = on ? '#00e5ff' : '#9ca3af';
+    }
+
+    function searchExercisesToExclude(query) {
+      const resultsEl = document.getElementById('excludeExerciseResults');
+      if (!resultsEl) return;
+      if (!query || query.length < 2) { resultsEl.classList.add('hidden'); return; }
+
+      const db = window.EXERCISE_DB || {};
+      const allExercises = Object.values(db).flat();
+      const matches = allExercises
+        .filter(ex => ex && typeof ex.name === 'string' && _matchesSearchText(ex.name, query))
+        .filter(ex => !_prefsState.excludedEx.includes(ex.name))
+        .slice(0, 8);
+
+      if (!matches.length) { resultsEl.classList.add('hidden'); return; }
+
+      resultsEl.classList.remove('hidden');
+      resultsEl.innerHTML = matches.map(ex =>
+        `<button onclick="addExcludedExercise('${_escapeOnclickValue(ex.name)}'); document.getElementById('excludeExerciseSearch').value=''; document.getElementById('excludeExerciseResults').classList.add('hidden');"
+          class="w-full text-left px-3 py-2 text-sm text-gray-300 transition-colors"
+          style="border-bottom:1px solid rgba(255,255,255,0.05);"
+          onmouseover="this.style.background='rgba(0,229,255,0.08)'"
+          onmouseout="this.style.background='transparent'">
+          ${ex.name} <span class="text-xs text-gray-600 ml-1">${ex.muscle_group || ''}</span>
+        </button>`
+      ).join('');
+    }
+
+    function addExcludedExercise(name) {
+      if (!_prefsState.excludedEx.includes(name)) {
+        _prefsState.excludedEx.push(name);
+        _renderExcludedExTags();
+      }
+    }
+
+    function removeExcludedExercise(i) {
+      _prefsState.excludedEx.splice(i, 1);
+      _renderExcludedExTags();
+    }
+
+    function searchMealsToExclude(query) {
+      const resultsEl = document.getElementById('excludeMealResults');
+      if (!resultsEl) return;
+      if (!query || query.length < 2) { resultsEl.classList.add('hidden'); return; }
+
+      const db = window.MEAL_DB || {};
+      const allMeals = Object.values(db).flat();
+      const matches = allMeals
+        .filter(m => m && typeof m.name === 'string' && _matchesSearchText(m.name, query))
+        .filter(m => !_prefsState.excludedMeals.includes(m.name))
+        .slice(0, 8);
+
+      if (!matches.length) { resultsEl.classList.add('hidden'); return; }
+
+      resultsEl.classList.remove('hidden');
+      resultsEl.innerHTML = matches.map(m =>
+        `<button onclick="addExcludedMeal('${_escapeOnclickValue(m.name)}'); document.getElementById('excludeMealSearch').value=''; document.getElementById('excludeMealResults').classList.add('hidden');"
+          class="w-full text-left px-3 py-2 text-sm text-gray-300 transition-colors"
+          style="border-bottom:1px solid rgba(255,255,255,0.05);"
+          onmouseover="this.style.background='rgba(239,68,68,0.08)'"
+          onmouseout="this.style.background='transparent'">
+          ${m.name} <span class="text-xs text-gray-600 ml-1">${m.category || ''} · ${m.kcal || ''}kcal</span>
+        </button>`
+      ).join('');
+    }
+
+    function addExcludedMeal(name) {
+      if (!_prefsState.excludedMeals.includes(name)) {
+        _prefsState.excludedMeals.push(name);
+        _renderExcludedMealsTags();
+      }
+    }
+
+    function removeExcludedMeal(i) {
+      _prefsState.excludedMeals.splice(i, 1);
+      _renderExcludedMealsTags();
+    }
+
+    function addAvoidIngredient() {
+      const input = document.getElementById('avoidIngredientInput');
+      if (!input || !input.value.trim()) return;
+      const items = input.value.split(',').map(s => s.trim()).filter(Boolean);
+      items.forEach(item => {
+        if (!_prefsState.avoidIngredients.includes(item)) _prefsState.avoidIngredients.push(item);
+      });
+      input.value = '';
+      _renderIngredientTags('avoidIngredientTags', _prefsState.avoidIngredients, 'removeAvoidIngredient', '#fb923c', 'rgba(255,165,0,0.1)');
+    }
+
+    function removeAvoidIngredient(i) {
+      _prefsState.avoidIngredients.splice(i, 1);
+      _renderIngredientTags('avoidIngredientTags', _prefsState.avoidIngredients, 'removeAvoidIngredient', '#fb923c', 'rgba(255,165,0,0.1)');
+    }
+
+    function addPreferIngredient() {
+      const input = document.getElementById('preferIngredientInput');
+      if (!input || !input.value.trim()) return;
+      const items = input.value.split(',').map(s => s.trim()).filter(Boolean);
+      items.forEach(item => {
+        if (!_prefsState.preferIngredients.includes(item)) _prefsState.preferIngredients.push(item);
+      });
+      input.value = '';
+      _renderIngredientTags('preferIngredientTags', _prefsState.preferIngredients, 'removePreferIngredient', '#4ade80', 'rgba(74,222,128,0.1)');
+    }
+
+    function removePreferIngredient(i) {
+      _prefsState.preferIngredients.splice(i, 1);
+      _renderIngredientTags('preferIngredientTags', _prefsState.preferIngredients, 'removePreferIngredient', '#4ade80', 'rgba(74,222,128,0.1)');
+    }
+
+    function _serializePrefs() {
+      return {
+        homeEquip: [..._prefsState.homeEquip],
+        difficulty: _prefsState.difficulty,
+        focusMuscles: [..._prefsState.focusMuscles],
+        excludedEx: _prefsState.excludedEx,
+        injuries: document.getElementById('injuriesInput')?.value || '',
+        trainingDays: [..._prefsState.trainingDays],
+        dietStyle: _prefsState.dietStyle,
+        allergens: [..._prefsState.allergens],
+        excludedMeals: _prefsState.excludedMeals,
+        avoidIngredients: _prefsState.avoidIngredients,
+        preferIngredients: _prefsState.preferIngredients,
+        mealsPerDay: parseInt(document.getElementById('mealsPerDayRange')?.value) || 4,
+      };
+    }
+
+    function _showPrefsToast(msg, color) {
+      const t = document.createElement('div');
+      t.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+        padding:12px 24px;border-radius:12px;font-size:13px;font-weight:600;z-index:9999;
+        background:rgba(10,10,20,0.97);color:${color};border:1px solid ${color}40;
+        box-shadow:0 8px 32px rgba(0,0,0,0.5);transition:opacity 0.3s;`;
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => { t.style.opacity = '0'; }, 2500);
+      setTimeout(() => t.remove(), 3000);
+    }
+
+    function saveTrainingPrefs() {
+      const prefs = _serializePrefs();
+      prefs.injuries = document.getElementById('injuriesInput')?.value || '';
+      localStorage.setItem('fitai_prefs', JSON.stringify(prefs));
+      _showPrefsToast('✅ Preferencje treningu zapisane!', '#4ade80');
+    }
+
+    function saveDietPrefs() {
+      const prefs = _serializePrefs();
+      prefs.mealsPerDay = parseInt(document.getElementById('mealsPerDayRange')?.value) || 4;
+      localStorage.setItem('fitai_prefs', JSON.stringify(prefs));
+      _showPrefsToast('✅ Preferencje diety zapisane!', '#4ade80');
     }
 
     window.switchProfileTab = switchProfileTab;
