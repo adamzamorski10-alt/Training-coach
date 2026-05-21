@@ -2977,6 +2977,8 @@
           </div>
         </div>
 
+        </section>
+
         <section id="tab-profile" class="hidden space-y-6">
           <h3 class="text-3xl font-bold" style="font-family:'Syne',sans-serif;">Profil</h3>
           <div class="glass p-2 flex gap-2 overflow-x-auto">
@@ -2999,73 +3001,279 @@
 
           <!-- DATA tab -->
           <div id="ptab-data" class="profile-tab-panel space-y-6">
-            <div class="glass p-6 grid md:grid-cols-2 gap-6">
-              <div class="space-y-4">
-                <h4 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">Dane podstawowe</h4>
-                <div><label class="block text-xs font-medium text-gray-400 mb-2">Imię</label><input type="text"
-                    id="pName" placeholder="Twoje imię" class="w-full"></div>
-                <div class="grid grid-cols-2 gap-3">
-                  <div><label class="block text-xs text-gray-400 mb-1">Wiek</label><input type="number" id="pAge"
-                      placeholder="25" class="w-full"></div>
-                  <div><label class="block text-xs text-gray-400 mb-1">Płeć</label><select id="pGender" class="w-full">
-                      <option value="mężczyzna">Mężczyzna</option>
-                      <option value="kobieta">Kobieta</option>
-                    </select></div>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                  <div><label class="block text-xs text-gray-400 mb-1">Wzrost (cm)</label><input type="number"
-                      id="pHeight" placeholder="175" class="w-full"></div>
-                  <div><label class="block text-xs text-gray-400 mb-1">Waga (kg)</label><input type="number"
-                      id="pWeight" placeholder="70" class="w-full"></div>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                  <div><label class="block text-xs text-gray-400 mb-1">Waga docelowa (kg)</label><input type="number"
-                      id="pTargetWeight" placeholder="65" class="w-full"></div>
-                  <div><label class="block text-xs text-gray-400 mb-1">Aktywność</label>
-                    <select id="pFrequency" class="w-full">
-                      <option value="sedentaryczny">Brak aktywności</option>
-                      <option value="1-2">1-2 razy/tydz.</option>
-                      <option value="3-4" selected>3-4 razy/tydz.</option>
-                      <option value="5-6">5-6 razy/tydz.</option>
-                      <option value="codziennie">Codziennie</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                  <div><label class="block text-xs text-gray-400 mb-1">Posiłki/dzień</label><input type="number"
-                      id="pMealsPerDay" placeholder="5" min="2" max="8" class="w-full"></div>
-                  <div><label class="block text-xs text-gray-400 mb-1">Dieta</label>
-                    <select id="pDietType" class="w-full">
-                      <option value="standard">Standardowa</option>
-                      <option value="highprotein">High-protein</option>
-                      <option value="lowcarb">Low-carb</option>
-                      <option value="vege">Wegetariańska</option>
-                    </select>
-                  </div>
-                </div>
-                <div><label class="block text-xs text-gray-400 mb-1">Cel główny</label><input type="text" id="pGoal"
-                    placeholder="np. Redukcja tkanki tłuszczowej" class="w-full"></div>
-                <div><label class="block text-xs text-gray-400 mb-1">Alergie / wykluczenia</label><input type="text"
-                    id="pAllergies" placeholder="np. orzeszki, gluten" class="w-full"></div>
+
+            <!-- Karta powitalna z awatarem -->
+            <div class="glass rounded-2xl p-6 flex items-center gap-5" style="border:1px solid rgba(0,229,255,0.2);
+                     background:linear-gradient(135deg,rgba(0,229,255,0.04),rgba(124,58,237,0.04));">
+              <div class="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 text-3xl" style="background:linear-gradient(135deg,rgba(0,229,255,0.15),rgba(124,58,237,0.15));
+                       border:1px solid rgba(0,229,255,0.3);">
+                👤
               </div>
-              <!-- Calculator -->
-              <div class="space-y-4">
-                <h4 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">Kalkulator</h4>
-                <div class="glass rounded-2xl p-5 space-y-3">
-                  <div class="flex justify-between items-center"><span class="text-sm text-gray-400">BMR
-                      (spoczynek)</span><span class="font-bold text-white" id="calcBMR">—</span></div>
-                  <div class="flex justify-between items-center"><span class="text-sm text-gray-400">TDEE
-                      (aktywność)</span><span class="font-bold text-cyan-400" id="calcTDEE">—</span></div>
-                  <div class="flex justify-between items-center"><span class="text-sm text-gray-400">Białko
-                      docelowe</span><span class="font-bold text-violet-400" id="calcProtein">—</span></div>
-                  <div class="flex justify-between items-center border-t pt-3" style="border-color:var(--border);"><span
-                      class="text-sm font-bold text-white">Cel kaloryczny</span><span
-                      class="font-bold text-gradient text-lg" id="calcGoalKcal">—</span></div>
-                </div>
-                <button onclick="saveProfileData()" class="w-full btn-neon py-3 rounded-xl font-bold">💾 Zapisz
-                  profil</button>
+              <div class="flex-1 min-w-0">
+                <h4 id="profileWelcomeName" class="text-xl font-bold text-white truncate"
+                  style="font-family:'Syne',sans-serif;">
+                  Cześć, Użytkowniku!
+                </h4>
+                <p id="profileWelcomeSub" class="text-sm text-gray-400 mt-0.5">
+                  Uzupełnij swój profil aby otrzymać spersonalizowany plan
+                </p>
+              </div>
+              <div class="flex-shrink-0 text-right">
+                <p class="text-xs text-gray-500 uppercase tracking-wider">Poziom</p>
+                <p class="text-lg font-bold text-cyan-400" id="profileLevelDisplay">—</p>
               </div>
             </div>
+
+            <!-- Główna siatka: Dane osobowe + Kalkulator -->
+            <div class="grid md:grid-cols-2 gap-6">
+
+              <!-- LEWA: Dane osobowe -->
+              <div class="glass rounded-2xl overflow-hidden" style="border:1px solid rgba(0,229,255,0.12);">
+
+                <div class="px-5 py-4" style="background:rgba(0,229,255,0.04);
+                         border-bottom:1px solid rgba(255,255,255,0.07);">
+                  <h4 class="text-sm font-bold text-white uppercase tracking-wider">
+                    📋 Dane osobowe
+                  </h4>
+                </div>
+
+                <div class="p-5 space-y-4">
+
+                  <!-- Imię -->
+                  <div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
+                      Imię
+                    </label>
+                    <input type="text" id="pName" placeholder="Twoje imię"
+                      class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
+                      style="background:rgba(255,255,255,0.06);
+                             border:1px solid rgba(255,255,255,0.1);"
+                      onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
+                      onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                  </div>
+
+                  <!-- Wiek + Płeć -->
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
+                        Wiek
+                      </label>
+                      <input type="number" id="pAge" placeholder="25" min="10" max="99"
+                        class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
+                        style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);"
+                        onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
+                        onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
+                        Płeć
+                      </label>
+                      <select id="pGender"
+                        class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
+                        style="background:rgba(20,20,30,0.95);border:1px solid rgba(255,255,255,0.1);"
+                        onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
+                        onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                        <option value="mężczyzna">Mężczyzna</option>
+                        <option value="kobieta">Kobieta</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Wzrost + Waga -->
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
+                        Wzrost (cm)
+                      </label>
+                      <input type="number" id="pHeight" placeholder="175" min="100" max="250"
+                        class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
+                        style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);"
+                        onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
+                        onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
+                        Waga (kg)
+                      </label>
+                      <input type="number" id="pWeight" placeholder="70" min="30" max="300" step="0.1"
+                        class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
+                        style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);"
+                        onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
+                        onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                    </div>
+                  </div>
+
+                  <!-- Waga docelowa + Aktywność -->
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
+                        Waga cel (kg)
+                      </label>
+                      <input type="number" id="pTargetWeight" placeholder="65" min="30" max="300" step="0.1"
+                        class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
+                        style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);"
+                        onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
+                        onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
+                        Aktywność
+                      </label>
+                      <select id="pFrequency"
+                        class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
+                        style="background:rgba(20,20,30,0.95);border:1px solid rgba(255,255,255,0.1);"
+                        onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
+                        onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                        <option value="sedentaryczny">Brak aktywności</option>
+                        <option value="1-2">1–2 razy/tydz.</option>
+                        <option value="3-4" selected>3–4 razy/tydz.</option>
+                        <option value="5-6">5–6 razy/tydz.</option>
+                        <option value="codziennie">Codziennie</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Posiłki/dzień + Dieta -->
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
+                        Posiłki/dzień
+                      </label>
+                      <input type="number" id="pMealsPerDay" placeholder="4" min="2" max="8"
+                        class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
+                        style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);"
+                        onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
+                        onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
+                        Typ diety
+                      </label>
+                      <select id="pDietType"
+                        class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
+                        style="background:rgba(20,20,30,0.95);border:1px solid rgba(255,255,255,0.1);"
+                        onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
+                        onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                        <option value="standard">Standardowa</option>
+                        <option value="highprotein">High-protein</option>
+                        <option value="lowcarb">Low-carb</option>
+                        <option value="vege">Wegetariańska</option>
+                        <option value="vegan">Wegańska</option>
+                        <option value="keto">Keto</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Cel główny -->
+                  <div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
+                      Cel główny
+                    </label>
+                    <input type="text" id="pGoal" placeholder="np. Redukcja tkanki tłuszczowej"
+                      class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
+                      style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);"
+                      onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
+                      onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                  </div>
+
+                  <!-- Alergie -->
+                  <div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
+                      Alergie / wykluczone produkty
+                    </label>
+                    <input type="text" id="pAllergies" placeholder="np. gluten, orzeszki ziemne, nabiał"
+                      class="profile-input w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none transition-all"
+                      style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);"
+                      onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
+                      onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                  </div>
+
+                </div>
+              </div>
+
+              <!-- PRAWA: Kalkulator + Zapisz -->
+              <div class="space-y-5">
+
+                <!-- Kalkulator makro -->
+                <div class="glass rounded-2xl overflow-hidden" style="border:1px solid rgba(124,58,237,0.2);">
+                  <div class="px-5 py-4" style="background:rgba(124,58,237,0.04);
+                           border-bottom:1px solid rgba(255,255,255,0.07);">
+                    <h4 class="text-sm font-bold text-white uppercase tracking-wider">
+                      📊 Kalkulator makro
+                    </h4>
+                    <p class="text-xs text-gray-500 mt-0.5">
+                      Aktualizuje się automatycznie
+                    </p>
+                  </div>
+                  <div class="p-5 space-y-3">
+                    <div class="flex justify-between items-center py-2"
+                      style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                      <span class="text-sm text-gray-400">BMR (spoczynek)</span>
+                      <span class="font-bold text-white" id="calcBMR">—</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2"
+                      style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                      <span class="text-sm text-gray-400">TDEE (z aktywnością)</span>
+                      <span class="font-bold text-cyan-400" id="calcTDEE">—</span>
+                    </div>
+                    <div class="flex justify-between items-center py-2"
+                      style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                      <span class="text-sm text-gray-400">Białko docelowe</span>
+                      <span class="font-bold text-violet-400" id="calcProtein">—</span>
+                    </div>
+                    <div class="flex justify-between items-center py-3 mt-1 rounded-xl px-3"
+                      style="background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.15);">
+                      <span class="text-sm font-bold text-white">🎯 Cel kaloryczny</span>
+                      <span class="font-bold text-lg" id="calcGoalKcal" style="background:linear-gradient(135deg,#00e5ff,#7c3aed);
+                               -webkit-background-clip:text;-webkit-text-fill-color:transparent;">
+                        —
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Szybkie statystyki -->
+                <div class="glass rounded-2xl overflow-hidden" style="border:1px solid rgba(255,255,255,0.07);">
+                  <div class="px-5 py-4" style="background:rgba(255,255,255,0.02);
+                           border-bottom:1px solid rgba(255,255,255,0.07);">
+                    <h4 class="text-sm font-bold text-white uppercase tracking-wider">
+                      ⚡ Aktywność
+                    </h4>
+                  </div>
+                  <div class="p-5 grid grid-cols-2 gap-3">
+                    <div class="text-center p-3 rounded-xl"
+                      style="background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.12);">
+                      <p class="text-2xl font-bold text-cyan-400" id="profileStreakVal">—</p>
+                      <p class="text-xs text-gray-500 mt-0.5">dni streak</p>
+                    </div>
+                    <div class="text-center p-3 rounded-xl"
+                      style="background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.12);">
+                      <p class="text-2xl font-bold text-violet-400" id="profileXpVal">—</p>
+                      <p class="text-xs text-gray-500 mt-0.5">punktów XP</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Przycisk zapisu -->
+                <button onclick="saveProfileData()" class="w-full py-3.5 rounded-xl font-bold text-sm transition-all"
+                  style="background:linear-gradient(135deg,rgba(0,229,255,0.2),rgba(124,58,237,0.2));
+                         border:1px solid rgba(0,229,255,0.4);
+                         color:#00e5ff;
+                         letter-spacing:0.03em;">
+                  💾 Zapisz profil
+                </button>
+
+                <!-- Zmiana hasła -->
+                <button onclick="switchProfileTab('security')"
+                  class="w-full py-2.5 rounded-xl text-sm font-medium transition-all" style="background:rgba(255,255,255,0.03);
+                         border:1px solid rgba(255,255,255,0.08);
+                         color:#64748b;">
+                  🔒 Zmień hasło
+                </button>
+
+              </div>
+            </div>
+
           </div>
 
           <!-- GOALS tab -->
@@ -6531,6 +6739,11 @@
       } catch (e) {
         console.error('[initApp] updateDashboard() failed:', e);
       }
+
+      // Podłącz auto-przeliczanie kalkulatora profilu
+      ['pAge', 'pWeight', 'pHeight', 'pGender', 'pFrequency', 'pGoal'].forEach(id => {
+        document.getElementById(id)?.addEventListener('input', _recalcProfile);
+      });
     }
 
     function saveState() {
@@ -6619,6 +6832,154 @@
     function getCurrentProfile() {
       return state.profiles.find(p => p.id === state.currentProfile) || state.profiles[0];
     }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // NAWIGACJA ZAKŁADEK
+    // ═══════════════════════════════════════════════════════════════════
+
+    function showTab(tabId) {
+      document.querySelectorAll('section[id^="tab-"]').forEach(s => {
+        s.classList.add('hidden');
+      });
+      const target = document.getElementById('tab-' + tabId);
+      if (target) target.classList.remove('hidden');
+
+      document.querySelectorAll('[data-tab]').forEach(link => {
+        const active = link.getAttribute('data-tab') === tabId;
+        link.classList.toggle('active', active);
+        if (active) {
+          link.classList.remove('text-gray-400');
+          link.classList.add('text-cyan-400');
+        } else {
+          link.classList.remove('text-cyan-400');
+          link.classList.add('text-gray-400');
+        }
+      });
+
+      if (tabId === 'profile') {
+        _loadProfileIntoForm();
+      }
+    }
+
+    function switchProfileTab(tabId) {
+      document.querySelectorAll('.profile-tab-panel').forEach(p => {
+        p.classList.add('hidden');
+      });
+      const target = document.getElementById('ptab-' + tabId);
+      if (target) target.classList.remove('hidden');
+
+      document.querySelectorAll('.profile-tab').forEach(btn => {
+        const active = btn.getAttribute('data-ptab') === tabId;
+        btn.classList.toggle('active', active);
+        btn.classList.toggle('text-cyan-400', active);
+        btn.classList.toggle('text-gray-400', !active);
+      });
+    }
+
+    function _loadProfileIntoForm() {
+      const p = (typeof getCurrentProfile === 'function') ? getCurrentProfile() : null;
+      if (!p) return;
+
+      const sv = (id, val) => {
+        const el = document.getElementById(id);
+        if (el && val !== undefined && val !== null) el.value = val;
+      };
+
+      sv('pName', p.name);
+      sv('pAge', p.age);
+      sv('pHeight', p.height);
+      sv('pWeight', p.weight);
+      sv('pTargetWeight', p.target_weight ?? p.targetWeight);
+      sv('pMealsPerDay', p.meals_per_day ?? p.mealsPerDay ?? 4);
+      sv('pGoal', p.goal ?? '');
+      sv('pAllergies', p.allergies ?? (p.exclusions || []).join(', ') ?? '');
+
+      const gEl = document.getElementById('pGender');
+      if (gEl && p.gender) gEl.value = p.gender;
+      const fEl = document.getElementById('pFrequency');
+      if (fEl && p.frequency) fEl.value = p.frequency;
+      const dEl = document.getElementById('pDietType');
+      if (dEl && p.diet) dEl.value = p.diet;
+
+      _recalcMacro();
+    }
+
+    function _recalcMacro() {
+      const age = parseInt(document.getElementById('pAge')?.value) || 25;
+      const weight = parseFloat(document.getElementById('pWeight')?.value) || 75;
+      const height = parseFloat(document.getElementById('pHeight')?.value) || 175;
+      const gender = document.getElementById('pGender')?.value || 'mężczyzna';
+      const freq = document.getElementById('pFrequency')?.value || '3-4';
+      const goal = (document.getElementById('pGoal')?.value || '').toLowerCase();
+
+      const bmr = gender.includes('kobieta')
+        ? 10 * weight + 6.25 * height - 5 * age - 161
+        : 10 * weight + 6.25 * height - 5 * age + 5;
+
+      const multMap = { 'sedentaryczny': 1.2, '1-2': 1.375, '3-4': 1.55, '5-6': 1.725, 'codziennie': 1.9 };
+      let mult = 1.55;
+      for (const [k, v] of Object.entries(multMap)) { if (freq.includes(k)) { mult = v; break; } }
+
+      let kcal = Math.round(bmr * mult);
+      if (goal.includes('reduk') || goal.includes('odchudz') || goal.includes('schud')) kcal -= 400;
+      else if (goal.includes('masa') || goal.includes('budow') || goal.includes('przyty')) kcal += 300;
+
+      const prot = Math.round(weight * 1.8);
+
+      const se = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+      se('calcBMR', Math.round(bmr) + ' kcal');
+      se('calcTDEE', kcal + ' kcal');
+      se('calcProtein', prot + 'g');
+      se('calcGoalKcal', kcal + ' kcal');
+    }
+
+    function saveProfileData() {
+      const p = (typeof getCurrentProfile === 'function') ? getCurrentProfile() : null;
+      if (!p) { alert('Brak aktywnego profilu.'); return; }
+
+      p.name = document.getElementById('pName')?.value?.trim() || p.name;
+      p.age = parseInt(document.getElementById('pAge')?.value) || p.age;
+      p.height = parseFloat(document.getElementById('pHeight')?.value) || p.height;
+      p.weight = parseFloat(document.getElementById('pWeight')?.value) || p.weight;
+      p.target_weight = parseFloat(document.getElementById('pTargetWeight')?.value) || p.target_weight;
+      p.gender = document.getElementById('pGender')?.value || p.gender;
+      p.frequency = document.getElementById('pFrequency')?.value || p.frequency;
+      p.diet = document.getElementById('pDietType')?.value || p.diet;
+      p.goal = document.getElementById('pGoal')?.value?.trim() || p.goal;
+      p.meals_per_day = parseInt(document.getElementById('pMealsPerDay')?.value) || p.meals_per_day;
+      p.allergies = document.getElementById('pAllergies')?.value?.trim() || '';
+
+      if (typeof saveState === 'function') saveState();
+      localStorage.setItem('fitai_profile_cache', JSON.stringify(p));
+
+      const token = localStorage.getItem('fitai_token');
+      if (token && window.API_BASE) {
+        fetch(window.API_BASE + '/app/profile', {
+          method: 'PUT',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            age: p.age, weight: p.weight, target_weight: p.target_weight,
+            gender: p.gender, frequency: p.frequency, diet: p.diet,
+            goal: p.goal, meals_per_day: p.meals_per_day,
+          }),
+        }).catch(() => { });
+      }
+
+      if (typeof updateDashboard === 'function') updateDashboard();
+
+      // Toast potwierdzenia
+      const t = document.createElement('div');
+      t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);' +
+        'padding:12px 24px;border-radius:12px;font-size:13px;font-weight:600;z-index:9999;' +
+        'background:rgba(10,10,20,0.97);color:#4ade80;border:1px solid rgba(74,222,128,0.3);' +
+        'box-shadow:0 8px 32px rgba(0,0,0,0.5);transition:opacity 0.3s;';
+      t.textContent = '✅ Profil zapisany!';
+      document.body.appendChild(t);
+      setTimeout(() => { t.style.opacity = '0'; }, 2500);
+      setTimeout(() => t.remove(), 3000);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
 
     // ========== LANDING / DASHBOARD SWITCH ==========
     function enterDashboard() {
@@ -7179,6 +7540,7 @@
       if (tabId === 'kuchnia') { kitchenInit(); }
       document.getElementById('mainContent').scrollTop = 0;
     }
+    window.showTab = showTab;
 
     // ========== PLAN SUBTAB ==========
     // ═══════════ PLAN HYBRID NAVIGATION ═══════════
@@ -7797,11 +8159,79 @@
     }
 
     function renderProfileTabs() {
-      const p = getCurrentProfile();
-      fillProfileForm(p);
+      loadProfileFormData();
       renderGoalsGrid();
       renderExclusionChips();
       renderEquipmentGrid();
+    }
+
+    function loadProfileFormData() {
+      const p = getCurrentProfile();
+      fillProfileForm(p);
+
+      const welcomeName = document.getElementById('profileWelcomeName');
+      if (welcomeName && p?.name) welcomeName.textContent = 'Cześć, ' + p.name + '!';
+
+      const welcomeSub = document.getElementById('profileWelcomeSub');
+      if (welcomeSub) {
+        const goal = p?.goal || '';
+        welcomeSub.textContent = goal
+          ? 'Cel: ' + goal
+          : 'Uzupełnij profil aby otrzymać spersonalizowany plan';
+      }
+
+      const streakEl = document.getElementById('profileStreakVal');
+      if (streakEl) streakEl.textContent = p?.streak_days ?? p?.streakDays ?? '0';
+
+      const xpEl = document.getElementById('profileXpVal');
+      if (xpEl) xpEl.textContent = p?.total_xp ?? p?.totalXp ?? '0';
+
+      const levelEl = document.getElementById('profileLevelDisplay');
+      if (levelEl) levelEl.textContent = 'Lvl ' + (p?.level ?? '1');
+
+      _recalcProfile();
+    }
+
+    function _recalcProfile() {
+      const age = parseInt(document.getElementById('pAge')?.value) || 25;
+      const weight = parseFloat(document.getElementById('pWeight')?.value) || 75;
+      const height = parseFloat(document.getElementById('pHeight')?.value) || 175;
+      const gender = document.getElementById('pGender')?.value || 'mężczyzna';
+      const freq = document.getElementById('pFrequency')?.value || '3-4';
+      const goal = document.getElementById('pGoal')?.value || '';
+
+      const bmr = gender.includes('kobieta')
+        ? (10 * weight + 6.25 * height - 5 * age - 161)
+        : (10 * weight + 6.25 * height - 5 * age + 5);
+
+      const multMap = {
+        sedentaryczny: 1.2,
+        '1-2': 1.375,
+        '3-4': 1.55,
+        '5-6': 1.725,
+        codziennie: 1.9,
+      };
+      const mult = multMap[freq] || 1.55;
+      let tdee = Math.round(bmr * mult);
+
+      const goalLow = goal.toLowerCase();
+      if (goalLow.includes('reduk') || goalLow.includes('schud') || goalLow.includes('odchudzani')) {
+        tdee -= 400;
+      } else if (goalLow.includes('masa') || goalLow.includes('budow') || goalLow.includes('przyty')) {
+        tdee += 300;
+      }
+
+      const protein = Math.round(weight * 1.8);
+
+      const setEl = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+      };
+
+      setEl('calcBMR', Math.round(bmr) + ' kcal');
+      setEl('calcTDEE', tdee + ' kcal');
+      setEl('calcProtein', protein + 'g');
+      setEl('calcGoalKcal', tdee + ' kcal');
     }
 
     function fillProfileForm(p) {
@@ -7839,7 +8269,12 @@
       fillProfileForm(p);
       showToast('✅ Profil i plan zapisane!');
       updateDashboard();
+      loadProfileFormData();
     }
+
+    window.switchProfileTab = switchProfileTab;
+    window.saveProfileData = saveProfileData;
+    window.loadProfileFormData = loadProfileFormData;
 
     function renderGoalsGrid() {
       const p = getCurrentProfile();
@@ -11814,15 +12249,235 @@
       return all;
     }
 
+    // ── EDIT DAY MODAL STATE ──────────────────────────────────────────────────
+    let _editDay = null, _editDayType = 'strength';
+    let _editMuscles = [], _editSport = null, _editDrillCats = [];
+
+    const ALL_MUSCLE_GROUPS = ['klatka', 'plecy', 'nogi', 'ramiona', 'biceps', 'triceps',
+      'core', 'brzuch', 'kardio', 'pośladki', 'mobilność'];
+    const ALL_SPORTS = [
+      { k: 'basketball', l: 'Koszykówka', e: '🏀' }, { k: 'football', l: 'Piłka nożna', e: '⚽' },
+      { k: 'tenis', l: 'Tenis', e: '🎾' }, { k: 'siatkówka', l: 'Siatkówka', e: '🏐' },
+      { k: 'boks', l: 'Boks', e: '🥊' }, { k: 'pływanie', l: 'Pływanie', e: '🏊' },
+      { k: 'bieganie', l: 'Bieganie', e: '🏃' }, { k: 'cycling', l: 'Kolarstwo', e: '🚴' },
+    ];
+
+    function openDayEditModal(dayKey) {
+      _editDay = dayKey;
+      const dayNames = {
+        Pon: 'Poniedziałek', Wt: 'Wtorek', Śr: 'Środa',
+        Czw: 'Czwartek', Pt: 'Piątek', Sob: 'Sobota', Niedz: 'Niedziela'
+      };
+      const titleEl = document.getElementById('dayEditModalTitle');
+      if (titleEl) titleEl.textContent = 'Edytuj: ' + (dayNames[dayKey] || dayKey);
+
+      const p = typeof getCurrentProfile === 'function' ? getCurrentProfile()
+        : (state.profile || Object.values(state.users || {})[0]);
+      const cfg = (p?.dayConfig || {})[dayKey] || {};
+
+      _editDayType = cfg.type || 'strength';
+      _editMuscles = cfg.muscles ? [...cfg.muscles] : [];
+      _editSport = (typeof resolveSportId === 'function' ? resolveSportId(cfg.sport) : cfg.sport) || null;
+      _editDrillCats = cfg.drillCats ? [...cfg.drillCats] : [];
+
+      const exCount = document.getElementById('editExCount');
+      const exCountVal = document.getElementById('editExCountVal');
+      const drillCount = document.getElementById('editDrillCount');
+      const drillCountVal = document.getElementById('editDrillCountVal');
+      if (exCount) exCount.value = String(cfg.exCount || 5);
+      if (exCountVal) exCountVal.textContent = String(cfg.exCount || 5);
+      if (drillCount) drillCount.value = String(cfg.drillCount || 4);
+      if (drillCountVal) drillCountVal.textContent = String(cfg.drillCount || 4);
+
+      const muscleGrid = document.getElementById('editMuscleGrid');
+      if (muscleGrid) {
+        muscleGrid.innerHTML = ALL_MUSCLE_GROUPS.map(m => {
+          const on = _editMuscles.includes(m);
+          return `<button onclick="toggleEditMuscle('${m}')" id="emg_${m}"
+        class="py-2 rounded-xl text-xs font-medium border transition-all"
+        style="background:${on ? 'rgba(0,229,255,0.15)' : 'rgba(255,255,255,0.05)'};
+               border-color:${on ? 'rgba(0,229,255,0.4)' : 'rgba(255,255,255,0.1)'};
+               color:${on ? '#00e5ff' : '#9ca3af'};">${m}</button>`;
+        }).join('');
+      }
+
+      const sportGrid = document.getElementById('editSportGrid');
+      if (sportGrid) {
+        sportGrid.innerHTML = ALL_SPORTS.map(s => {
+          const on = _editSport === s.k;
+          return `<button onclick="selectEditSport('${s.k}')" id="esp_${s.k}"
+        class="py-2 rounded-xl text-xs font-medium border transition-all"
+        style="background:${on ? 'rgba(124,58,237,0.2)' : 'rgba(255,255,255,0.05)'};
+               border-color:${on ? 'rgba(124,58,237,0.5)' : 'rgba(255,255,255,0.1)'};
+               color:${on ? '#a78bfa' : '#9ca3af'};">${s.e} ${s.l}</button>`;
+        }).join('');
+      }
+
+      if (_editSport) populateEditDrillCats(_editSport);
+      else {
+        const drillGrid = document.getElementById('editDrillCatGrid');
+        if (drillGrid) drillGrid.innerHTML = '<p class="text-xs text-gray-500 col-span-2">Wybierz sport</p>';
+      }
+
+      setEditDayType(_editDayType);
+      const modal = document.getElementById('dayEditModal');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeDayEditModal() {
+      const modal = document.getElementById('dayEditModal');
+      if (!modal) return;
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function setEditDayType(type) {
+      _editDayType = type;
+      ['strength', 'sport', 'rest'].forEach(t => {
+        const btn = document.getElementById('dtBtn_' + t);
+        if (!btn) return;
+        const on = t === type;
+        btn.style.background = on ? 'rgba(0,229,255,0.15)' : 'rgba(255,255,255,0.05)';
+        btn.style.borderColor = on ? 'rgba(0,229,255,0.4)' : 'rgba(255,255,255,0.1)';
+        btn.style.color = on ? '#00e5ff' : '#9ca3af';
+      });
+      document.getElementById('editStrengthOpts')?.classList.toggle('hidden', type !== 'strength');
+      document.getElementById('editSportOpts')?.classList.toggle('hidden', type !== 'sport');
+    }
+
+    function toggleEditMuscle(m) {
+      const i = _editMuscles.indexOf(m);
+      if (i === -1) _editMuscles.push(m); else _editMuscles.splice(i, 1);
+      const el = document.getElementById('emg_' + m);
+      const on = _editMuscles.includes(m);
+      if (el) {
+        el.style.background = on ? 'rgba(0,229,255,0.15)' : 'rgba(255,255,255,0.05)';
+        el.style.borderColor = on ? 'rgba(0,229,255,0.4)' : 'rgba(255,255,255,0.1)';
+        el.style.color = on ? '#00e5ff' : '#9ca3af';
+      }
+    }
+
+    function selectEditSport(key) {
+      _editSport = key;
+      ALL_SPORTS.forEach(s => {
+        const el = document.getElementById('esp_' + s.k);
+        const on = s.k === key;
+        if (el) {
+          el.style.background = on ? 'rgba(124,58,237,0.2)' : 'rgba(255,255,255,0.05)';
+          el.style.borderColor = on ? 'rgba(124,58,237,0.5)' : 'rgba(255,255,255,0.1)';
+          el.style.color = on ? '#a78bfa' : '#9ca3af';
+        }
+      });
+      populateEditDrillCats(key);
+    }
+
+    function populateEditDrillCats(sportKey) {
+      const sportId = typeof resolveSportId === 'function' ? resolveSportId(sportKey) : sportKey;
+      const sd = window.SPORT_DRILLS || {};
+      const cats = Object.keys(sd[sportId] || {}).filter(cat => {
+        const obj = sd[sportId]?.[cat];
+        return obj && typeof obj === 'object' && Array.isArray(obj.drills);
+      });
+
+      const grid = document.getElementById('editDrillCatGrid');
+      if (!grid) return;
+      grid.innerHTML = cats.map(cat => {
+        const on = _editDrillCats.includes(cat);
+        const safeId = cat.replace(/\s+/g, '_');
+        return `<button onclick="toggleEditDrillCat('${cat}')" id="edc_${safeId}"
+        class="py-2 px-3 rounded-xl text-xs font-medium border transition-all"
+        style="background:${on ? 'rgba(124,58,237,0.15)' : 'rgba(255,255,255,0.05)'};
+               border-color:${on ? 'rgba(124,58,237,0.4)' : 'rgba(255,255,255,0.1)'};
+               color:${on ? '#a78bfa' : '#9ca3af'};">${cat}</button>`;
+      }).join('') || '<p class="text-xs text-gray-500 col-span-2">Brak kategorii dla tego sportu</p>';
+    }
+
+    function toggleEditDrillCat(cat) {
+      const i = _editDrillCats.indexOf(cat);
+      if (i === -1) _editDrillCats.push(cat); else _editDrillCats.splice(i, 1);
+      const el = document.getElementById('edc_' + cat.replace(/\s+/g, '_'));
+      const on = _editDrillCats.includes(cat);
+      if (el) {
+        el.style.background = on ? 'rgba(124,58,237,0.15)' : 'rgba(255,255,255,0.05)';
+        el.style.borderColor = on ? 'rgba(124,58,237,0.4)' : 'rgba(255,255,255,0.1)';
+        el.style.color = on ? '#a78bfa' : '#9ca3af';
+      }
+    }
+
+    function saveEditDay() {
+      const p = typeof getCurrentProfile === 'function' ? getCurrentProfile()
+        : (state.profile || Object.values(state.users || {})[0]);
+      if (!p || !_editDay) return;
+
+      if (!p.dayConfig) p.dayConfig = {};
+
+      const exCount = parseInt(document.getElementById('editExCount')?.value || '5', 10) || 5;
+      const drillCount = parseInt(document.getElementById('editDrillCount')?.value || '4', 10) || 4;
+
+      p.dayConfig[_editDay] = {
+        type: _editDayType,
+        muscles: [..._editMuscles],
+        sport: _editSport,
+        drillCats: [..._editDrillCats],
+        exCount,
+        drillCount,
+      };
+
+      // Regeneruj trening dla tego dnia
+      if (_editDayType === 'rest') {
+        if (p.trainingPlan) p.trainingPlan[_editDay] = [];
+      } else if (_editDayType === 'strength' && typeof generateExercisesForDay === 'function') {
+        const muscles = _editMuscles.length > 0 ? _editMuscles : ['klatka', 'plecy'];
+        p.trainingPlan = p.trainingPlan || {};
+        p.trainingPlan[_editDay] = generateExercisesForDay(
+          muscles, p.equipment || [], p.exclusions || [], exCount, _editDay);
+      } else if (_editDayType === 'sport' && _editSport && window.SPORT_DRILLS) {
+        const sportId = typeof resolveSportId === 'function' ? resolveSportId(_editSport) : _editSport;
+        const sd = window.SPORT_DRILLS[sportId] || {};
+        const validCats = Object.keys(sd).filter(c => sd[c] && Array.isArray(sd[c].drills));
+        const cats = _editDrillCats.length > 0 ? _editDrillCats.filter(c => validCats.includes(c)) : validCats.slice(0, 3);
+        const allDrills = cats.flatMap(c => sd[c]?.drills || []);
+        const picked = [...allDrills].sort(() => Math.random() - .5).slice(0, drillCount);
+        p.trainingPlan = p.trainingPlan || {};
+        p.trainingPlan[_editDay] = picked.map(d => ({
+          name: d.name,
+          sets: 3,
+          reps: 10,
+          weight: 0,
+          isDrill: true,
+          sport: sportId,
+          duration: d.duration || '15 min',
+          desc: d.description || '',
+          _sport: true,
+        }));
+      }
+
+      // Regeneruj dietę dla tego dnia
+      if (typeof generateMealsForDay === 'function') {
+        const mealsPerDay = p.mealsPerDay || 5;
+        p.dietPlan = p.dietPlan || {};
+        p.dietPlan[_editDay] = generateMealsForDay(mealsPerDay, p.exclusions || [], p, _editDay);
+      }
+
+      if (typeof saveState === 'function') saveState();
+      closeDayEditModal();
+      if (typeof updateDashboard === 'function') updateDashboard();
+      if (typeof renderCurrentDay === 'function') renderCurrentDay();
+      if (typeof renderPlanWeekView === 'function') renderPlanWeekView();
+      if (typeof renderTodayPlan === 'function') renderTodayPlan();
+      if (typeof loadPlanForDay === 'function') loadPlanForDay();
+      showToastMsg('✅ Dzień zaktualizowany!', 'success');
+    }
+
     function openEditPlanModal() {
       const days = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
       const currentDayKey = days[state.currentDay || 0];
 
-      // Fallback for alternate modal implementation
-      const dayEditModal = document.getElementById('dayEditModal');
-      if (dayEditModal) {
-        if (typeof openDayEditModal === 'function') openDayEditModal(currentDayKey);
-        else dayEditModal.classList.remove('hidden');
+      // Weekly day editor is now the primary edit flow from Plan > Trening.
+      if (document.getElementById('dayEditModal') && typeof openDayEditModal === 'function') {
+        openDayEditModal(currentDayKey);
         return;
       }
 
@@ -13714,14 +14369,16 @@
       } catch (e) { console.warn('[FitAI] ensureTotalExercises call failed', e); }
 
     }
-    _dietDbCategory = cat;
-    document.querySelectorAll('.diet-cat-btn').forEach(b => {
-      const active = b.dataset.cat === cat;
-      b.style.background = active ? 'rgba(0,229,255,0.15)' : 'rgba(255,255,255,0.05)';
-      b.style.color = active ? 'var(--cyan)' : 'var(--muted)';
-      b.style.borderColor = active ? 'rgba(0,229,255,0.3)' : 'var(--border)';
-    });
-    renderDietDb();
+
+    function dietDbSetCategory(cat) {
+      _dietDbCategory = cat;
+      document.querySelectorAll('.diet-cat-btn').forEach(b => {
+        const active = b.dataset.cat === cat;
+        b.style.background = active ? 'rgba(0,229,255,0.15)' : 'rgba(255,255,255,0.05)';
+        b.style.color = active ? 'var(--cyan)' : 'var(--muted)';
+        b.style.borderColor = active ? 'rgba(0,229,255,0.3)' : 'var(--border)';
+      });
+      renderDietDb();
     }
 
     // ─── Biblioteka Posiłków (Diet Library) ──────────────────────────────────────
@@ -14152,7 +14809,7 @@
               style="background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.2);">
               ▶ Video
             </button>` : ''}
-            <button onclick="addExerciseToDay(${JSON.stringify(e).replace(/\/g,'\\').replace(/"/g,'&quot;')})"
+            <button onclick="addExerciseToDay(${JSON.stringify(e).replace(/\\/g, '\\\\').replace(/"/g, '&quot;')})"
               class= "flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all"
               style = "background:rgba(0,229,255,0.08);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);" >
               ➕ Do planu
@@ -14202,7 +14859,7 @@
         return matchCat && matchQ;
       });
 
-      if (countEl) countEl.textContent = `${ filtered.length } / ${ allMeals.length } posiłków`;
+      if (countEl) countEl.textContent = `${filtered.length} / ${allMeals.length} posiłków`;
 
       if (!filtered.length) {
         grid.innerHTML = '';
@@ -14239,14 +14896,14 @@
 
         const macroHtml = macros.map(mg =>
           `< span style = "background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
-              border - radius: 999px; padding: 2px 8px; font - size: 10px; font - weight: 700; color:${ mg.color }; ">
-         ${ mg.label }: ${ mg.val }
+              border - radius: 999px; padding: 2px 8px; font - size: 10px; font - weight: 700; color:${mg.color}; ">
+         ${mg.label}: ${mg.val}
        </span > `
         ).join('');
 
         // Ingredients preview
         const ingPrev = (m.ingredients || []).slice(0, 3).map(i => i.item).join(', ');
-        const ingMore = (m.ingredients || []).length > 3 ? ` + ${ (m.ingredients || []).length - 3 } ` : '';
+        const ingMore = (m.ingredients || []).length > 3 ? ` + ${(m.ingredients || []).length - 3} ` : '';
 
         card.innerHTML = `
           < div class="flex items-start justify-between gap-2" >
@@ -14257,7 +14914,7 @@
               >${badgeLabel}</span>
       </div >
           <div class="flex flex-wrap gap-1.5">${macroHtml}</div>
-      ${ ingPrev ? `<p class="text-xs" style="color:var(--muted);">${ingPrev}${ingMore}</p>` : '' }
+      ${ingPrev ? `<p class="text-xs" style="color:var(--muted);">${ingPrev}${ingMore}</p>` : ''}
       <div class="flex gap-2 mt-auto">
         <button onclick='dietDbOpenInfoModal(${JSON.stringify(m).replace(/'/g, "\\'")})'
           class="flex-shrink-0 py-2 px-3 rounded-xl text-xs font-bold transition-all"
@@ -14266,7 +14923,7 @@
           ℹ️ Info
         </button>
         <button onclick='dietDbOpenModal(${JSON.stringify(m).replace(/'/g, "\\'")
-    }) '
+          }) '
     class="flex-1 py-2 rounded-xl text-xs font-extrabold transition-all"
     style = "background:rgba(0,229,255,0.1);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);"
     onmouseenter = "this.style.background='rgba(0,229,255,0.2)'"
@@ -14296,10 +14953,10 @@
       ).join('');
 
       const macros = [
-        { label: '🔥 Kalorie', val: `${ meal.kcal } kcal`, color: 'var(--cyan)' },
-        { label: '💪 Białko', val: `${ meal.protein } g`, color: '#a78bfa' },
-        { label: '🌾 Węglowodany', val: meal.carbs !== undefined ? `${ meal.carbs } g` : '—', color: '#fbbf24' },
-        { label: '🥑 Tłuszcze', val: meal.fat !== undefined ? `${ meal.fat } g` : '—', color: '#34d399' },
+        { label: '🔥 Kalorie', val: `${meal.kcal} kcal`, color: 'var(--cyan)' },
+        { label: '💪 Białko', val: `${meal.protein} g`, color: '#a78bfa' },
+        { label: '🌾 Węglowodany', val: meal.carbs !== undefined ? `${meal.carbs} g` : '—', color: '#fbbf24' },
+        { label: '🥑 Tłuszcze', val: meal.fat !== undefined ? `${meal.fat} g` : '—', color: '#34d399' },
       ];
 
       const overlay = document.createElement('div');
@@ -14337,23 +14994,21 @@
           </div>`).join('')}
       </div>
       <!--Description -->
-      ${
-      meal.description ? `
+      ${meal.description ? `
         <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);">
           <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:8px;">Opis</div>
           <p style="font-size:13px;color:#94a3b8;line-height:1.6;">${meal.description}</p>
         </div>` : ''
-    }
+        }
       < !--Ingredients -->
-      ${
-      ingRows ? `
+      ${ingRows ? `
         <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);">
           <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:8px;">Składniki</div>
           <table style="width:100%;border-collapse:collapse;">
             ${ingRows}
           </table>
         </div>` : ''
-    }
+        }
       < !--CTA -->
       <div style="padding:16px 20px;">
         <button onclick="document.getElementById('_dietInfoModal')?.remove();dietDbOpenModal(${JSON.stringify(meal).replace(/'/g, "\\'")})"
@@ -14392,7 +15047,7 @@
         { label: '🥑 Tłuszcze', val: (meal.fat !== undefined ? meal.fat + 'g' : '—'), color: '#34d399' },
       ];
       if (macrosEl) macrosEl.innerHTML = macros.map(mg =>
-        `< span style = "background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:999px;padding:4px 12px;font-weight:700;color:${mg.color};" > ${ mg.label }: ${ mg.val }</span > `
+        `< span style = "background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:999px;padding:4px 12px;font-weight:700;color:${mg.color};" > ${mg.label}: ${mg.val}</span > `
       ).join('');
 
       // Pre-select type from meal's category
@@ -14409,7 +15064,7 @@
       document.getElementById('dietDbAddModal')?.classList.add('hidden');
       _dietDbPendingMeal = null;
     }
-    
+
     // Overwrite with global version if not already defined
     if (!window.closeDietDbModal) window.closeDietDbModal = closeDietDbModal;
 
@@ -14475,9 +15130,9 @@
             meal_type: type,
             ...(logDate ? { log_date: logDate } : {}),
           };
-          const res = await fetch(`${ _apiBase } /app/diet / add - meal`, {
+          const res = await fetch(`${_apiBase} /app/diet / add - meal`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ token } ` },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token} ` },
             body: JSON.stringify(body),
           });
           if (res.ok) {
@@ -14485,7 +15140,7 @@
           } else {
             const err = await res.json().catch(() => ({}));
             console.warn('[FitAI] add-meal API error:', err);
-            _showDietToast(`⚠️ Dodano lokalnie(błąd API: ${ res.status })`, true);
+            _showDietToast(`⚠️ Dodano lokalnie(błąd API: ${res.status})`, true);
           }
         } catch (e) {
           console.warn('[FitAI] add-meal fetch failed:', e);
@@ -14494,7 +15149,7 @@
       } else {
         // No JWT token — local-only mode
         const dayNames = { Pon: 'Pon', Wt: 'Wt', Śr: 'Śr', Czw: 'Czw', Pt: 'Pt', Sob: 'Sob', Niedz: 'Niedz' };
-        _showDietToast(`✅ Dodano do ${ dayNames[day] || day }(${ type })`, false);
+        _showDietToast(`✅ Dodano do ${dayNames[day] || day}(${type})`, false);
       }
 
       // If we're on that day's plan, refresh
@@ -14663,120 +15318,120 @@
         const _apiBase = window.API_BASE || "http://localhost:8000";
         console.log('🌐 API Base:', _apiBase);
 
-        const pingRes = await fetch(`${ _apiBase }/health`, { method: 'GET', signal: AbortSignal.timeout(5000) }).catch (() => null);
-    if (!pingRes) {
-      showToast('❌ Serwer nie odpowiada. Sprawdź połączenie internetowe.');
-      console.error('[KitchenGenerate] Health check failed');
-      return;
-    }
-    console.log('✅ Health check passed');
+        const pingRes = await fetch(`${_apiBase}/health`, { method: 'GET', signal: AbortSignal.timeout(5000) }).catch(() => null);
+        if (!pingRes) {
+          showToast('❌ Serwer nie odpowiada. Sprawdź połączenie internetowe.');
+          console.error('[KitchenGenerate] Health check failed');
+          return;
+        }
+        console.log('✅ Health check passed');
       } catch (e) {
-      showToast('❌ Serwer niedostępny. Spróbuj ponownie za chwilę.');
-      console.error('[KitchenGenerate] Health check error:', e);
-      return;
-    }
-
-    // UI: loading
-    hideEl('fridgeEmptyState'); hideEl('fridgeResult'); hideEl('fridgeError');
-    showEl('fridgeLoading');
-    btn.disabled = true;
-    btn.innerHTML = '⏳ Generuję...';
-
-    // Cycle loading messages
-    let msgIdx = 0;
-    const msgEl = document.getElementById('fridgeLoadingMsg');
-    const msgInterval = setInterval(() => {
-      if (msgEl) msgEl.textContent = FRIDGE_LOADING_MSGS[msgIdx++ % FRIDGE_LOADING_MSGS.length];
-    }, 1800);
-
-    let controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 45000); // AI fallback can take longer than Groq
-
-    try {
-      const _apiBase = window.API_BASE || "http://localhost:8000";
-
-      // Build headers with Authorization (optional, for future JWT support)
-      const headers = { 'Content-Type': 'application/json' };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-        console.log('[KitchenGenerate] Authorization header added');
-      } else {
-        console.log('[KitchenGenerate] Note: No JWT token, using identity_id authentication');
-
-      }
-
-      const payload = {
-        identity_id: identityId,
-        ingredients: _kitchen.fridgeTags,
-        extra_context: document.getElementById('fridgeContext')?.value || '',
-        strict_mode: _kitchen.strictMode,
-      };
-
-      console.log('[KitchenGenerate] Sending request to /app/kitchen/generate');
-      console.log('[KitchenGenerate] Payload:', payload);
-
-      const res = await fetch(`${_apiBase}/app/kitchen/generate`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
-      clearInterval(msgInterval);
-      clearTimeout(timeoutId);
-
-      console.log('[KitchenGenerate] Response status:', res.status);
-
-      // ── Detailed error handling ──
-      if (!res.ok) {
-        let errDetail = `HTTP ${res.status}`;
-        try {
-          const err = await res.json();
-          errDetail = err.detail || err.message || errDetail;
-          console.error('[KitchenGenerate] Server error:', err);
-        } catch (e) {
-          console.error('[KitchenGenerate] Could not parse error response:', e);
-          const text = await res.text();
-          console.error('[KitchenGenerate] Raw response:', text.substring(0, 500));
-        }
-
-        hideEl('fridgeLoading');
-        showEl('fridgeError');
-        const errEl = document.getElementById('fridgeErrorMsg');
-        if (errEl) {
-          errEl.innerHTML = `<strong>Błąd serwera (${res.status}):</strong> ${errDetail}`;
-        }
-        showToast(`❌ Błąd: ${errDetail}`);
-        throw new Error(errDetail);
-      }
-
-      const data = await res.json();
-      console.log('[KitchenGenerate] Response data:', data);
-
-      if (!data.recipes || !Array.isArray(data.recipes)) {
-        throw new Error('Nieprawidłowy format odpowiedzi - brak tablicy przepisów');
-      }
-
-      if (data.recipes.length === 0) {
-        hideEl('fridgeLoading');
-        showEl('fridgeError');
-        const errEl = document.getElementById('fridgeErrorMsg');
-        if (errEl) errEl.textContent = '🥕 Zbyt mało składników do stworzenia pełnych dań. Dodaj coś więcej!';
-        showToast('⚠️ Zbyt mało składników');
+        showToast('❌ Serwer niedostępny. Spróbuj ponownie za chwilę.');
+        console.error('[KitchenGenerate] Health check error:', e);
         return;
       }
 
-      _kitchen.lastFridgeRecipe = data.recipes;
+      // UI: loading
+      hideEl('fridgeEmptyState'); hideEl('fridgeResult'); hideEl('fridgeError');
+      showEl('fridgeLoading');
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Generuję...';
 
-      // Show result
-      hideEl('fridgeLoading');
-      showEl('fridgeResult');
+      // Cycle loading messages
+      let msgIdx = 0;
+      const msgEl = document.getElementById('fridgeLoadingMsg');
+      const msgInterval = setInterval(() => {
+        if (msgEl) msgEl.textContent = FRIDGE_LOADING_MSGS[msgIdx++ % FRIDGE_LOADING_MSGS.length];
+      }, 1800);
 
-      const contentEl = document.getElementById('fridgeRecipeContent');
-      if (contentEl) {
-        // Render recipes as structured HTML
-        let html = '<div style="display:flex;flex-direction:column;gap:16px;">';
-        data.recipes.forEach((recipe, idx) => {
-          html += `
+      let controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 45000); // AI fallback can take longer than Groq
+
+      try {
+        const _apiBase = window.API_BASE || "http://localhost:8000";
+
+        // Build headers with Authorization (optional, for future JWT support)
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+          console.log('[KitchenGenerate] Authorization header added');
+        } else {
+          console.log('[KitchenGenerate] Note: No JWT token, using identity_id authentication');
+
+        }
+
+        const payload = {
+          identity_id: identityId,
+          ingredients: _kitchen.fridgeTags,
+          extra_context: document.getElementById('fridgeContext')?.value || '',
+          strict_mode: _kitchen.strictMode,
+        };
+
+        console.log('[KitchenGenerate] Sending request to /app/kitchen/generate');
+        console.log('[KitchenGenerate] Payload:', payload);
+
+        const res = await fetch(`${_apiBase}/app/kitchen/generate`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+        clearInterval(msgInterval);
+        clearTimeout(timeoutId);
+
+        console.log('[KitchenGenerate] Response status:', res.status);
+
+        // ── Detailed error handling ──
+        if (!res.ok) {
+          let errDetail = `HTTP ${res.status}`;
+          try {
+            const err = await res.json();
+            errDetail = err.detail || err.message || errDetail;
+            console.error('[KitchenGenerate] Server error:', err);
+          } catch (e) {
+            console.error('[KitchenGenerate] Could not parse error response:', e);
+            const text = await res.text();
+            console.error('[KitchenGenerate] Raw response:', text.substring(0, 500));
+          }
+
+          hideEl('fridgeLoading');
+          showEl('fridgeError');
+          const errEl = document.getElementById('fridgeErrorMsg');
+          if (errEl) {
+            errEl.innerHTML = `<strong>Błąd serwera (${res.status}):</strong> ${errDetail}`;
+          }
+          showToast(`❌ Błąd: ${errDetail}`);
+          throw new Error(errDetail);
+        }
+
+        const data = await res.json();
+        console.log('[KitchenGenerate] Response data:', data);
+
+        if (!data.recipes || !Array.isArray(data.recipes)) {
+          throw new Error('Nieprawidłowy format odpowiedzi - brak tablicy przepisów');
+        }
+
+        if (data.recipes.length === 0) {
+          hideEl('fridgeLoading');
+          showEl('fridgeError');
+          const errEl = document.getElementById('fridgeErrorMsg');
+          if (errEl) errEl.textContent = '🥕 Zbyt mało składników do stworzenia pełnych dań. Dodaj coś więcej!';
+          showToast('⚠️ Zbyt mało składników');
+          return;
+        }
+
+        _kitchen.lastFridgeRecipe = data.recipes;
+
+        // Show result
+        hideEl('fridgeLoading');
+        showEl('fridgeResult');
+
+        const contentEl = document.getElementById('fridgeRecipeContent');
+        if (contentEl) {
+          // Render recipes as structured HTML
+          let html = '<div style="display:flex;flex-direction:column;gap:16px;">';
+          data.recipes.forEach((recipe, idx) => {
+            html += `
               <div style="background:rgba(0,229,255,0.05);border:1px solid rgba(0,229,255,0.2);border-radius:12px;padding:12px;gap:8px;">
                 <div style="font-weight:bold;font-size:16px;color:var(--cyan);">🍽️ Przepis ${idx + 1}: ${recipe.nazwa || 'Bez nazwy'}</div>
                 <div style="margin-top:8px;">
@@ -14801,49 +15456,49 @@
                 </div>
               </div>
             `;
-        });
-        html += '</div>';
-        contentEl.innerHTML = html;
+          });
+          html += '</div>';
+          contentEl.innerHTML = html;
+        }
+
+        // Save to history
+        const historyItem = {
+          tags: [..._kitchen.fridgeTags],
+          recipes: data.recipes,
+          ts: new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }),
+          strictMode: _kitchen.strictMode,
+        };
+        _kitchen.fridgeHistory.unshift(historyItem);
+        fridgeRenderHistory();
+
+        showToast('✅ Przepisy wygenerowane!');
+        console.log('[KitchenGenerate] SUCCESS ✓');
+
+      } catch (err) {
+        clearInterval(msgInterval);
+        clearTimeout(timeoutId);
+
+        // Handle AbortController timeout
+        if (err.name === 'AbortError') {
+          hideEl('fridgeLoading');
+          showEl('fridgeError');
+          const errEl = document.getElementById('fridgeErrorMsg');
+          if (errEl) errEl.textContent = '⏱️ Żądanie przekroczyło czas oczekiwania (45s). Serwer może być przeciążony.';
+          showToast('⏱️ Przekroczono limit czasu (45 sekund)');
+          console.error('[KitchenGenerate] Request timeout');
+        } else {
+          hideEl('fridgeLoading');
+          showEl('fridgeError');
+          const errEl = document.getElementById('fridgeErrorMsg');
+          const msg = err.message || 'Nieznany błąd połączenia';
+          if (errEl) errEl.innerHTML = `<strong>Błąd:</strong> ${msg}`;
+          showToast(`❌ ${msg}`);
+          console.error('[KitchenGenerate] Error:', err);
+        }
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalBtnText;
       }
-
-      // Save to history
-      const historyItem = {
-        tags: [..._kitchen.fridgeTags],
-        recipes: data.recipes,
-        ts: new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }),
-        strictMode: _kitchen.strictMode,
-      };
-      _kitchen.fridgeHistory.unshift(historyItem);
-      fridgeRenderHistory();
-
-      showToast('✅ Przepisy wygenerowane!');
-      console.log('[KitchenGenerate] SUCCESS ✓');
-
-    } catch (err) {
-      clearInterval(msgInterval);
-      clearTimeout(timeoutId);
-
-      // Handle AbortController timeout
-      if (err.name === 'AbortError') {
-        hideEl('fridgeLoading');
-        showEl('fridgeError');
-        const errEl = document.getElementById('fridgeErrorMsg');
-        if (errEl) errEl.textContent = '⏱️ Żądanie przekroczyło czas oczekiwania (45s). Serwer może być przeciążony.';
-        showToast('⏱️ Przekroczono limit czasu (45 sekund)');
-        console.error('[KitchenGenerate] Request timeout');
-      } else {
-        hideEl('fridgeLoading');
-        showEl('fridgeError');
-        const errEl = document.getElementById('fridgeErrorMsg');
-        const msg = err.message || 'Nieznany błąd połączenia';
-        if (errEl) errEl.innerHTML = `<strong>Błąd:</strong> ${msg}`;
-        showToast(`❌ ${msg}`);
-        console.error('[KitchenGenerate] Error:', err);
-      }
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = originalBtnText;
-    }
     }
 
     async function fridgeGenerate() {
@@ -16201,6 +16856,79 @@
 
 
 
+  <!-- MODAL EDYCJI DNIA -->
+  <div id="dayEditModal" class="fixed inset-0 z-[200] hidden items-center justify-center p-4"
+    style="background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);" onclick="if(event.target===this)closeDayEditModal()">
+    <div class="glass rounded-2xl w-full max-w-md overflow-hidden"
+      style="border:1px solid rgba(0,229,255,0.25);max-height:90vh;overflow-y:auto;">
+
+      <div class="px-5 py-4 flex items-center justify-between" style="border-bottom:1px solid rgba(255,255,255,0.07);">
+        <h3 id="dayEditModalTitle" class="text-base font-bold text-white" style="font-family:'Syne',sans-serif;">Edytuj
+          dzień</h3>
+        <button onclick="closeDayEditModal()" class="text-gray-500 hover:text-white text-xl">×</button>
+      </div>
+
+      <div class="p-5 space-y-5">
+
+        <!-- Typ dnia -->
+        <div>
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Typ dnia</p>
+          <div class="grid grid-cols-3 gap-2" id="dayTypeButtons">
+            <button onclick="setEditDayType('strength')" id="dtBtn_strength"
+              class="py-3 rounded-xl text-sm font-bold border transition-all">
+              💪<br><span class="text-xs">Siłowy</span>
+            </button>
+            <button onclick="setEditDayType('sport')" id="dtBtn_sport"
+              class="py-3 rounded-xl text-sm font-bold border transition-all">
+              🏀<br><span class="text-xs">Sport</span>
+            </button>
+            <button onclick="setEditDayType('rest')" id="dtBtn_rest"
+              class="py-3 rounded-xl text-sm font-bold border transition-all">
+              😴<br><span class="text-xs">Odpoczynek</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Opcje siłowe -->
+        <div id="editStrengthOpts">
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Partie mięśniowe</p>
+          <div id="editMuscleGrid" class="grid grid-cols-3 gap-2"></div>
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mt-4 mb-2">
+            Liczba ćwiczeń: <span id="editExCountVal" class="text-cyan-400">5</span>
+          </p>
+          <input type="range" id="editExCount" min="3" max="10" value="5"
+            oninput="document.getElementById('editExCountVal').textContent=this.value" class="w-full accent-cyan-400">
+        </div>
+
+        <!-- Opcje sportowe -->
+        <div id="editSportOpts" class="hidden">
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Sport</p>
+          <div id="editSportGrid" class="grid grid-cols-2 gap-2"></div>
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mt-4 mb-3">Kategorie drilli</p>
+          <div id="editDrillCatGrid" class="grid grid-cols-2 gap-2"></div>
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mt-4 mb-2">
+            Liczba drilli: <span id="editDrillCountVal" class="text-violet-400">4</span>
+          </p>
+          <input type="range" id="editDrillCount" min="2" max="8" value="4"
+            oninput="document.getElementById('editDrillCountVal').textContent=this.value"
+            class="w-full accent-violet-400">
+        </div>
+
+      </div>
+
+      <div class="px-5 py-4 flex gap-3" style="border-top:1px solid rgba(255,255,255,0.07);">
+        <button onclick="closeDayEditModal()" class="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-400 border"
+          style="border-color:rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);">
+          Anuluj
+        </button>
+        <button onclick="saveEditDay()" class="flex-1 py-2.5 rounded-xl text-sm font-bold" style="background:linear-gradient(135deg,rgba(0,229,255,0.2),rgba(124,58,237,0.2));
+               border:1px solid rgba(0,229,255,0.4);color:#00e5ff;">
+          💾 Zapisz
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ====== EDIT PLAN MODAL ====== -->
   <div id="editPlanModal" class="fixed inset-0 z-[200] flex items-center justify-center p-3 md:p-6 hidden">
     <div class="absolute inset-0" style="background:rgba(0,0,0,0.88);backdrop-filter:blur(14px);"
@@ -16900,107 +17628,108 @@
     }
 
 
-    // Klatka
-    {
-      id: 'v1', cat: 'klatka', emoji: '🏋️', name: 'Wyciskanie sztangi leżąc',
+    const VIDEO_LIBRARY = [
+      // Klatka
+      {
+        id: 'v1', cat: 'klatka', emoji: '🏋️', name: 'Wyciskanie sztangi leżąc',
         tip: 'Łopatki ściągnięte przez cały ruch. Łokcie ~45°.',
-          muscles: ['klatka', 'triceps', 'barki']
-    },
-    {
-      id: 'v2', cat: 'klatka', emoji: '🔀', name: 'Rozpiętki na bramie',
+        muscles: ['klatka', 'triceps', 'barki']
+      },
+      {
+        id: 'v2', cat: 'klatka', emoji: '🔀', name: 'Rozpiętki na bramie',
         tip: 'Na szczycie ruchu zatrzymaj 1 sekundę — szczytowe napięcie klatki.',
-          muscles: ['klatka']
-    },
-    {
-      id: 'v3', cat: 'klatka', emoji: '💪', name: 'Pompki na poręczach',
+        muscles: ['klatka']
+      },
+      {
+        id: 'v3', cat: 'klatka', emoji: '💪', name: 'Pompki na poręczach',
         tip: 'Pochylenie do przodu aktywuje dolną klatkę.',
-          muscles: ['klatka', 'triceps']
-    },
-    {
-      id: 'v4', cat: 'klatka', emoji: '📐', name: 'Wyciskanie na skosie dodatnim',
+        muscles: ['klatka', 'triceps']
+      },
+      {
+        id: 'v4', cat: 'klatka', emoji: '📐', name: 'Wyciskanie na skosie dodatnim',
         tip: 'Ławka 30–45°. Kontroluj fazę ekscentryczną (3 sek.).',
-          muscles: ['górna klatka', 'barki', 'triceps']
-    },
-    // Nogi
-    {
-      id: 'v5', cat: 'nogi', emoji: '🦵', name: 'Przysiad ze sztangą',
+        muscles: ['górna klatka', 'barki', 'triceps']
+      },
+      // Nogi
+      {
+        id: 'v5', cat: 'nogi', emoji: '🦵', name: 'Przysiad ze sztangą',
         tip: 'Poniżej równoległości. Kolana na zewnątrz. Pięty na podłodze.',
-          muscles: ['czworogłowy', 'pośladki', 'łydki']
-    },
-    {
-      id: 'v6', cat: 'nogi', emoji: '🏋️', name: 'Rumuński martwy ciąg',
+        muscles: ['czworogłowy', 'pośladki', 'łydki']
+      },
+      {
+        id: 'v6', cat: 'nogi', emoji: '🏋️', name: 'Rumuński martwy ciąg',
         tip: 'Ruch startuje od bioder — nie od kolan. Sztanga przy udach.',
-          muscles: ['dwugłowy uda', 'pośladki', 'dolny grzbiet']
-    },
-    {
-      id: 'v7', cat: 'nogi', emoji: '🦶', name: 'Wykroki bułgarskie',
+        muscles: ['dwugłowy uda', 'pośladki', 'dolny grzbiet']
+      },
+      {
+        id: 'v7', cat: 'nogi', emoji: '🦶', name: 'Wykroki bułgarskie',
         tip: 'Przednia stopa daleko od ławki. Zejdź pionowo w dół.',
-          muscles: ['czworogłowy', 'pośladki']
-    },
-    {
-      id: 'v8', cat: 'nogi', emoji: '🔩', name: 'Leg press',
+        muscles: ['czworogłowy', 'pośladki']
+      },
+      {
+        id: 'v8', cat: 'nogi', emoji: '🔩', name: 'Leg press',
         tip: 'Stopy wyżej = więcej pośladków. Nie blokuj kolan na szczycie.',
-          muscles: ['czworogłowy', 'pośladki', 'dwugłowy uda']
-    },
-    // Plecy
-    {
-      id: 'v9', cat: 'plecy', emoji: '🏆', name: 'Podciąganie nachwytem',
+        muscles: ['czworogłowy', 'pośladki', 'dwugłowy uda']
+      },
+      // Plecy
+      {
+        id: 'v9', cat: 'plecy', emoji: '🏆', name: 'Podciąganie nachwytem',
         tip: 'Scapular pull przed ruchem — aktywuj łopatki. Wolne opuszczanie.',
-          muscles: ['plecy', 'biceps', 'core']
-    },
-    {
-      id: 'v10', cat: 'plecy', emoji: '🚣', name: 'Wiosłowanie sztangą',
+        muscles: ['plecy', 'biceps', 'core']
+      },
+      {
+        id: 'v10', cat: 'plecy', emoji: '🚣', name: 'Wiosłowanie sztangą',
         tip: 'Tułów pod 45°. Sztanga do dolnego brzucha. Napięty brzuch.',
-          muscles: ['plecy', 'biceps', 'czworoboczny']
-    },
-    {
-      id: 'v11', cat: 'plecy', emoji: '💀', name: 'Martwy ciąg konwencjonalny',
+        muscles: ['plecy', 'biceps', 'czworoboczny']
+      },
+      {
+        id: 'v11', cat: 'plecy', emoji: '💀', name: 'Martwy ciąg konwencjonalny',
         tip: 'Sztanga przy goleniach. Klatka wysoko. Wyprost bioder i kolan razem.',
-          muscles: ['łańcuch tylny', 'pośladki', 'chwyt']
-    },
-    {
-      id: 'v12', cat: 'plecy', emoji: '📌', name: 'Ściąganie drążka do klatki',
+        muscles: ['łańcuch tylny', 'pośladki', 'chwyt']
+      },
+      {
+        id: 'v12', cat: 'plecy', emoji: '📌', name: 'Ściąganie drążka do klatki',
         tip: 'Ściągaj łopatki, prowadź drążek do mostka. Lekkie odchylenie.',
-          muscles: ['plecy', 'biceps']
-    },
-    // Barki
-    {
-      id: 'v13', cat: 'barki', emoji: '🫡', name: 'Military Press',
+        muscles: ['plecy', 'biceps']
+      },
+      // Barki
+      {
+        id: 'v13', cat: 'barki', emoji: '🫡', name: 'Military Press',
         tip: 'Aktywny brzuch — bez przeprostu lędźwi. Łokcie lekko przed tułowiem.',
-          muscles: ['barki', 'triceps', 'core']
-    },
-    {
-      id: 'v14', cat: 'barki', emoji: '↔️', name: 'Lateral Raise',
+        muscles: ['barki', 'triceps', 'core']
+      },
+      {
+        id: 'v14', cat: 'barki', emoji: '↔️', name: 'Lateral Raise',
         tip: 'Lekkie ugięcie łokci. Ruch do poziomu barków. Bez szarpania.',
-          muscles: ['akton środkowy barku']
-    },
-    {
-      id: 'v15', cat: 'barki', emoji: '🎯', name: 'Face Pull',
+        muscles: ['akton środkowy barku']
+      },
+      {
+        id: 'v15', cat: 'barki', emoji: '🎯', name: 'Face Pull',
         tip: 'Kluczowe dla zdrowia rotatorów — nie pomijaj! Wyciąg na poziomie głowy.',
-          muscles: ['tylny akton', 'rotatory']
-    },
-    // Core
-    {
-      id: 'v16', cat: 'core', emoji: '🐛', name: 'Dead Bug',
+        muscles: ['tylny akton', 'rotatory']
+      },
+      // Core
+      {
+        id: 'v16', cat: 'core', emoji: '🐛', name: 'Dead Bug',
         tip: 'Lędźwia dociśnięte do podłogi PRZEZ CAŁY CZAS. Oddychaj spokojnie.',
-          muscles: ['core', 'stabilizacja']
-    },
-    {
-      id: 'v17', cat: 'core', emoji: '🧵', name: 'Plank z rotacją (Thread the Needle)',
+        muscles: ['core', 'stabilizacja']
+      },
+      {
+        id: 'v17', cat: 'core', emoji: '🧵', name: 'Plank z rotacją (Thread the Needle)',
         tip: 'Biodra nieruchome. Tylko tułów pracuje. Kontrolowany ruch.',
-          muscles: ['skośne brzucha', 'core', 'stabilizacja']
-    },
-    {
-      id: 'v18', cat: 'core', emoji: '🛞', name: 'Ab Wheel Rollout',
+        muscles: ['skośne brzucha', 'core', 'stabilizacja']
+      },
+      {
+        id: 'v18', cat: 'core', emoji: '🛞', name: 'Ab Wheel Rollout',
         tip: 'Zaawansowane. Buduj zakres stopniowo. Nie wypuszczaj bioder.',
-          muscles: ['core', 'dolny grzbiet', 'barki']
-    },
-    {
-      id: 'v19', cat: 'core', emoji: '🔄', name: 'Hollow Body Hold',
+        muscles: ['core', 'dolny grzbiet', 'barki']
+      },
+      {
+        id: 'v19', cat: 'core', emoji: '🔄', name: 'Hollow Body Hold',
         tip: 'Wciśnij dolną część pleców w podłogę. Utrzymaj napięcie przez cały czas.',
-          muscles: ['core', 'prostowniki']
-    },
-];
+        muscles: ['core', 'prostowniki']
+      },
+    ];
 
     let _activeVideoFilter = 'all';
 
@@ -17217,6 +17946,22 @@
       // validateVideos() prunes VIDEO_LIBRARY entries without video_url first.
       validateVideos();
       filterVideos('all');
+      // Diagnostic: jeśli boczny przycisk 'profile' jest aktywny, upewnij się, że
+      // zawartość Profilu została wyrenderowana (przydatne przy debugowaniu).
+      try {
+        console.log('[FitAI] DOMContentLoaded diagnostics — showTab:', typeof window.showTab, 'initApp:', typeof window.initApp);
+        const activeNav = document.querySelector('.nav-item.active');
+        if (activeNav && activeNav.dataset && activeNav.dataset.tab === 'profile') {
+          try {
+            // Wywołujemy renderProfileTabs() bezpośrednio — nie powinno zaszkodzić,
+            // ale w razie błędu wypiszemy go do konsoli.
+            if (typeof renderProfileTabs === 'function') {
+              renderProfileTabs();
+              console.log('[FitAI] renderProfileTabs() executed by diagnostic hook');
+            }
+          } catch (e) { console.error('[FitAI] renderProfileTabs() failed in diagnostic hook:', e); }
+        }
+      } catch (diagErr) { console.warn('[FitAI] diagnostics hook error:', diagErr); }
     });
   </script>
 
