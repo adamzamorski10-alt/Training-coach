@@ -2533,7 +2533,7 @@
               <!-- Trening > Dzienny Plan -->
               <div class="plan-tab-panel" id="panel-trening-plan">
                 <!-- Exercise Slider -->
-                <div id="exerciseSliderRow" class="glass p-5 mb-5" style="display:none;">
+                <div id="exerciseSliderRow" class="glass p-5 mb-5" style="display:none;" hidden>
                   <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-2">
                       <span class="text-base">💪</span>
@@ -8248,9 +8248,6 @@
         infoEl.textContent = labels[count] || '';
         infoEl.style.color = count >= 6 ? '#f87171' : count >= 4 ? '#00e5ff' : '#64748b';
       }
-
-      // Refresh the visible training plan with the current day state
-      renderPlanTraining();
     }
 
     function updateMealSlider(val, regenerate = true) {
@@ -8872,6 +8869,10 @@
       <span class="text-xs font-bold" style="color:${isActive ? '#00e5ff' : tc.color};">${day}</span>
       <span class="text-lg">${tc.icon}</span>
       ${content}
+      ${cfg.type !== 'rest' ? `
+        <span style="font-size:10px;color:${tc.color};opacity:0.8;">
+          ${cfg.type === 'sport' ? (cfg.drillCount || 0) : (cfg.exCount || 0)} ${cfg.type === 'sport' ? 'drilli' : 'ćwicz.'}
+        </span>` : ''}
       ${pinnedCount > 0 ? `<span class="text-xs px-1.5 py-0.5 rounded-full" style="background:rgba(0,229,255,0.2);color:#00e5ff;">${pinnedCount}</span>` : ''}
     </button>`;
       }).join('');
@@ -9260,11 +9261,34 @@
           newPlan[day] = [...pinned, ...auto];
         } else {
           const muscles = (cfg.muscles || []).length > 0 ? cfg.muscles : ['klatka', 'plecy'];
-          const needed = Math.max(0, (cfg.exCount || 5) - pinned.length);
-          const auto = typeof generateExercisesForDay === 'function'
-            ? generateExercisesForDay(muscles, equip, excl, needed, profile)
-            : [];
-          newPlan[day] = [...pinned, ...auto];
+          const targetCount = cfg.exCount || 5;
+          const pinnedCount = (cfg.pinned || []).length;
+          const needed = Math.max(0, targetCount - pinnedCount);
+
+          let autoExercises = [];
+          if (needed > 0 && typeof generateExercisesForDay === 'function') {
+            // Generuj z flagą dokładnej liczby — nie mniej, nie więcej
+            autoExercises = generateExercisesForDay(
+              muscles, equip, excl, needed,
+              { difficulty: profile?.difficulty, exactCount: needed }
+            );
+            // Jeśli funkcja zwróciła za mało — uzupełnij z innych grup
+            if (autoExercises.length < needed) {
+              const allGroups = Object.keys(window.EXERCISE_DB || {});
+              const fallback = generateExercisesForDay(
+                allGroups, equip, excl, needed - autoExercises.length, {}
+              );
+              // Dodaj tylko te których jeszcze nie ma
+              const usedNames = new Set(autoExercises.map(e => e.name));
+              fallback.forEach(ex => {
+                if (!usedNames.has(ex.name) && autoExercises.length < needed) {
+                  autoExercises.push(ex);
+                  usedNames.add(ex.name);
+                }
+              });
+            }
+          }
+          newPlan[day] = [...pinned, ...autoExercises].slice(0, targetCount);
         }
       });
 
