@@ -2533,7 +2533,7 @@
               <!-- Trening > Dzienny Plan -->
               <div class="plan-tab-panel" id="panel-trening-plan">
                 <!-- Exercise Slider -->
-                <div id="exerciseSliderRow" class="glass p-5 mb-5">
+                <div id="exerciseSliderRow" class="glass p-5 mb-5" style="display:none;">
                   <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-2">
                       <span class="text-base">💪</span>
@@ -7376,6 +7376,180 @@
       if (maxId) document.getElementById(maxId).textContent = max;
     }
 
+    function renderPlanTraining() {
+      const container = document.getElementById('planTrainingContainer');
+      if (!container) return;
+
+      const p = getCurrentProfile();
+      if (!p) { container.innerHTML = ''; return; }
+
+      const days = Array.isArray(state.days) && state.days.length > 0 ? state.days : ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
+      const dayIndex = Number.isInteger(state.currentDay) ? state.currentDay : 0;
+      const dayKey = days[dayIndex] || days[0];
+      const dayExercises = (p.trainingPlan && p.trainingPlan[dayKey]) || [];
+      state._planExercises = dayExercises.slice();
+      const checkedKey = _checkedKey(p.id, dayIndex);
+      const checked = state.dayChecked[checkedKey] || {};
+
+      if (dayExercises.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-10">
+            <p class="text-4xl mb-3">🏋️</p>
+            <p class="text-base font-medium text-gray-400 mb-1">Brak planu treningowego na ten dzień</p>
+            <p class="text-sm text-gray-600 mb-4">Kliknij "✨ Stwórz Plan" aby wygenerować plan treningowy</p>
+            <button onclick="handleCreatePlanClick()"
+              class="px-5 py-2.5 rounded-xl text-sm font-bold transition-all"
+              style="background:linear-gradient(135deg,rgba(0,229,255,0.2),rgba(124,58,237,0.2));border:1px solid rgba(0,229,255,0.4);color:#00e5ff;">
+              ✨ Stwórz Plan
+            </button>
+          </div>`;
+        return;
+      }
+
+      const hasDrills = dayExercises.some(e => e && (e.isDrill || e._sport));
+      const hasStrength = dayExercises.some(e => e && !(e.isDrill || e._sport));
+      const sport = dayExercises.find(e => e && (e.isDrill || e._sport) && e.sport)?.sport;
+      const muscles = [...new Set(
+        dayExercises
+          .filter(e => e && !(e.isDrill || e._sport) && (e.muscle_group || e.muscles))
+          .map(e => e.muscle_group || _firstMuscleLabel(e.muscles))
+          .filter(Boolean)
+      )];
+
+      let dayTypeBadge = '';
+      if (hasDrills && sport) {
+        const sportNames = {
+          basketball: 'Koszykówka', football: 'Piłka nożna', tennis: 'Tenis',
+          volleyball: 'Siatkówka', boxing: 'Boks', swimming: 'Pływanie',
+          running: 'Bieganie', cycling: 'Kolarstwo'
+        };
+        dayTypeBadge = `
+          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
+            style="background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.35);color:#a78bfa;">
+            🏀 Sport · ${sportNames[sport] || sport}
+          </span>`;
+      } else if (hasStrength && muscles.length > 0) {
+        dayTypeBadge = `
+          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
+            style="background:rgba(0,229,255,0.1);border:1px solid rgba(0,229,255,0.3);color:#00e5ff;">
+            💪 Siłowy · ${muscles.slice(0, 3).join(', ')}${muscles.length > 3 ? ' +' + (muscles.length - 3) : ''}
+          </span>`;
+      } else if (hasStrength) {
+        dayTypeBadge = `
+          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
+            style="background:rgba(0,229,255,0.1);border:1px solid rgba(0,229,255,0.3);color:#00e5ff;">
+            💪 Trening siłowy
+          </span>`;
+      }
+
+      const total = dayExercises.length;
+      const done = dayExercises.filter((_, i) => checked['ex_' + i]).length;
+      const pct = total > 0 ? Math.round(done / total * 100) : 0;
+
+      container.innerHTML = `
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
+            ${dayTypeBadge}
+            <span class="text-xs text-gray-500">${total} ćwiczeń/drilli</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold" style="color:${pct === 100 ? '#4ade80' : pct > 50 ? '#facc15' : '#00e5ff'};">
+              ${done}/${total} ukończone
+            </span>
+            <div class="w-20 h-1.5 rounded-full overflow-hidden" style="background:rgba(255,255,255,0.08);">
+              <div class="h-full rounded-full transition-all" style="width:${pct}%;background:${pct === 100 ? '#4ade80' : pct > 50 ? '#facc15' : '#00e5ff'};"></div>
+            </div>
+          </div>
+        </div>
+        <div class="space-y-2">
+          ${dayExercises.map((ex, i) => {
+        const isDrill = !!(ex.isDrill || ex._sport);
+        const isDone = !!checked['ex_' + i];
+        const name = ex.name || 'Ćwiczenie';
+        const sets = ex.sets || 3;
+        const reps = ex.reps || 10;
+        const weight = ex.weight || 0;
+        const tags = Array.isArray(ex.tags) ? ex.tags : [];
+        const duration = ex.duration || '';
+        const muscle = ex.muscle_group || _firstMuscleLabel(ex.muscles) || '';
+        const category = ex.category || '';
+
+        const detailLine = isDrill
+          ? [duration, category].filter(Boolean).join(' · ')
+          : [
+            sets + ' ser × ' + reps + ' powt.',
+            weight > 0 ? '@ ' + weight + 'kg' : 'BW'
+          ].join(' · ');
+
+        const badgeColor = isDrill
+          ? { bg: 'rgba(124,58,237,0.12)', border: 'rgba(124,58,237,0.3)', color: '#a78bfa' }
+          : { bg: 'rgba(0,229,255,0.08)', border: 'rgba(0,229,255,0.2)', color: '#00e5ff' };
+        const badgeLabel = isDrill ? (category || 'Drill') : (muscle || 'Ćwiczenie');
+        const icon = isDrill ? '🏀' : '💪';
+
+        return `
+              <div class="flex items-center gap-3 p-3.5 rounded-xl transition-all"
+                style="background:rgba(255,255,255,0.03);border:1px solid ${isDone ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.07)'};opacity:${isDone ? '0.6' : '1'};">
+                <input type="checkbox"
+                  id="ex_check_${i}"
+                  ${isDone ? 'checked' : ''}
+                  onchange="toggleExerciseCheck(${i}, this.checked)"
+                  class="flex-shrink-0 w-4 h-4 accent-cyan-400 cursor-pointer">
+                <span class="text-xs font-bold text-gray-600 w-5 text-center flex-shrink-0">${i + 1}</span>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-white ${isDone ? 'line-through' : ''} truncate">${icon} ${name}</p>
+                  <p class="text-xs text-gray-500 mt-0.5">${detailLine}</p>
+                  ${tags.length > 0 && !isDrill ? `
+                    <div class="flex gap-1 mt-1 flex-wrap">
+                      ${tags.slice(0, 3).map(t => `<span class="text-xs px-1.5 py-0.5 rounded" style="background:rgba(255,255,255,0.06);color:#9ca3af;">${t}</span>`).join('')}
+                    </div>` : ''}
+                </div>
+                <span class="text-xs px-2 py-0.5 rounded-full flex-shrink-0" style="background:${badgeColor.bg};border:1px solid ${badgeColor.border};color:${badgeColor.color};">${badgeLabel}</span>
+              </div>`;
+      }).join('')}
+        </div>`;
+    }
+
+    function _firstMuscleLabel(value) {
+      if (Array.isArray(value)) {
+        return value.map(item => String(item).trim()).find(Boolean) || '';
+      }
+      if (typeof value === 'string') {
+        return value.split(',')[0].trim();
+      }
+      if (value == null) return '';
+      return String(value).split(',')[0].trim();
+    }
+
+    function toggleExerciseCheck(index, isChecked) {
+      const p = getCurrentProfile();
+      if (!p) return;
+      const days = Array.isArray(state.days) && state.days.length > 0 ? state.days : ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
+      const dayIndex = Number.isInteger(state.currentDay) ? state.currentDay : 0;
+      const checkedKey = _checkedKey(p.id, dayIndex);
+      if (!state.dayChecked[checkedKey]) state.dayChecked[checkedKey] = {};
+      state.dayChecked[checkedKey]['ex_' + index] = isChecked;
+      if (typeof saveChecked === 'function') saveChecked();
+      renderPlanTraining();
+      if (typeof updateDashboard === 'function') {
+        const p2 = getCurrentProfile();
+        const checkedKey2 = _checkedKey(p2.id, dayIndex);
+        const checked2 = state.dayChecked[checkedKey2] || {};
+        const dayKey2 = days[dayIndex];
+        const dayMeals2 = (p2.dietPlan?.[dayKey2] || []).filter(m => !m.hidden);
+        const dayEx2 = p2.trainingPlan?.[dayKey2] || [];
+        const total2 = dayMeals2.length + dayEx2.length;
+        let done2 = 0;
+        dayMeals2.forEach((_, i) => { if (checked2['meal_' + i]) done2++; });
+        dayEx2.forEach((_, i) => { if (checked2['ex_' + i]) done2++; });
+        const pct2 = total2 > 0 ? Math.round(done2 / total2 * 100) : 0;
+        const kpiEl = document.getElementById('kpiConsistency');
+        const barEl = document.getElementById('consistencyBar');
+        if (kpiEl) kpiEl.textContent = pct2 + '%';
+        if (barEl) barEl.style.width = pct2 + '%';
+      }
+    }
+
     // ========== UPDATE DASHBOARD ==========
     function updateDashboard() {
       const p = getCurrentProfile();
@@ -7641,6 +7815,19 @@
 
       // Chart
       renderConsistencyChart();
+
+      try { renderPlanTraining(); } catch (e) {
+        console.error('[renderPlanTraining]', e);
+        const c = document.getElementById('planTrainingContainer');
+        if (c) c.innerHTML = `
+          <div class="glass p-4 rounded-xl" style="border:1px solid rgba(239,68,68,0.3);">
+            <p class="text-sm font-medium" style="color:#f87171;">⚠️ Błąd ładowania treningu</p>
+            <p class="text-xs text-gray-500 mt-1">${e.message}</p>
+            <button onclick="location.reload()" class="mt-2 text-xs underline" style="color:#00e5ff;">
+              Odśwież stronę
+            </button>
+          </div>`;
+      }
     }
 
     let chartInstance = null;
@@ -8062,8 +8249,8 @@
         infoEl.style.color = count >= 6 ? '#f87171' : count >= 4 ? '#00e5ff' : '#64748b';
       }
 
-      // Regenerate exercises for this day with new count
-      refreshExercisesForSlider(count);
+      // Refresh the visible training plan with the current day state
+      renderPlanTraining();
     }
 
     function updateMealSlider(val, regenerate = true) {
@@ -8159,8 +8346,8 @@
 
         // Sprawdź czy użytkownik dodał ćwiczenia sportowe dla tego dnia
         const allSaved = p.trainingPlan[day] || [];
-        const sportExercises = allSaved.filter(e => e._sport && !e.hidden);
-        const manualExercises = allSaved.filter(e => !e._sport && !e.hidden);
+        const sportExercises = allSaved.filter(e => (e._sport || e.isDrill) && !e.hidden);
+        const manualExercises = allSaved.filter(e => !(e._sport || e.isDrill) && !e.hidden);
 
         let exercises;
         if (sportExercises.length > 0) {
@@ -8202,7 +8389,7 @@
           }
           const isDone = !!checked['ex_' + idx];
           const meta = [e.sets > 0 ? e.sets + ' serii' : '', e.reps > 1 ? e.reps + ' powt.' : '', e.weight > 0 ? e.weight + 'kg' : 'BW'].filter(Boolean).join(' · ');
-          const primaryMuscle = (e.muscles || '').split(',')[0].trim();
+          const primaryMuscle = _firstMuscleLabel(e.muscles);
           const muscleColor = MUSCLE_COLORS[primaryMuscle] || '#64748b';
 
           const card = document.createElement('div');
@@ -8589,7 +8776,7 @@
           cfg.type = 'sport';
           cfg.sport = drills.find(item => item.sport)?.sport || null;
           cfg.drillCount = Math.max(2, drills.length);
-          cfg.pinned = drills.map(item => ({ type: 'drill', item: { ...item } }));
+          cfg.pinned = drills.map(item => ({ type: 'drill', item: { ...item, isDrill: true, _sport: true } }));
           return;
         }
 
@@ -9027,7 +9214,7 @@
     function addPBDrill(day, drillObj) {
       if (typeof drillObj === 'string') { try { drillObj = JSON.parse(drillObj); } catch (e) { return; } }
       _pb.days[day].pinned = _pb.days[day].pinned || [];
-      _pb.days[day].pinned.push({ type: 'drill', item: drillObj });
+      _pb.days[day].pinned.push({ type: 'drill', item: { ...drillObj, isDrill: true, _sport: true } });
       const searchEl = document.getElementById('drillSearch_' + day);
       const resultsEl = document.getElementById('drillSearchResults_' + day);
       if (searchEl) searchEl.value = '';
@@ -9054,15 +9241,19 @@
 
         const pinned = (cfg.pinned || []).map(p =>
           p.type === 'drill'
-            ? { ...p.item, isDrill: true, sets: 3, reps: 10, weight: 0 }
+            ? { ...p.item, isDrill: true, _sport: true, sets: 3, reps: 10, weight: 0 }
             : { ...p.item }
         );
 
         if (cfg.type === 'sport' && cfg.sport) {
           const sd = window.SPORT_DRILLS || {};
-          const sportD = sd[cfg.sport] || {};
+          const sportId = typeof resolveSportId === 'function' ? (resolveSportId(cfg.sport) || cfg.sport) : cfg.sport;
+          const sportD = sd[sportId] || sd[cfg.sport] || {};
           const cats = (cfg.drillCats || []).length > 0 ? cfg.drillCats : Object.keys(sportD).slice(0, 3);
-          const all = cats.flatMap(c => sportD[c]?.drills || []);
+          let all = cats.flatMap(c => sportD[c]?.drills || []);
+          if (all.length === 0) {
+            all = Object.values(sportD).flatMap(cat => Array.isArray(cat?.drills) ? cat.drills : []);
+          }
           const needed = Math.max(0, (cfg.drillCount || 4) - pinned.length);
           const auto = [...all].sort(() => Math.random() - 0.5).slice(0, needed)
             .map(d => ({ ...d, isDrill: true, sets: 3, reps: 10, weight: 0, sport: cfg.sport }));
@@ -9767,6 +9958,7 @@
           if (exSlider) exSlider.value = exCount;
         }
         loadPlanForDay();
+        updateDashboard();
         return;
       }
 
@@ -10067,9 +10259,12 @@
       }
 
       if (state.planSubtab === 'training' || (state.planSubtab === 'myplan' && state.planView === 'training')) {
-        // Delegate entirely to refreshExercisesForSlider so slider always works correctly
-        refreshExercisesForSlider(state.exerciseCount);
+        renderPlanTraining();
       }
+
+      // Keep the visible training panel fresh even when legacy state flags lag
+      // behind the selected day or sub-tab.
+      if (typeof renderPlanTraining === 'function') renderPlanTraining();
     }
 
     function openExpandByIndex(type, idx) {
@@ -13528,6 +13723,9 @@
 
     function openDayEditModal(dayKey) {
       _editDay = dayKey;
+      const days = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
+      const dayIndex = days.indexOf(dayKey);
+      if (dayIndex >= 0) state.currentDay = dayIndex;
       const dayNames = {
         Pon: 'Poniedziałek', Wt: 'Wtorek', Śr: 'Środa',
         Czw: 'Czwartek', Pt: 'Piątek', Sob: 'Sobota', Niedz: 'Niedziela'
@@ -13675,6 +13873,10 @@
         : (state.profile || Object.values(state.users || {})[0]);
       if (!p || !_editDay) return;
 
+      const days = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
+      const editedDayIndex = days.indexOf(_editDay);
+      if (editedDayIndex >= 0) state.currentDay = editedDayIndex;
+
       if (!p.dayConfig) p.dayConfig = {};
 
       const exCount = parseInt(document.getElementById('editExCount')?.value || '5', 10) || 5;
@@ -13799,7 +14001,7 @@
       const muscleColors = { klatka: '#00e5ff', plecy: '#7c3aed', nogi: '#f59e0b', ramiona: '#10b981', kardio: '#ef4444', core: '#8b5cf6', brzuch: '#8b5cf6', biceps: '#06b6d4', triceps: '#6366f1' };
 
       _editPlanDraft.forEach((e, idx) => {
-        const muscleKey = e.muscles?.split(',')[0]?.trim()?.toLowerCase();
+        const muscleKey = _firstMuscleLabel(e.muscles).toLowerCase();
         const color = muscleColors[muscleKey] || (e._sport ? '#ff6b35' : '#64748b');
         const isSport = !!e._sport;
 
@@ -13836,7 +14038,7 @@
         namePara.textContent = e.name;
         const musclePara = document.createElement('p');
         musclePara.style.cssText = 'font-size:10px;color:' + (isSport ? '#a78bfa' : '#4b5563') + ';line-height:1;margin-top:3px;';
-        musclePara.textContent = isSport ? '⚽ sport' : (e.muscles?.split(',')[0] || '');
+        musclePara.textContent = isSport ? '⚽ sport' : _firstMuscleLabel(e.muscles);
         nameDiv.appendChild(namePara);
         nameDiv.appendChild(musclePara);
         topLine.appendChild(nameDiv);
@@ -14062,7 +14264,7 @@
         const inPlan = _editPlanDraft.some(e => e.name === ex.name);
         const col = CAT_COLORS[ex._group] || CAT_COLORS[_epActiveCategory] || '#64748b';
         const isSport = !!ex._sport;
-        const muscleFirst = (ex.muscles || '').split(',')[0].trim();
+        const muscleFirst = _firstMuscleLabel(ex.muscles);
 
         const row = document.createElement('div');
         row.className = 'ep-catalog-row flex items-center gap-3 px-4 py-3 rounded-2xl transition-all cursor-pointer';
@@ -14190,7 +14392,7 @@
       if (slider) { slider.value = actualCount; updateExerciseSlider(actualCount); }
       saveState();
       closeEditPlanModal();
-      refreshExercisesForSlider(actualCount);
+      renderPlanTraining();
       showToast('✅ Plan zapisany!');
     }
 
