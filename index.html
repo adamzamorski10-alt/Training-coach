@@ -2571,15 +2571,17 @@
                       <h4 class="text-xl font-bold text-white" style="font-family:'Syne',sans-serif;">💪 Zaplanowany
                         Trening</h4>
                       <div class="flex items-center gap-2">
-                        <button id="generatePlanAIBtn" onclick="generatePlanAI()"
-                          class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all"
-                          style="background:linear-gradient(135deg,rgba(0,229,255,0.15),rgba(124,58,237,0.15));border:1px solid rgba(0,229,255,0.4);color:#00e5ff;">
-                          🤖 Generuj plan AI
+                        <button id="createPlanBtn" onclick="handleCreatePlanClick()"
+                          class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all" style="background:linear-gradient(135deg,rgba(0,229,255,0.2),rgba(124,58,237,0.2));
+             border:1px solid rgba(0,229,255,0.5);color:#00e5ff;
+             box-shadow:0 0 20px rgba(0,229,255,0.1);">
+                          ✨ Stwórz Plan
                         </button>
-                        <button id="editPlanBtn" onclick="openEditPlanModal()"
-                          class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all"
-                          style="background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.25);color:#00e5ff;">✏️
-                          Edytuj</button>
+                        <button id="editPlanBtn" onclick="openPlanBuilderModal()"
+                          class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all"
+                          style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:#9ca3af;">
+                          ✏️ Edytuj
+                        </button>
                       </div>
                     </div>
                     <div id="planTrainingContainer" class="space-y-3"></div>
@@ -6583,6 +6585,10 @@
       if (isVegan) dietTagExclusions.push('kurczak', 'jajka', 'nabiał', 'ryby');
       if (isKeto) dietTagExclusions.push('ryż', 'owies', 'gluten');
       const allExclusions = [...(exclusions || []), ...dietTagExclusions];
+      const excludedMeals = profile.excludedMeals || [];
+      const avoidIngredients = profile.avoidIngredients || [];
+      const preferIngredients = profile.preferIngredients || [];
+      const allergens = profile.allergies || [];
 
       // Seed deterministyczny: różne posiłki każdego dnia tygodnia
       const daySeed = (_DAY_SEEDS[dayKey] || 1) + mealsCount * 7;
@@ -6594,16 +6600,28 @@
         if (isReduction && m.kcal < 300) score += 2.0;
         if (isReduction && m.kcal > 480) score -= 1.5;
         if (isKeto && m.fat > 15 && m.carbs < 10) score += 3.0;
-        if (isVegan && !m.tags.some(t => ['kurczak', 'jajka', 'nabiał', 'ryby'].includes(t))) score += 2.0;
+        if (isVegan && !(m.tags || []).some(t => ['kurczak', 'jajka', 'nabiał', 'ryby'].includes(t))) score += 2.0;
         // Carb cycling: dzień odpoczynku → promuj posiłki z < 30g węglowodanów
         if (carbCyclingActive && m.carbs !== undefined && m.carbs < 30) score += 2.5;
         if (carbCyclingActive && m.carbs !== undefined && m.carbs > 55) score -= 2.0;
+        const prefBonus = preferIngredients.filter(pi =>
+          (m.ingredients || []).some(ing => (ing.item || '').toLowerCase().includes(pi.toLowerCase()))
+        ).length * 1.5;
+        const avoidPenalty = avoidIngredients.filter(ai =>
+          (m.ingredients || []).some(ing => (ing.item || '').toLowerCase().includes(ai.toLowerCase()))
+        ).length * 2.0;
+        score += prefBonus - avoidPenalty;
         return score;
       };
 
       for (let i = 0; i < types.length; i++) {
         const type = types[i];
         const rawPool = (MEAL_DB[type] || MEAL_DB.przekąska).filter(m => {
+          if (excludedMeals.includes(m.name)) return false;
+          const hasAllergen = allergens.some(al =>
+            (m.tags || []).some(t => t.toLowerCase().includes(al.toLowerCase()))
+          );
+          if (hasAllergen) return false;
           const hidden = allExclusions.some(ex => (m.tags || []).some(t => t.includes(ex) || ex.includes(t)));
           return !hidden && !used.has(m.name);
         });
@@ -6617,14 +6635,15 @@
       return result;
     }
 
-    function generateExercisesForDay(muscleGroups, equipmentAvailable, exclusions, count) {
+    function generateExercisesForDay(muscleGroups, equipmentAvailable, exclusions, count, profile) {
       if (!muscleGroups || muscleGroups.length === 0) return [];
       const result = [];
       const used = new Set();
 
       const filterPool = (group) => (EXERCISE_DB[group] || []).filter(e => {
-        const hidden = (exclusions || []).some(ex => (e.tags || []).some(t => t.includes(ex)));
-        const equipOk = e.tags.length === 0 || e.tags.every(t => {
+        const tags = e.tags || [];
+        const hidden = (exclusions || []).some(ex => tags.some(t => t.includes(ex)));
+        const equipOk = tags.length === 0 || tags.every(t => {
           if (t === 'mata' || t === 'lawka') return true;
           return (equipmentAvailable || []).some(eq => eq === t || t.includes(eq) || eq.includes(t));
         });
@@ -6666,7 +6685,15 @@
         }
       }
 
-      return result.slice(0, count);
+      const difficulty = (profile && profile.difficulty) || 'medium';
+      return result.slice(0, count).map(ex => {
+        if (difficulty === 'easy') {
+          return { ...ex, sets: Math.max(2, (ex.sets || 3) - 1), reps: Math.min(15, (ex.reps || 10) + 3) };
+        } else if (difficulty === 'hard') {
+          return { ...ex, sets: Math.min(6, (ex.sets || 3) + 1), reps: Math.max(4, (ex.reps || 10) - 2) };
+        }
+        return ex;
+      });
     }
 
     function generateFullPlanForProfile(profile) {
@@ -6746,7 +6773,7 @@
         // Pass dayKey for deterministyczny seed (różne posiłki każdego dnia)
         dietPlan[day] = generateMealsForDay(mealsN, excl, profileWithDays, day);
         const muscles = template[day] || [];
-        trainingPlan[day] = generateExercisesForDay(muscles, equip, excl, freqExerciseCount, day);
+        trainingPlan[day] = generateExercisesForDay(muscles, equip, excl, freqExerciseCount, profile);
       }
       return { dietPlan, trainingPlan };
     }
@@ -6887,8 +6914,8 @@
         if (!state.dayChecked[k]) state.dayChecked[k] = {};
         // Map meal names back to meal_N indices using today's plan
         const todayIdx = (new Date().getDay() + 6) % 7;
-        const day = state.days[todayIdx];
-        const meals = (p.dietPlan[day] || []).filter(m => !m.hidden);
+        const day = (Array.isArray(state.days) && state.days[todayIdx]) || getCurrentDayKey();
+        const meals = (p.dietPlan?.[day] || []).filter(m => !m.hidden);
         meals.forEach((m, i) => {
           if (data.today_eaten.includes(m.name)) {
             state.dayChecked[k]['meal_' + i] = true;
@@ -6902,6 +6929,82 @@
 
     function getCurrentProfile() {
       return state.profiles.find(p => p.id === state.currentProfile) || state.profiles[0];
+    }
+
+    function getCurrentDayKey() {
+      const defaultDays = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
+      const days = Array.isArray(state.days) && state.days.length > 0 ? state.days : defaultDays;
+      const index = Number.isInteger(state.currentDay) ? state.currentDay : 0;
+      return days[index] || days[0];
+    }
+
+    /**
+     * getEnrichedProfile() — zwraca profil wzbogacony o dane z preferencji
+     * (localStorage 'fitai_prefs') i z formularza profilu.
+     * Zawsze używaj tej funkcji zamiast getCurrentProfile() przy generowaniu planów.
+     */
+    function getEnrichedProfile() {
+      const p = getCurrentProfile();
+      if (!p) return null;
+
+      const prefs = JSON.parse(localStorage.getItem('fitai_prefs') || '{}');
+      const profileCache = JSON.parse(localStorage.getItem('fitai_profile_cache') || '{}');
+
+      const enriched = {
+        ...p,
+        age: p.age || profileCache.age || 25,
+        weight: p.weight || profileCache.weight || 75,
+        height: p.height || profileCache.height || 175,
+        gender: p.gender || profileCache.gender || 'mężczyzna',
+        goal: p.goal || profileCache.goal || '',
+        frequency: p.frequency || profileCache.frequency || '3-4',
+        mealsPerDay: p.meals_per_day || p.mealsPerDay || prefs.mealsPerDay || profileCache.meals_per_day || 4,
+
+        equipment: (prefs.homeEquip || []).length > 0
+          ? prefs.homeEquip
+          : (p.equipment || ['hantle', 'mata', 'drążek']),
+
+        exclusions: [
+          ...(prefs.excludedEx || []),
+          ...(p.exclusions || []),
+        ],
+
+        muscleFocus: (prefs.focusMuscles || []).length > 0
+          ? prefs.focusMuscles
+          : (p.muscleFocus || []),
+
+        difficulty: prefs.difficulty || p.difficulty || 'medium',
+
+        trainingDays: prefs.trainingDays
+          ? new Set(prefs.trainingDays)
+          : (p.trainingDays || new Set(['Pon', 'Śr', 'Pt'])),
+
+        injuries: prefs.injuries || p.injuries || '',
+
+        dietType: prefs.dietStyle || p.dietType || p.diet || 'standard',
+
+        allergies: [
+          ...(prefs.allergens || []),
+          ...(p.allergies ? p.allergies.split(',').map(s => s.trim()).filter(Boolean) : []),
+        ].filter((v, i, a) => a.indexOf(v) === i),
+
+        excludedMeals: [
+          ...(prefs.excludedMeals || []),
+          ...(p.excludedMeals || []),
+        ],
+
+        avoidIngredients: [
+          ...(prefs.avoidIngredients || []),
+          ...(p.avoidIngredients || []),
+        ],
+
+        preferIngredients: [
+          ...(prefs.preferIngredients || []),
+          ...(p.preferIngredients || []),
+        ],
+      };
+
+      return enriched;
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -7292,8 +7395,9 @@
       // KPIs — use date-based key (Single Source of Truth)
       const checkedKey = _checkedKey(p.id, state.currentDay);
       const checked = state.dayChecked[checkedKey] || {};
-      const dayMeals = (p.dietPlan[state.days[state.currentDay]] || []).filter(m => !m.hidden);
-      const dayExercises = p.trainingPlan[state.days[state.currentDay]] || [];
+      const currentDayKey = getCurrentDayKey();
+      const dayMeals = (p.dietPlan?.[currentDayKey] || []).filter(m => !m.hidden);
+      const dayExercises = p.trainingPlan?.[currentDayKey] || [];
       const totalItems = dayMeals.length + dayExercises.length;
       // Count only checkboxes that belong to today's actual items (avoid stale keys)
       let doneItems = 0;
@@ -7330,8 +7434,8 @@
         groupEl.innerHTML = state.profiles.map(pr => {
           const prCheckedKey = _checkedKey(pr.id, state.currentDay);
           const prChecked = state.dayChecked[prCheckedKey] || {};
-          const prMeals = pr.dietPlan[state.days[state.currentDay]] || [];
-          const prEx = pr.trainingPlan[state.days[state.currentDay]] || [];
+          const prMeals = pr.dietPlan?.[currentDayKey] || [];
+          const prEx = pr.trainingPlan?.[currentDayKey] || [];
           const total = prMeals.length + prEx.length;
           const done = Object.keys(prChecked).filter(k => prChecked[k]).length;
           const pct = total > 0 ? Math.round(done / total * 100) : 0;
@@ -7542,11 +7646,12 @@
     let chartInstance = null;
     function renderConsistencyChart() {
       const p = getCurrentProfile();
+      const days = Array.isArray(state.days) && state.days.length > 0 ? state.days : ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
       // Simulate 7-day consistency data based on checked items
-      const data = state.days.map((d, i) => {
+      const data = days.map((d, i) => {
         const k = _checkedKey(p.id, i);
         const checked = state.dayChecked[k] || {};
-        const items = (p.dietPlan[d] || []).length + (p.trainingPlan[d] || []).length;
+        const items = (p.dietPlan?.[d] || []).length + (p.trainingPlan?.[d] || []).length;
         const done = Object.keys(checked).filter(k2 => checked[k2]).length;
         return items > 0 ? Math.round(done / items * 100) : Math.floor(Math.random() * 30 + 40);
       });
@@ -7557,7 +7662,7 @@
       chartInstance = new Chart(canvas, {
         type: 'bar',
         data: {
-          labels: state.days,
+          labels: days,
           datasets: [{ label: 'Spójność (%)', data, backgroundColor: 'rgba(0,229,255,0.15)', borderColor: '#00e5ff', borderWidth: 2, borderRadius: 8 }]
         },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#64748b' } }, x: { grid: { display: false }, ticks: { color: '#64748b' } } } }
@@ -7987,9 +8092,9 @@
 
       if (regenerate) {
         // Regenerate meals for current day
-        const day = state.days[state.currentDay];
+        const day = getCurrentDayKey();
         const excl = p.exclusions || [];
-        p.dietPlan[day] = generateMealsForDay(count, excl, p, day);
+        p.dietPlan[day] = generateMealsForDay(count, excl, getEnrichedProfile(), day);
         saveState();
         loadPlanForDay();
       }
@@ -8026,7 +8131,7 @@
         if (!p.trainingPlan || typeof p.trainingPlan !== 'object') {
           p.trainingPlan = {};
         }
-        const day = state.days[state.currentDay];
+        const day = getCurrentDayKey();
         const excl = p.exclusions || [];
         const equip = p.equipment || [];
         const exDb = (typeof window !== 'undefined' && window.EXERCISE_DB) ? window.EXERCISE_DB : {};
@@ -8329,7 +8434,7 @@
       p.caloriesTarget = tdee; p.proteinTarget = protein;
       p.completed = !!(p.name && p.age && p.weight && p.height);
       // Regenerate plan when mealsPerDay or goal changes
-      const { dietPlan, trainingPlan } = generateFullPlanForProfile(p);
+      const { dietPlan, trainingPlan } = generateFullPlanForProfile(getEnrichedProfile());
       p.dietPlan = dietPlan; p.trainingPlan = trainingPlan;
       saveState();
       renderUserSwitcher();
@@ -8337,6 +8442,665 @@
       showToast('✅ Profil i plan zapisane!');
       updateDashboard();
       loadProfileFormData();
+    }
+
+    // ── Walidacja profilu przed tworzeniem planu ───────────────────────────────
+
+    function _validateProfileForPlan() {
+      const p = getCurrentProfile();
+      const cache = JSON.parse(localStorage.getItem('fitai_profile_cache') || '{}');
+
+      const age = p?.age || cache.age;
+      const weight = p?.weight || cache.weight;
+      const height = p?.height || cache.height;
+      const goal = p?.goal || cache.goal;
+
+      const missing = [];
+      if (!age || age < 10) missing.push({ field: 'Wiek', icon: '🎂', hint: 'Potrzebny do obliczenia kalorii (BMR)' });
+      if (!weight || weight < 30) missing.push({ field: 'Waga', icon: '⚖️', hint: 'Potrzebna do doboru intensywności' });
+      if (!height || height < 100) missing.push({ field: 'Wzrost', icon: '📏', hint: 'Potrzebny do obliczenia BMR' });
+      if (!goal || goal.trim() === '') missing.push({ field: 'Cel główny', icon: '🎯', hint: 'Np. Redukcja tłuszczu / Budowa masy' });
+
+      return missing;
+    }
+
+    function openPlanBuilderModal() {
+      if (typeof openEditPlanModal === 'function') {
+        openEditPlanModal();
+        return;
+      }
+      alert('Kreator planu — TODO');
+    }
+
+    function handleCreatePlanClick() {
+      const missing = _validateProfileForPlan();
+
+      if (missing.length > 0) {
+        const listEl = document.getElementById('missingFieldsList');
+        if (listEl) {
+          listEl.innerHTML = missing.map(m => `
+            <div class="flex items-start gap-3 p-3 rounded-xl"
+              style="background:rgba(250,204,21,0.06);border:1px solid rgba(250,204,21,0.15);">
+              <span class="text-xl flex-shrink-0">${m.icon}</span>
+              <div>
+                <p class="text-sm font-bold text-white">${m.field}</p>
+                <p class="text-xs text-gray-500 mt-0.5">${m.hint}</p>
+              </div>
+            </div>
+          `).join('');
+        }
+        document.getElementById('incompleteProfileModal')?.classList.remove('hidden');
+        document.getElementById('incompleteProfileModal')?.classList.add('flex');
+        return;
+      }
+
+      openPlanBuilderModal();
+    }
+
+    function closeIncompleteProfileModal() {
+      const modal = document.getElementById('incompleteProfileModal');
+      modal?.classList.add('hidden');
+      modal?.classList.remove('flex');
+    }
+
+    function goToProfile() {
+      closeIncompleteProfileModal();
+      if (typeof showTab === 'function') showTab('profile');
+      if (typeof switchProfileTab === 'function') switchProfileTab('data');
+      setTimeout(() => {
+        const missing = _validateProfileForPlan();
+        if (missing.length > 0) {
+          const fieldMap = { Wiek: 'pAge', Waga: 'pWeight', Wzrost: 'pHeight', 'Cel główny': 'pGoal' };
+          const firstId = fieldMap[missing[0].field];
+          const el = document.getElementById(firstId);
+          if (el) {
+            el.focus();
+            el.style.borderColor = 'rgba(250,204,21,0.6)';
+            el.style.boxShadow = '0 0 0 3px rgba(250,204,21,0.15)';
+            setTimeout(() => {
+              el.style.borderColor = '';
+              el.style.boxShadow = '';
+            }, 3000);
+          }
+        }
+      }, 200);
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // PLAN BUILDER — stan i logika
+    // ══════════════════════════════════════════════════════════════════
+
+    const PB_DAYS = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
+    const PB_DAY_NAMES = {
+      Pon: 'Poniedziałek', Wt: 'Wtorek', Śr: 'Środa',
+      Czw: 'Czwartek', Pt: 'Piątek', Sob: 'Sobota', Niedz: 'Niedziela'
+    };
+    const PB_TYPE_CFG = {
+      rest: { icon: '😴', label: 'Odpoczynek', color: '#64748b', bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.08)' },
+      strength: { icon: '💪', label: 'Siłowy', color: '#00e5ff', bg: 'rgba(0,229,255,0.1)', border: 'rgba(0,229,255,0.3)' },
+      sport: { icon: '🏀', label: 'Sport', color: '#a78bfa', bg: 'rgba(124,58,237,0.12)', border: 'rgba(124,58,237,0.35)' },
+      cardio: { icon: '🏃', label: 'Kardio', color: '#4ade80', bg: 'rgba(74,222,128,0.1)', border: 'rgba(74,222,128,0.3)' },
+    };
+    const ALL_MUSCLE_GROUPS_PB = [
+      { k: 'klatka', e: '🫁' }, { k: 'plecy', e: '🔙' }, { k: 'nogi', e: '🦵' },
+      { k: 'barki', e: '💪' }, { k: 'biceps', e: '💪' }, { k: 'triceps', e: '💪' },
+      { k: 'core', e: '⚙️' }, { k: 'brzuch', e: '🎯' }, { k: 'pośladki', e: '🍑' },
+      { k: 'kardio', e: '❤️' }, { k: 'mobilność', e: '🧘' },
+    ];
+    const ALL_SPORTS_PB = [
+      { k: 'basketball', l: 'Koszykówka', e: '🏀' }, { k: 'football', l: 'Piłka nożna', e: '⚽' },
+      { k: 'tennis', l: 'Tenis', e: '🎾' }, { k: 'volleyball', l: 'Siatkówka', e: '🏐' },
+      { k: 'boxing', l: 'Boks', e: '🥊' }, { k: 'swimming', l: 'Pływanie', e: '🏊' },
+      { k: 'running', l: 'Bieganie', e: '🏃' }, { k: 'cycling', l: 'Kolarstwo', e: '🚴' },
+    ];
+
+    const _pb = {
+      activeDay: null,
+      days: Object.fromEntries(PB_DAYS.map(d => [d, {
+        type: 'rest',
+        muscles: [],
+        sport: null,
+        drillCats: [],
+        exCount: 5,
+        drillCount: 4,
+        pinned: [],
+      }])),
+    };
+
+    function _pbCloneEmptyDay() {
+      return { type: 'rest', muscles: [], sport: null, drillCats: [], exCount: 5, drillCount: 4, pinned: [] };
+    }
+
+    function _pbLoadFromProfile(p) {
+      PB_DAYS.forEach(day => {
+        _pb.days[day] = _pbCloneEmptyDay();
+      });
+
+      const sourcePlan = p?._planBuilderConfig || p?.trainingPlan || {};
+      PB_DAYS.forEach(day => {
+        const dayItems = Array.isArray(sourcePlan[day]) ? sourcePlan[day] : [];
+        if (dayItems.length === 0) return;
+
+        const cfg = _pb.days[day];
+        const drills = dayItems.filter(item => item && item.isDrill);
+        const exercises = dayItems.filter(item => item && !item.isDrill);
+
+        if (drills.length > 0 && exercises.length === 0) {
+          cfg.type = 'sport';
+          cfg.sport = drills.find(item => item.sport)?.sport || null;
+          cfg.drillCount = Math.max(2, drills.length);
+          cfg.pinned = drills.map(item => ({ type: 'drill', item: { ...item } }));
+          return;
+        }
+
+        if (exercises.length > 0) {
+          cfg.type = 'strength';
+          cfg.exCount = Math.max(3, exercises.length);
+          const muscleSet = new Set();
+          exercises.forEach(item => {
+            const source = String(item.muscle_group || item.muscles || item.tags || '').toLowerCase();
+            ALL_MUSCLE_GROUPS_PB.forEach(mg => {
+              if (source.includes(mg.k)) muscleSet.add(mg.k);
+            });
+          });
+          cfg.muscles = [...muscleSet];
+          cfg.pinned = exercises.map(item => ({ type: 'exercise', item: { ...item } }));
+        }
+      });
+    }
+
+    function openPlanBuilderModal() {
+      const profile = getEnrichedProfile ? getEnrichedProfile() : getCurrentProfile();
+      if (!profile) {
+        alert('Uzupełnij najpierw profil użytkownika w zakładce Profil.');
+        return;
+      }
+
+      _pbLoadFromProfile(profile);
+      _pb.activeDay = null;
+
+      const modal = document.getElementById('planBuilderModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+
+      _renderWeekGrid();
+      const panel = document.getElementById('dayConfigPanel');
+      if (panel) {
+        panel.innerHTML = `
+          <div class="text-center py-10 text-gray-500">
+            <p class="text-4xl mb-3">👆</p>
+            <p class="text-sm">Kliknij dzień w siatce powyżej aby go skonfigurować</p>
+          </div>`;
+      }
+    }
+
+    function closePlanBuilderModal() {
+      const modal = document.getElementById('planBuilderModal');
+      modal?.classList.add('hidden');
+      modal?.classList.remove('flex');
+    }
+
+    function resetPlanBuilder() {
+      PB_DAYS.forEach(day => { _pb.days[day] = _pbCloneEmptyDay(); });
+      _pb.activeDay = null;
+      _renderWeekGrid();
+      const panel = document.getElementById('dayConfigPanel');
+      if (panel) {
+        panel.innerHTML = `
+          <div class="text-center py-8 text-gray-500">
+            <p class="text-sm">Plan wyczyszczony. Kliknij dzień aby go skonfigurować.</p>
+          </div>`;
+      }
+    }
+
+    function _renderWeekGrid() {
+      const el = document.getElementById('weekGridBuilder');
+      if (!el) return;
+
+      el.innerHTML = PB_DAYS.map(day => {
+        const cfg = _pb.days[day];
+        const tc = PB_TYPE_CFG[cfg.type];
+        const isActive = day === _pb.activeDay;
+        const pinnedCount = (cfg.pinned || []).length;
+        let content = '';
+
+        if (cfg.type === 'rest') {
+          content = '<span class="text-xs text-gray-600">Odpoczynek</span>';
+        } else if (cfg.type === 'sport' && cfg.sport) {
+          const sp = ALL_SPORTS_PB.find(s => s.k === cfg.sport);
+          content = `<span class="text-xs" style="color:${tc.color};">${sp?.e || '🏀'} ${sp?.l || cfg.sport}</span>`;
+        } else if (cfg.muscles.length > 0) {
+          content = `<span class="text-xs" style="color:${tc.color};">` +
+            cfg.muscles.slice(0, 3).map(m => ALL_MUSCLE_GROUPS_PB.find(mg => mg.k === m)?.e || '💪').join('') +
+            (cfg.muscles.length > 3 ? ' +' + (cfg.muscles.length - 3) : '') + '</span>';
+        }
+
+        return `<button onclick="selectBuilderDay('${day}')"
+      class="py-3 px-1 rounded-xl text-center transition-all flex flex-col items-center gap-1"
+      style="background:${isActive ? 'rgba(0,229,255,0.15)' : tc.bg};
+             border:1px solid ${isActive ? 'rgba(0,229,255,0.6)' : tc.border};
+             box-shadow:${isActive ? '0 0 0 2px rgba(0,229,255,0.3)' : 'none'};">
+      <span class="text-xs font-bold" style="color:${isActive ? '#00e5ff' : tc.color};">${day}</span>
+      <span class="text-lg">${tc.icon}</span>
+      ${content}
+      ${pinnedCount > 0 ? `<span class="text-xs px-1.5 py-0.5 rounded-full" style="background:rgba(0,229,255,0.2);color:#00e5ff;">${pinnedCount}</span>` : ''}
+    </button>`;
+      }).join('');
+    }
+
+    function selectBuilderDay(day) {
+      _pb.activeDay = day;
+      _renderWeekGrid();
+      _renderDayConfig(day);
+    }
+
+    function _renderDayConfig(day) {
+      const cfg = _pb.days[day];
+      const name = PB_DAY_NAMES[day];
+      const panel = document.getElementById('dayConfigPanel');
+      if (!panel) return;
+
+      panel.innerHTML = `
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="text-base font-bold text-white" style="font-family:'Syne',sans-serif;">📅 ${name}</h3>
+    </div>
+
+    <div class="mb-5">
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Typ dnia</p>
+      <div class="grid grid-cols-4 gap-2">
+        ${Object.entries(PB_TYPE_CFG).map(([type, tc]) => `
+          <button onclick="setPBDayType('${day}','${type}')"
+            class="py-3 rounded-xl text-center text-xs font-bold border transition-all"
+            style="background:${cfg.type === type ? tc.bg : 'rgba(255,255,255,0.04)'};
+                   border-color:${cfg.type === type ? tc.border : 'rgba(255,255,255,0.08)'};
+                   color:${cfg.type === type ? tc.color : '#64748b'};">
+            <div class="text-xl mb-1">${tc.icon}</div>${tc.label}
+          </button>`).join('')}
+      </div>
+    </div>
+
+    <div id="pbDayTypeContent_${day}">${_renderDayTypeContent(day)}</div>
+    ${_renderPinnedItems(day)}
+  `;
+    }
+
+    function _renderDayTypeContent(day) {
+      const cfg = _pb.days[day];
+
+      if (cfg.type === 'rest') {
+        return `<div class="glass rounded-xl p-5 text-center" style="border:1px solid rgba(255,255,255,0.06);">
+      <p class="text-3xl mb-2">😴</p>
+      <p class="text-sm text-gray-400">Dzień odpoczynku — regeneracja mięśni</p>
+      <p class="text-xs text-gray-600 mt-1">Plan diety automatycznie dostosuje kalorie na ten dzień</p>
+    </div>`;
+      }
+
+      if (cfg.type === 'strength' || cfg.type === 'cardio') {
+        return `
+      <div class="mb-5">
+        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+          ${cfg.type === 'cardio' ? 'Fokus' : 'Partie mięśniowe'}
+          <span class="text-gray-600 font-normal ml-1">(wybierz jedną lub więcej)</span>
+        </p>
+        <div class="grid grid-cols-4 md:grid-cols-6 gap-2">
+          ${ALL_MUSCLE_GROUPS_PB
+            .filter(mg => cfg.type === 'cardio' ? ['kardio', 'core', 'mobilność', 'brzuch'].includes(mg.k) : true)
+            .map(mg => {
+              const on = (cfg.muscles || []).includes(mg.k);
+              return `<button onclick="togglePBMuscle('${day}','${mg.k}')"
+                class="py-2.5 rounded-xl text-xs font-medium border transition-all flex flex-col items-center gap-1"
+                style="background:${on ? 'rgba(0,229,255,0.12)' : 'rgba(255,255,255,0.04)'};
+                       border-color:${on ? 'rgba(0,229,255,0.4)' : 'rgba(255,255,255,0.08)'};
+                       color:${on ? '#00e5ff' : '#64748b'};">
+                <span class="text-base">${mg.e}</span><span>${mg.k}</span>
+              </button>`;
+            }).join('')}
+        </div>
+      </div>
+
+      <div class="mb-5">
+        <div class="flex items-center justify-between mb-2">
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Liczba ćwiczeń</p>
+          <span class="text-lg font-bold text-cyan-400" id="pbExCount_${day}">${cfg.exCount}</span>
+        </div>
+        <input type="range" min="3" max="10" value="${cfg.exCount}"
+          oninput="updatePBExCount('${day}',this.value)"
+          class="w-full accent-cyan-400">
+      </div>
+
+      ${_renderExerciseSearch(day)}
+    `;
+      }
+
+      if (cfg.type === 'sport') {
+        const sportData = window.SPORT_DRILLS || {};
+        const cats = cfg.sport ? Object.keys(sportData[cfg.sport] || {}) : [];
+
+        return `
+      <div class="mb-5">
+        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Sport</p>
+        <div class="grid grid-cols-4 gap-2">
+          ${ALL_SPORTS_PB.map(s => {
+          const on = cfg.sport === s.k;
+          return `<button onclick="setPBSport('${day}','${s.k}')"
+              class="py-2.5 rounded-xl text-xs font-bold border transition-all text-center"
+              style="background:${on ? 'rgba(124,58,237,0.15)' : 'rgba(255,255,255,0.04)'};
+                     border-color:${on ? 'rgba(124,58,237,0.4)' : 'rgba(255,255,255,0.08)'};
+                     color:${on ? '#a78bfa' : '#64748b'};">
+              <div class="text-xl mb-1">${s.e}</div>${s.l}
+            </button>`;
+        }).join('')}
+        </div>
+      </div>
+
+      ${cfg.sport && cats.length > 0 ? `
+        <div class="mb-5">
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+            Kategorie drilli
+            <span class="text-gray-600 font-normal ml-1">(puste = wszystkie)</span>
+          </p>
+          <div class="grid grid-cols-3 gap-2">
+            ${cats.map(cat => {
+          const on = (cfg.drillCats || []).includes(cat);
+          return `<button onclick="togglePBDrillCat('${day}','${cat}')"
+                class="py-2 px-3 rounded-xl text-xs font-medium border transition-all"
+                style="background:${on ? 'rgba(124,58,237,0.12)' : 'rgba(255,255,255,0.04)'};
+                       border-color:${on ? 'rgba(124,58,237,0.35)' : 'rgba(255,255,255,0.08)'};
+                       color:${on ? '#a78bfa' : '#64748b'};">${cat}</button>`;
+        }).join('')}
+          </div>
+        </div>
+
+        <div class="mb-5">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Liczba drilli</p>
+            <span class="text-lg font-bold text-violet-400" id="pbDrillCount_${day}">${cfg.drillCount}</span>
+          </div>
+          <input type="range" min="2" max="8" value="${cfg.drillCount}"
+            oninput="updatePBDrillCount('${day}',this.value)"
+            class="w-full accent-violet-400">
+        </div>
+
+        ${_renderDrillSearch(day)}
+      ` : (cfg.sport ? '<p class="text-xs text-gray-500">Ładowanie kategorii...</p>' : '')}
+    `;
+      }
+
+      return '';
+    }
+
+    function _renderExerciseSearch(day) {
+      return `
+    <div class="glass rounded-xl overflow-hidden" style="border:1px solid rgba(255,255,255,0.08);">
+      <div class="px-4 py-3 flex items-center justify-between"
+        style="background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.06);">
+        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">➕ Dodaj konkretne ćwiczenie</p>
+      </div>
+      <div class="p-4 space-y-3">
+        <input type="text" id="exSearch_${day}"
+          placeholder="🔍 Szukaj ćwiczenia..."
+          oninput="searchPBExercises('${day}', this.value)"
+          class="w-full px-3 py-2 rounded-xl text-sm"
+          style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#fff;outline:none;"
+          onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
+          onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+        <div id="exSearchResults_${day}" class="hidden space-y-1 max-h-36 overflow-y-auto rounded-xl"
+          style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);"></div>
+      </div>
+    </div>`;
+    }
+
+    function _renderDrillSearch(day) {
+      return `
+    <div class="glass rounded-xl overflow-hidden" style="border:1px solid rgba(255,255,255,0.08);">
+      <div class="px-4 py-3"
+        style="background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.06);">
+        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">➕ Dodaj konkretny drill</p>
+      </div>
+      <div class="p-4 space-y-3">
+        <input type="text" id="drillSearch_${day}"
+          placeholder="🔍 Szukaj drilla..."
+          oninput="searchPBDrills('${day}', this.value)"
+          class="w-full px-3 py-2 rounded-xl text-sm"
+          style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#fff;outline:none;"
+          onfocus="this.style.borderColor='rgba(124,58,237,0.5)'"
+          onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+        <div id="drillSearchResults_${day}" class="hidden space-y-1 max-h-36 overflow-y-auto rounded-xl"
+          style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);"></div>
+      </div>
+    </div>`;
+    }
+
+    function _renderPinnedItems(day) {
+      const cfg = _pb.days[day];
+      if (!cfg.pinned || cfg.pinned.length === 0) return '';
+
+      return `
+    <div class="mt-5">
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">📌 Dodane ręcznie (${cfg.pinned.length})</p>
+      <div class="space-y-2">
+        ${cfg.pinned.map((item, i) => `
+          <div class="flex items-center gap-3 p-3 rounded-xl"
+            style="background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.15);">
+            <span class="text-base flex-shrink-0">${item.type === 'drill' ? '🏀' : '💪'}</span>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm text-white font-medium truncate">${item.item.name}</p>
+              <p class="text-xs text-gray-500">
+                ${item.type === 'drill'
+          ? (item.item.duration || '15 min')
+          : (item.item.sets + '×' + item.item.reps + (item.item.weight > 0 ? ' @ ' + item.item.weight + 'kg' : ''))}
+              </p>
+            </div>
+            <button onclick="removePBPinnedItem('${day}',${i})"
+              class="text-gray-600 hover:text-red-400 text-lg flex-shrink-0 transition-colors">×</button>
+          </div>`).join('')}
+      </div>
+    </div>`;
+    }
+
+    function setPBDayType(day, type) {
+      _pb.days[day].type = type;
+      if (type === 'rest') { _pb.days[day].muscles = []; _pb.days[day].sport = null; }
+      _renderWeekGrid();
+      _renderDayConfig(day);
+    }
+
+    function togglePBMuscle(day, muscle) {
+      const arr = _pb.days[day].muscles;
+      const idx = arr.indexOf(muscle);
+      if (idx === -1) arr.push(muscle); else arr.splice(idx, 1);
+      _renderWeekGrid();
+      const el = document.getElementById('pbDayTypeContent_' + day);
+      if (el) el.innerHTML = _renderDayTypeContent(day);
+    }
+
+    function setPBSport(day, sport) {
+      _pb.days[day].sport = sport;
+      _pb.days[day].drillCats = [];
+      _renderWeekGrid();
+      const el = document.getElementById('pbDayTypeContent_' + day);
+      if (el) el.innerHTML = _renderDayTypeContent(day);
+    }
+
+    function togglePBDrillCat(day, cat) {
+      const arr = _pb.days[day].drillCats;
+      const idx = arr.indexOf(cat);
+      if (idx === -1) arr.push(cat); else arr.splice(idx, 1);
+      const el = document.getElementById('pbDayTypeContent_' + day);
+      if (el) el.innerHTML = _renderDayTypeContent(day);
+    }
+
+    function updatePBExCount(day, val) {
+      _pb.days[day].exCount = parseInt(val);
+      const el = document.getElementById('pbExCount_' + day);
+      if (el) el.textContent = val;
+      _renderWeekGrid();
+    }
+
+    function updatePBDrillCount(day, val) {
+      _pb.days[day].drillCount = parseInt(val);
+      const el = document.getElementById('pbDrillCount_' + day);
+      if (el) el.textContent = val;
+    }
+
+    function removePBPinnedItem(day, index) {
+      _pb.days[day].pinned.splice(index, 1);
+      _renderWeekGrid();
+      _renderDayConfig(day);
+    }
+
+    function searchPBExercises(day, query) {
+      const resultsEl = document.getElementById('exSearchResults_' + day);
+      if (!resultsEl) return;
+      if (!query || query.length < 2) { resultsEl.classList.add('hidden'); return; }
+
+      const db = window.EXERCISE_DB || {};
+      const all = Object.values(db).flat();
+      const q = query.toLowerCase();
+      const already = new Set((_pb.days[day].pinned || []).filter(p => p.type === 'exercise').map(p => p.item.name));
+      const matches = all.filter(e => e.name && e.name.toLowerCase().includes(q) && !already.has(e.name)).slice(0, 6);
+
+      if (!matches.length) { resultsEl.classList.add('hidden'); return; }
+      resultsEl.classList.remove('hidden');
+      resultsEl.innerHTML = matches.map(ex => `
+    <button onclick="addPBExercise('${day}', ${JSON.stringify(ex).replace(/"/g, '&quot;')})"
+      class="w-full text-left px-3 py-2.5 text-sm text-gray-300 transition-colors flex items-center gap-3"
+      style="border-bottom:1px solid rgba(255,255,255,0.04);"
+      onmouseover="this.style.background='rgba(0,229,255,0.08)'"
+      onmouseout="this.style.background='transparent'">
+      <span class="text-base">💪</span>
+      <div>
+        <p class="font-medium text-white">${ex.name}</p>
+        <p class="text-xs text-gray-500">${ex.muscles || ex.muscle_group || ''} · ${ex.sets}×${ex.reps}${ex.weight > 0 ? ' @ ' + ex.weight + 'kg' : ''}</p>
+      </div>
+      <span class="ml-auto text-cyan-400 text-xs">+ Dodaj</span>
+    </button>`).join('');
+    }
+
+    function addPBExercise(day, exObj) {
+      if (typeof exObj === 'string') { try { exObj = JSON.parse(exObj); } catch (e) { return; } }
+      _pb.days[day].pinned = _pb.days[day].pinned || [];
+      _pb.days[day].pinned.push({ type: 'exercise', item: exObj });
+      const searchEl = document.getElementById('exSearch_' + day);
+      const resultsEl = document.getElementById('exSearchResults_' + day);
+      if (searchEl) searchEl.value = '';
+      if (resultsEl) resultsEl.classList.add('hidden');
+      _renderWeekGrid();
+      _renderDayConfig(day);
+    }
+
+    function searchPBDrills(day, query) {
+      const resultsEl = document.getElementById('drillSearchResults_' + day);
+      if (!resultsEl) return;
+      if (!query || query.length < 2) { resultsEl.classList.add('hidden'); return; }
+
+      const cfg = _pb.days[day];
+      const sd = window.SPORT_DRILLS || {};
+      const sportSd = cfg.sport ? (sd[cfg.sport] || {}) : sd;
+      const allDrills = cfg.sport
+        ? Object.values(sportSd).flatMap(cat => cat.drills || [])
+        : Object.values(sd).flatMap(sportObj => Object.values(sportObj).flatMap(cat => cat.drills || []));
+
+      const q = query.toLowerCase();
+      const already = new Set((_pb.days[day].pinned || []).filter(p => p.type === 'drill').map(p => p.item.name));
+      const matches = allDrills.filter(d => d.name && d.name.toLowerCase().includes(q) && !already.has(d.name)).slice(0, 6);
+
+      if (!matches.length) { resultsEl.classList.add('hidden'); return; }
+      resultsEl.classList.remove('hidden');
+      resultsEl.innerHTML = matches.map(drill => `
+    <button onclick="addPBDrill('${day}', ${JSON.stringify(drill).replace(/"/g, '&quot;')})"
+      class="w-full text-left px-3 py-2.5 text-sm text-gray-300 transition-colors flex items-center gap-3"
+      style="border-bottom:1px solid rgba(255,255,255,0.04);"
+      onmouseover="this.style.background='rgba(124,58,237,0.1)'"
+      onmouseout="this.style.background='transparent'">
+      <span class="text-base">🏀</span>
+      <div>
+        <p class="font-medium text-white">${drill.name}</p>
+        <p class="text-xs text-gray-500">${drill.category || ''} · ${drill.duration || '15 min'}</p>
+      </div>
+      <span class="ml-auto text-violet-400 text-xs">+ Dodaj</span>
+    </button>`).join('');
+    }
+
+    function addPBDrill(day, drillObj) {
+      if (typeof drillObj === 'string') { try { drillObj = JSON.parse(drillObj); } catch (e) { return; } }
+      _pb.days[day].pinned = _pb.days[day].pinned || [];
+      _pb.days[day].pinned.push({ type: 'drill', item: drillObj });
+      const searchEl = document.getElementById('drillSearch_' + day);
+      const resultsEl = document.getElementById('drillSearchResults_' + day);
+      if (searchEl) searchEl.value = '';
+      if (resultsEl) resultsEl.classList.add('hidden');
+      _renderWeekGrid();
+      _renderDayConfig(day);
+    }
+
+    async function applyBuiltPlan() {
+      const btn = document.querySelector('#planBuilderModal button[onclick="applyBuiltPlan()"]');
+      if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Generuję...'; }
+
+      const profile = getEnrichedProfile ? getEnrichedProfile() : getCurrentProfile();
+      const equip = profile?.equipment || [];
+      const excl = profile?.exclusions || [];
+      const newPlan = {};
+
+      PB_DAYS.forEach(day => {
+        const cfg = _pb.days[day];
+        if (cfg.type === 'rest') {
+          newPlan[day] = [];
+          return;
+        }
+
+        const pinned = (cfg.pinned || []).map(p =>
+          p.type === 'drill'
+            ? { ...p.item, isDrill: true, sets: 3, reps: 10, weight: 0 }
+            : { ...p.item }
+        );
+
+        if (cfg.type === 'sport' && cfg.sport) {
+          const sd = window.SPORT_DRILLS || {};
+          const sportD = sd[cfg.sport] || {};
+          const cats = (cfg.drillCats || []).length > 0 ? cfg.drillCats : Object.keys(sportD).slice(0, 3);
+          const all = cats.flatMap(c => sportD[c]?.drills || []);
+          const needed = Math.max(0, (cfg.drillCount || 4) - pinned.length);
+          const auto = [...all].sort(() => Math.random() - 0.5).slice(0, needed)
+            .map(d => ({ ...d, isDrill: true, sets: 3, reps: 10, weight: 0, sport: cfg.sport }));
+          newPlan[day] = [...pinned, ...auto];
+        } else {
+          const muscles = (cfg.muscles || []).length > 0 ? cfg.muscles : ['klatka', 'plecy'];
+          const needed = Math.max(0, (cfg.exCount || 5) - pinned.length);
+          const auto = typeof generateExercisesForDay === 'function'
+            ? generateExercisesForDay(muscles, equip, excl, needed, profile)
+            : [];
+          newPlan[day] = [...pinned, ...auto];
+        }
+      });
+
+      const p = getCurrentProfile();
+      if (p) {
+        p.trainingPlan = newPlan;
+        p._planBuilderConfig = JSON.parse(JSON.stringify(_pb.days));
+        if (typeof saveState === 'function') saveState();
+      }
+      localStorage.setItem('fitai_training_plan', JSON.stringify(newPlan));
+
+      if (btn) { btn.disabled = false; btn.innerHTML = '🚀 Generuj i Zapisz Plan'; }
+      closePlanBuilderModal();
+      if (typeof updateDashboard === 'function') updateDashboard();
+      if (typeof renderCurrentDay === 'function') renderCurrentDay();
+      if (typeof renderPlanWeekView === 'function') renderPlanWeekView();
+      if (typeof loadPlanForDay === 'function') loadPlanForDay();
+
+      const t = document.createElement('div');
+      t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);'
+        + 'padding:12px 24px;border-radius:12px;font-size:13px;font-weight:600;z-index:9999;'
+        + 'background:rgba(10,10,20,0.97);color:#4ade80;border:1px solid rgba(74,222,128,0.3);'
+        + 'box-shadow:0 8px 32px rgba(0,0,0,0.5);transition:opacity 0.3s;';
+      t.textContent = '✅ Plan treningowy zapisany!';
+      document.body.appendChild(t);
+      setTimeout(() => { t.style.opacity = '0'; }, 2500);
+      setTimeout(() => t.remove(), 3000);
     }
 
     // ══════════════════════════════════════════════════════════════════
@@ -8891,7 +9655,7 @@
     function saveGoals() {
       const p = getCurrentProfile();
       // Goals already saved via toggles - just rebuild plan
-      const { dietPlan, trainingPlan } = generateFullPlanForProfile(p);
+      const { dietPlan, trainingPlan } = generateFullPlanForProfile(getEnrichedProfile());
       p.dietPlan = dietPlan; p.trainingPlan = trainingPlan;
       saveState();
       showToast('✅ Cele zapisane! Plan przebudowany.');
@@ -8948,7 +9712,7 @@
 
     function saveExclusions() {
       const p = getCurrentProfile();
-      const { dietPlan, trainingPlan } = generateFullPlanForProfile(p);
+      const { dietPlan, trainingPlan } = generateFullPlanForProfile(getEnrichedProfile());
       p.dietPlan = dietPlan; p.trainingPlan = trainingPlan;
       saveState();
       showToast('✅ Wykluczenia zapisane! Plan przebudowany.');
@@ -8968,7 +9732,7 @@
     function savePreferences() {
       const p = getCurrentProfile();
       p.equipment = Array.from(document.querySelectorAll('.equip-cb:checked')).map(cb => cb.value);
-      const { dietPlan, trainingPlan } = generateFullPlanForProfile(p);
+      const { dietPlan, trainingPlan } = generateFullPlanForProfile(getEnrichedProfile());
       p.dietPlan = dietPlan; p.trainingPlan = trainingPlan;
       saveState();
       showToast('✅ Preferencje zapisane! Plan przebudowany.');
@@ -8979,14 +9743,14 @@
       document.getElementById('dayCarousel').innerHTML = state.days.map((d, i) => `
     <button onclick="selectDay(${i})" class="day-btn px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all btn-ghost ${i === state.currentDay ? 'active' : ''}">${d}</button>
   `).join('');
-      document.getElementById('currentDayLabel').textContent = state.days[state.currentDay];
+      document.getElementById('currentDayLabel').textContent = getCurrentDayKey();
     }
 
     function selectDay(i) {
       state.currentDay = i;
       renderDayCarousel();
       const p = getCurrentProfile();
-      const day = state.days[i];
+      const day = (Array.isArray(state.days) && state.days[i]) || getCurrentDayKey();
 
       // Dieta i Trening działają niezależnie — synchronizujemy tylko aktywny widok.
       const activeCategory = state.planCategory || 'dieta';
@@ -9052,7 +9816,7 @@
       try {
         // Lokalny fallback bez tokenu/API
         if (typeof generateFullPlanForProfile === 'function' && !token) {
-          const generated = generateFullPlanForProfile(p);
+          const generated = generateFullPlanForProfile(getEnrichedProfile());
           p.dietPlan = generated?.dietPlan || {};
           p.trainingPlan = generated?.trainingPlan || {};
           if (typeof saveState === 'function') saveState();
@@ -9206,7 +9970,7 @@
 
     function loadPlanForDay() {
       const p = getCurrentProfile();
-      const day = state.days[state.currentDay];
+      const day = getCurrentDayKey();
       const excl = p.exclusions || [];
       // Use date-based key as Single Source of Truth
       const checkedKey = _checkedKey(p.id, state.currentDay);
@@ -9225,7 +9989,7 @@
       }
 
       if (state.planSubtab === 'diet' || state.planSubtab === 'myplan' || !state.planSubtab) {
-        const rawMeals = p.dietPlan[day] || [];
+        const rawMeals = (p.dietPlan?.[day] || []);
         const meals = planFilter(rawMeals, excl);
         state._planMeals = meals;
         const dietContainer = document.getElementById('planDietContainer');
@@ -9343,13 +10107,13 @@
 
     function updateDayProgress() {
       const p = getCurrentProfile();
-      const day = state.days[state.currentDay];
+      const day = getCurrentDayKey();
       const k = _checkedKey(p.id, state.currentDay);
       const checked = state.dayChecked[k] || {};
       const excl = p.exclusions || [];
       // ── ZADANIE 4: Użyj przefiltrowanej listy (hidden items nie liczą się) ──────
-      const meals = (p.dietPlan[day] || []).filter(m => !m.hidden);
-      const exercises = (p.trainingPlan[day] || []).filter(e => !e.hidden).slice(0, state.exerciseCount || 4);
+      const meals = (p.dietPlan?.[day] || []).filter(m => !m.hidden);
+      const exercises = (p.trainingPlan?.[day] || []).filter(e => !e.hidden).slice(0, state.exerciseCount || 4);
       const extras = (state.extraItems && state.extraItems[p.id]) ? state.extraItems[p.id] : [];
       const total = meals.length + exercises.length + extras.length;
       const done = Object.keys(checked).filter(k2 => checked[k2]).length;
@@ -9385,7 +10149,14 @@
         const muscleFocus = p.muscleFocus || [];
         const muscleGroups = [...new Set([...muscleFocus, ...baseGroups])];
         const fallbackGroups = muscleGroups.length > 0 ? muscleGroups : ['klatka', 'plecy'];
-        exercises = generateExercisesForDay(fallbackGroups, p.equipment || [], p.exclusions || [], state.exerciseCount);
+        const enrichedProfile = getEnrichedProfile();
+        exercises = generateExercisesForDay(
+          fallbackGroups,
+          enrichedProfile?.equipment || [],
+          enrichedProfile?.exclusions || [],
+          state.exerciseCount,
+          enrichedProfile
+        );
         // Save back so checklist is consistent
         if (exercises.length > 0) { p.trainingPlan[day] = exercises; saveState(); }
       }
@@ -9501,11 +10272,11 @@
     function updateDayProgress() {
       const p = getCurrentProfile();
       const todayIdx = (new Date().getDay() + 6) % 7;
-      const day = state.days[todayIdx];
+      const day = (Array.isArray(state.days) && state.days[todayIdx]) || getCurrentDayKey();
       const k = _todayCheckedKey(p.id);
       const checked = state.dayChecked[k] || {};
-      const meals = (p.dietPlan[day] || []).filter(m => !m.hidden);
-      const exercises = (p.trainingPlan[day] || []).filter(e => !e.hidden).slice(0, state.exerciseCount);
+      const meals = (p.dietPlan?.[day] || []).filter(m => !m.hidden);
+      const exercises = (p.trainingPlan?.[day] || []).filter(e => !e.hidden).slice(0, state.exerciseCount);
       const extras = state.extraItems[p.id] || [];
       const total = meals.length + exercises.length + extras.length;
       const done = Object.keys(checked).filter(k2 => checked[k2]).length;
@@ -9522,11 +10293,11 @@
     function updateDaySummaryCounters() {
       const p = getCurrentProfile();
       const todayIdx = (new Date().getDay() + 6) % 7;
-      const day = state.days[todayIdx];
+      const day = (Array.isArray(state.days) && state.days[todayIdx]) || getCurrentDayKey();
       const k = _todayCheckedKey(p.id);
       const checked = state.dayChecked[k] || {};
-      const meals = (p.dietPlan[day] || []).filter(m => !m.hidden);
-      const exercises = (p.trainingPlan[day] || []).filter(e => !e.hidden).slice(0, state.exerciseCount);
+      const meals = (p.dietPlan?.[day] || []).filter(m => !m.hidden);
+      const exercises = (p.trainingPlan?.[day] || []).filter(e => !e.hidden).slice(0, state.exerciseCount);
       const extras = state.extraItems[p.id] || [];
 
       let totalKcal = 0, totalProt = 0, totalTrain = 0;
@@ -9767,10 +10538,10 @@
 
     function confirmSwapMeal(altObj) {
       const p = getCurrentProfile();
-      const day = state.days[state.currentDay];
+      const day = getCurrentDayKey();
       const { itemId } = state.expandedItem;
       const idx = parseInt(itemId);
-      if (!isNaN(idx) && p.dietPlan[day] && p.dietPlan[day][idx]) {
+      if (!isNaN(idx) && p.dietPlan?.[day] && p.dietPlan[day][idx]) {
         p.dietPlan[day][idx] = Object.assign({}, altObj, { id: p.dietPlan[day][idx].id });
         saveState();
         showToast('✅ Zamieniono na: ' + altObj.name);
@@ -9785,10 +10556,10 @@
 
     function confirmSwapExercise(altObj) {
       const p = getCurrentProfile();
-      const day = state.days[state.currentDay];
+      const day = getCurrentDayKey();
       const { itemId } = state.expandedItem;
       const idx = parseInt(itemId);
-      if (!isNaN(idx) && p.trainingPlan[day] && p.trainingPlan[day][idx]) {
+      if (!isNaN(idx) && p.trainingPlan?.[day] && p.trainingPlan[day][idx]) {
         p.trainingPlan[day][idx] = Object.assign({}, altObj, { id: p.trainingPlan[day][idx].id });
         saveState();
         showToast('✅ Zamieniono na: ' + altObj.name);
@@ -9818,14 +10589,14 @@
     // ========== MY DAY ==========
     function addFromPlan(type) {
       const p = getCurrentProfile();
-      const day = state.days[state.currentDay];
+      const day = getCurrentDayKey();
       if (type === 'diet') {
-        const meals = p.dietPlan[day] || [];
+        const meals = p.dietPlan?.[day] || [];
         if (!meals.length) { showToast('Brak zaplanowanych posiłków na dziś'); return; }
         const meal = meals[0];
         addDayLogItem('diet', meal.name, `P:${meal.protein}g W:${meal.carbs}g T:${meal.fat}g`, meal.kcal, meal.protein, meal.carbs, meal.fat);
       } else {
-        const exercises = p.trainingPlan[day] || [];
+        const exercises = p.trainingPlan?.[day] || [];
         if (!exercises.length) { showToast('Brak zaplanowanych ćwiczeń na dziś'); return; }
         const ex = exercises[0];
         addDayLogItem('training', ex.name, `${ex.sets}×${ex.reps}`, 0);
@@ -10242,11 +11013,11 @@
       // Also collect today checklist data if available
       const p = getCurrentProfile();
       const todayIdx = (new Date().getDay() + 6) % 7;
-      const day = state.days[todayIdx];
+      const day = (Array.isArray(state.days) && state.days[todayIdx]) || getCurrentDayKey();
       const k = _todayCheckedKey(p.id);
       const checked = state.dayChecked[k] || {};
-      const meals = (p.dietPlan[day] || []).filter(m => !m.hidden);
-      const exercises = (p.trainingPlan[day] || []).filter(e => !e.hidden).slice(0, state.exerciseCount);
+      const meals = (p.dietPlan?.[day] || []).filter(m => !m.hidden);
+      const exercises = (p.trainingPlan?.[day] || []).filter(e => !e.hidden).slice(0, state.exerciseCount);
       const doneMeals = meals.filter((m, i) => checked['meal_' + i]).map(m => m.name).join(', ');
       const doneEx = exercises.filter((e, i) => checked['ex_' + i]).map(e => e.name).join(', ');
       if (doneMeals) payload.food = doneMeals;
@@ -12925,7 +13696,11 @@
         const muscles = _editMuscles.length > 0 ? _editMuscles : ['klatka', 'plecy'];
         p.trainingPlan = p.trainingPlan || {};
         p.trainingPlan[_editDay] = generateExercisesForDay(
-          muscles, p.equipment || [], p.exclusions || [], exCount, _editDay);
+          muscles,
+          getEnrichedProfile()?.equipment || [],
+          getEnrichedProfile()?.exclusions || [],
+          exCount,
+          getEnrichedProfile());
       } else if (_editDayType === 'sport' && _editSport && window.SPORT_DRILLS) {
         const sportId = typeof resolveSportId === 'function' ? resolveSportId(_editSport) : _editSport;
         const sd = window.SPORT_DRILLS[sportId] || {};
@@ -12951,7 +13726,7 @@
       if (typeof generateMealsForDay === 'function') {
         const mealsPerDay = p.mealsPerDay || 5;
         p.dietPlan = p.dietPlan || {};
-        p.dietPlan[_editDay] = generateMealsForDay(mealsPerDay, p.exclusions || [], p, _editDay);
+        p.dietPlan[_editDay] = generateMealsForDay(mealsPerDay, p.exclusions || [], getEnrichedProfile(), _editDay);
       }
 
       if (typeof saveState === 'function') saveState();
@@ -12981,10 +13756,10 @@
       }
 
       const p = getCurrentProfile();
-      const day = state.days[state.currentDay];
+      const day = getCurrentDayKey();
 
       // Always load from the saved trainingPlan — never from the stale display cache
-      const saved = (p.trainingPlan[day] || []).filter(e => !e.hidden);
+      const saved = (p.trainingPlan?.[day] || []).filter(e => !e.hidden);
       const source = saved.length > 0 ? saved : (state._planExercises || []);
 
       // Deep copy so cancel truly reverts
@@ -13009,7 +13784,7 @@
     // --- Render the list of exercises in editor ---
     function renderEditPlanList() {
       const container = document.getElementById('editPlanList');
-      const day = state.days[state.currentDay];
+      const day = getCurrentDayKey();
       // Update count badge
       const badge = document.getElementById('epExCount');
       if (badge) badge.textContent = _editPlanDraft.length + ' ćw.';
@@ -13403,7 +14178,7 @@
     // --- Save ---
     function saveEditedPlan() {
       const p = getCurrentProfile();
-      const day = state.days[state.currentDay];
+      const day = getCurrentDayKey();
       if (!p.trainingPlan) p.trainingPlan = {};
       p.trainingPlan[day] = _editPlanDraft.map(e => ({ ...e }));
       // Sync display cache so the view shows saved exercises immediately
@@ -13437,8 +14212,8 @@
 
     function openEditDietModal() {
       const p = getCurrentProfile();
-      const day = state.days[state.currentDay];
-      const saved = (p.dietPlan[day] || []).filter(m => !m.hidden);
+      const day = getCurrentDayKey();
+      const saved = (p.dietPlan?.[day] || []).filter(m => !m.hidden);
       _editDietDraft = saved.map(m => ({ ...m }));
 
       document.getElementById('editDietDayLabel').textContent = `${day} — edycja diety`;
@@ -13458,7 +14233,7 @@
 
     function saveEditedDiet() {
       const p = getCurrentProfile();
-      const day = state.days[state.currentDay];
+      const day = getCurrentDayKey();
       if (!p.dietPlan) p.dietPlan = {};
       p.dietPlan[day] = _editDietDraft.map(m => ({ ...m }));
       state._planMeals = p.dietPlan[day].filter(m => !m.hidden);
@@ -14550,6 +15325,7 @@
   </script>
 
   <script>
+
     // ====== BAZA DIETY ======
     // (State variables already declared in script tag 2 - no re-declaration needed)
 
@@ -19022,6 +19798,50 @@
     })();
   </script>
 
+  <!-- MODAL: Niekompletny profil -->
+  <div id="incompleteProfileModal" class="fixed inset-0 z-[400] hidden flex items-center justify-center p-4"
+    style="background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);"
+    onclick="if(event.target===this)closeIncompleteProfileModal()">
+    <div class="glass rounded-2xl w-full max-w-sm overflow-hidden" style="border:1px solid rgba(250,204,21,0.3);">
+
+      <!-- Header -->
+      <div class="px-6 py-5 text-center"
+        style="background:linear-gradient(135deg,rgba(250,204,21,0.08),rgba(239,68,68,0.05));">
+        <div class="text-5xl mb-3">📋</div>
+        <h3 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">
+          Uzupełnij profil
+        </h3>
+        <p class="text-sm text-gray-400 mt-1">
+          Potrzebujemy Twoich danych żeby stworzyć spersonalizowany plan
+        </p>
+      </div>
+
+      <!-- Brakujące pola -->
+      <div class="px-6 py-4">
+        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+          Brakujące informacje:
+        </p>
+        <div id="missingFieldsList" class="space-y-2">
+          <!-- generowane przez JS -->
+        </div>
+      </div>
+
+      <!-- Przyciski -->
+      <div class="px-6 py-4 flex gap-3" style="border-top:1px solid rgba(255,255,255,0.07);">
+        <button onclick="closeIncompleteProfileModal()"
+          class="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-400"
+          style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+          Później
+        </button>
+        <button onclick="goToProfile()" class="flex-1 py-2.5 rounded-xl text-sm font-bold" style="background:linear-gradient(135deg,rgba(250,204,21,0.2),rgba(239,68,68,0.1));
+               border:1px solid rgba(250,204,21,0.4);color:#facc15;">
+          👤 Przejdź do Profilu
+        </button>
+      </div>
+
+    </div>
+  </div>
+
 </body>
 
 
@@ -19043,5 +19863,54 @@
     const iv = setInterval(() => { attempts++; if (updateOnce() || attempts > 12) clearInterval(iv); }, 300);
   })();
 </script>
+
+<!-- ═══════════════ PLAN BUILDER MODAL ═══════════════ -->
+<div id="planBuilderModal" class="fixed inset-0 z-[350] hidden flex items-center justify-center p-2 md:p-4"
+  style="background:rgba(0,0,0,0.85);backdrop-filter:blur(12px);">
+  <div class="glass rounded-2xl w-full flex flex-col" style="border:1px solid rgba(0,229,255,0.2);
+           max-width:900px;max-height:95vh;">
+
+    <div class="px-6 py-4 flex items-center justify-between flex-shrink-0"
+      style="border-bottom:1px solid rgba(255,255,255,0.07);">
+      <div>
+        <h2 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">
+          💪 Kreator Planu Treningowego
+        </h2>
+        <p class="text-xs text-gray-400 mt-0.5">Kliknij dzień żeby go skonfigurować</p>
+      </div>
+      <button onclick="closePlanBuilderModal()"
+        class="text-gray-500 hover:text-white text-2xl leading-none transition-colors">×</button>
+    </div>
+
+    <div class="px-6 pt-5 flex-shrink-0">
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Podgląd planu — kliknij dzień aby
+        edytować</p>
+      <div class="grid grid-cols-7 gap-1.5" id="weekGridBuilder"></div>
+    </div>
+
+    <div class="mx-6 mt-4 flex-shrink-0" style="border-bottom:1px solid rgba(255,255,255,0.07);"></div>
+
+    <div class="flex-1 overflow-y-auto px-6 py-4" id="dayConfigPanel">
+      <div class="text-center py-10 text-gray-500">
+        <p class="text-4xl mb-3">👆</p>
+        <p class="text-sm">Kliknij dzień w siatce powyżej aby go skonfigurować</p>
+      </div>
+    </div>
+
+    <div class="px-6 py-4 flex gap-3 flex-shrink-0" style="border-top:1px solid rgba(255,255,255,0.07);">
+      <button onclick="resetPlanBuilder()"
+        class="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-400 transition-all"
+        style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);">🔄 Reset</button>
+      <div class="flex gap-2 ml-auto">
+        <button onclick="closePlanBuilderModal()" class="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-400"
+          style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);">Anuluj</button>
+        <button onclick="applyBuiltPlan()" class="px-6 py-2.5 rounded-xl text-sm font-bold transition-all"
+          style="background:linear-gradient(135deg,rgba(0,229,255,0.25),rgba(124,58,237,0.2));border:1px solid rgba(0,229,255,0.5);color:#00e5ff;">🚀
+          Generuj i Zapisz Plan</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ═══ KONIEC PLAN BUILDER MODAL ═══ -->
 
 </html>
