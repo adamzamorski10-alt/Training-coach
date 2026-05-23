@@ -8751,6 +8751,8 @@
       }])),
     };
 
+    let _pbDragSource = null;
+
     function _pbCloneEmptyDay() {
       return { type: 'rest', muscles: [], sport: null, drillCats: [], exCount: 5, drillCount: 4, pinned: [] };
     }
@@ -9055,11 +9057,22 @@
             (cfg.muscles.length > 3 ? ' +' + (cfg.muscles.length - 3) : '') + '</span>';
         }
 
-        return `<button onclick="selectBuilderDay('${day}')"
-      class="py-3 px-1 rounded-xl text-center transition-all flex flex-col items-center gap-1"
+        return `
+    <div
+      id="pbDayCard_${day}"
+      draggable="true"
+      data-day="${day}"
+      onclick="selectBuilderDay('${day}')"
+      ondragstart="_pbDragStart(event, '${day}')"
+      ondragover="_pbDragOver(event)"
+      ondragleave="_pbDragLeave(event)"
+      ondrop="_pbDrop(event, '${day}')"
+      ondragend="_pbDragEnd(event)"
+      class="py-3 px-1 rounded-xl text-center transition-all flex flex-col items-center gap-1 cursor-grab select-none"
       style="background:${isActive ? 'rgba(0,229,255,0.15)' : tc.bg};
              border:1px solid ${isActive ? 'rgba(0,229,255,0.6)' : tc.border};
-             box-shadow:${isActive ? '0 0 0 2px rgba(0,229,255,0.3)' : 'none'};">
+             box-shadow:${isActive ? '0 0 0 2px rgba(0,229,255,0.3)' : 'none'};
+             touch-action:none;">
       <span class="text-xs font-bold" style="color:${isActive ? '#00e5ff' : tc.color};">${day}</span>
       <span class="text-lg">${tc.icon}</span>
       ${content}
@@ -9068,8 +9081,96 @@
           ${cfg.type === 'sport' ? (cfg.drillCount || 0) : (cfg.exCount || 0)} ${cfg.type === 'sport' ? 'drilli' : 'ćwicz.'}
         </span>` : ''}
       ${pinnedCount > 0 ? `<span class="text-xs px-1.5 py-0.5 rounded-full" style="background:rgba(0,229,255,0.2);color:#00e5ff;">${pinnedCount}</span>` : ''}
-    </button>`;
+    </div>`;
       }).join('');
+    }
+
+    function _pbDragStart(event, day) {
+      _pbDragSource = day;
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', day);
+      const el = document.getElementById('pbDayCard_' + day);
+      if (el) {
+        setTimeout(() => {
+          el.style.opacity = '0.4';
+          el.style.transform = 'scale(0.95)';
+        }, 0);
+      }
+    }
+
+    function _pbDragOver(event) {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'move';
+      const target = event.currentTarget;
+      const targetDay = target?.getAttribute('data-day');
+      if (targetDay && targetDay !== _pbDragSource) {
+        target.style.background = 'rgba(0,229,255,0.2)';
+        target.style.borderColor = 'rgba(0,229,255,0.7)';
+        target.style.transform = 'scale(1.04)';
+      }
+    }
+
+    function _pbDragLeave(event) {
+      const target = event.currentTarget;
+      const targetDay = target?.getAttribute('data-day');
+      _restoreDayCardStyle(targetDay);
+    }
+
+    function _pbDrop(event, targetDay) {
+      event.preventDefault();
+      const sourceDay = _pbDragSource;
+      if (!sourceDay || sourceDay === targetDay) return;
+
+      const srcCfg = JSON.parse(JSON.stringify(_pb.days[sourceDay]));
+      const tgtCfg = JSON.parse(JSON.stringify(_pb.days[targetDay]));
+      _pb.days[sourceDay] = tgtCfg;
+      _pb.days[targetDay] = srcCfg;
+
+      const activeDay = _pb.activeDay;
+      _pbDragSource = null;
+
+      _renderWeekGrid();
+
+      if (activeDay === sourceDay || activeDay === targetDay) {
+        _renderDayConfig(activeDay);
+      }
+
+      _showPBToast('✅ Dni zamienione miejscami');
+    }
+
+    function _pbDragEnd() {
+      PB_DAYS.forEach(day => {
+        const el = document.getElementById('pbDayCard_' + day);
+        if (el) {
+          el.style.opacity = '1';
+          el.style.transform = '';
+        }
+        _restoreDayCardStyle(day);
+      });
+      _pbDragSource = null;
+    }
+
+    function _restoreDayCardStyle(day) {
+      const el = document.getElementById('pbDayCard_' + day);
+      if (!el) return;
+      const cfg = _pb.days[day];
+      const tc = PB_TYPE_CFG[cfg?.type || 'rest'];
+      const isActive = day === _pb.activeDay;
+      el.style.background = isActive ? 'rgba(0,229,255,0.15)' : tc.bg;
+      el.style.borderColor = isActive ? 'rgba(0,229,255,0.6)' : tc.border;
+      el.style.transform = '';
+    }
+
+    function _showPBToast(msg) {
+      const t = document.createElement('div');
+      t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);' +
+        'padding:10px 20px;border-radius:10px;font-size:12px;font-weight:600;z-index:9999;' +
+        'background:rgba(10,10,20,0.97);color:#4ade80;' +
+        'border:1px solid rgba(74,222,128,0.3);pointer-events:none;';
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; }, 1500);
+      setTimeout(() => t.remove(), 1900);
     }
 
     function selectBuilderDay(day) {
@@ -20321,6 +20422,9 @@
       <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Podgląd planu — kliknij dzień aby
         edytować</p>
       <div class="grid grid-cols-7 gap-1.5" id="weekGridBuilder"></div>
+      <p class="text-xs text-gray-600 mt-2 text-center">
+        💡 Przeciągnij kafel dnia na inny aby zamienić ich konfiguracje
+      </p>
     </div>
 
     <div class="mx-6 mt-4 flex-shrink-0" style="border-bottom:1px solid rgba(255,255,255,0.07);"></div>
