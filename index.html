@@ -8828,6 +8828,7 @@
         _pbLoadFromProfile(profile);
       }
       _pb.activeDay = null;
+      _pbPreviewMode = false;
 
       // Ustaw tytuł modala w zależności od trybu
       const titleEl = document.querySelector('#planBuilderModal h2');
@@ -8849,6 +8850,7 @@
         modal.classList.add('flex');
       }
 
+      _syncPlanBuilderPreviewUi(false);
       _renderWeekGrid();
       const panel = document.getElementById('dayConfigPanel');
       if (panel) {
@@ -8861,15 +8863,19 @@
     }
 
     function closePlanBuilderModal() {
+      _pbPreviewMode = false;
+      _syncPlanBuilderPreviewUi(false);
       const modal = document.getElementById('planBuilderModal');
       modal?.classList.add('hidden');
       modal?.classList.remove('flex');
     }
 
     function resetPlanBuilder() {
+      _pbPreviewMode = false;
       PB_DAYS.forEach(day => { _pb.days[day] = _pbCloneEmptyDay(); });
       _pb.activeDay = null;
       _renderWeekGrid();
+      _syncPlanBuilderPreviewUi(false);
       const panel = document.getElementById('dayConfigPanel');
       if (panel) {
         panel.innerHTML = `
@@ -8877,6 +8883,154 @@
             <p class="text-sm">Plan wyczyszczony. Kliknij dzień aby go skonfigurować.</p>
           </div>`;
       }
+    }
+
+    let _pbPreviewMode = false;
+
+    function _syncPlanBuilderPreviewUi(enabled) {
+      const configPanel = document.getElementById('dayConfigPanel');
+      const previewPanel = document.getElementById('pbPreviewPanel');
+      const previewBtn = document.getElementById('pbPreviewBtn');
+
+      if (enabled) {
+        configPanel?.classList.add('hidden');
+        previewPanel?.classList.remove('hidden');
+        previewPanel?.classList.add('flex-1');
+        if (previewBtn) {
+          previewBtn.textContent = '← Wróć do edycji';
+          previewBtn.style.color = '#00e5ff';
+          previewBtn.style.borderColor = 'rgba(0,229,255,0.3)';
+          previewBtn.style.background = 'rgba(0,229,255,0.08)';
+        }
+        return;
+      }
+
+      configPanel?.classList.remove('hidden');
+      previewPanel?.classList.add('hidden');
+      if (previewBtn) {
+        previewBtn.textContent = '👁️ Podgląd';
+        previewBtn.style.color = '#9ca3af';
+        previewBtn.style.borderColor = 'rgba(255,255,255,0.15)';
+        previewBtn.style.background = 'rgba(255,255,255,0.06)';
+      }
+    }
+
+    function togglePlanBuilderPreview() {
+      _pbPreviewMode = !_pbPreviewMode;
+      if (_pbPreviewMode) {
+        _syncPlanBuilderPreviewUi(true);
+        _renderPlanPreview();
+      } else {
+        _syncPlanBuilderPreviewUi(false);
+        if (_pb.activeDay) _renderDayConfig(_pb.activeDay);
+      }
+    }
+
+    function _renderPlanPreview() {
+      const panel = document.getElementById('pbPreviewPanel');
+      if (!panel) return;
+
+      const profile = typeof getEnrichedProfile === 'function'
+        ? getEnrichedProfile() : getCurrentProfile();
+      const equip = profile?.equipment || [];
+      const excl = profile?.exclusions || [];
+
+      const DAY_NAMES = {
+        Pon: 'Poniedziałek', Wt: 'Wtorek', Śr: 'Środa',
+        Czw: 'Czwartek', Pt: 'Piątek', Sob: 'Sobota', Niedz: 'Niedziela'
+      };
+
+      panel.innerHTML = `
+        <div class="space-y-3">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-bold text-white uppercase tracking-wider">
+              📋 Podgląd pełnego planu
+            </h3>
+            <span class="text-xs text-gray-500">
+              Kliknij "← Wróć do edycji" aby wprowadzić zmiany
+            </span>
+          </div>
+          ${['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'].map(day => {
+        const cfg = _pb.days[day];
+        const tc = PB_TYPE_CFG[cfg.type];
+
+        if (cfg.type === 'rest') {
+          return `
+                <div class="flex items-center gap-3 p-3 rounded-xl"
+                  style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
+                  <div class="w-20 flex-shrink-0">
+                    <p class="text-xs font-bold" style="color:#64748b;">${day}</p>
+                    <p class="text-xs" style="color:#4b5563;">${DAY_NAMES[day]}</p>
+                  </div>
+                  <span class="text-base">😴</span>
+                  <p class="text-sm text-gray-600 italic">Dzień odpoczynku</p>
+                </div>`;
+        }
+
+        const pinned = (cfg.pinned || []).map(p =>
+          p.type === 'drill'
+            ? { ...p.item, isDrill: true }
+            : p.item
+        );
+
+        let autoItems = [];
+        if (cfg.type === 'sport' && cfg.sport) {
+          const sd = window.SPORT_DRILLS?.[cfg.sport] || {};
+          const cats = cfg.drillCats?.length > 0 ? cfg.drillCats : Object.keys(sd).slice(0, 3);
+          const all = cats.flatMap(c => sd[c]?.drills || []);
+          const count = Math.max(0, (cfg.drillCount || 4) - pinned.length);
+          autoItems = [...all].sort(() => Math.random() - .5).slice(0, count)
+            .map(d => ({ ...d, isDrill: true }));
+        } else if (typeof generateExercisesForDay === 'function') {
+          const muscles = (cfg.muscles || []).length > 0 ? cfg.muscles : ['klatka', 'plecy'];
+          const count = Math.max(0, (cfg.exCount || 5) - pinned.length);
+          autoItems = generateExercisesForDay(muscles, equip, excl, count);
+        }
+
+        const allItems = [...pinned, ...autoItems];
+
+        return `
+              <div class="rounded-xl overflow-hidden"
+                style="border:1px solid ${tc.border};">
+                <div class="flex items-center gap-3 px-4 py-2.5"
+                  style="background:${tc.bg};">
+                  <div class="w-20 flex-shrink-0">
+                    <p class="text-xs font-bold" style="color:${tc.color};">${day}</p>
+                    <p class="text-xs text-gray-500">${DAY_NAMES[day]}</p>
+                  </div>
+                  <span class="text-base">${tc.icon}</span>
+                  <div class="flex-1">
+                    <p class="text-xs font-bold" style="color:${tc.color};">
+                      ${tc.label}
+                      ${cfg.type === 'sport' && cfg.sport ? ' · ' + (ALL_SPORTS_PB.find(s => s.k === cfg.sport)?.l || cfg.sport) : ''}
+                      ${cfg.type === 'strength' && cfg.muscles?.length ? ' · ' + cfg.muscles.slice(0, 3).join(', ') : ''}
+                    </p>
+                  </div>
+                  <span class="text-xs text-gray-500">${allItems.length} pozycji</span>
+                </div>
+                <div class="px-4 py-2 space-y-1"
+                  style="background:rgba(255,255,255,0.015);">
+                  ${allItems.slice(0, 6).map((ex, i) => `
+                    <div class="flex items-center gap-2 py-1"
+                      style="${i > 0 ? 'border-top:1px solid rgba(255,255,255,0.04);' : ''}">
+                      <span class="text-xs text-gray-600 w-4">${i + 1}.</span>
+                      <span class="text-xs ${ex.isDrill ? 'text-violet-300' : 'text-gray-300'} flex-1 truncate">
+                        ${ex.isDrill ? '🏀' : '💪'} ${ex.name}
+                      </span>
+                      <span class="text-xs text-gray-600">
+                        ${ex.isDrill
+            ? (ex.duration || '15 min')
+            : (ex.sets || 3) + '×' + (ex.reps || 10) + (ex.weight > 0 ? ' @' + ex.weight + 'kg' : '')}
+                      </span>
+                    </div>`).join('')}
+                  ${allItems.length > 6 ? `
+                    <p class="text-xs text-gray-600 py-1">
+                      + ${allItems.length - 6} więcej pozycji...
+                    </p>` : ''}
+                </div>
+              </div>`;
+      }).join('')}
+        </div>`;
     }
 
     function _renderWeekGrid() {
@@ -20178,16 +20332,32 @@
       </div>
     </div>
 
-    <div class="px-6 py-4 flex gap-3 flex-shrink-0" style="border-top:1px solid rgba(255,255,255,0.07);">
+    <!-- Panel podglądu planu -->
+    <div id="pbPreviewPanel" class="hidden flex-1 overflow-y-auto px-6 py-4">
+      <!-- generowane przez JS -->
+    </div>
+
+    <div class="px-6 py-4 flex items-center gap-3 flex-shrink-0" style="border-top:1px solid rgba(255,255,255,0.07);">
       <button onclick="resetPlanBuilder()"
-        class="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-400 transition-all"
-        style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);">🔄 Reset</button>
+        class="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-500 transition-all"
+        style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);">
+        🔄 Reset
+      </button>
       <div class="flex gap-2 ml-auto">
-        <button onclick="closePlanBuilderModal()" class="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-400"
-          style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);">Anuluj</button>
+        <button onclick="closePlanBuilderModal()"
+          class="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-400 transition-all"
+          style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);">
+          Anuluj
+        </button>
+        <button id="pbPreviewBtn" onclick="togglePlanBuilderPreview()"
+          class="px-4 py-2.5 rounded-xl text-sm font-bold transition-all"
+          style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#9ca3af;">
+          👁️ Podgląd
+        </button>
         <button onclick="applyBuiltPlan()" class="px-6 py-2.5 rounded-xl text-sm font-bold transition-all"
-          style="background:linear-gradient(135deg,rgba(0,229,255,0.25),rgba(124,58,237,0.2));border:1px solid rgba(0,229,255,0.5);color:#00e5ff;">🚀
-          Generuj i Zapisz Plan</button>
+          style="background:linear-gradient(135deg,rgba(0,229,255,0.25),rgba(124,58,237,0.2));border:1px solid rgba(0,229,255,0.5);color:#00e5ff;">
+          🚀 Generuj i Zapisz Plan
+        </button>
       </div>
     </div>
   </div>
