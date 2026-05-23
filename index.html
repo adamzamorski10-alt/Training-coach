@@ -2577,7 +2577,7 @@
              box-shadow:0 0 20px rgba(0,229,255,0.1);">
                           ✨ Stwórz Plan
                         </button>
-                        <button id="editPlanBtn" onclick="openPlanBuilderModal()"
+                        <button id="editPlanBtn" onclick="openEditPlanModal()"
                           class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all"
                           style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:#9ca3af;">
                           ✏️ Edytuj
@@ -8678,7 +8678,7 @@
         return;
       }
 
-      openPlanBuilderModal();
+      openPlanBuilderModal('create');
     }
 
     function closeIncompleteProfileModal() {
@@ -8780,28 +8780,68 @@
         if (exercises.length > 0) {
           cfg.type = 'strength';
           cfg.exCount = Math.max(3, exercises.length);
-          const muscleSet = new Set();
+          // Determine primary muscle groups by frequency to avoid noisy multi-group labels
+          const counts = {};
           exercises.forEach(item => {
-            const source = String(item.muscle_group || item.muscles || item.tags || '').toLowerCase();
-            ALL_MUSCLE_GROUPS_PB.forEach(mg => {
-              if (source.includes(mg.k)) muscleSet.add(mg.k);
-            });
+            const sourceRaw = String(item.muscle_group || item.muscles || item.tags || '').toLowerCase();
+            let matched = [];
+
+            // Prefer explicit muscle_group if it clearly matches a known key
+            if (item.muscle_group) {
+              const mgFound = ALL_MUSCLE_GROUPS_PB.find(mg => (String(item.muscle_group).toLowerCase() || '').includes(mg.k));
+              if (mgFound) matched.push(mgFound.k);
+            }
+
+            // Fall back to scanning source text for known group keys
+            if (matched.length === 0) {
+              ALL_MUSCLE_GROUPS_PB.forEach(mg => {
+                if (sourceRaw.includes(mg.k)) matched.push(mg.k);
+              });
+            }
+
+            // Final fallback: take first token from `muscles` field and try to map
+            if (matched.length === 0 && item.muscles) {
+              const first = String(item.muscles).split(',')[0].trim().toLowerCase();
+              const mgFound = ALL_MUSCLE_GROUPS_PB.find(mg => first.includes(mg.k));
+              if (mgFound) matched.push(mgFound.k);
+            }
+
+            // Count unique matches per exercise
+            [...new Set(matched)].forEach(k => { counts[k] = (counts[k] || 0) + 1; });
           });
-          cfg.muscles = [...muscleSet];
+
+          const musclesSorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(e => e[0]);
+          cfg.muscles = musclesSorted;
           cfg.pinned = exercises.map(item => ({ type: 'exercise', item: { ...item } }));
         }
       });
     }
 
-    function openPlanBuilderModal() {
-      const profile = getEnrichedProfile ? getEnrichedProfile() : getCurrentProfile();
+    function openPlanBuilderModal(mode = 'create', sourceProfile = null, skipLoad = false) {
+      const profile = sourceProfile || (getEnrichedProfile ? getEnrichedProfile() : getCurrentProfile());
       if (!profile) {
         alert('Uzupełnij najpierw profil użytkownika w zakładce Profil.');
         return;
       }
 
-      _pbLoadFromProfile(profile);
+      if (!skipLoad) {
+        _pbLoadFromProfile(profile);
+      }
       _pb.activeDay = null;
+
+      // Ustaw tytuł modala w zależności od trybu
+      const titleEl = document.querySelector('#planBuilderModal h2');
+      const subtitleEl = document.querySelector('#planBuilderModal p.text-xs.text-gray-400');
+      const actionBtn = document.querySelector('#planBuilderModal button[onclick="applyBuiltPlan()"]');
+      if (mode === 'edit') {
+        if (titleEl) titleEl.innerHTML = '✏️ Edytuj Plan Treningowy';
+        if (subtitleEl) subtitleEl.textContent = 'Modyfikuj konfigurację poszczególnych dni';
+        if (actionBtn) actionBtn.innerHTML = '💾 Zapisz Zmiany';
+      } else {
+        if (titleEl) titleEl.innerHTML = '💪 Kreator Planu Treningowego';
+        if (subtitleEl) subtitleEl.textContent = 'Kliknij dzień żeby go skonfigurować';
+        if (actionBtn) actionBtn.innerHTML = '🚀 Generuj i Zapisz Plan';
+      }
 
       const modal = document.getElementById('planBuilderModal');
       if (modal) {
@@ -9228,6 +9268,12 @@
       const btn = document.querySelector('#planBuilderModal button[onclick="applyBuiltPlan()"]');
       if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Generuję...'; }
 
+      const isEditMode = document.querySelector('#planBuilderModal h2')
+        ?.textContent?.includes('Edytuj');
+      const successMsg = isEditMode
+        ? '✅ Plan treningowy zaktualizowany!'
+        : '✅ Plan treningowy zapisany!';
+
       const profile = getEnrichedProfile ? getEnrichedProfile() : getCurrentProfile();
       const equip = profile?.equipment || [];
       const excl = profile?.exclusions || [];
@@ -9300,7 +9346,7 @@
       }
       localStorage.setItem('fitai_training_plan', JSON.stringify(newPlan));
 
-      if (btn) { btn.disabled = false; btn.innerHTML = '🚀 Generuj i Zapisz Plan'; }
+      if (btn) { btn.disabled = false; btn.innerHTML = isEditMode ? '💾 Zapisz Zmiany' : '🚀 Generuj i Zapisz Plan'; }
       closePlanBuilderModal();
       if (typeof updateDashboard === 'function') updateDashboard();
       if (typeof renderCurrentDay === 'function') renderCurrentDay();
@@ -9312,7 +9358,7 @@
         + 'padding:12px 24px;border-radius:12px;font-size:13px;font-weight:600;z-index:9999;'
         + 'background:rgba(10,10,20,0.97);color:#4ade80;border:1px solid rgba(74,222,128,0.3);'
         + 'box-shadow:0 8px 32px rgba(0,0,0,0.5);transition:opacity 0.3s;';
-      t.textContent = '✅ Plan treningowy zapisany!';
+      t.textContent = successMsg;
       document.body.appendChild(t);
       setTimeout(() => { t.style.opacity = '0'; }, 2500);
       setTimeout(() => t.remove(), 3000);
@@ -13966,40 +14012,49 @@
     }
 
     function openEditPlanModal() {
-      const days = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
-      const currentDayKey = days[state.currentDay || 0];
-
-      // Weekly day editor is now the primary edit flow from Plan > Trening.
-      if (document.getElementById('dayEditModal') && typeof openDayEditModal === 'function') {
-        openDayEditModal(currentDayKey);
-        return;
-      }
-
-      const editPlanModal = document.getElementById('editPlanModal');
-      if (!editPlanModal) {
-        showToastMsg(`Edycja dnia ${currentDayKey} — funkcja w przygotowaniu`, 'info');
-        return;
-      }
-
       const p = getCurrentProfile();
-      const day = getCurrentDayKey();
+      if (!p) return;
 
-      // Always load from the saved trainingPlan — never from the stale display cache
-      const saved = (p.trainingPlan?.[day] || []).filter(e => !e.hidden);
-      const source = saved.length > 0 ? saved : (state._planExercises || []);
+      const existingPlan = p.trainingPlan || {};
+      const planBuilderCfg = p._planBuilderConfig || null;
 
-      // Deep copy so cancel truly reverts
-      _editPlanDraft = source.map(e => ({ ...e }));
+      PB_DAYS.forEach(day => {
+        _pb.days[day] = _pbCloneEmptyDay();
+      });
 
-      document.getElementById('editPlanDayLabel').textContent = `${day} — edycja sesji`;
-      document.getElementById('editPlanSearch').value = '';
-      document.getElementById('editPlanModal').classList.remove('hidden');
+      if (planBuilderCfg) {
+        Object.entries(planBuilderCfg).forEach(([day, cfg]) => {
+          _pb.days[day] = { ..._pbCloneEmptyDay(), ...cfg };
+        });
+      } else {
+        PB_DAYS.forEach(day => {
+          const exercises = existingPlan[day] || [];
+          if (exercises.length === 0) {
+            _pb.days[day] = {
+              type: 'rest', muscles: [], sport: null,
+              drillCats: [], exCount: 5, drillCount: 4, pinned: []
+            };
+          } else if (exercises.some(e => e.isDrill)) {
+            const sport = exercises.find(e => e.sport)?.sport || null;
+            const drillCats = [...new Set(exercises.filter(e => e.category).map(e => e.category))];
+            _pb.days[day] = {
+              type: 'sport', muscles: [], sport,
+              drillCats, exCount: 5, drillCount: exercises.length, pinned: []
+            };
+          } else {
+            const muscleSet = [...new Set(
+              exercises.map(e => e.muscle_group || (e.muscles || '').split(',')[0]?.trim()).filter(Boolean)
+            )];
+            _pb.days[day] = {
+              type: 'strength', muscles: muscleSet, sport: null,
+              drillCats: [], exCount: exercises.length, drillCount: 4, pinned: []
+            };
+          }
+        });
+      }
 
-      // Reset & init catalog
-      _epActiveCategory = 'all';
-      renderEditPlanList();
-      epRenderCategoryChips();
-      epRenderCatalog();
+      // Otwórz kreator w trybie edycji
+      openPlanBuilderModal('edit', p, true);
     }
 
     function closeEditPlanModal() {
