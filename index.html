@@ -2582,9 +2582,35 @@
                           style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:#9ca3af;">
                           ✏️ Edytuj
                         </button>
+                        <button id="planHistoryBtn" onclick="openPlanHistoryModal()"
+                          class="hidden items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
+                          style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#64748b;">
+                          📋 <span id="planHistoryBadge" class="text-xs">0</span>
+                        </button>
                       </div>
                     </div>
                     <div id="planTrainingContainer" class="space-y-3"></div>
+                  </div>
+
+                  <!-- Karta analizy tygodnia -->
+                  <div id="weeklyAnalysisCard" class="glass rounded-2xl overflow-hidden hidden"
+                    style="border:1px solid rgba(124,58,237,0.15);">
+                    <div class="px-5 py-4 flex items-center justify-between"
+                      style="background:rgba(124,58,237,0.04);border-bottom:1px solid rgba(255,255,255,0.07);">
+                      <div>
+                        <h4 class="text-sm font-bold text-white uppercase tracking-wider">
+                          📊 Analiza tygodnia
+                        </h4>
+                        <p class="text-xs text-gray-500 mt-0.5">Twoje wyniki z ostatnich 7 dni</p>
+                      </div>
+                      <button onclick="refreshWeeklyAnalysis()" class="text-xs px-3 py-1.5 rounded-lg transition-all"
+                        style="background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.3);color:#a78bfa;">
+                        🔄 Odśwież
+                      </button>
+                    </div>
+                    <div id="weeklyAnalysisContent" class="p-5">
+                      <!-- generowane przez JS -->
+                    </div>
                   </div>
 
                   <!-- AI Plan Result Panel (hidden until generated) -->
@@ -6988,6 +7014,11 @@
           ...(p.allergies ? p.allergies.split(',').map(s => s.trim()).filter(Boolean) : []),
         ].filter((v, i, a) => a.indexOf(v) === i),
 
+        allergens: [
+          ...(prefs.allergens || []),
+          ...(p.allergies ? p.allergies.split(',').map(s => s.trim()).filter(Boolean) : []),
+        ].filter((v, i, a) => a.indexOf(v) === i),
+
         excludedMeals: [
           ...(prefs.excludedMeals || []),
           ...(p.excludedMeals || []),
@@ -7507,6 +7538,120 @@
                 <span class="text-xs px-2 py-0.5 rounded-full flex-shrink-0" style="background:${badgeColor.bg};border:1px solid ${badgeColor.border};color:${badgeColor.color};">${badgeLabel}</span>
               </div>`;
       }).join('')}
+        </div>`;
+
+      // Odśwież analizę tygodnia
+      try { refreshWeeklyAnalysis(); } catch (e) { }
+    }
+
+    function refreshWeeklyAnalysis() {
+      const card = document.getElementById('weeklyAnalysisCard');
+      const content = document.getElementById('weeklyAnalysisContent');
+      if (!card || !content) return;
+
+      const p = getCurrentProfile();
+      if (!p || !p.trainingPlan) { card.classList.add('hidden'); return; }
+
+      const hasAnyPlan = Object.values(p.trainingPlan).some(d => d.length > 0);
+      if (!hasAnyPlan) { card.classList.add('hidden'); return; }
+
+      card.classList.remove('hidden');
+
+      const DAYS = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
+      const DAY_NAMES = {
+        Pon: 'Pon', Wt: 'Wt', Śr: 'Śr', Czw: 'Czw', Pt: 'Pt', Sob: 'Sob', Niedz: 'Niedz'
+      };
+
+      // Oblicz wykonanie dla każdego dnia tygodnia
+      const weekStats = DAYS.map((day, dayIdx) => {
+        const exercises = p.trainingPlan[day] || [];
+        if (exercises.length === 0) return { day, dayIdx, skipped: false, rest: true, pct: 0 };
+
+        const checkedKey = _checkedKey(p.id, dayIdx);
+        const checked = state.dayChecked[checkedKey] || {};
+        const done = exercises.filter((_, i) => checked['ex_' + i]).length;
+        const pct = exercises.length > 0 ? Math.round(done / exercises.length * 100) : 0;
+
+        return { day, dayIdx, exercises: exercises.length, done, pct, rest: false, skipped: pct === 0 };
+      });
+
+      const trainingDays = weekStats.filter(d => !d.rest);
+      const completedDays = trainingDays.filter(d => d.pct >= 80);
+      const skippedDays = trainingDays.filter(d => d.pct === 0);
+      const overallPct = trainingDays.length > 0
+        ? Math.round(completedDays.length / trainingDays.length * 100)
+        : 0;
+
+      // Streak (dni z rzędu z pct >= 80% licząc od dzisiaj wstecz)
+      let streak = 0;
+      const todayIdx = state.currentDay;
+      for (let i = todayIdx; i >= 0; i--) {
+        if (weekStats[i]?.rest) { streak++; continue; }
+        if ((weekStats[i]?.pct || 0) >= 80) streak++;
+        else break;
+      }
+
+      // Sugestia
+      let suggestion = '';
+      if (skippedDays.length > 2) {
+        suggestion = `💡 Pominięto ${skippedDays.length} dni. Może zmniejsz liczbę dni treningowych?`;
+      } else if (overallPct === 100) {
+        suggestion = '🏆 Perfekcyjny tydzień! Rozważ zwiększenie intensywności.';
+      } else if (skippedDays.length === 1) {
+        suggestion = `⚡ Prawie idealne! Pominięto tylko ${skippedDays[0]?.day}`;
+      } else if (overallPct >= 50) {
+        suggestion = '💪 Dobry progres! Zostało ' + (trainingDays.length - completedDays.length) + ' dni do wykonania.';
+      } else {
+        suggestion = '🎯 Zacznij od małego — wykonaj choć 1 sesję dzisiaj!';
+      }
+
+      content.innerHTML = `
+        <div class="flex items-center gap-3 mb-5">
+          <div class="flex-1">
+            <div class="flex justify-between mb-1.5">
+              <span class="text-xs font-bold text-white">Wykonanie tygodnia</span>
+              <span class="text-xs font-bold" style="color:${overallPct >= 80 ? '#4ade80' : overallPct >= 50 ? '#facc15' : '#f87171'};">
+                ${completedDays.length}/${trainingDays.length} dni · ${overallPct}%
+              </span>
+            </div>
+            <div class="h-2 rounded-full overflow-hidden" style="background:rgba(255,255,255,0.08);">
+              <div class="h-full rounded-full transition-all"
+                style="width:${overallPct}%;background:${overallPct >= 80 ? 'linear-gradient(90deg,#4ade80,#00e5ff)' : overallPct >= 50 ? '#facc15' : '#f87171'};"></div>
+            </div>
+          </div>
+          <div class="text-center flex-shrink-0">
+            <p class="text-xl font-bold text-cyan-400">${streak}</p>
+            <p class="text-xs text-gray-600">streak</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-7 gap-1.5 mb-4">
+          ${weekStats.map(s => {
+        const isToday = s.dayIdx === state.currentDay;
+        let bg, color, emoji;
+        if (s.rest) {
+          bg = 'rgba(255,255,255,0.03)'; color = '#374151'; emoji = '—';
+        } else if (s.pct >= 80) {
+          bg = 'rgba(74,222,128,0.1)'; color = '#4ade80'; emoji = '✅';
+        } else if (s.pct > 0) {
+          bg = 'rgba(250,204,21,0.1)'; color = '#facc15'; emoji = '⚡';
+        } else {
+          bg = 'rgba(239,68,68,0.08)'; color = '#6b7280'; emoji = '○';
+        }
+        return `
+              <div class="py-2.5 rounded-xl text-center"
+                style="background:${bg};border:1px solid ${isToday ? 'rgba(0,229,255,0.4)' : 'rgba(255,255,255,0.06)'};">
+                <p class="text-xs font-bold" style="color:${isToday ? '#00e5ff' : color};">
+                  ${s.day}
+                </p>
+                <p class="text-base mt-0.5">${emoji}</p>
+                ${!s.rest ? `<p class="text-xs" style="color:${color};">${s.pct}%</p>` : ''}
+              </div>`;
+      }).join('')}
+        </div>
+
+        <div class="p-3 rounded-xl" style="background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.15);">
+          <p class="text-xs text-gray-300">${suggestion}</p>
         </div>`;
     }
 
@@ -8862,6 +9007,8 @@
             <p class="text-sm">Kliknij dzień w siatce powyżej aby go skonfigurować</p>
           </div>`;
       }
+
+      _updateBalancePanel();
     }
 
     function closePlanBuilderModal() {
@@ -8878,6 +9025,7 @@
       _pb.activeDay = null;
       _renderWeekGrid();
       _syncPlanBuilderPreviewUi(false);
+      _updateBalancePanel();
       const panel = document.getElementById('dayConfigPanel');
       if (panel) {
         panel.innerHTML = `
@@ -9188,6 +9336,34 @@
       panel.innerHTML = `
     <div class="flex items-center justify-between mb-5">
       <h3 class="text-base font-bold text-white" style="font-family:'Syne',sans-serif;">📅 ${name}</h3>
+      <div class="relative">
+        <button onclick="toggleDayCopyMenu('${day}')"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+          style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#9ca3af;">
+          📋 Kopiuj do...
+        </button>
+        <div id="dayCopyMenu_${day}"
+          class="hidden absolute right-0 top-full mt-1 rounded-xl overflow-hidden z-10"
+          style="background:rgba(15,15,25,0.98);border:1px solid rgba(255,255,255,0.12);min-width:140px;box-shadow:0 8px 32px rgba(0,0,0,0.6);">
+          ${['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz']
+          .filter(d => d !== day)
+          .map(d => `
+              <button onclick="copyDayConfig('${day}','${d}')"
+                class="w-full text-left px-4 py-2.5 text-sm text-gray-300 transition-colors"
+                style="border-bottom:1px solid rgba(255,255,255,0.05);"
+                onmouseover="this.style.background='rgba(0,229,255,0.08)';this.style.color='#00e5ff'"
+                onmouseout="this.style.background='transparent';this.style.color='#d1d5db'">
+                ${d}
+              </button>`).join('')}
+          <button onclick="copyDayToAll('${day}')"
+            class="w-full text-left px-4 py-2.5 text-xs font-bold text-violet-400 transition-colors"
+            style="background:rgba(124,58,237,0.06);"
+            onmouseover="this.style.background='rgba(124,58,237,0.15)'"
+            onmouseout="this.style.background='rgba(124,58,237,0.06)'">
+            ✨ Kopiuj do WSZYSTKICH
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="mb-5">
@@ -9209,6 +9385,141 @@
   `;
     }
 
+    function toggleDayCopyMenu(day) {
+      const menu = document.getElementById('dayCopyMenu_' + day);
+      if (!menu) return;
+      const isHidden = menu.classList.contains('hidden');
+      document.querySelectorAll('[id^="dayCopyMenu_"]').forEach(m => m.classList.add('hidden'));
+      if (isHidden) {
+        menu.classList.remove('hidden');
+        setTimeout(() => {
+          document.addEventListener('click', function closeCopyMenu(e) {
+            if (!menu.contains(e.target)) {
+              menu.classList.add('hidden');
+              document.removeEventListener('click', closeCopyMenu);
+            }
+          });
+        }, 10);
+      }
+    }
+
+    function copyDayConfig(sourceDay, targetDay) {
+      const sourceCfg = JSON.parse(JSON.stringify(_pb.days[sourceDay]));
+      const targetCfg = {
+        ...sourceCfg,
+        pinned: [],
+      };
+      _pb.days[targetDay] = targetCfg;
+
+      document.getElementById('dayCopyMenu_' + sourceDay)?.classList.add('hidden');
+
+      _renderWeekGrid();
+      _updateBalancePanel();
+
+      if (_pb.activeDay === targetDay) _renderDayConfig(targetDay);
+
+      const DAY_NAMES = {
+        Pon: 'Poniedziałek', Wt: 'Wtorek', Śr: 'Środa',
+        Czw: 'Czwartek', Pt: 'Piątek', Sob: 'Sobota', Niedz: 'Niedziela'
+      };
+      _showPBToast(`📋 Skopiowano do ${DAY_NAMES[targetDay] || targetDay}`);
+    }
+
+    function copyDayToAll(sourceDay) {
+      const DAYS = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
+      if (!confirm(
+        'Skopiować konfigurację ' + sourceDay + ' do WSZYSTKICH pozostałych dni?\n' +
+        'Każdy dzień będzie miał taki sam typ i partie mięśniowe.'
+      )) return;
+
+      DAYS.filter(d => d !== sourceDay).forEach(d => {
+        const sourceCfg = JSON.parse(JSON.stringify(_pb.days[sourceDay]));
+        _pb.days[d] = { ...sourceCfg, pinned: [] };
+      });
+
+      document.getElementById('dayCopyMenu_' + sourceDay)?.classList.add('hidden');
+      _renderWeekGrid();
+      _updateBalancePanel();
+
+      _showPBToast('✨ Konfiguracja skopiowana do wszystkich dni');
+    }
+
+
+    function _updateBalancePanel() {
+      const itemsEl = document.getElementById('pbBalanceItems');
+      if (!itemsEl) return;
+
+      const DAYS = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
+      const days = _pb.days;
+      const issues = [];
+      const info = [];
+
+      const trainingDays = DAYS.filter(d => days[d]?.type !== 'rest');
+      const restDays = DAYS.filter(d => days[d]?.type === 'rest');
+      const sportDays = DAYS.filter(d => days[d]?.type === 'sport');
+      const strengthDays = DAYS.filter(d => days[d]?.type === 'strength');
+
+      const trainingIcon = trainingDays.length <= 2 ? '🟡'
+        : trainingDays.length <= 5 ? '🟢' : '🔴';
+      info.push({
+        icon: trainingIcon,
+        text: trainingDays.length + ' dni treningowych',
+        color: trainingDays.length <= 2 ? '#facc15'
+          : trainingDays.length <= 5 ? '#4ade80' : '#f87171',
+      });
+
+      if (restDays.length === 0) {
+        issues.push({ icon: '⚠️', text: 'Brak dnia odpoczynku', color: '#f87171' });
+      } else if (restDays.length === 1) {
+        issues.push({ icon: '⚠️', text: 'Tylko 1 dzień odpoczynku', color: '#facc15' });
+      } else {
+        info.push({ icon: '✅', text: restDays.length + ' dni odpoczynku', color: '#4ade80' });
+      }
+
+      for (let i = 0; i < DAYS.length - 1; i++) {
+        const day1 = days[DAYS[i]];
+        const day2 = days[DAYS[i + 1]];
+        if (day1?.type !== 'strength' || day2?.type !== 'strength') continue;
+        const overlap = (day1.muscles || []).filter(m => (day2.muscles || []).includes(m));
+        if (overlap.length > 0) {
+          issues.push({
+            icon: '⚠️',
+            text: overlap[0] + ' — ' + DAYS[i] + ' i ' + DAYS[i + 1],
+            color: '#facc15',
+          });
+        }
+      }
+
+      let streak = 0;
+      let maxStreak = 0;
+      DAYS.forEach(d => {
+        if (days[d]?.type !== 'rest') { streak++; maxStreak = Math.max(maxStreak, streak); }
+        else streak = 0;
+      });
+      if (maxStreak >= 4) {
+        issues.push({
+          icon: '⚠️',
+          text: maxStreak + ' dni z rzędu bez odpoczynku',
+          color: '#f87171',
+        });
+      }
+
+      if (sportDays.length > 0 && strengthDays.length > 0) {
+        info.push({ icon: '⚡', text: 'Mix siłowy + sport', color: '#a78bfa' });
+      }
+
+      const all = [...issues, ...info];
+      if (all.length === 0) {
+        itemsEl.innerHTML = '<span class="text-xs text-gray-600 italic">Skonfiguruj dni...</span>';
+        return;
+      }
+
+      itemsEl.innerHTML = all.map(item => `
+          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium"
+            style="background:${item.color}18;border:1px solid ${item.color}40;color:${item.color};">
+            ${item.icon} ${item.text}
+          </span>`).join('');
+    }
     function _renderDayTypeContent(day) {
       const cfg = _pb.days[day];
 
@@ -9388,6 +9699,7 @@
       if (type === 'rest') { _pb.days[day].muscles = []; _pb.days[day].sport = null; }
       _renderWeekGrid();
       _renderDayConfig(day);
+      _updateBalancePanel();
     }
 
     function togglePBMuscle(day, muscle) {
@@ -9397,6 +9709,7 @@
       _renderWeekGrid();
       const el = document.getElementById('pbDayTypeContent_' + day);
       if (el) el.innerHTML = _renderDayTypeContent(day);
+      _updateBalancePanel();
     }
 
     function setPBSport(day, sport) {
@@ -9405,6 +9718,7 @@
       _renderWeekGrid();
       const el = document.getElementById('pbDayTypeContent_' + day);
       if (el) el.innerHTML = _renderDayTypeContent(day);
+      _updateBalancePanel();
     }
 
     function togglePBDrillCat(day, cat) {
@@ -9432,6 +9746,7 @@
       _pb.days[day].pinned.splice(index, 1);
       _renderWeekGrid();
       _renderDayConfig(day);
+      _updateBalancePanel();
     }
 
     function searchPBExercises(day, query) {
@@ -9595,9 +9910,31 @@
 
       const p = getCurrentProfile();
       if (p) {
+        // Zapisz poprzedni plan do historii przed nadpisaniem
+        if (p.trainingPlan && Object.values(p.trainingPlan).some(d => d.length > 0)) {
+          const history = JSON.parse(
+            localStorage.getItem('fitai_plan_history_' + p.id) || '[]'
+          );
+          const snapshot = {
+            date: new Date().toLocaleDateString('pl-PL', {
+              day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            }),
+            isoDate: new Date().toISOString(),
+            plan: JSON.parse(JSON.stringify(p.trainingPlan)),
+            config: JSON.parse(JSON.stringify(_pb.days)),
+            label: _buildPlanLabel(_pb.days),
+          };
+          history.unshift(snapshot);
+          // Zachowaj max 10 ostatnich planów
+          localStorage.setItem(
+            'fitai_plan_history_' + p.id,
+            JSON.stringify(history.slice(0, 10))
+          );
+        }
         p.trainingPlan = newPlan;
         p._planBuilderConfig = JSON.parse(JSON.stringify(_pb.days));
         if (typeof saveState === 'function') saveState();
+        _updatePlanHistoryBadge();
       }
       localStorage.setItem('fitai_training_plan', JSON.stringify(newPlan));
 
@@ -9614,6 +9951,144 @@
         + 'background:rgba(10,10,20,0.97);color:#4ade80;border:1px solid rgba(74,222,128,0.3);'
         + 'box-shadow:0 8px 32px rgba(0,0,0,0.5);transition:opacity 0.3s;';
       t.textContent = successMsg;
+      document.body.appendChild(t);
+      setTimeout(() => { t.style.opacity = '0'; }, 2500);
+      setTimeout(() => t.remove(), 3000);
+    }
+
+    function _buildPlanLabel(days) {
+      const DAYS = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
+      const trainingDays = DAYS.filter(d => days[d]?.type !== 'rest');
+      const types = [...new Set(trainingDays.map(d => days[d]?.type))];
+      const typeMap = { strength: 'Siłowy', sport: 'Sport', cardio: 'Kardio' };
+      return trainingDays.length + ' dni: ' + types.map(t => typeMap[t] || t).join('+');
+    }
+
+    function _updatePlanHistoryBadge() {
+      const p = getCurrentProfile();
+      const history = JSON.parse(
+        localStorage.getItem('fitai_plan_history_' + p?.id) || '[]'
+      );
+      const badge = document.getElementById('planHistoryBadge');
+      if (badge) badge.textContent = history.length;
+      const btn = document.getElementById('planHistoryBtn');
+      if (btn) btn.style.display = history.length > 0 ? 'inline-flex' : 'none';
+    }
+
+    function openPlanHistoryModal() {
+      const p = getCurrentProfile();
+      const history = JSON.parse(
+        localStorage.getItem('fitai_plan_history_' + p?.id) || '[]'
+      );
+      const content = document.getElementById('planHistoryContent');
+      if (!content) return;
+
+      if (history.length === 0) {
+        content.innerHTML = `
+          <div class="text-center py-8">
+            <p class="text-3xl mb-2">📋</p>
+            <p class="text-sm text-gray-400">Brak historii planów</p>
+            <p class="text-xs text-gray-600 mt-1">
+              Każdy wygenerowany plan zostanie tu zapisany
+            </p>
+          </div>`;
+      } else {
+        content.innerHTML = history.map((snap, i) => `
+          <div class="glass rounded-xl overflow-hidden"
+            style="border:1px solid rgba(255,255,255,0.07);">
+            <div class="flex items-center gap-3 px-4 py-3"
+              style="background:rgba(255,255,255,0.02);">
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-bold text-white">
+                  ${i === 0 ? '⭐ ' : ''}Plan z ${snap.date}
+                </p>
+                <p class="text-xs text-gray-500 mt-0.5">${snap.label}</p>
+              </div>
+              <div class="flex gap-2">
+                <button onclick="previewHistoryPlan(${i})"
+                  class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                  style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#9ca3af;">
+                  👁️ Podgląd
+                </button>
+                <button onclick="restoreHistoryPlan(${i})"
+                  class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                  style="background:rgba(0,229,255,0.1);border:1px solid rgba(0,229,255,0.3);color:#00e5ff;">
+                  🔄 Przywróć
+                </button>
+              </div>
+            </div>
+            <div id="histPreview_${i}" class="hidden px-4 py-3 space-y-1"
+              style="background:rgba(0,0,0,0.2);">
+            </div>
+          </div>`).join('');
+      }
+      document.getElementById('planHistoryModal')?.classList.remove('hidden');
+      document.getElementById('planHistoryModal')?.classList.add('flex');
+    }
+
+    function closePlanHistoryModal() {
+      document.getElementById('planHistoryModal')?.classList.add('hidden');
+      document.getElementById('planHistoryModal')?.classList.remove('flex');
+    }
+
+    function previewHistoryPlan(index) {
+      const p = getCurrentProfile();
+      const history = JSON.parse(
+        localStorage.getItem('fitai_plan_history_' + p?.id) || '[]'
+      );
+      const snap = history[index];
+      if (!snap) return;
+
+      const previewEl = document.getElementById('histPreview_' + index);
+      if (!previewEl) return;
+
+      if (!previewEl.classList.contains('hidden')) {
+        previewEl.classList.add('hidden');
+        return;
+      }
+
+      const DAYS = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
+      previewEl.innerHTML = DAYS.map(day => {
+        const ex = snap.plan[day] || [];
+        if (ex.length === 0) return `
+          <div class="flex items-center gap-2 py-1">
+            <span class="text-xs font-bold text-gray-600 w-8">${day}</span>
+            <span class="text-xs text-gray-600 italic">Odpoczynek</span>
+          </div>`;
+        return `
+          <div class="flex items-start gap-2 py-1"
+            style="border-top:1px solid rgba(255,255,255,0.04);">
+            <span class="text-xs font-bold text-cyan-400 w-8 flex-shrink-0">${day}</span>
+            <span class="text-xs text-gray-400">${ex.map(e => e.name).join(', ')}</span>
+          </div>`;
+      }).join('');
+      previewEl.classList.remove('hidden');
+    }
+
+    function restoreHistoryPlan(index) {
+      if (!confirm('Przywrócić ten plan? Obecny plan zostanie zastąpiony.')) return;
+
+      const p = getCurrentProfile();
+      const history = JSON.parse(
+        localStorage.getItem('fitai_plan_history_' + p?.id) || '[]'
+      );
+      const snap = history[index];
+      if (!snap || !p) return;
+
+      p.trainingPlan = JSON.parse(JSON.stringify(snap.plan));
+      if (snap.config) p._planBuilderConfig = JSON.parse(JSON.stringify(snap.config));
+      if (typeof saveState === 'function') saveState();
+      if (typeof updateDashboard === 'function') updateDashboard();
+      if (typeof renderPlanTraining === 'function') renderPlanTraining();
+
+      closePlanHistoryModal();
+
+      const t = document.createElement('div');
+      t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);' +
+        'padding:12px 24px;border-radius:12px;font-size:13px;font-weight:600;z-index:9999;' +
+        'background:rgba(10,10,20,0.97);color:#4ade80;border:1px solid rgba(74,222,128,0.3);' +
+        'box-shadow:0 8px 32px rgba(0,0,0,0.5);transition:opacity 0.3s;';
+      t.textContent = '✅ Plan przywrócony!';
       document.body.appendChild(t);
       setTimeout(() => { t.style.opacity = '0'; }, 2500);
       setTimeout(() => t.remove(), 3000);
@@ -14310,6 +14785,7 @@
 
       // Otwórz kreator w trybie edycji
       openPlanBuilderModal('edit', p, true);
+      _updatePlanHistoryBadge();
     }
 
     function closeEditPlanModal() {
@@ -20422,6 +20898,17 @@
       <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Podgląd planu — kliknij dzień aby
         edytować</p>
       <div class="grid grid-cols-7 gap-1.5" id="weekGridBuilder"></div>
+      <div id="pbBalancePanel" class="px-6 mt-3 flex-shrink-0">
+        <div class="rounded-xl p-3 flex items-center gap-4 flex-wrap"
+          style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
+          <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">
+            Balans:
+          </span>
+          <div id="pbBalanceItems" class="flex gap-2 flex-wrap flex-1">
+            <!-- generowane przez JS -->
+          </div>
+        </div>
+      </div>
       <p class="text-xs text-gray-600 mt-2 text-center">
         💡 Przeciągnij kafel dnia na inny aby zamienić ich konfiguracje
       </p>
@@ -20453,6 +20940,11 @@
           style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);">
           Anuluj
         </button>
+        <button id="planHistoryBtn" onclick="openPlanHistoryModal()"
+          class="hidden items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
+          style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#64748b;">
+          📋 <span id="planHistoryBadge" class="text-xs">0</span>
+        </button>
         <button id="pbPreviewBtn" onclick="togglePlanBuilderPreview()"
           class="px-4 py-2.5 rounded-xl text-sm font-bold transition-all"
           style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#9ca3af;">
@@ -20467,5 +20959,28 @@
   </div>
 </div>
 <!-- ═══ KONIEC PLAN BUILDER MODAL ═══ -->
+
+<!-- MODAL: Historia planów -->
+<div id="planHistoryModal" class="fixed inset-0 z-[400] hidden flex items-center justify-center p-4"
+  style="background:rgba(0,0,0,0.8);backdrop-filter:blur(10px);"
+  onclick="if(event.target===this)closePlanHistoryModal()">
+  <div class="glass rounded-2xl w-full max-w-lg max-h-[80vh] flex flex-col"
+    style="border:1px solid rgba(0,229,255,0.2);">
+    <div class="px-6 py-4 flex items-center justify-between flex-shrink-0"
+      style="border-bottom:1px solid rgba(255,255,255,0.07);">
+      <div>
+        <h3 class="text-base font-bold text-white" style="font-family:'Syne',sans-serif;">
+          📋 Historia planów treningowych
+        </h3>
+        <p class="text-xs text-gray-500 mt-0.5">
+          Ostatnie 10 wygenerowanych planów
+        </p>
+      </div>
+      <button onclick="closePlanHistoryModal()" class="text-gray-500 hover:text-white text-2xl leading-none">×</button>
+    </div>
+    <div id="planHistoryContent" class="flex-1 overflow-y-auto p-4 space-y-3">
+    </div>
+  </div>
+</div>
 
 </html>
