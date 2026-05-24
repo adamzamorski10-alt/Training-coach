@@ -1404,6 +1404,17 @@
       background: rgba(124, 58, 237, 0.12);
       color: #a78bfa;
     }
+
+    /* Diet Builder Modal — naprawiony z-index i flex */
+    #dietBuilderModal.active,
+    #dietHistoryModal.active {
+      display: flex !important;
+    }
+
+    #dietBuilderModal>div {
+      display: flex;
+      flex-direction: column;
+    }
   </style>
 </head>
 
@@ -2229,7 +2240,7 @@
               <!-- Dieta > Dzienny Plan -->
               <div class="plan-tab-panel active" id="panel-dieta-plan">
                 <!-- Meal Count Slider -->
-                <div id="mealSliderRow" class="glass p-5 mb-5">
+                <div id="mealSliderRow" class="glass p-5 mb-5" style="display:none;" hidden>
                   <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-2">
                       <span class="text-base">🍽️</span>
@@ -2268,10 +2279,21 @@
                         <span id="carbCyclingBadge" class="hidden text-xs px-3 py-1 rounded-full font-bold"
                           style="background:rgba(251,191,36,0.15);color:#fbbf24;border:1px solid rgba(251,191,36,0.3);">⚡
                           Carb Cycling</span>
+                        <button id="dietHistoryBtn" onclick="openDietHistoryModal()"
+                          class="hidden items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all"
+                          style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#64748b;">
+                          📋 <span id="dietHistoryBadge">0</span>
+                        </button>
+                        <button id="createDietBtn" onclick="handleCreateDietClick()"
+                          class="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold transition-all" style="background:linear-gradient(135deg,rgba(74,222,128,0.2),rgba(0,229,255,0.15));
+                                 border:1px solid rgba(74,222,128,0.5);color:#4ade80;">
+                          🥗 Stwórz Dietę
+                        </button>
                         <button id="editDietBtn" onclick="openEditDietModal()"
                           class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all"
-                          style="background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.25);color:#00e5ff;">✏️
-                          Edytuj</button>
+                          style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:#9ca3af;">
+                          ✏️ Edytuj
+                        </button>
                       </div>
                     </div>
                     <div id="planDietContainer" class="space-y-3"></div>
@@ -10095,6 +10117,747 @@
     }
 
     // ══════════════════════════════════════════════════════════════════
+    // DIET BUILDER — kreator planu diety
+    // ══════════════════════════════════════════════════════════════════
+
+    const DB_DAYS = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
+    const DB_DAY_NAMES = {
+      Pon: 'Poniedziałek', Wt: 'Wtorek', Śr: 'Środa',
+      Czw: 'Czwartek', Pt: 'Piątek', Sob: 'Sobota', Niedz: 'Niedziela'
+    };
+    const MEAL_TYPE_LABELS = {
+      śniadanie: { l: 'Śniadanie', e: '🌅', color: '#facc15' },
+      przekąska: { l: 'Przekąska', e: '🍎', color: '#4ade80' },
+      obiad: { l: 'Obiad', e: '☀️', color: '#fb923c' },
+      kolacja: { l: 'Kolacja', e: '🌙', color: '#a78bfa' },
+    };
+
+    let _db = {
+      activeDay: null,
+      days: Object.fromEntries(DB_DAYS.map(d => [d, {
+        type: 'training',
+        mealsCount: 4,
+        kcalMode: 'auto',
+        customKcal: null,
+        pinnedMeals: [],
+      }])),
+    };
+    let _dbPreviewMode = false;
+
+    function _dbResetState() {
+      _db = {
+        activeDay: null,
+        days: Object.fromEntries(DB_DAYS.map(d => [d, {
+          type: 'training',
+          mealsCount: 4,
+          kcalMode: 'auto',
+          customKcal: null,
+          pinnedMeals: [],
+        }])),
+      };
+      _dbPreviewMode = false;
+    }
+
+    function _dbGetAllMeals() {
+      if (!window.MEAL_DB) return [];
+      return Object.entries(window.MEAL_DB).flatMap(([category, meals]) =>
+        (Array.isArray(meals) ? meals : []).map(meal => ({ ...meal, category }))
+      ).filter(Boolean);
+    }
+
+    function _dbScoreMeal(meal, profile) {
+      if (!meal || !meal.name) return -999;
+      let score = 0;
+      const prefs = JSON.parse(localStorage.getItem('fitai_prefs') || '{}');
+      const allergens = (prefs.allergens || []).concat(
+        (profile?.allergies || '').split(',').map(s => s.trim()).filter(Boolean)
+      );
+      const excluded = prefs.excludedMeals || [];
+      const avoid = prefs.avoidIngredients || [];
+      const prefer = prefs.preferIngredients || [];
+
+      if (excluded.includes(meal.name)) return -999;
+      if (allergens.some(al => (meal.tags || []).some(t => String(t).toLowerCase().includes(String(al).toLowerCase())))) return -999;
+
+      const dietType = prefs.dietStyle || profile?.dietType || profile?.diet || 'standard';
+      if (dietType === 'highprotein' && (meal.protein || 0) > 25) score += 3;
+      if (dietType === 'lowcarb' && (meal.carbs || 0) < 15) score += 3;
+      if (dietType === 'vegan' && (meal.tags || []).includes('wegańskie')) score += 5;
+      if (dietType === 'vegetarian' && (meal.tags || []).includes('wegetariańskie')) score += 4;
+      if (dietType === 'keto' && (meal.fat || 0) > 15 && (meal.carbs || 0) < 10) score += 4;
+
+      prefer.forEach(pi => {
+        if ((meal.ingredients || []).some(ing => String(ing.item || '').toLowerCase().includes(String(pi).toLowerCase()))) score += 1.5;
+      });
+      avoid.forEach(ai => {
+        if ((meal.ingredients || []).some(ing => String(ing.item || '').toLowerCase().includes(String(ai).toLowerCase()))) score -= 2;
+      });
+
+      return score + Math.random() * 0.5;
+    }
+
+    function _dbGetDayKcal(dayCfg, profile) {
+      if (dayCfg.kcalMode === 'custom' && dayCfg.customKcal) return dayCfg.customKcal;
+      const baseKcal = profile?.calories_target || profile?.caloriesTarget || 2000;
+      return dayCfg.type === 'rest' ? Math.round(baseKcal * 0.85) : baseKcal;
+    }
+
+    function _dbLoadFromProfile(profile, mode = 'create') {
+      if (!profile) return;
+      const savedCfg = profile._dietBuilderConfig || null;
+      if (savedCfg && typeof savedCfg === 'object') {
+        DB_DAYS.forEach(day => {
+          _db.days[day] = JSON.parse(JSON.stringify(savedCfg[day] || _db.days[day]));
+        });
+        return;
+      }
+
+      DB_DAYS.forEach(day => {
+        const meals = Array.isArray(profile.dietPlan?.[day]) ? profile.dietPlan[day] : [];
+        _db.days[day] = {
+          type: meals.length > 0 ? 'training' : 'rest',
+          mealsCount: Math.min(6, Math.max(3, meals.length || 4)),
+          kcalMode: 'auto',
+          customKcal: null,
+          pinnedMeals: mode === 'edit' ? JSON.parse(JSON.stringify(meals)) : [],
+        };
+      });
+    }
+
+    function handleCreateDietClick() {
+      const missing = typeof _validateProfileForPlan === 'function'
+        ? _validateProfileForPlan() : [];
+
+      if (missing.length > 0) {
+        const listEl = document.getElementById('missingFieldsList');
+        if (listEl) {
+          listEl.innerHTML = missing.map(m => `
+            <div class="flex items-start gap-3 p-3 rounded-xl"
+              style="background:rgba(250,204,21,0.06);border:1px solid rgba(250,204,21,0.15);">
+              <span class="text-xl flex-shrink-0">${m.icon}</span>
+              <div>
+                <p class="text-sm font-bold text-white">${m.field}</p>
+                <p class="text-xs text-gray-500 mt-0.5">${m.hint}</p>
+              </div>
+            </div>
+          `).join('');
+        }
+        const incModal = document.getElementById('incompleteProfileModal');
+        if (incModal) {
+          incModal.classList.remove('hidden');
+          incModal.style.display = 'flex';
+        }
+        return;
+      }
+      openDietBuilderModal('create');
+    }
+
+    function openDietBuilderModal(mode = 'create') {
+      mode = mode || 'create';
+      const titleEl = document.getElementById('dietBuilderTitle');
+      if (titleEl) {
+        titleEl.textContent = mode === 'edit'
+          ? '✏️ Edytuj Plan Diety'
+          : '🥗 Kreator Planu Diety';
+      }
+
+      const modal = document.getElementById('dietBuilderModal');
+      if (!modal) {
+        console.error('[FitAI] dietBuilderModal nie istnieje w DOM!');
+        alert('Błąd: modal kreatora diety nie istnieje. Sprawdź HTML.');
+        return;
+      }
+
+      _dbResetState();
+
+      if (mode === 'edit') {
+        const p = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
+        if (p && p.dietPlan) {
+          Object.keys(_db.days).forEach(day => {
+            const meals = (p.dietPlan[day] || []);
+            _db.days[day].mealsCount = Math.max(3, meals.length) || 4;
+            _db.days[day].type = meals.length > 0 ? 'training' : 'rest';
+            _db.days[day].pinnedMeals = [];
+          });
+        }
+      }
+
+      _dbPreviewMode = false;
+      _db.activeDay = null;
+
+      modal.classList.remove('hidden');
+      modal.classList.add('active');
+      modal.style.display = 'flex';
+
+      setTimeout(() => {
+        _renderDietWeekGrid();
+        _renderDietCalSummary();
+        const panel = document.getElementById('dietDayConfigPanel');
+        if (panel) panel.innerHTML = `
+          <div class="text-center py-10 text-gray-500">
+            <p class="text-4xl mb-3">👆</p>
+            <p class="text-sm">Kliknij dzień powyżej aby go skonfigurować</p>
+          </div>`;
+      }, 50);
+    }
+
+    function openEditDietModal() {
+      openDietBuilderModal('edit');
+    }
+
+    function closeDietBuilderModal() {
+      const modal = document.getElementById('dietBuilderModal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('active');
+        modal.style.display = 'none';
+      }
+      _dbPreviewMode = false;
+    }
+
+    function resetDietBuilder() {
+      _dbResetState();
+      _renderDietWeekGrid();
+      _renderDietCalSummary();
+      const panel = document.getElementById('dietDayConfigPanel');
+      if (panel) {
+        panel.innerHTML = `
+          <div class="text-center py-8 text-gray-500">
+            <p class="text-sm">Plan wyczyszczony. Kliknij dzień.</p>
+          </div>`;
+      }
+    }
+
+    function _renderDietWeekGrid() {
+      const el = document.getElementById('dietWeekGrid');
+      if (!el) {
+        console.error('[_renderDietWeekGrid] #dietWeekGrid nie istnieje');
+        return;
+      }
+      if (!_db) {
+        console.error('[_renderDietWeekGrid] _db nie jest zdefiniowane');
+        return;
+      }
+      const profile = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
+
+      el.innerHTML = DB_DAYS.map(day => {
+        const cfg = _db.days[day] || { type: 'rest', mealsCount: 4, kcalMode: 'auto', customKcal: null, pinnedMeals: [] };
+        const isActive = day === _db.activeDay;
+        const isRest = cfg.type === 'rest';
+        const pinCount = (cfg.pinnedMeals || []).length;
+
+        const kcalGoal = profile?.calories_target || profile?.caloriesTarget || 2000;
+        const kcal = cfg.kcalMode === 'custom' && cfg.customKcal
+          ? cfg.customKcal
+          : isRest ? Math.round(kcalGoal * 0.85) : kcalGoal;
+
+        const bg = isActive ? 'rgba(74,222,128,0.18)'
+          : isRest ? 'rgba(255,255,255,0.03)'
+            : 'rgba(74,222,128,0.07)';
+        const border = isActive ? 'rgba(74,222,128,0.7)'
+          : isRest ? 'rgba(255,255,255,0.08)'
+            : 'rgba(74,222,128,0.22)';
+        const color = isActive ? '#4ade80'
+          : isRest ? '#4b5563'
+            : '#4ade80';
+
+        return `<div
+          id="dbDayCard_${day}"
+          onclick="selectDietBuilderDay('${day}')"
+          style="background:${bg};border:1px solid ${border};
+                 box-shadow:${isActive ? '0 0 0 2px rgba(74,222,128,0.3)' : 'none'};
+                 border-radius:12px;padding:10px 4px;text-align:center;
+                 cursor:pointer;transition:all 0.15s;
+                 display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <span style="font-size:11px;font-weight:700;color:${color};">${day}</span>
+          <span style="font-size:18px;">${isRest ? '😴' : '🥗'}</span>
+          <span style="font-size:10px;color:${color};opacity:0.8;">
+            ${isRest ? 'Odp.' : cfg.mealsCount + '🍽️'}
+          </span>
+          ${!isRest ? `<span style="font-size:10px;color:#64748b;">${kcal}kcal</span>` : ''}
+          ${pinCount > 0 ? `<span style="font-size:10px;padding:1px 6px;border-radius:10px;background:rgba(74,222,128,0.2);color:#4ade80;">${pinCount}</span>` : ''}
+        </div>`;
+      }).join('');
+    }
+
+    function _renderDietCalSummary() {
+      const el = document.getElementById('dietCalSummary');
+      if (!el) return;
+      const profile = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
+      const kcalGoal = profile?.calories_target || profile?.caloriesTarget || 2000;
+      const trainDays = DB_DAYS.filter(d => (_db.days[d]?.type || 'rest') === 'training');
+      const restDays = DB_DAYS.filter(d => (_db.days[d]?.type || 'rest') === 'rest');
+
+      const getKcal = day => {
+        const cfg = _db.days[day] || {};
+        if (cfg.kcalMode === 'custom' && cfg.customKcal) return cfg.customKcal;
+        return cfg.type === 'rest' ? Math.round(kcalGoal * 0.85) : kcalGoal;
+      };
+
+      const avgTrain = trainDays.length
+        ? Math.round(trainDays.reduce((s, d) => s + getKcal(d), 0) / trainDays.length) : 0;
+      const avgRest = restDays.length
+        ? Math.round(restDays.reduce((s, d) => s + getKcal(d), 0) / restDays.length) : 0;
+
+      el.innerHTML = [
+        avgTrain > 0 ? `<span>🏋️ Trening: <strong style="color:#fff">${avgTrain} kcal</strong></span>` : '',
+        avgRest > 0 ? `<span>😴 Odpoczynek: <strong style="color:#fff">${avgRest} kcal</strong></span>` : '',
+        `<span>📊 Dni: <strong style="color:#fff">${trainDays.length}</strong> treningowych, <strong style="color:#fff">${restDays.length}</strong> odpoczynku</span>`,
+      ].filter(Boolean).join(' · ');
+    }
+
+    function selectDietBuilderDay(day) {
+      _db.activeDay = day;
+      _renderDietWeekGrid();
+      _renderDietDayConfig(day);
+    }
+
+    function _renderDietDayConfig(day) {
+      const cfg = _db.days[day];
+      const panel = document.getElementById('dietDayConfigPanel');
+      const profile = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
+      if (!panel) return;
+
+      panel.innerHTML = `
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="text-base font-bold text-white" style="font-family:'Syne',sans-serif;">📅 ${DB_DAY_NAMES[day]}</h3>
+          <div class="flex items-center gap-2">
+            <button onclick="copyDietDayConfig('${day}')"
+              class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+              style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#9ca3af;">
+              📋 Kopiuj do...
+            </button>
+          </div>
+        </div>
+
+        <div class="mb-5">
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Typ dnia</p>
+          <div class="grid grid-cols-2 gap-3">
+            <button onclick="setDietDayType('${day}','training')"
+              class="py-3 rounded-xl text-sm font-bold border transition-all text-center"
+              style="background:${cfg.type === 'training' ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.04)'};border-color:${cfg.type === 'training' ? 'rgba(74,222,128,0.4)' : 'rgba(255,255,255,0.08)'};color:${cfg.type === 'training' ? '#4ade80' : '#64748b'};">
+              🏋️<br><span class="text-xs mt-1 block">Dzień treningowy</span><span class="text-xs text-gray-500 block">Więcej kalorii</span>
+            </button>
+            <button onclick="setDietDayType('${day}','rest')"
+              class="py-3 rounded-xl text-sm font-bold border transition-all text-center"
+              style="background:${cfg.type === 'rest' ? 'rgba(148,163,184,0.15)' : 'rgba(255,255,255,0.04)'};border-color:${cfg.type === 'rest' ? 'rgba(148,163,184,0.4)' : 'rgba(255,255,255,0.08)'};color:${cfg.type === 'rest' ? '#94a3b8' : '#64748b'};">
+              😴<br><span class="text-xs mt-1 block">Dzień odpoczynku</span><span class="text-xs text-gray-500 block">-15% kalorii</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="mb-5">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Liczba posiłków</p>
+            <span class="text-lg font-bold text-green-400" id="dbMealsCount_${day}">${cfg.mealsCount}</span>
+          </div>
+          <input type="range" min="3" max="6" value="${cfg.mealsCount}" oninput="setDietDayMeals('${day}', this.value)" class="w-full accent-green-400">
+          <div class="flex justify-between text-xs text-gray-600 mt-1">
+            <span>3 — min</span><span>4 — klasyczny</span><span>5 — sportowy</span><span>6 — max</span>
+          </div>
+        </div>
+
+        <div class="mb-5">
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Kalorie docelowe</p>
+          <div class="grid grid-cols-2 gap-2 mb-2">
+            <button onclick="setDietDayKcalMode('${day}','auto')"
+              class="py-2 rounded-xl text-xs font-bold border transition-all"
+              style="background:${cfg.kcalMode === 'auto' ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.04)'};border-color:${cfg.kcalMode === 'auto' ? 'rgba(74,222,128,0.35)' : 'rgba(255,255,255,0.08)'};color:${cfg.kcalMode === 'auto' ? '#4ade80' : '#64748b'};">
+              🔄 Automatyczne
+            </button>
+            <button onclick="setDietDayKcalMode('${day}','custom')"
+              class="py-2 rounded-xl text-xs font-bold border transition-all"
+              style="background:${cfg.kcalMode === 'custom' ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.04)'};border-color:${cfg.kcalMode === 'custom' ? 'rgba(74,222,128,0.35)' : 'rgba(255,255,255,0.08)'};color:${cfg.kcalMode === 'custom' ? '#4ade80' : '#64748b'};">
+              ✏️ Własne kcal
+            </button>
+          </div>
+          ${cfg.kcalMode === 'custom' ? `
+            <input type="number" min="1000" max="5000" value="${cfg.customKcal || 2000}" placeholder="np. 2200"
+              oninput="setDietCustomKcal('${day}', parseInt(this.value))"
+              class="w-full px-3 py-2 rounded-xl text-sm text-white outline-none"
+              style="background:rgba(255,255,255,0.06);border:1px solid rgba(74,222,128,0.3);">
+          ` : `<p class="text-xs text-gray-600">Automatycznie: ${_dbGetDayKcal(cfg, profile)} kcal (na podstawie profilu${cfg.type === 'rest' ? ', -15% na odpoczynek' : ''})</p>`}
+        </div>
+
+        <div class="glass rounded-xl overflow-hidden mb-5" style="border:1px solid rgba(255,255,255,0.08);">
+          <div class="px-4 py-3" style="background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.05);">
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">➕ Dodaj konkretny posiłek</p>
+            <p class="text-xs text-gray-600 mt-0.5">Przypięte posiłki zawsze pojawią się w tym dniu</p>
+          </div>
+          <div class="p-4 space-y-2">
+            <div class="flex gap-2">
+              <input type="text" id="mealSearch_${day}" placeholder="🔍 Szukaj posiłku z bazy..." oninput="searchDietMeals('${day}', this.value)"
+                class="flex-1 px-3 py-2 rounded-xl text-sm outline-none"
+                style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#fff;">
+              <select id="mealCatFilter_${day}" onchange="searchDietMeals('${day}', document.getElementById('mealSearch_${day}').value)"
+                class="px-3 py-2 rounded-xl text-xs outline-none"
+                style="background:rgba(20,20,30,0.95);border:1px solid rgba(255,255,255,0.1);color:#9ca3af;">
+                <option value="">Wszystkie</option>
+                <option value="śniadanie">🌅 Śniadanie</option>
+                <option value="przekąska">🍎 Przekąska</option>
+                <option value="obiad">☀️ Obiad</option>
+                <option value="kolacja">🌙 Kolacja</option>
+              </select>
+            </div>
+            <div id="mealSearchResults_${day}" class="hidden space-y-1 max-h-48 overflow-y-auto rounded-xl"
+              style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);"></div>
+          </div>
+        </div>
+
+        ${_renderPinnedMeals(day)}
+      `;
+    }
+
+    function _renderPinnedMeals(day) {
+      const cfg = _db.days[day];
+      if (!cfg.pinnedMeals || cfg.pinnedMeals.length === 0) return '';
+      return `
+        <div>
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">📌 Przypięte posiłki (${cfg.pinnedMeals.length})</p>
+          <div class="space-y-2">
+            ${cfg.pinnedMeals.map((meal, i) => `
+              <div class="flex items-center gap-3 p-3 rounded-xl" style="background:rgba(74,222,128,0.06);border:1px solid rgba(74,222,128,0.15);">
+                <span class="text-base flex-shrink-0">${MEAL_TYPE_LABELS[meal.category]?.e || '🍽️'}</span>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm text-white font-medium truncate">${meal.name}</p>
+                  <p class="text-xs text-gray-500">${meal.kcal || 0} kcal · B:${meal.protein || 0}g · W:${meal.carbs || 0}g · T:${meal.fat || 0}g</p>
+                </div>
+                <button onclick="removePinnedMeal('${day}', ${i})" class="text-gray-600 hover:text-red-400 text-lg flex-shrink-0">×</button>
+              </div>`).join('')}
+          </div>
+        </div>`;
+    }
+
+    function setDietDayType(day, type) {
+      _db.days[day].type = type;
+      _renderDietWeekGrid();
+      _renderDietCalSummary();
+      _renderDietDayConfig(day);
+    }
+
+    function setDietDayMeals(day, value) {
+      _db.days[day].mealsCount = parseInt(value, 10);
+      const el = document.getElementById('dbMealsCount_' + day);
+      if (el) el.textContent = value;
+      _renderDietWeekGrid();
+      _renderDietCalSummary();
+    }
+
+    function setDietDayKcalMode(day, mode) {
+      _db.days[day].kcalMode = mode;
+      _renderDietDayConfig(day);
+    }
+
+    function setDietCustomKcal(day, value) {
+      _db.days[day].customKcal = value;
+      _renderDietWeekGrid();
+      _renderDietCalSummary();
+    }
+
+    function searchDietMeals(day, query) {
+      const resultsEl = document.getElementById('mealSearchResults_' + day);
+      if (!resultsEl) return;
+      const catFilter = document.getElementById('mealCatFilter_' + day)?.value || '';
+      if (!query && !catFilter) {
+        resultsEl.classList.add('hidden');
+        return;
+      }
+
+      const allMeals = _dbGetAllMeals();
+      const q = (query || '').toLowerCase();
+      const already = new Set((_db.days[day].pinnedMeals || []).map(m => m.name));
+      const profile = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
+
+      const matches = allMeals.filter(m => {
+        if (already.has(m.name)) return false;
+        if (catFilter && m.category !== catFilter) return false;
+        if (q && !String(m.name).toLowerCase().includes(q)) return false;
+        if (!q && !catFilter) return false;
+        return _dbScoreMeal(m, profile) > -999;
+      }).slice(0, 8);
+
+      if (!matches.length) {
+        resultsEl.classList.add('hidden');
+        return;
+      }
+
+      resultsEl.classList.remove('hidden');
+      resultsEl.innerHTML = matches.map(meal => {
+        const typeInfo = MEAL_TYPE_LABELS[meal.category] || { e: '🍽️', color: '#9ca3af' };
+        return `<button onclick='addPinnedMeal("${day}", ${JSON.stringify(meal).replace(/"/g, '&quot;')})'
+          class="w-full text-left px-3 py-2.5 flex items-center gap-3 transition-colors"
+          style="border-bottom:1px solid rgba(255,255,255,0.04);"
+          onmouseover="this.style.background='rgba(74,222,128,0.08)'"
+          onmouseout="this.style.background='transparent'">
+          <span style="color:${typeInfo.color}">${typeInfo.e}</span>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-white truncate">${meal.name}</p>
+            <p class="text-xs text-gray-500">${meal.kcal || 0} kcal · B:${meal.protein || 0}g · W:${meal.carbs || 0}g · T:${meal.fat || 0}g</p>
+          </div>
+          <span class="text-green-400 text-xs flex-shrink-0">+ Dodaj</span>
+        </button>`;
+      }).join('');
+    }
+
+    function addPinnedMeal(day, mealObj) {
+      if (typeof mealObj === 'string') {
+        try { mealObj = JSON.parse(mealObj); } catch (e) { return; }
+      }
+      _db.days[day].pinnedMeals = _db.days[day].pinnedMeals || [];
+      _db.days[day].pinnedMeals.push(mealObj);
+      const searchEl = document.getElementById('mealSearch_' + day);
+      const resultsEl = document.getElementById('mealSearchResults_' + day);
+      if (searchEl) searchEl.value = '';
+      if (resultsEl) resultsEl.classList.add('hidden');
+      _renderDietWeekGrid();
+      _renderDietDayConfig(day);
+    }
+
+    function removePinnedMeal(day, index) {
+      _db.days[day].pinnedMeals.splice(index, 1);
+      _renderDietWeekGrid();
+      _renderDietDayConfig(day);
+    }
+
+    function copyDietDayConfig(sourceDay, targetDay) {
+      const sourceCfg = JSON.parse(JSON.stringify(_db.days[sourceDay]));
+      _db.days[targetDay] = { ...sourceCfg, pinnedMeals: [] };
+      _renderDietWeekGrid();
+      _renderDietCalSummary();
+      if (_db.activeDay === targetDay) _renderDietDayConfig(targetDay);
+      _showDietToast('📋 Skopiowano do ' + (DB_DAY_NAMES[targetDay] || targetDay));
+    }
+
+    function toggleDietPreview() {
+      _dbPreviewMode = !_dbPreviewMode;
+      const configPanel = document.getElementById('dietDayConfigPanel');
+      const previewPanel = document.getElementById('dietPreviewPanel');
+      const previewBtn = document.getElementById('dietPreviewBtn');
+
+      if (_dbPreviewMode) {
+        configPanel?.classList.add('hidden');
+        previewPanel?.classList.remove('hidden');
+        if (previewBtn) {
+          previewBtn.textContent = '← Wróć do edycji';
+          previewBtn.style.color = '#4ade80';
+          previewBtn.style.borderColor = 'rgba(74,222,128,0.3)';
+          previewBtn.style.background = 'rgba(74,222,128,0.08)';
+        }
+        _renderDietPreview();
+      } else {
+        configPanel?.classList.remove('hidden');
+        previewPanel?.classList.add('hidden');
+        if (previewBtn) {
+          previewBtn.textContent = '👁️ Podgląd';
+          previewBtn.style.color = '#9ca3af';
+          previewBtn.style.borderColor = 'rgba(255,255,255,0.15)';
+          previewBtn.style.background = 'rgba(255,255,255,0.06)';
+        }
+        if (_db.activeDay) _renderDietDayConfig(_db.activeDay);
+      }
+    }
+
+    function _renderDietPreview() {
+      const panel = document.getElementById('dietPreviewPanel');
+      if (!panel) return;
+      const profile = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
+
+      panel.innerHTML = `
+        <div class="space-y-3">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-bold text-white uppercase tracking-wider">📋 Podgląd pełnego planu diety</h3>
+            <span class="text-xs text-gray-500">← Wróć aby zmienić</span>
+          </div>
+          ${DB_DAYS.map(day => {
+        const cfg = _db.days[day];
+        const meals = _dbGenerateMealsForDay(cfg, profile);
+        const totalKcal = meals.reduce((s, m) => s + (m.kcal || 0), 0);
+        const totalProt = meals.reduce((s, m) => s + (m.protein || 0), 0);
+        const isRest = cfg.type === 'rest';
+        const bg = isRest ? 'rgba(255,255,255,0.02)' : 'rgba(74,222,128,0.04)';
+        const border = isRest ? 'rgba(255,255,255,0.06)' : 'rgba(74,222,128,0.15)';
+        return `<div class="rounded-xl overflow-hidden" style="border:1px solid ${border};">
+              <div class="flex items-center gap-3 px-4 py-2.5" style="background:${bg};">
+                <div class="w-20 flex-shrink-0"><p class="text-xs font-bold" style="color:${isRest ? '#4b5563' : '#4ade80'};">${day}</p><p class="text-xs text-gray-600">${DB_DAY_NAMES[day]}</p></div>
+                <span class="text-base">${isRest ? '😴' : '🥗'}</span>
+                <div class="flex-1"><p class="text-xs font-bold" style="color:${isRest ? '#4b5563' : '#4ade80'};">${isRest ? 'Odpoczynek' : cfg.mealsCount + ' posiłków'}</p></div>
+                ${!isRest ? `<span class="text-xs text-gray-500">${totalKcal} kcal · B:${totalProt}g</span>` : ''}
+              </div>
+              ${!isRest ? `<div class="px-4 py-2 space-y-1" style="background:rgba(255,255,255,0.01);">${meals.slice(0, 5).map((m, i) => `
+                <div class="flex items-center gap-2 py-0.5" style="${i > 0 ? 'border-top:1px solid rgba(255,255,255,0.04);' : ''}">
+                  <span class="text-xs" style="color:${MEAL_TYPE_LABELS[m.category]?.color || '#9ca3af'};">${MEAL_TYPE_LABELS[m.category]?.e || '🍽️'}</span>
+                  <span class="text-xs text-gray-300 flex-1 truncate">${m.name}</span>
+                  <span class="text-xs text-gray-600">${m.kcal || 0} kcal</span>
+                </div>`).join('')}${meals.length > 5 ? `<p class="text-xs text-gray-600 py-0.5">+ ${meals.length - 5} więcej</p>` : ''}</div>` : ''}
+            </div>`;
+      }).join('')}
+        </div>`;
+    }
+
+    function _dbGenerateMealsForDay(dayCfg, profile) {
+      const allMeals = _dbGetAllMeals();
+      const count = dayCfg.mealsCount || 4;
+      const pinned = [...(dayCfg.pinnedMeals || [])];
+      const usedNames = new Set(pinned.map(m => m.name));
+      const categoryPlan = {
+        3: ['śniadanie', 'obiad', 'kolacja'],
+        4: ['śniadanie', 'przekąska', 'obiad', 'kolacja'],
+        5: ['śniadanie', 'przekąska', 'obiad', 'przekąska', 'kolacja'],
+        6: ['śniadanie', 'przekąska', 'obiad', 'przekąska', 'kolacja', 'przekąska'],
+      };
+      const categories = categoryPlan[Math.min(6, Math.max(3, count))] || categoryPlan[4];
+      const result = [...pinned];
+
+      categories.slice(result.length).forEach(cat => {
+        const pool = allMeals
+          .filter(m => m.category === cat && !usedNames.has(m.name))
+          .map(m => ({ m, score: _dbScoreMeal(m, profile) }))
+          .filter(x => x.score > -999)
+          .sort((a, b) => b.score - a.score);
+
+        if (pool.length > 0) {
+          const topN = pool.slice(0, Math.min(5, pool.length));
+          const picked = topN[Math.floor(Math.random() * topN.length)].m;
+          result.push(picked);
+          usedNames.add(picked.name);
+        }
+      });
+
+      return result;
+    }
+
+    async function applyDietPlan() {
+      const btn = document.querySelector('#dietBuilderModal button[onclick="applyDietPlan()"]');
+      if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Generuję...'; }
+
+      const profile = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
+      if (!profile) {
+        if (btn) { btn.disabled = false; btn.innerHTML = '🚀 Generuj i Zapisz Dietę'; }
+        return;
+      }
+
+      const newDietPlan = {};
+      DB_DAYS.forEach(day => {
+        const cfg = _db.days[day];
+        newDietPlan[day] = cfg.type === 'rest' ? [] : _dbGenerateMealsForDay(cfg, profile);
+      });
+
+      if (profile.dietPlan && Object.values(profile.dietPlan).some(d => d.length > 0)) {
+        const hist = JSON.parse(localStorage.getItem('fitai_diet_history_' + profile.id) || '[]');
+        hist.unshift({
+          date: new Date().toLocaleDateString('pl-PL', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+          isoDate: new Date().toISOString(),
+          plan: JSON.parse(JSON.stringify(profile.dietPlan)),
+          config: JSON.parse(JSON.stringify(_db.days)),
+          label: Object.values(profile.dietPlan).flat().length + ' posiłków/tydzień',
+        });
+        localStorage.setItem('fitai_diet_history_' + profile.id, JSON.stringify(hist.slice(0, 10)));
+      }
+
+      profile.dietPlan = newDietPlan;
+      profile._dietBuilderConfig = JSON.parse(JSON.stringify(_db.days));
+      if (typeof saveState === 'function') saveState();
+      localStorage.setItem('fitai_diet_plan', JSON.stringify(newDietPlan));
+      _updateDietHistoryBadge();
+
+      if (btn) { btn.disabled = false; btn.innerHTML = '🚀 Generuj i Zapisz Dietę'; }
+      closeDietBuilderModal();
+      if (typeof updateDashboard === 'function') updateDashboard();
+      if (typeof loadPlanForDay === 'function') loadPlanForDay();
+      if (typeof refreshWeeklyAnalysis === 'function') refreshWeeklyAnalysis();
+      _showDietToast('✅ Plan diety wygenerowany!');
+    }
+
+    function _showDietToast(msg) {
+      const t = document.createElement('div');
+      t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:12px 24px;border-radius:12px;font-size:13px;font-weight:600;z-index:9999;background:rgba(10,10,20,0.97);color:#4ade80;border:1px solid rgba(74,222,128,0.3);box-shadow:0 8px 32px rgba(0,0,0,0.5);transition:opacity 0.3s;';
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => { t.style.opacity = '0'; }, 2500);
+      setTimeout(() => t.remove(), 3000);
+    }
+
+    function _updateDietHistoryBadge() {
+      const p = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
+      const hist = JSON.parse(localStorage.getItem('fitai_diet_history_' + p?.id) || '[]');
+      const badge = document.getElementById('dietHistoryBadge');
+      if (badge) badge.textContent = hist.length;
+      const btn = document.getElementById('dietHistoryBtn');
+      if (btn) btn.style.display = hist.length > 0 ? 'inline-flex' : 'none';
+    }
+
+    function openDietHistoryModal() {
+      const p = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
+      const hist = JSON.parse(localStorage.getItem('fitai_diet_history_' + p?.id) || '[]');
+      const content = document.getElementById('dietHistoryContent');
+      if (!content) return;
+
+      content.innerHTML = hist.length === 0
+        ? '<div class="text-center py-8"><p class="text-3xl mb-2">🥗</p><p class="text-sm text-gray-400">Brak historii planów diety</p></div>'
+        : hist.map((snap, i) => `
+          <div class="glass rounded-xl overflow-hidden" style="border:1px solid rgba(255,255,255,0.07);">
+            <div class="flex items-center gap-3 px-4 py-3" style="background:rgba(255,255,255,0.02);">
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-bold text-white">${i === 0 ? '⭐ ' : ''}Plan z ${snap.date}</p>
+                <p class="text-xs text-gray-500 mt-0.5">${snap.label}</p>
+              </div>
+              <button onclick="restoreDietHistoryPlan(${i})" class="px-3 py-1.5 rounded-lg text-xs font-bold" style="background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.3);color:#4ade80;">🔄 Przywróć</button>
+            </div>
+          </div>`).join('');
+
+      document.getElementById('dietHistoryModal')?.classList.remove('hidden');
+      document.getElementById('dietHistoryModal')?.classList.add('flex');
+    }
+
+    function closeDietHistoryModal() {
+      document.getElementById('dietHistoryModal')?.classList.add('hidden');
+      document.getElementById('dietHistoryModal')?.classList.remove('flex');
+    }
+
+    function restoreDietHistoryPlan(index) {
+      if (!confirm('Przywrócić ten plan diety? Obecny plan zostanie zastąpiony.')) return;
+      const p = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
+      const hist = JSON.parse(localStorage.getItem('fitai_diet_history_' + p?.id) || '[]');
+      const snap = hist[index];
+      if (!snap || !p) return;
+      p.dietPlan = JSON.parse(JSON.stringify(snap.plan));
+      if (snap.config) p._dietBuilderConfig = JSON.parse(JSON.stringify(snap.config));
+      if (typeof saveState === 'function') saveState();
+      if (typeof updateDashboard === 'function') updateDashboard();
+      if (typeof loadPlanForDay === 'function') loadPlanForDay();
+      closeDietHistoryModal();
+      _updateDietHistoryBadge();
+      _showDietToast('✅ Plan diety przywrócony!');
+    }
+
+    function setDietBuilderGlobals() {
+      window.handleCreateDietClick = handleCreateDietClick;
+      window.openDietBuilderModal = openDietBuilderModal;
+      window.closeDietBuilderModal = closeDietBuilderModal;
+      window.openEditDietModal = openEditDietModal;
+      window.resetDietBuilder = resetDietBuilder;
+      window._renderDietWeekGrid = _renderDietWeekGrid;
+      window._renderDietDayConfig = _renderDietDayConfig;
+      window.selectDietBuilderDay = selectDietBuilderDay;
+      window.setDietDayType = setDietDayType;
+      window.setDietDayMeals = setDietDayMeals;
+      window.setDietDayKcalMode = setDietDayKcalMode;
+      window.setDietCustomKcal = setDietCustomKcal;
+      window.searchDietMeals = searchDietMeals;
+      window.addPinnedMeal = addPinnedMeal;
+      window.removePinnedMeal = removePinnedMeal;
+      window.toggleDietPreview = toggleDietPreview;
+      window._renderDietPreview = _renderDietPreview;
+      window.openDietHistoryModal = openDietHistoryModal;
+      window.closeDietHistoryModal = closeDietHistoryModal;
+      window.restoreDietHistoryPlan = restoreDietHistoryPlan;
+      window.copyDietDayConfig = copyDietDayConfig;
+      window.applyDietPlan = applyDietPlan;
+    }
+
+    setDietBuilderGlobals();
+
+    // ══════════════════════════════════════════════════════════════════
     // PREFERENCES TAB — dane, stany, renderowanie
     // ══════════════════════════════════════════════════════════════════
 
@@ -16333,6 +17096,42 @@
       setTimeout(() => toast.remove(), 2850);
     };
 
+    window.initApp = initApp;
+    window.updateDashboard = updateDashboard;
+    window.renderPlanTraining = renderPlanTraining;
+    window.toggleExerciseCheck = toggleExerciseCheck;
+    window.openPlanBuilderModal = openPlanBuilderModal;
+    window.closePlanBuilderModal = closePlanBuilderModal;
+    window.applyBuiltPlan = applyBuiltPlan;
+    window._renderWeekGrid = _renderWeekGrid;
+    window._renderDayConfig = _renderDayConfig;
+    window.selectBuilderDay = selectBuilderDay;
+    window.setPBDayType = setPBDayType;
+    window.togglePBMuscle = togglePBMuscle;
+    window.setPBSport = setPBSport;
+    window.togglePBDrillCat = togglePBDrillCat;
+    window.resetPlanBuilder = resetPlanBuilder;
+    window.updatePBExCount = updatePBExCount;
+    window.updatePBDrillCount = updatePBDrillCount;
+    window.searchPBExercises = searchPBExercises;
+    window.addPBExercise = addPBExercise;
+    window.searchPBDrills = searchPBDrills;
+    window.addPBDrill = addPBDrill;
+    window.removePBPinnedItem = removePBPinnedItem;
+    window.handleCreatePlanClick = handleCreatePlanClick;
+    window.openEditPlanModal = openEditPlanModal;
+    window._validateProfileForPlan = _validateProfileForPlan;
+    window.getEnrichedProfile = getEnrichedProfile;
+    window.togglePlanBuilderPreview = togglePlanBuilderPreview;
+    window._renderPlanPreview = _renderPlanPreview;
+    window._pbDragStart = _pbDragStart;
+    window._pbDrop = _pbDrop;
+    window._updateBalancePanel = _updateBalancePanel;
+    window.copyDayConfig = copyDayConfig;
+    window.openPlanHistoryModal = openPlanHistoryModal;
+    window.restoreHistoryPlan = restoreHistoryPlan;
+    window.refreshWeeklyAnalysis = refreshWeeklyAnalysis;
+
     window.addEventListener('beforeunload', saveState);
   </script>
 
@@ -20959,6 +21758,103 @@
   </div>
 </div>
 <!-- ═══ KONIEC PLAN BUILDER MODAL ═══ -->
+
+<!-- ═══════════════ DIET BUILDER MODAL ═══════════════ -->
+<div id="dietBuilderModal" class="fixed inset-0 hidden items-center justify-center p-2 md:p-4" style="background:rgba(0,0,0,0.85);backdrop-filter:blur(12px);
+         z-index:9999;">
+
+  <div class="glass rounded-2xl w-full flex flex-col" style="border:1px solid rgba(74,222,128,0.25);
+           max-width:900px;
+           height:90vh;
+           max-height:90vh;
+           position:relative;">
+
+    <div class="flex-shrink-0 px-6 py-4 flex items-center justify-between"
+      style="border-bottom:1px solid rgba(255,255,255,0.07);">
+      <div>
+        <h2 id="dietBuilderTitle" class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">
+          🥗 Kreator Planu Diety
+        </h2>
+        <p class="text-xs text-gray-400 mt-0.5">
+          Kliknij dzień aby skonfigurować posiłki
+        </p>
+      </div>
+      <button onclick="closeDietBuilderModal()" class="text-gray-500 hover:text-white text-3xl leading-none w-8 h-8
+               flex items-center justify-center transition-colors">
+        ×
+      </button>
+    </div>
+
+    <div class="flex-shrink-0 px-6 pt-4">
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+        Plan tygodniowy — kliknij dzień
+      </p>
+      <div class="grid grid-cols-7 gap-1.5" id="dietWeekGrid"></div>
+      <div class="mt-3 rounded-xl p-3 flex items-center gap-3 flex-wrap"
+        style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
+        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">
+          Śr. kalorie:
+        </span>
+        <div id="dietCalSummary" class="flex gap-3 flex-wrap flex-1 text-xs text-gray-400">
+          Załaduj...
+        </div>
+      </div>
+    </div>
+
+    <div class="flex-shrink-0 mx-6 mt-4" style="border-bottom:1px solid rgba(255,255,255,0.07);"></div>
+
+    <div class="flex-1 overflow-y-auto overflow-x-hidden px-6 py-4 min-h-0" id="dietDayConfigPanel">
+      <div class="text-center py-10 text-gray-500">
+        <p class="text-4xl mb-3">👆</p>
+        <p class="text-sm">Kliknij dzień powyżej aby go skonfigurować</p>
+      </div>
+    </div>
+
+    <div class="flex-1 overflow-y-auto overflow-x-hidden px-6 py-4 min-h-0 hidden" id="dietPreviewPanel"></div>
+
+    <div class="flex-shrink-0 px-6 py-4 flex items-center gap-3" style="border-top:1px solid rgba(255,255,255,0.07);">
+      <button onclick="resetDietBuilder()"
+        class="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-500 transition-all"
+        style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);">
+        🔄 Reset
+      </button>
+      <div class="flex gap-2 ml-auto flex-wrap">
+        <button onclick="closeDietBuilderModal()" class="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-400"
+          style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);">
+          Anuluj
+        </button>
+        <button id="dietPreviewBtn" onclick="toggleDietPreview()"
+          class="px-4 py-2.5 rounded-xl text-sm font-bold transition-all" style="background:rgba(255,255,255,0.06);
+                 border:1px solid rgba(255,255,255,0.15);color:#9ca3af;">
+          👁️ Podgląd
+        </button>
+        <button onclick="applyDietPlan()" class="px-6 py-2.5 rounded-xl text-sm font-bold transition-all" style="background:linear-gradient(135deg,rgba(74,222,128,0.25),rgba(0,229,255,0.15));
+                 border:1px solid rgba(74,222,128,0.5);color:#4ade80;">
+          🚀 Generuj i Zapisz Dietę
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL: Historia planów diety -->
+<div id="dietHistoryModal" class="fixed inset-0 hidden items-center justify-center p-4"
+  style="background:rgba(0,0,0,0.8);backdrop-filter:blur(10px);z-index:9999;"
+  onclick="if(event.target===this)closeDietHistoryModal()">
+  <div class="glass rounded-2xl w-full max-w-lg flex flex-col"
+    style="border:1px solid rgba(74,222,128,0.2);max-height:80vh;">
+    <div class="flex-shrink-0 px-6 py-4 flex items-center justify-between"
+      style="border-bottom:1px solid rgba(255,255,255,0.07);">
+      <h3 class="text-base font-bold text-white" style="font-family:'Syne',sans-serif;">
+        📋 Historia planów diety
+      </h3>
+      <button onclick="closeDietHistoryModal()" class="text-gray-500 hover:text-white text-2xl">×</button>
+    </div>
+    <div id="dietHistoryContent" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+  </div>
+</div>
+<!-- ═══ KONIEC DIET BUILDER MODAL ═══ -->
 
 <!-- MODAL: Historia planów -->
 <div id="planHistoryModal" class="fixed inset-0 z-[400] hidden flex items-center justify-center p-4"
