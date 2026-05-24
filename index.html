@@ -10739,7 +10739,7 @@
       const newDietPlan = {};
       DB_DAYS.forEach(day => {
         const cfg = _db.days[day];
-        newDietPlan[day] = cfg.type === 'rest' ? [] : _dbGenerateMealsForDay(cfg, profile);
+        newDietPlan[day] = _dbGenerateMealsForDay(cfg, profile);
       });
 
       if (profile.dietPlan && Object.values(profile.dietPlan).some(d => d.length > 0)) {
