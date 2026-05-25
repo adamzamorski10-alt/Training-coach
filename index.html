@@ -2198,6 +2198,7 @@
             <div class="flex items-center gap-2">
               <span id="waterGoalLabel" class="text-xs font-bold" style="color:var(--muted);">Cel: 2500 ml</span>
               <button onclick="water.fetchWeather()" class="btn-ghost px-3 py-1.5 rounded-xl text-xs">📍 Pogoda</button>
+              <button onclick="water.reset()" class="btn-ghost px-3 py-1.5 rounded-xl text-xs" title="Resetuj dzienny licznik wody">Reset</button>
             </div>
           </div>
           <!-- Ring + current ml -->
@@ -21554,6 +21555,15 @@
         if (!this._history.length) return;
         this.current -= this._history.pop();
         this._render();
+      },
+
+      reset() {
+        // Clear today's water history and value
+        this._history = [];
+        this.current = 0;
+        this._render();
+        this._toast('Resetowano licznik wody');
+        if (typeof _syncCheckinWaterDisplay === 'function') _syncCheckinWaterDisplay(0);
       },
 
       setGoal(ml) { this._goal = ml; this._render(); },
