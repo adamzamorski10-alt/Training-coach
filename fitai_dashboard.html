@@ -1463,6 +1463,39 @@
                     oninput="onRatingChange('stress', this.value)">
                 </div>
               </div>
+              <div id="sleep-section"
+                style="margin-top:12px;border-radius:8px;padding:12px;border:1px dashed var(--border);background:rgba(0,0,0,0.02);">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                  <div style="font-weight:700;">🛌 Sen</div>
+                  <div style="font-size:12px;color:var(--muted);">Szybkie wpisanie snu</div>
+                </div>
+                <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
+                  <div style="display:flex;flex-direction:column;min-width:140px;">
+                    <label style="font-size:12px;color:var(--muted);">Pora zaśnięcia</label>
+                    <input id="sleep-start" type="time" class="form-input"
+                      onchange="onSleepChange('start', this.value)">
+                  </div>
+                  <div style="display:flex;flex-direction:column;min-width:140px;">
+                    <label style="font-size:12px;color:var(--muted);">Pora pobudki</label>
+                    <input id="sleep-end" type="time" class="form-input" onchange="onSleepChange('end', this.value)">
+                  </div>
+                  <div style="display:flex;flex-direction:column;min-width:140px;">
+                    <label style="font-size:12px;color:var(--muted);">Czas snu</label>
+                    <div id="sleep-duration" style="font-weight:700;color:var(--cyan);">—</div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;min-width:120px;">
+                    <label style="font-size:12px;color:var(--muted);">Jakość 1–5</label>
+                    <select id="sleep-quality" class="form-input" onchange="onSleepQualityChange(this.value)">
+                      <option value="">—</option>
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="4">4</option>
+                      <option value="5">5</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
               <div id="daily-summary-ai" style="margin-top:8px;"></div>
             </div>
           </div>
@@ -1767,6 +1800,7 @@
         initCharts();
         renderWater();
         initRatingsUI();
+        initSleepUI();
         updateKPIs();
         setTodayDate();
         setTimeout(loadNextStep, 300);
@@ -2626,6 +2660,59 @@
       setVal('s-stress', r.stress || 5); document.getElementById('lbl-stress').textContent = r.stress || 5;
     }
 
+    // Sleep handlers
+    function parseTimeToMinutes(t) {
+      if (!t) return null;
+      const parts = t.split(':'); if (parts.length < 2) return null;
+      const hh = parseInt(parts[0]); const mm = parseInt(parts[1]);
+      return hh * 60 + mm;
+    }
+    function formatDuration(mins) {
+      if (mins == null) return '—';
+      const h = Math.floor(mins / 60); const m = mins % 60;
+      return `${h}h ${m}m`;
+    }
+    function computeSleepMinutes(start, end) {
+      const s = parseTimeToMinutes(start); const e = parseTimeToMinutes(end);
+      if (s == null && e == null) return null;
+      if (s == null || e == null) return null;
+      // crosses midnight
+      if (e < s) return (24 * 60 - s) + e;
+      return e - s;
+    }
+
+    function onSleepChange(kind, val) {
+      if (!state.today.sleep) state.today.sleep = {};
+      if (kind === 'start') state.today.sleep.start = val || null;
+      if (kind === 'end') state.today.sleep.end = val || null;
+      const mins = computeSleepMinutes(state.today.sleep.start, state.today.sleep.end);
+      if (mins != null) {
+        state.today.sleep.duration_minutes = mins;
+        state.today.sleep.duration_hours = Math.round((mins / 60) * 10) / 10;
+        document.getElementById('sleep-duration').textContent = formatDuration(mins);
+      } else {
+        delete state.today.sleep.duration_minutes; delete state.today.sleep.duration_hours;
+        document.getElementById('sleep-duration').textContent = '—';
+      }
+      state.today.date = new Date().toDateString();
+      saveToStorage();
+    }
+
+    function onSleepQualityChange(val) {
+      if (!state.today.sleep) state.today.sleep = {};
+      state.today.sleep.quality = val ? parseInt(val) : null;
+      state.today.date = new Date().toDateString();
+      saveToStorage();
+    }
+
+    function initSleepUI() {
+      const s = state.today.sleep || {};
+      if (s.start) document.getElementById('sleep-start').value = s.start;
+      if (s.end) document.getElementById('sleep-end').value = s.end;
+      if (s.duration_minutes != null) document.getElementById('sleep-duration').textContent = formatDuration(s.duration_minutes);
+      if (s.quality != null) document.getElementById('sleep-quality').value = s.quality;
+    }
+
     function getTodayWaterLiters() {
       const totalServer = state.today.water_liters || 0;
       const unsyncedMl = (state.today.water_entries || []).filter(e => !e.synced).reduce((s, e) => s + (e.ml || 0), 0);
@@ -2713,7 +2800,8 @@
           return s + ((e.editable && e.editable.protein) || (e.data && e.data.protein) || e.protein || 0);
         }, 0)
         ,
-        water_liters: getTodayWaterLiters()
+        water_liters: getTodayWaterLiters(),
+        sleep: state.today.sleep || null
       };
       state.logs.unshift(entry);
       if (state.logs.length > 30) state.logs.pop();
@@ -2727,7 +2815,7 @@
         const foodStr = meals.map(e => ((e.data && e.data.name) || e.name) + ((e.editable && e.editable.kcal) ? ` (${e.editable.kcal} kcal)` : '')).join('\n');
         const workoutStr = workouts.map(e => (e.data && e.data.name) || e.name).join('\n');
         const ratings = state.today.ratings || {};
-        const resp = await fetch('/app/checkin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ food: foodStr, workout: workoutStr, weight: weight, water_liters: getTodayWaterLiters(), mood_score: ratings.mood || null, energy_score: ratings.energy || null }) });
+        const resp = await fetch('/app/checkin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ food: foodStr, workout: workoutStr, weight: weight, water_liters: getTodayWaterLiters(), mood_score: ratings.mood || null, energy_score: ratings.energy || null, sleep_start: (state.today.sleep && state.today.sleep.start) || null, sleep_end: (state.today.sleep && state.today.sleep.end) || null, sleep_hours: (state.today.sleep && state.today.sleep.duration_hours) || null, sleep_quality: (state.today.sleep && state.today.sleep.quality) || null }) });
         if (resp.ok) {
           const data = await resp.json();
           state.streak = data.streak_days || state.streak;
@@ -2743,10 +2831,13 @@
       const p = state.profile;
       const waterLiters = getTodayWaterLiters();
       const ratings = state.today.ratings || {};
+      const sleep = state.today.sleep || {};
+      const sleepTxt = sleep.duration_hours ? `${sleep.duration_hours}h (jakość ${sleep.quality || '-'})` : (sleep.start || sleep.end ? `${sleep.start || '?'} → ${sleep.end || '?'}` : 'brak danych');
       const prompt2 = `Analiza dnia dla ${p.name} (cel: ${p.goal}, ${calcProtein(p)}g białka / ${calcCalories(p)} kcal cel):
     Posiłki: ${meals.map(e => (e.data && e.data.name) || e.name).join(', ') || 'brak'} (${entry.totalKcal} kcal, ${entry.totalProtein}g białka)
     Trening: ${workouts.map(w => (w.data && w.data.name) || w.name).join(', ') || 'brak'}
     Waga: ${weight || 'nie podano'} kg · Woda: ${waterLiters} L
+    Sen: ${sleepTxt}
     Ocena: Energia ${ratings.energy || '-'} / Samopoczucie ${ratings.mood || '-'} / Readiness ${ratings.readiness || '-'} / Stres ${ratings.stress || '-'}
 
     Na podstawie powyższych danych, daj BARDZO krótką (2-3 zdania) analizę dnia i 1 konkretną radę na jutro: czy zalecić cięższy trening, utrzymanie intensywności, czy lżejszy dzień. Pisz po polsku, bezpośrednio.`;
@@ -2801,7 +2892,7 @@ Napisz JEDEN krótki (1-2 zdania) konkretny tip / "następny krok" na dziś. Po 
         <span class="log-time">${l.totalKcal || 0} kcal</span>
       </div>
       <div class="log-detail">
-        🍽️ ${l.meals?.length || 0} posiłków · 💪 ${l.workouts?.length || 0} ćwiczeń ${l.weight ? `· ⚖️ ${l.weight}kg` : ''}
+        🍽️ ${l.meals?.length || 0} posiłków · 💪 ${l.workouts?.length || 0} ćwiczeń ${l.weight ? `· ⚖️ ${l.weight}kg` : ''}${l.sleep ? ` · 🛌 ${l.sleep.duration_hours ? l.sleep.duration_hours + 'h' : (l.sleep.start || l.sleep.end ? (l.sleep.start || '?') + '→' + (l.sleep.end || '?') : '')}${l.sleep && l.sleep.quality ? ' (jakość ' + l.sleep.quality + ')' : ''}` : ''}
       </div>
     </div>
   `).join('');

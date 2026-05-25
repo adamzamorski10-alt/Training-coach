@@ -12619,8 +12619,26 @@
         closeExpandModal();
         loadPlanForDay();
         loadTodayPlanChecklist();
+        // also update active day entry if it matches planIndex
+        _activeDay.meals.forEach(m => { if (m.planIndex === idx) { m.name = altObj.name; m.kcal = altObj.kcal || m.kcal; m.protein = altObj.protein || m.protein; m.status = 'swapped'; } });
+        saveActiveDayState(); renderActiveDayMeals();
       } else {
-        showToast('✅ Zamiana zaznaczona!');
+        // If not a plan swap, but an active day item selected, replace it directly
+        if (state.expandedItem && state.expandedItem.type === 'diet') {
+          const id = parseInt(state.expandedItem.itemId);
+          if (!isNaN(id) && _activeDay.meals[id]) {
+            _activeDay.meals[id].name = altObj.name;
+            _activeDay.meals[id].kcal = altObj.kcal || _activeDay.meals[id].kcal;
+            _activeDay.meals[id].protein = altObj.protein || _activeDay.meals[id].protein;
+            _activeDay.meals[id].status = 'swapped';
+            saveActiveDayState(); renderActiveDayMeals();
+            showToast('✅ Zamieniono w aktywnym dniu: ' + altObj.name);
+          } else {
+            showToast('✅ Zamiana zaznaczona!');
+          }
+        } else {
+          showToast('✅ Zamiana zaznaczona!');
+        }
         closeExpandModal();
       }
     }
@@ -12637,8 +12655,24 @@
         closeExpandModal();
         loadPlanForDay();
         loadTodayPlanChecklist();
+        _activeDay.exercises.forEach(ex => { if (ex.planIndex === idx) { ex.name = altObj.name; ex.sets = altObj.sets || ex.sets; ex.reps = altObj.reps || ex.reps; ex.status = 'swapped'; } });
+        saveActiveDayState(); renderActiveDayExercises();
       } else {
-        showToast('✅ Zamiana zaznaczona!');
+        if (state.expandedItem && state.expandedItem.type === 'training') {
+          const id = parseInt(state.expandedItem.itemId);
+          if (!isNaN(id) && _activeDay.exercises[id]) {
+            _activeDay.exercises[id].name = altObj.name;
+            _activeDay.exercises[id].sets = altObj.sets || _activeDay.exercises[id].sets;
+            _activeDay.exercises[id].reps = altObj.reps || _activeDay.exercises[id].reps;
+            _activeDay.exercises[id].status = 'swapped';
+            saveActiveDayState(); renderActiveDayExercises();
+            showToast('✅ Zamieniono w aktywnym dniu: ' + altObj.name);
+          } else {
+            showToast('✅ Zamiana zaznaczona!');
+          }
+        } else {
+          showToast('✅ Zamiana zaznaczona!');
+        }
         closeExpandModal();
       }
     }
@@ -12648,8 +12682,13 @@
       const { type, name, data } = state.expandedItem;
       if (type === 'diet') {
         addDayLogItem('diet', name, `P:${data.protein || 0}g W:${data.carbs || 0}g T:${data.fat || 0}g`, data.kcal || 0, data.protein || 0, data.carbs || 0, data.fat || 0);
+        // mark as planned with source db
+        const idx = _activeDay.meals.length - 1;
+        if (_activeDay.meals[idx]) { _activeDay.meals[idx].status = 'planned'; _activeDay.meals[idx].source = 'db'; }
       } else {
         addDayLogItem('training', name, `${data.sets || '?'}×${data.reps || '?'}`, 0);
+        const idx2 = _activeDay.exercises.length - 1;
+        if (_activeDay.exercises[idx2]) { _activeDay.exercises[idx2].status = 'planned'; _activeDay.exercises[idx2].source = 'db'; }
       }
       closeExpandModal();
       showToast(`✅ Dodano "${name}" do Mojego Dnia`);
@@ -13042,6 +13081,7 @@
     // ── Inicjalizacja ────────────────────────────────────────────────────────
 
     function initActiveDayFromPlan() {
+      console.log('[FitAI] initActiveDayFromPlan()');
       const dateStr = new Date().toDateString();
       const dateEl = document.getElementById('activeDayDate');
       if (dateEl) {
@@ -13070,15 +13110,18 @@
           _activeDay.meals = p.dietPlan[dayKey]
             .filter(m => m && !m.hidden)
             .map((m, i) => ({
-              id: m.id || ('plan_m_' + i),
+                id: m.id || ('plan_m_' + i),
               name: m.name || ('Posiłek ' + (i + 1)),
               kcal: Number(m.kcal) || 0,
               protein: Number(m.protein) || 0,
               carbs: Number(m.carbs) || 0,
               fat: Number(m.fat) || 0,
               category: _normalizeMealCategory(m.category || m._type || m.type),
-              done: false,
-              custom: false,
+                done: false,
+                custom: false,
+                status: 'planned',
+                source: 'plan',
+                planIndex: i,
             }));
         }
 
@@ -13086,7 +13129,7 @@
           _activeDay.exercises = p.trainingPlan[dayKey]
             .filter(e => e && !e.hidden)
             .map((e, i) => ({
-              id: e.id || ('plan_e_' + i),
+                id: e.id || ('plan_e_' + i),
               name: e.name || ('Ćwiczenie ' + (i + 1)),
               sets: Number(e.sets) || 3,
               reps: Number(e.reps) || 10,
@@ -13096,6 +13139,9 @@
               isDrill: !!(e.isDrill || e._sport),
               sport: e.sport || null,
               notes: '',
+                status: 'planned',
+                source: 'plan',
+                planIndex: i,
             }));
         }
         saveActiveDayState();
@@ -13153,23 +13199,27 @@
 
       container.innerHTML = _activeDay.meals.map((meal, i) => {
         const safeName = typeof escapeHTML === 'function' ? escapeHTML(meal.name) : String(meal.name || '');
-        const icon = CAT_ICONS[meal.category] || '🍽️';
-        return '<div class="flex items-center gap-3 p-3 rounded-xl transition-all"'
-          + ' style="background:' + (meal.done ? 'rgba(74,222,128,0.06)' : 'rgba(255,255,255,0.03)') + ';'
-          + ' border:1px solid ' + (meal.done ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.07)') + ';'
-          + ' opacity:' + (meal.done ? '0.7' : '1') + ';">'
-          + '<input type="checkbox" ' + (meal.done ? 'checked' : '')
+        const status = meal.status || (meal.done ? 'done' : 'planned');
+        const statusBadge = '<span class="text-xs px-2 py-0.5 rounded-full" style="background:rgba(255,255,255,0.03);color:var(--muted);margin-right:6px;">' + status + '</span>';
+        const bg = (status === 'done') ? 'rgba(124,58,237,0.08)' : 'rgba(255,255,255,0.03)';
+        const border = (status === 'done') ? 'rgba(124,58,237,0.2)' : 'rgba(255,255,255,0.07)';
+        const lineThrough = (status === 'done') ? 'line-through' : '';
+        const kcal = Number((meal.editable && meal.editable.kcal) || meal.kcal || 0);
+        const protein = Number((meal.editable && meal.editable.protein) || meal.protein || 0);
+
+        return '<div class="flex items-start gap-3 p-3 rounded-xl transition-all"'
+          + ' style="background:' + bg + '; border:1px solid ' + border + '; opacity:' + (status === 'done' ? '0.8' : '1') + ';">'
+          + '<input type="checkbox" ' + (status === 'done' ? 'checked' : '')
           + ' onchange="toggleMealDone(' + i + ', this.checked)"'
-          + ' class="flex-shrink-0 w-4 h-4 cursor-pointer" style="accent-color:#4ade80;">'
-          + '<span class="text-base flex-shrink-0">' + icon + '</span>'
+          + ' class="flex-shrink-0 w-4 h-4 mt-0.5 cursor-pointer" style="accent-color:#a78bfa;">'
           + '<div class="flex-1 min-w-0">'
-          + '<p class="text-sm font-medium text-white ' + (meal.done ? 'line-through' : '') + ' truncate">' + safeName + '</p>'
-          + '<p class="text-xs text-gray-500">' + (meal.kcal || 0) + ' kcal · B:' + (meal.protein || 0)
-          + 'g · W:' + (meal.carbs || 0) + 'g · T:' + (meal.fat || 0) + 'g</p>'
+          + '<div style="display:flex;align-items:center;gap:8px;">' + statusBadge + '<p class="text-sm font-medium text-white ' + lineThrough + ' truncate">' + safeName + '</p></div>'
+          + '<p class="text-xs text-gray-500">' + kcal + ' kcal • ' + protein + ' g</p>'
           + '</div>'
-          + (meal.custom ? '<span class="text-xs text-green-400 flex-shrink-0">własny</span>' : '')
-          + '<button onclick="removeMealFromDay(' + i + ')"'
-          + ' class="text-gray-700 hover:text-red-400 text-lg flex-shrink-0 transition-colors ml-1">×</button>'
+          + (meal.custom ? '<span class="text-xs text-violet-400 flex-shrink-0">własne</span>' : '')
+            + '<div style="display:flex;gap:8px;align-items:center">'
+            + '<button onclick="removeMealFromDay(' + i + ')" class="text-gray-700 hover:text-red-400 text-lg flex-shrink-0 transition-colors ml-1">×</button>'
+            + '</div>'
           + '</div>';
       }).join('');
 
@@ -13178,9 +13228,9 @@
     }
 
     function updateActiveDayKcal() {
-      const done = _activeDay.meals.filter(m => m.done);
-      const kcalDone = done.reduce((s, m) => s + (Number(m.kcal) || 0), 0);
-      const protDone = done.reduce((s, m) => s + (Number(m.protein) || 0), 0);
+      const done = _activeDay.meals.filter(m => m.status === 'done' || m.done);
+      const kcalDone = done.reduce((s, m) => s + (Number((m.editable && m.editable.kcal) || m.kcal) || 0), 0);
+      const protDone = done.reduce((s, m) => s + (Number((m.editable && m.editable.protein) || m.protein) || 0), 0);
       const p = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
       const kcalTarget = p?.calories_target || p?.caloriesTarget || 2000;
 
@@ -13246,6 +13296,8 @@
     function toggleMealDone(i, val) {
       if (_activeDay.meals[i]) {
         _activeDay.meals[i].done = !!val;
+        _activeDay.meals[i].status = !!val ? 'done' : 'planned';
+        if (val) _activeDay.meals[i].completed_at = new Date().toISOString(); else delete _activeDay.meals[i].completed_at;
         saveActiveDayState();
         renderActiveDayMeals();
         updateActiveDayProgress();
@@ -13255,6 +13307,8 @@
     function toggleExDone(i, val) {
       if (_activeDay.exercises[i]) {
         _activeDay.exercises[i].done = !!val;
+        _activeDay.exercises[i].status = !!val ? 'done' : 'planned';
+        if (val) _activeDay.exercises[i].completed_at = new Date().toISOString(); else delete _activeDay.exercises[i].completed_at;
         saveActiveDayState();
         renderActiveDayExercises();
         updateActiveDayProgress();
@@ -13277,10 +13331,51 @@
       updateActiveDayProgress();
     }
 
+    // Edit / swap / skip helpers for meals
+    function editMeal(i) {
+      const m = _activeDay.meals[i]; if (!m) return;
+      const name = prompt('Nazwa posiłku', m.name || '');
+      if (name !== null) m.name = name;
+      const kcal = prompt('Kalorie (kcal)', ((m.editable && m.editable.kcal) || m.kcal || 0));
+      if (kcal !== null) {
+        m.editable = m.editable || {}; m.editable.kcal = parseInt(kcal) || 0;
+      }
+      const prot = prompt('Białko (g)', ((m.editable && m.editable.protein) || m.protein || 0));
+      if (prot !== null) { m.editable = m.editable || {}; m.editable.protein = parseInt(prot) || 0; }
+      m.status = m.status || 'planned';
+      saveActiveDayState(); renderActiveDayMeals(); updateActiveDayKcal();
+      showToast('✅ Zaktualizowano posiłek');
+    }
+
+    function skipMeal(i) {
+      const m = _activeDay.meals[i]; if (!m) return; m.status = 'skipped'; saveActiveDayState(); renderActiveDayMeals(); updateActiveDayProgress(); updateActiveDayKcal();
+    }
+
+    function swapActiveDayMeal(i) {
+      const m = _activeDay.meals[i]; if (!m) return;
+      state.expandedItem = { type: 'diet', itemId: String(i), name: m.name, data: m };
+      openExpandModal('diet', String(i), m.name, m);
+      swapItem();
+    }
+
+    // Edit / swap / skip helpers for exercises
+    function editExercise(i) {
+      const e = _activeDay.exercises[i]; if (!e) return;
+      const name = prompt('Nazwa ćwiczenia', e.name || ''); if (name !== null) e.name = name;
+      const sets = prompt('Serie', e.sets || ''); if (sets !== null) e.sets = sets;
+      const reps = prompt('Powtórzenia', e.reps || ''); if (reps !== null) e.reps = reps;
+      e.status = e.status || 'planned'; saveActiveDayState(); renderActiveDayExercises(); updateActiveDayProgress();
+      showToast('✅ Zaktualizowano ćwiczenie');
+    }
+
+    function skipExercise(i) { const e = _activeDay.exercises[i]; if (!e) return; e.status = 'skipped'; saveActiveDayState(); renderActiveDayExercises(); updateActiveDayProgress(); }
+
+    function swapActiveDayExercise(i) { const e = _activeDay.exercises[i]; if (!e) return; state.expandedItem = { type: 'training', itemId: String(i), name: e.name, data: e }; openExpandModal('training', String(i), e.name, e); swapItem(); }
+
     function updateActiveDayProgress() {
       const total = _activeDay.meals.length + _activeDay.exercises.length;
-      const doneMeals = _activeDay.meals.filter(m => m.done).length;
-      const doneEx = _activeDay.exercises.filter(e => e.done).length;
+      const doneMeals = _activeDay.meals.filter(m => (m.status === 'done' || m.done)).length;
+      const doneEx = _activeDay.exercises.filter(e => (e.status === 'done' || e.done)).length;
       const done = doneMeals + doneEx;
       const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
@@ -13377,6 +13472,8 @@
         category: _normalizeMealCategory(meal.category),
         done: false,
         custom: false,
+        status: 'planned',
+        source: 'db',
       });
       saveActiveDayState();
       renderActiveDayMeals();
@@ -13402,6 +13499,8 @@
         category: _normalizeMealCategory(document.getElementById('customMealCategory')?.value || 'inne'),
         done: false,
         custom: true,
+        status: 'custom',
+        source: 'custom',
       });
 
       ['customMealName', 'customMealKcal', 'customMealProtein', 'customMealCarbs', 'customMealFat'].forEach(id => {
