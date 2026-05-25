@@ -1942,6 +1942,250 @@
             <p class="text-lg font-bold text-yellow-400" style="font-family:'Syne',sans-serif;" id="dayTrainCount">0</p>
           </div>
         </div>
+
+        <!-- ══════════ AKTYWNY DZIEŃ ══════════ -->
+        <div class="glass rounded-2xl overflow-hidden" id="activeDayCard">
+
+          <!-- Header z togglem -->
+          <div class="px-5 py-4 flex items-center justify-between"
+            style="background:rgba(0,229,255,0.04);border-bottom:1px solid rgba(255,255,255,0.07);">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">📋</span>
+              <h4 class="text-base font-bold text-white" style="font-family:'Syne',sans-serif;">
+                Plan na dziś
+              </h4>
+              <span id="activeDayDate" class="text-xs text-gray-500"></span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="activeDayProgress" class="text-sm font-bold text-cyan-400">0%</span>
+              <button onclick="toggleActiveDaySection()" id="activeDayToggle"
+                class="text-gray-500 hover:text-white text-lg transition-colors">▼</button>
+            </div>
+          </div>
+
+          <!-- Zawartość (toggle) -->
+          <div id="activeDayContent" class="p-5 space-y-5">
+
+            <!-- ── Posiłki ───────────────────────────────────── -->
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  🍽️ Posiłki
+                </p>
+                <button onclick="openAddMealToDay()" class="text-xs px-3 py-1.5 rounded-lg font-bold transition-all"
+                  style="background:rgba(0,229,255,0.08);
+                   border:1px solid rgba(0,229,255,0.25);color:#00e5ff;">
+                  ➕ Dodaj
+                </button>
+              </div>
+              <div id="activeDayMealsList" class="space-y-2">
+                <p class="text-sm text-gray-600 italic text-center py-3">
+                  Brak planu diety na dziś — kliknij "Dodaj" aby dodać posiłek
+                </p>
+              </div>
+              <!-- Podsumowanie kalorii -->
+              <div id="activeDayKcalSummary" class="mt-3 rounded-xl px-4 py-2.5 flex items-center justify-between"
+                style="background:rgba(0,229,255,0.05);border:1px solid rgba(0,229,255,0.1);">
+                <span class="text-xs text-gray-400">Łącznie kalorii</span>
+                <span class="text-sm font-bold text-cyan-400">
+                  <span id="activeDayKcalDone">0</span>
+                  / <span id="activeDayKcalTarget">0</span> kcal
+                </span>
+              </div>
+            </div>
+
+            <!-- Separator -->
+            <div style="height:1px;background:rgba(255,255,255,0.07);"></div>
+
+            <!-- ── Trening ──────────────────────────────────── -->
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  💪 Trening
+                </p>
+                <button onclick="openAddExerciseToDay()" class="text-xs px-3 py-1.5 rounded-lg font-bold transition-all"
+                  style="background:rgba(124,58,237,0.1);
+                   border:1px solid rgba(124,58,237,0.3);color:#a78bfa;">
+                  ➕ Dodaj
+                </button>
+              </div>
+              <div id="activeDayExerciseList" class="space-y-2">
+                <p class="text-sm text-gray-600 italic text-center py-3">
+                  Brak planu treningu na dziś — kliknij "Dodaj" aby dodać ćwiczenie
+                </p>
+              </div>
+
+              <!-- RPE treningu (widoczne gdy są ćwiczenia) -->
+              <div id="rpeSection" class="hidden mt-4 p-4 rounded-xl"
+                style="background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.15);">
+                <div class="flex items-center justify-between mb-2">
+                  <label class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                    🔥 RPE treningu
+                    <span class="text-gray-600 font-normal normal-case">
+                      (Rate of Perceived Exertion)
+                    </span>
+                  </label>
+                  <span id="rpeValue" class="text-xl font-extrabold text-violet-400"
+                    style="font-family:'Syne',sans-serif;">—</span>
+                </div>
+                <input type="range" id="rpeSlider" min="1" max="10" value="5" oninput="updateRPE(this.value)"
+                  class="w-full" style="accent-color:#a78bfa;">
+                <div class="flex justify-between text-xs mt-1" style="color:#4b5563;">
+                  <span>1 Brak wysiłku</span>
+                  <span class="text-center">5-6 Umiarkowany</span>
+                  <span>10 Maksymalny</span>
+                </div>
+                <p id="activeDayRpeDesc" class="text-xs mt-2 text-center text-violet-300"></p>
+              </div>
+            </div>
+
+            <!-- Separator -->
+            <div style="height:1px;background:rgba(255,255,255,0.07);"></div>
+
+            <!-- ── Podsumowanie dnia / inteligentne sugestie ───────────────── -->
+            <div id="activeDayInsightCard" class="rounded-xl p-4"
+              style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+              <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">🧠 Podsumowanie dnia</p>
+              <p id="activeDaySummaryText" class="text-sm text-white">Rozpocznij dzień od pierwszego zadania.</p>
+              <div id="activeDaySuggestions" class="mt-2 space-y-1"></div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- MODAL: Dodaj posiłek do dnia -->
+        <div id="addMealToDayModal" class="fixed inset-0 hidden items-center justify-center p-4"
+          style="background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);z-index:9999;"
+          onclick="if(event.target===this)closeAddMealToDay()">
+          <div class="glass rounded-2xl w-full max-w-md flex flex-col"
+            style="border:1px solid rgba(0,229,255,0.2);max-height:85vh;">
+            <div class="flex-shrink-0 px-5 py-4 flex items-center justify-between"
+              style="border-bottom:1px solid rgba(255,255,255,0.07);">
+              <h3 class="text-base font-bold text-white" style="font-family:'Syne',sans-serif;">
+                🍽️ Dodaj posiłek do dnia
+              </h3>
+              <button onclick="closeAddMealToDay()" class="text-gray-500 hover:text-white text-2xl">×</button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-5 space-y-4">
+              <!-- Wyszukiwarka -->
+              <input type="text" id="addMealSearch" placeholder="🔍 Szukaj posiłku z bazy..."
+                oninput="searchMealForDay(this.value)" class="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style="background:rgba(255,255,255,0.06);
+                 border:1px solid rgba(255,255,255,0.1);color:#fff;"
+                onfocus="this.style.borderColor='rgba(0,229,255,0.4)'"
+                onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+
+              <div id="addMealSearchResults" class="space-y-1 max-h-48 overflow-y-auto"></div>
+
+              <!-- Separator -->
+              <div class="flex items-center gap-3">
+                <div style="flex:1;height:1px;background:rgba(255,255,255,0.08);"></div>
+                <span class="text-xs text-gray-600">lub wpisz własny</span>
+                <div style="flex:1;height:1px;background:rgba(255,255,255,0.08);"></div>
+              </div>
+
+              <!-- Własny posiłek -->
+              <div class="space-y-3 p-4 rounded-xl"
+                style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  Własny posiłek
+                </p>
+                <input type="text" id="customMealName" placeholder="Nazwa posiłku"
+                  class="w-full px-3 py-2 rounded-xl text-sm" style="background:rgba(255,255,255,0.06);
+                   border:1px solid rgba(255,255,255,0.1);color:#fff;">
+                <div class="grid grid-cols-2 gap-2">
+                  <input type="number" id="customMealKcal" placeholder="Kalorie (kcal)"
+                    class="px-3 py-2 rounded-xl text-sm" style="background:rgba(255,255,255,0.06);
+                     border:1px solid rgba(255,255,255,0.1);color:#00e5ff;">
+                  <input type="number" id="customMealProtein" placeholder="Białko (g)"
+                    class="px-3 py-2 rounded-xl text-sm" style="background:rgba(255,255,255,0.06);
+                     border:1px solid rgba(255,255,255,0.1);color:#a78bfa;">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <input type="number" id="customMealCarbs" placeholder="Węglowodany (g)"
+                    class="px-3 py-2 rounded-xl text-sm" style="background:rgba(255,255,255,0.06);
+                     border:1px solid rgba(255,255,255,0.1);color:#fb923c;">
+                  <input type="number" id="customMealFat" placeholder="Tłuszcze (g)"
+                    class="px-3 py-2 rounded-xl text-sm" style="background:rgba(255,255,255,0.06);
+                     border:1px solid rgba(255,255,255,0.1);color:#facc15;">
+                </div>
+                <select id="customMealCategory" class="w-full px-3 py-2 rounded-xl text-sm" style="background:rgba(20,20,30,0.95);
+                   border:1px solid rgba(255,255,255,0.1);color:#9ca3af;">
+                  <option value="śniadanie">🌅 Śniadanie</option>
+                  <option value="przekąska">🍎 Przekąska</option>
+                  <option value="obiad" selected>☀️ Obiad</option>
+                  <option value="kolacja">🌙 Kolacja</option>
+                  <option value="inne">🍽️ Inne</option>
+                </select>
+                <button onclick="addCustomMealToDay()" class="w-full py-2.5 rounded-xl text-sm font-bold transition-all"
+                  style="background:rgba(0,229,255,0.15);
+                   border:1px solid rgba(0,229,255,0.4);color:#00e5ff;">
+                  ✅ Dodaj własny posiłek
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODAL: Dodaj ćwiczenie do dnia -->
+        <div id="addExerciseToDayModal" class="fixed inset-0 hidden items-center justify-center p-4"
+          style="background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);z-index:9999;"
+          onclick="if(event.target===this)closeAddExerciseToDay()">
+          <div class="glass rounded-2xl w-full max-w-md flex flex-col"
+            style="border:1px solid rgba(124,58,237,0.2);max-height:85vh;">
+            <div class="flex-shrink-0 px-5 py-4 flex items-center justify-between"
+              style="border-bottom:1px solid rgba(255,255,255,0.07);">
+              <h3 class="text-base font-bold text-white" style="font-family:'Syne',sans-serif;">
+                💪 Dodaj ćwiczenie do dnia
+              </h3>
+              <button onclick="closeAddExerciseToDay()" class="text-gray-500 hover:text-white text-2xl">×</button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-5 space-y-4">
+              <input type="text" id="addExerciseSearch" placeholder="🔍 Szukaj ćwiczenia lub drilla..."
+                oninput="searchExerciseForDay(this.value)" class="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                style="background:rgba(255,255,255,0.06);
+                 border:1px solid rgba(255,255,255,0.1);color:#fff;"
+                onfocus="this.style.borderColor='rgba(124,58,237,0.5)'"
+                onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+              <div id="addExerciseSearchResults" class="space-y-1 max-h-48 overflow-y-auto"></div>
+
+              <div class="flex items-center gap-3">
+                <div style="flex:1;height:1px;background:rgba(255,255,255,0.08);"></div>
+                <span class="text-xs text-gray-600">lub wpisz własne</span>
+                <div style="flex:1;height:1px;background:rgba(255,255,255,0.08);"></div>
+              </div>
+
+              <div class="space-y-3 p-4 rounded-xl"
+                style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  Własne ćwiczenie
+                </p>
+                <input type="text" id="customExName" placeholder="Nazwa ćwiczenia"
+                  class="w-full px-3 py-2 rounded-xl text-sm" style="background:rgba(255,255,255,0.06);
+                   border:1px solid rgba(255,255,255,0.1);color:#fff;">
+                <div class="grid grid-cols-3 gap-2">
+                  <input type="number" id="customExSets" placeholder="Serie" min="1"
+                    class="px-3 py-2 rounded-xl text-sm text-center font-bold" style="background:rgba(255,255,255,0.06);
+                     border:1px solid rgba(255,255,255,0.1);color:#a78bfa;">
+                  <input type="number" id="customExReps" placeholder="Powt." min="1"
+                    class="px-3 py-2 rounded-xl text-sm text-center font-bold" style="background:rgba(255,255,255,0.06);
+                     border:1px solid rgba(255,255,255,0.1);color:#00e5ff;">
+                  <input type="number" id="customExWeight" placeholder="kg" min="0" step="0.5"
+                    class="px-3 py-2 rounded-xl text-sm text-center font-bold" style="background:rgba(255,255,255,0.06);
+                     border:1px solid rgba(255,255,255,0.1);color:#facc15;">
+                </div>
+                <input type="text" id="customExNotes" placeholder="Notatka (opcjonalna)"
+                  class="w-full px-3 py-2 rounded-xl text-xs" style="background:rgba(255,255,255,0.06);
+                   border:1px solid rgba(255,255,255,0.1);color:#9ca3af;">
+                <button onclick="addCustomExerciseToDay()"
+                  class="w-full py-2.5 rounded-xl text-sm font-bold transition-all" style="background:rgba(124,58,237,0.15);
+                   border:1px solid rgba(124,58,237,0.4);color:#a78bfa;">
+                  ✅ Dodaj ćwiczenie
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- ══════ SMART WATER TRACKER ══════ -->
         <div class="glass p-5 rounded-2xl" id="waterTrackerCard">
           <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
@@ -2074,6 +2318,25 @@
                 <span id="sleepVal" class="text-lg font-extrabold"
                   style="font-family:'Syne',sans-serif;color:var(--cyan);">—</span>
               </div>
+              <!-- Czas snu — dodaj PRZED istniejącym suwakrem jakości snu -->
+              <div class="grid grid-cols-2 gap-2 mb-3">
+                <div>
+                  <label class="text-xs text-gray-500 block mb-1">🌙 Położyłem się</label>
+                  <input type="time" id="sleepStart" value="23:00"
+                    class="w-full px-2 py-1.5 rounded-lg text-sm font-bold text-center" style="background:rgba(255,255,255,0.06);
+               border:1px solid rgba(255,255,255,0.1);color:#00e5ff;" oninput="updateSleepDuration()">
+                </div>
+                <div>
+                  <label class="text-xs text-gray-500 block mb-1">☀️ Wstałem</label>
+                  <input type="time" id="sleepEnd" value="07:00"
+                    class="w-full px-2 py-1.5 rounded-lg text-sm font-bold text-center" style="background:rgba(255,255,255,0.06);
+               border:1px solid rgba(255,255,255,0.1);color:#00e5ff;" oninput="updateSleepDuration()">
+                </div>
+              </div>
+              <div id="sleepDurationBadge" class="text-center text-sm font-bold mb-3 py-1.5 rounded-xl hidden"
+                style="background:rgba(0,229,255,0.08);color:#00e5ff;">
+                Czas snu: <span id="sleepHours">0h 0min</span>
+              </div>
               <input type="range" id="checkinSleep" min="1" max="10" value="7"
                 oninput="updateCheckinSlider('sleep',this.value)" class="w-full" style="accent-color:var(--cyan);">
               <div class="flex justify-between text-xs mt-1" style="color:var(--muted);">
@@ -2117,6 +2380,46 @@
 
           <!-- Divider -->
           <div style="height:1px;background:var(--border);"></div>
+
+          <!-- Nastrój -->
+          <div>
+            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider
+                  flex items-center gap-1.5 mb-3">
+              🎭 Nastrój dnia
+            </label>
+            <div class="flex gap-2 justify-center">
+              <button onclick="setMood(1)" id="mood_1" class="mood-btn flex flex-col items-center gap-1 px-4 py-3 rounded-xl
+               transition-all text-2xl"
+                style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                😴
+                <span class="text-xs text-gray-600">Fatalny</span>
+              </button>
+              <button onclick="setMood(2)" id="mood_2" class="mood-btn flex flex-col items-center gap-1 px-4 py-3 rounded-xl
+               transition-all text-2xl"
+                style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                😐
+                <span class="text-xs text-gray-600">Słaby</span>
+              </button>
+              <button onclick="setMood(3)" id="mood_3" class="mood-btn flex flex-col items-center gap-1 px-4 py-3 rounded-xl
+               transition-all text-2xl"
+                style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                🙂
+                <span class="text-xs text-gray-600">OK</span>
+              </button>
+              <button onclick="setMood(4)" id="mood_4" class="mood-btn flex flex-col items-center gap-1 px-4 py-3 rounded-xl
+               transition-all text-2xl"
+                style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                😄
+                <span class="text-xs text-gray-600">Dobry</span>
+              </button>
+              <button onclick="setMood(5)" id="mood_5" class="mood-btn flex flex-col items-center gap-1 px-4 py-3 rounded-xl
+               transition-all text-2xl"
+                style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                🔥
+                <span class="text-xs text-gray-600">Świetny</span>
+              </button>
+            </div>
+          </div>
 
           <!-- Row 2: Weight + Measurements (woda obsługiwana przez Smart Water Tracker) -->
           <div class="grid grid-cols-1 gap-5">
@@ -6886,6 +7189,12 @@
         console.error('[initApp] updateDashboard() failed:', e);
       }
 
+      try {
+        initActiveDayFromPlan();
+      } catch (e) {
+        console.warn('[initApp] initActiveDayFromPlan() failed:', e);
+      }
+
       // Podłącz auto-przeliczanie kalkulatora profilu
       ['pAge', 'pWeight', 'pHeight', 'pGender', 'pFrequency', 'pGoal'].forEach(id => {
         document.getElementById(id)?.addEventListener('input', _recalcProfile);
@@ -8068,6 +8377,10 @@
       if (tabId === 'profile') renderProfileTabs();
       if (tabId === 'postepy') initCharts();
       if (tabId === 'kuchnia') { kitchenInit(); }
+      if (tabId === 'my-day') {
+        initActiveDayFromPlan();
+        updateSleepDuration(true);
+      }
       document.getElementById('mainContent').scrollTop = 0;
     }
     window.showTab = showTab;
@@ -12690,6 +13003,678 @@
     }
 
 
+    // ══════════════════════════════════════════════════════════════════
+    // MÓJ DZIEŃ — AKTYWNY DZIEŃ (posiłki + ćwiczenia + RPE + nastrój)
+    // ══════════════════════════════════════════════════════════════════
+
+    // Stan aktywnego dnia
+    var _activeDay = {
+      meals: [], // {id, name, kcal, protein, carbs, fat, category, done, custom}
+      exercises: [], // {id, name, sets, reps, weight, done, custom, isDrill, notes}
+      rpe: null,
+      mood: null,
+      sleepStart: null,
+      sleepEnd: null,
+      sleepHours: null,
+      date: new Date().toDateString(),
+    };
+
+    function _activeDayStorageKey(dateStr) {
+      return 'fitai_active_day_' + (dateStr || new Date().toDateString());
+    }
+
+    function _extractTodayDayKey() {
+      const days = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
+      const today = state.currentDay !== undefined ? state.currentDay : ((new Date().getDay() + 6) % 7);
+      return days[today] || 'Pon';
+    }
+
+    function _normalizeMealCategory(c) {
+      if (!c) return 'inne';
+      const val = String(c).toLowerCase().trim();
+      if (val.includes('śniad') || val.includes('sniad')) return 'śniadanie';
+      if (val.includes('przek')) return 'przekąska';
+      if (val.includes('obiad') || val.includes('lunch')) return 'obiad';
+      if (val.includes('kolac') || val.includes('dinner')) return 'kolacja';
+      return 'inne';
+    }
+
+    // ── Inicjalizacja ────────────────────────────────────────────────────────
+
+    function initActiveDayFromPlan() {
+      const dateStr = new Date().toDateString();
+      const dateEl = document.getElementById('activeDayDate');
+      if (dateEl) {
+        dateEl.textContent = new Date().toLocaleDateString('pl-PL', { weekday: 'short', day: '2-digit', month: 'short' });
+      }
+
+      // Wczytaj zapisany stan dnia jeśli istnieje
+      const saved = JSON.parse(localStorage.getItem(_activeDayStorageKey(dateStr)) || 'null');
+      if (saved && saved.date === dateStr) {
+        _activeDay = Object.assign({
+          meals: [], exercises: [], rpe: null, mood: null,
+          sleepStart: null, sleepEnd: null, sleepHours: null,
+          date: dateStr,
+        }, saved);
+      } else {
+        const p = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
+        const dayKey = _extractTodayDayKey();
+
+        _activeDay = {
+          meals: [], exercises: [], rpe: null, mood: null,
+          sleepStart: null, sleepEnd: null, sleepHours: null,
+          date: dateStr,
+        };
+
+        if (p && p.dietPlan && Array.isArray(p.dietPlan[dayKey])) {
+          _activeDay.meals = p.dietPlan[dayKey]
+            .filter(m => m && !m.hidden)
+            .map((m, i) => ({
+              id: m.id || ('plan_m_' + i),
+              name: m.name || ('Posiłek ' + (i + 1)),
+              kcal: Number(m.kcal) || 0,
+              protein: Number(m.protein) || 0,
+              carbs: Number(m.carbs) || 0,
+              fat: Number(m.fat) || 0,
+              category: _normalizeMealCategory(m.category || m._type || m.type),
+              done: false,
+              custom: false,
+            }));
+        }
+
+        if (p && p.trainingPlan && Array.isArray(p.trainingPlan[dayKey])) {
+          _activeDay.exercises = p.trainingPlan[dayKey]
+            .filter(e => e && !e.hidden)
+            .map((e, i) => ({
+              id: e.id || ('plan_e_' + i),
+              name: e.name || ('Ćwiczenie ' + (i + 1)),
+              sets: Number(e.sets) || 3,
+              reps: Number(e.reps) || 10,
+              weight: Number(e.weight) || 0,
+              done: false,
+              custom: false,
+              isDrill: !!(e.isDrill || e._sport),
+              sport: e.sport || null,
+              notes: '',
+            }));
+        }
+        saveActiveDayState();
+      }
+
+      const ssEl = document.getElementById('sleepStart');
+      const seEl = document.getElementById('sleepEnd');
+      if (ssEl && _activeDay.sleepStart) ssEl.value = _activeDay.sleepStart;
+      if (seEl && _activeDay.sleepEnd) seEl.value = _activeDay.sleepEnd;
+
+      renderActiveDayMeals();
+      renderActiveDayExercises();
+      updateSleepDuration(true);
+      if (_activeDay.mood) setMood(_activeDay.mood, true);
+      if (_activeDay.rpe !== null) {
+        const rpeEl = document.getElementById('rpeSlider');
+        if (rpeEl) {
+          rpeEl.value = _activeDay.rpe;
+          updateRPE(_activeDay.rpe, true);
+        }
+      }
+      updateActiveDayProgress();
+      updateActiveDayInsights();
+    }
+
+    function saveActiveDayState() {
+      if (!_activeDay || !_activeDay.date) return;
+      localStorage.setItem(_activeDayStorageKey(_activeDay.date), JSON.stringify(_activeDay));
+    }
+
+    function toggleActiveDaySection() {
+      const content = document.getElementById('activeDayContent');
+      const btn = document.getElementById('activeDayToggle');
+      if (!content || !btn) return;
+      const hidden = content.classList.toggle('hidden');
+      btn.textContent = hidden ? '▶' : '▼';
+    }
+
+    // ── Renderowanie posiłków ─────────────────────────────────────────────────
+
+    function renderActiveDayMeals() {
+      const container = document.getElementById('activeDayMealsList');
+      if (!container) return;
+
+      if (_activeDay.meals.length === 0) {
+        container.innerHTML = '<p class="text-sm text-gray-600 italic text-center py-3">Brak posiłków — kliknij "Dodaj" aby dodać</p>';
+        updateActiveDayKcal();
+        updateActiveDayInsights();
+        return;
+      }
+
+      const CAT_ICONS = {
+        'śniadanie': '🌅', 'przekąska': '🍎', 'obiad': '☀️', 'kolacja': '🌙', 'inne': '🍽️'
+      };
+
+      container.innerHTML = _activeDay.meals.map((meal, i) => {
+        const safeName = typeof escapeHTML === 'function' ? escapeHTML(meal.name) : String(meal.name || '');
+        const icon = CAT_ICONS[meal.category] || '🍽️';
+        return '<div class="flex items-center gap-3 p-3 rounded-xl transition-all"'
+          + ' style="background:' + (meal.done ? 'rgba(74,222,128,0.06)' : 'rgba(255,255,255,0.03)') + ';'
+          + ' border:1px solid ' + (meal.done ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.07)') + ';'
+          + ' opacity:' + (meal.done ? '0.7' : '1') + ';">'
+          + '<input type="checkbox" ' + (meal.done ? 'checked' : '')
+          + ' onchange="toggleMealDone(' + i + ', this.checked)"'
+          + ' class="flex-shrink-0 w-4 h-4 cursor-pointer" style="accent-color:#4ade80;">'
+          + '<span class="text-base flex-shrink-0">' + icon + '</span>'
+          + '<div class="flex-1 min-w-0">'
+          + '<p class="text-sm font-medium text-white ' + (meal.done ? 'line-through' : '') + ' truncate">' + safeName + '</p>'
+          + '<p class="text-xs text-gray-500">' + (meal.kcal || 0) + ' kcal · B:' + (meal.protein || 0)
+          + 'g · W:' + (meal.carbs || 0) + 'g · T:' + (meal.fat || 0) + 'g</p>'
+          + '</div>'
+          + (meal.custom ? '<span class="text-xs text-green-400 flex-shrink-0">własny</span>' : '')
+          + '<button onclick="removeMealFromDay(' + i + ')"'
+          + ' class="text-gray-700 hover:text-red-400 text-lg flex-shrink-0 transition-colors ml-1">×</button>'
+          + '</div>';
+      }).join('');
+
+      updateActiveDayKcal();
+      updateActiveDayInsights();
+    }
+
+    function updateActiveDayKcal() {
+      const done = _activeDay.meals.filter(m => m.done);
+      const kcalDone = done.reduce((s, m) => s + (Number(m.kcal) || 0), 0);
+      const protDone = done.reduce((s, m) => s + (Number(m.protein) || 0), 0);
+      const p = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
+      const kcalTarget = p?.calories_target || p?.caloriesTarget || 2000;
+
+      const doneEl = document.getElementById('activeDayKcalDone');
+      const targetEl = document.getElementById('activeDayKcalTarget');
+      const kcalEl = document.getElementById('daySumKcal');
+      const protEl = document.getElementById('daySumProt');
+
+      if (doneEl) doneEl.textContent = String(kcalDone);
+      if (targetEl) targetEl.textContent = String(kcalTarget);
+      if (kcalEl) kcalEl.textContent = String(kcalDone);
+      if (protEl) protEl.textContent = String(protDone);
+    }
+
+    // ── Renderowanie ćwiczeń ──────────────────────────────────────────────────
+
+    function renderActiveDayExercises() {
+      const container = document.getElementById('activeDayExerciseList');
+      if (!container) return;
+
+      if (_activeDay.exercises.length === 0) {
+        container.innerHTML = '<p class="text-sm text-gray-600 italic text-center py-3">Brak ćwiczeń — kliknij "Dodaj" aby dodać</p>';
+        document.getElementById('rpeSection')?.classList.add('hidden');
+        updateActiveDayProgress();
+        updateActiveDayInsights();
+        return;
+      }
+
+      document.getElementById('rpeSection')?.classList.remove('hidden');
+
+      container.innerHTML = _activeDay.exercises.map((ex, i) => {
+        const safeName = typeof escapeHTML === 'function' ? escapeHTML(ex.name) : String(ex.name || '');
+        const safeNotes = typeof escapeHTML === 'function' ? escapeHTML(ex.notes || '') : String(ex.notes || '');
+        const details = ex.isDrill
+          ? (ex.sport || 'Drill')
+          : ((ex.sets || 0) + '×' + (ex.reps || 0) + ((Number(ex.weight) || 0) > 0 ? (' @ ' + ex.weight + 'kg') : ' BW'));
+
+        return '<div class="flex items-start gap-3 p-3 rounded-xl transition-all"'
+          + ' style="background:' + (ex.done ? 'rgba(124,58,237,0.08)' : 'rgba(255,255,255,0.03)') + ';'
+          + ' border:1px solid ' + (ex.done ? 'rgba(124,58,237,0.2)' : 'rgba(255,255,255,0.07)') + ';'
+          + ' opacity:' + (ex.done ? '0.7' : '1') + ';">'
+          + '<input type="checkbox" ' + (ex.done ? 'checked' : '')
+          + ' onchange="toggleExDone(' + i + ', this.checked)"'
+          + ' class="flex-shrink-0 w-4 h-4 mt-0.5 cursor-pointer" style="accent-color:#a78bfa;">'
+          + '<span class="text-base flex-shrink-0">' + (ex.isDrill ? '🏀' : '💪') + '</span>'
+          + '<div class="flex-1 min-w-0">'
+          + '<p class="text-sm font-medium text-white ' + (ex.done ? 'line-through' : '') + ' truncate">' + safeName + '</p>'
+          + '<p class="text-xs text-gray-500">' + details + '</p>'
+          + (safeNotes ? '<p class="text-xs text-gray-600 mt-0.5 italic">' + safeNotes + '</p>' : '')
+          + '</div>'
+          + (ex.custom ? '<span class="text-xs text-violet-400 flex-shrink-0">własne</span>' : '')
+          + '<button onclick="removeExFromDay(' + i + ')"'
+          + ' class="text-gray-700 hover:text-red-400 text-lg flex-shrink-0 transition-colors">×</button>'
+          + '</div>';
+      }).join('');
+
+      updateActiveDayProgress();
+      updateActiveDayInsights();
+    }
+
+    // ── Toggle done ───────────────────────────────────────────────────────────
+
+    function toggleMealDone(i, val) {
+      if (_activeDay.meals[i]) {
+        _activeDay.meals[i].done = !!val;
+        saveActiveDayState();
+        renderActiveDayMeals();
+        updateActiveDayProgress();
+      }
+    }
+
+    function toggleExDone(i, val) {
+      if (_activeDay.exercises[i]) {
+        _activeDay.exercises[i].done = !!val;
+        saveActiveDayState();
+        renderActiveDayExercises();
+        updateActiveDayProgress();
+      }
+    }
+
+    function removeMealFromDay(i) {
+      if (i < 0 || i >= _activeDay.meals.length) return;
+      _activeDay.meals.splice(i, 1);
+      saveActiveDayState();
+      renderActiveDayMeals();
+      updateActiveDayProgress();
+    }
+
+    function removeExFromDay(i) {
+      if (i < 0 || i >= _activeDay.exercises.length) return;
+      _activeDay.exercises.splice(i, 1);
+      saveActiveDayState();
+      renderActiveDayExercises();
+      updateActiveDayProgress();
+    }
+
+    function updateActiveDayProgress() {
+      const total = _activeDay.meals.length + _activeDay.exercises.length;
+      const doneMeals = _activeDay.meals.filter(m => m.done).length;
+      const doneEx = _activeDay.exercises.filter(e => e.done).length;
+      const done = doneMeals + doneEx;
+      const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+      const progressEl = document.getElementById('activeDayProgress');
+      const labelEl = document.getElementById('dayProgressLabel');
+      const barEl = document.getElementById('dayProgressBar');
+      const countEl = document.getElementById('dayProgressCount');
+      const trainCountEl = document.getElementById('dayTrainCount');
+
+      if (progressEl) progressEl.textContent = pct + '%';
+      if (labelEl) labelEl.textContent = pct + '%';
+      if (barEl) barEl.style.width = pct + '%';
+      if (countEl) countEl.textContent = done + ' / ' + total + ' zadań';
+      if (trainCountEl) trainCountEl.textContent = String(doneEx);
+
+      updateActiveDayInsights();
+    }
+
+    // ── Modal + search: meals ────────────────────────────────────────────────
+
+    function openAddMealToDay() {
+      const modal = document.getElementById('addMealToDayModal');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      searchMealForDay('');
+      setTimeout(() => document.getElementById('addMealSearch')?.focus(), 30);
+    }
+
+    function closeAddMealToDay() {
+      const modal = document.getElementById('addMealToDayModal');
+      if (!modal) return;
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function _allMealsForSearch() {
+      const db = window.MEAL_DB || (typeof MEAL_DB !== 'undefined' ? MEAL_DB : {}) || {};
+      const out = [];
+      Object.entries(db).forEach(([cat, arr]) => {
+        (arr || []).forEach(m => {
+          if (!m || !m.name) return;
+          out.push({
+            id: m.id || ('dbm_' + out.length),
+            name: m.name,
+            kcal: Number(m.kcal) || 0,
+            protein: Number(m.protein) || 0,
+            carbs: Number(m.carbs) || 0,
+            fat: Number(m.fat) || 0,
+            category: _normalizeMealCategory(m.category || m._type || cat),
+            custom: false,
+          });
+        });
+      });
+      return out;
+    }
+
+    function searchMealForDay(query) {
+      const q = String(query || '').toLowerCase().trim();
+      const list = _allMealsForSearch();
+      const results = q
+        ? list.filter(m => m.name.toLowerCase().includes(q)).slice(0, 25)
+        : list.slice(0, 15);
+      const box = document.getElementById('addMealSearchResults');
+      if (!box) return;
+
+      if (!results.length) {
+        box.innerHTML = '<p class="text-xs text-gray-500 italic text-center py-2">Brak wyników</p>';
+        return;
+      }
+
+      box.innerHTML = results.map(m => {
+        const safeName = typeof escapeHTML === 'function' ? escapeHTML(m.name) : String(m.name || '');
+        return '<button type="button" onclick="addMealFromSearch(' + JSON.stringify(m).replace(/"/g, '&quot;') + ')"'
+          + ' class="w-full text-left p-2.5 rounded-lg transition-all"'
+          + ' style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);"'
+          + ' onmouseenter="this.style.borderColor=\'rgba(0,229,255,0.28)\'"'
+          + ' onmouseleave="this.style.borderColor=\'rgba(255,255,255,0.08)\'">'
+          + '<p class="text-sm font-medium text-white">' + safeName + '</p>'
+          + '<p class="text-xs text-gray-500">' + m.kcal + ' kcal · B:' + m.protein + 'g</p>'
+          + '</button>';
+      }).join('');
+    }
+
+    function addMealFromSearch(meal) {
+      if (!meal || !meal.name) return;
+      _activeDay.meals.push({
+        id: meal.id || ('meal_' + Date.now()),
+        name: meal.name,
+        kcal: Number(meal.kcal) || 0,
+        protein: Number(meal.protein) || 0,
+        carbs: Number(meal.carbs) || 0,
+        fat: Number(meal.fat) || 0,
+        category: _normalizeMealCategory(meal.category),
+        done: false,
+        custom: false,
+      });
+      saveActiveDayState();
+      renderActiveDayMeals();
+      updateActiveDayProgress();
+      closeAddMealToDay();
+      showToast('✅ Dodano posiłek do dnia');
+    }
+
+    function addCustomMealToDay() {
+      const name = document.getElementById('customMealName')?.value?.trim();
+      if (!name) {
+        showToast('⚠️ Podaj nazwę posiłku');
+        return;
+      }
+
+      _activeDay.meals.push({
+        id: 'custom_m_' + Date.now(),
+        name,
+        kcal: Number(document.getElementById('customMealKcal')?.value) || 0,
+        protein: Number(document.getElementById('customMealProtein')?.value) || 0,
+        carbs: Number(document.getElementById('customMealCarbs')?.value) || 0,
+        fat: Number(document.getElementById('customMealFat')?.value) || 0,
+        category: _normalizeMealCategory(document.getElementById('customMealCategory')?.value || 'inne'),
+        done: false,
+        custom: true,
+      });
+
+      ['customMealName', 'customMealKcal', 'customMealProtein', 'customMealCarbs', 'customMealFat'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+
+      saveActiveDayState();
+      renderActiveDayMeals();
+      updateActiveDayProgress();
+      closeAddMealToDay();
+      showToast('✅ Dodano własny posiłek');
+    }
+
+    // ── Modal + search: exercises ────────────────────────────────────────────
+
+    function openAddExerciseToDay() {
+      const modal = document.getElementById('addExerciseToDayModal');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      searchExerciseForDay('');
+      setTimeout(() => document.getElementById('addExerciseSearch')?.focus(), 30);
+    }
+
+    function closeAddExerciseToDay() {
+      const modal = document.getElementById('addExerciseToDayModal');
+      if (!modal) return;
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function _allExercisesForSearch() {
+      const out = [];
+
+      const exDb = window.EXERCISE_DB || (typeof EXERCISE_DB !== 'undefined' ? EXERCISE_DB : {}) || {};
+      Object.values(exDb).forEach(arr => {
+        (arr || []).forEach(e => {
+          if (!e || !e.name) return;
+          out.push({
+            id: e.id || ('dbe_' + out.length),
+            name: e.name,
+            sets: Number(e.sets) || 3,
+            reps: Number(e.reps) || 10,
+            weight: Number(e.weight) || 0,
+            notes: e.desc || '',
+            isDrill: false,
+            custom: false,
+          });
+        });
+      });
+
+      const sportDb = window.SPORT_DRILLS || {};
+      Object.entries(sportDb).forEach(([sportKey, categories]) => {
+        Object.entries(categories || {}).forEach(([catKey, catObj]) => {
+          if (catKey === 'emoji' || !catObj || !Array.isArray(catObj.drills)) return;
+          catObj.drills.forEach(d => {
+            if (!d || !d.name) return;
+            out.push({
+              id: d.id || ('drill_' + out.length),
+              name: d.name,
+              sets: Number(d.sets) || 1,
+              reps: Number(d.reps) || 1,
+              weight: 0,
+              notes: d.description || '',
+              isDrill: true,
+              sport: d.sport || sportKey,
+              custom: false,
+            });
+          });
+        });
+      });
+
+      return out;
+    }
+
+    function searchExerciseForDay(query) {
+      const q = String(query || '').toLowerCase().trim();
+      const list = _allExercisesForSearch();
+      const results = q
+        ? list.filter(e => e.name.toLowerCase().includes(q) || String(e.sport || '').toLowerCase().includes(q)).slice(0, 25)
+        : list.slice(0, 15);
+      const box = document.getElementById('addExerciseSearchResults');
+      if (!box) return;
+
+      if (!results.length) {
+        box.innerHTML = '<p class="text-xs text-gray-500 italic text-center py-2">Brak wyników</p>';
+        return;
+      }
+
+      box.innerHTML = results.map(e => {
+        const safeName = typeof escapeHTML === 'function' ? escapeHTML(e.name) : String(e.name || '');
+        const detail = e.isDrill ? (e.sport || 'Drill') : (e.sets + '×' + e.reps + (e.weight > 0 ? (' @ ' + e.weight + 'kg') : ''));
+        return '<button type="button" onclick="addExerciseFromSearch(' + JSON.stringify(e).replace(/"/g, '&quot;') + ')"'
+          + ' class="w-full text-left p-2.5 rounded-lg transition-all"'
+          + ' style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);"'
+          + ' onmouseenter="this.style.borderColor=\'rgba(124,58,237,0.28)\'"'
+          + ' onmouseleave="this.style.borderColor=\'rgba(255,255,255,0.08)\'">'
+          + '<p class="text-sm font-medium text-white">' + safeName + '</p>'
+          + '<p class="text-xs text-gray-500">' + detail + '</p>'
+          + '</button>';
+      }).join('');
+    }
+
+    function addExerciseFromSearch(ex) {
+      if (!ex || !ex.name) return;
+      _activeDay.exercises.push({
+        id: ex.id || ('ex_' + Date.now()),
+        name: ex.name,
+        sets: Number(ex.sets) || 3,
+        reps: Number(ex.reps) || 10,
+        weight: Number(ex.weight) || 0,
+        done: false,
+        custom: false,
+        isDrill: !!ex.isDrill,
+        sport: ex.sport || null,
+        notes: ex.notes || '',
+      });
+      saveActiveDayState();
+      renderActiveDayExercises();
+      updateActiveDayProgress();
+      closeAddExerciseToDay();
+      showToast('✅ Dodano ćwiczenie do dnia');
+    }
+
+    function addCustomExerciseToDay() {
+      const name = document.getElementById('customExName')?.value?.trim();
+      if (!name) {
+        showToast('⚠️ Podaj nazwę ćwiczenia');
+        return;
+      }
+
+      _activeDay.exercises.push({
+        id: 'custom_e_' + Date.now(),
+        name,
+        sets: Number(document.getElementById('customExSets')?.value) || 3,
+        reps: Number(document.getElementById('customExReps')?.value) || 10,
+        weight: Number(document.getElementById('customExWeight')?.value) || 0,
+        done: false,
+        custom: true,
+        isDrill: false,
+        sport: null,
+        notes: document.getElementById('customExNotes')?.value?.trim() || '',
+      });
+
+      ['customExName', 'customExSets', 'customExReps', 'customExWeight', 'customExNotes'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+
+      saveActiveDayState();
+      renderActiveDayExercises();
+      updateActiveDayProgress();
+      closeAddExerciseToDay();
+      showToast('✅ Dodano własne ćwiczenie');
+    }
+
+    // ── RPE + sen + nastrój ──────────────────────────────────────────────────
+
+    function updateRPE(val, skipSave) {
+      const v = Math.max(1, Math.min(10, Number(val) || 5));
+      _activeDay.rpe = v;
+
+      const valueEl = document.getElementById('rpeValue');
+      const descEl = document.getElementById('activeDayRpeDesc');
+      if (valueEl) valueEl.textContent = String(v);
+
+      const map = {
+        1: 'Bardzo lekko', 2: 'Lekko', 3: 'Umiarkowanie lekko', 4: 'Umiarkowanie',
+        5: 'Umiarkowanie ciężko', 6: 'Solidny wysiłek', 7: 'Ciężko', 8: 'Bardzo ciężko',
+        9: 'Ekstremalnie ciężko', 10: 'Maksymalny wysiłek'
+      };
+      if (descEl) descEl.textContent = map[v] || '';
+
+      if (!skipSave) saveActiveDayState();
+      updateActiveDayInsights();
+    }
+
+    function updateSleepDuration(skipSave) {
+      const start = document.getElementById('sleepStart')?.value;
+      const end = document.getElementById('sleepEnd')?.value;
+      const badge = document.getElementById('sleepDurationBadge');
+      const out = document.getElementById('sleepHours');
+
+      if (!start || !end) {
+        _activeDay.sleepStart = start || null;
+        _activeDay.sleepEnd = end || null;
+        _activeDay.sleepHours = null;
+        if (badge) badge.classList.add('hidden');
+        if (!skipSave) saveActiveDayState();
+        updateActiveDayInsights();
+        return;
+      }
+
+      const [sh, sm] = start.split(':').map(Number);
+      const [eh, em] = end.split(':').map(Number);
+      let startMin = sh * 60 + sm;
+      let endMin = eh * 60 + em;
+      if (endMin <= startMin) endMin += 24 * 60;
+      const diff = endMin - startMin;
+      const h = Math.floor(diff / 60);
+      const m = diff % 60;
+
+      if (out) out.textContent = h + 'h ' + m + 'min';
+      if (badge) badge.classList.remove('hidden');
+
+      _activeDay.sleepStart = start;
+      _activeDay.sleepEnd = end;
+      _activeDay.sleepHours = diff;
+
+      if (!skipSave) saveActiveDayState();
+      updateActiveDayInsights();
+    }
+
+    function setMood(level, skipSave) {
+      const v = Number(level);
+      if (v < 1 || v > 5) return;
+      _activeDay.mood = v;
+
+      for (let i = 1; i <= 5; i++) {
+        const btn = document.getElementById('mood_' + i);
+        if (!btn) continue;
+        const active = i === v;
+        btn.style.background = active ? 'rgba(0,229,255,0.12)' : 'rgba(255,255,255,0.04)';
+        btn.style.borderColor = active ? 'rgba(0,229,255,0.35)' : 'rgba(255,255,255,0.08)';
+        btn.style.transform = active ? 'translateY(-2px)' : 'translateY(0)';
+      }
+
+      if (!skipSave) saveActiveDayState();
+      updateActiveDayInsights();
+    }
+
+    function updateActiveDayInsights() {
+      const summary = document.getElementById('activeDaySummaryText');
+      const list = document.getElementById('activeDaySuggestions');
+      if (!summary || !list) return;
+
+      const total = _activeDay.meals.length + _activeDay.exercises.length;
+      const done = _activeDay.meals.filter(m => m.done).length + _activeDay.exercises.filter(e => e.done).length;
+      const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+      const kcalDone = _activeDay.meals.filter(m => m.done).reduce((s, m) => s + (Number(m.kcal) || 0), 0);
+      const p = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
+      const kcalTarget = Number(p?.calories_target || p?.caloriesTarget || 2000);
+
+      if (total === 0) {
+        summary.textContent = 'Brak zaplanowanych pozycji. Dodaj posiłek lub ćwiczenie, aby rozpocząć dzień.';
+      } else if (pct === 100) {
+        summary.textContent = 'Plan dnia domknięty w 100%. Świetna robota.';
+      } else {
+        summary.textContent = 'Wykonano ' + done + ' z ' + total + ' zadań (' + pct + '%).';
+      }
+
+      const tips = [];
+      if (_activeDay.meals.length > 0 && kcalDone < kcalTarget * 0.6 && pct >= 50) {
+        tips.push('🍽️ Dołóż 1 posiłek białkowy, żeby domknąć kalorie i regenerację.');
+      }
+      if (_activeDay.sleepHours !== null && _activeDay.sleepHours < 420) {
+        tips.push('😴 Sen poniżej 7h - rozważ niższą intensywność treningu.');
+      }
+      if (_activeDay.rpe !== null && _activeDay.rpe >= 8) {
+        tips.push('🔥 Wysokie RPE - jutro postaw na mobilność albo lżejszą sesję.');
+      }
+      if (_activeDay.mood !== null && _activeDay.mood <= 2) {
+        tips.push('🎭 Niski nastrój - krótki spacer i nawodnienie mogą poprawić samopoczucie.');
+      }
+      if (!tips.length) {
+        tips.push('✅ Trzymaj rytm dnia i kontynuuj plan w obecnym tempie.');
+      }
+
+      list.innerHTML = tips.map(t => '<p class="text-xs" style="color:#9ca3af;">' + t + '</p>').join('');
+    }
+
     // ========== CHECK-IN v2 — Water, Sliders, Submit ==========
     let _waterValue = 0;
     const _checkinSliders = { sleep: 7, energy: 7, stress: 5 };
@@ -12760,6 +13745,11 @@
         sleep_quality: _checkinSliders.sleep,
         energy_level: _checkinSliders.energy,
         stress_level: _checkinSliders.stress,
+        sleep_start: _activeDay?.sleepStart || null,
+        sleep_end: _activeDay?.sleepEnd || null,
+        sleep_duration_minutes: _activeDay?.sleepHours ?? null,
+        mood_score: _activeDay?.mood ?? null,
+        training_rpe: _activeDay?.rpe ?? null,
         // Woda jest logowana osobno przez Smart Water Tracker (water.add → /app/water)
         // Do check-inu przekazujemy aktualny stan z trackera (tylko do info, nie do zmiany)
         water_liters: (typeof water !== 'undefined') ? Math.round(water.current / 1000 * 10000) / 10000 : null,
@@ -12780,9 +13770,20 @@
       const doneEx = exercises.filter((e, i) => checked['ex_' + i]).map(e => e.name).join(', ');
       if (doneMeals) payload.food = doneMeals;
       if (doneEx) payload.workout = doneEx;
+
+      const activeDoneMeals = (_activeDay?.meals || []).filter(m => m.done).map(m => m.name);
+      const activeDoneEx = (_activeDay?.exercises || []).filter(e => e.done).map(e => e.name);
+      if (activeDoneMeals.length > 0) payload.food = activeDoneMeals.join(', ');
+      if (activeDoneEx.length > 0) payload.workout = activeDoneEx.join(', ');
+
       // v3: send eaten_meals list as Single Source of Truth
-      payload.eaten_meals = meals.filter((m, i) => checked['meal_' + i]).map(m => m.name);
-      payload.mood = `Sen:${_checkinSliders.sleep} Energia:${_checkinSliders.energy} Stres:${_checkinSliders.stress}`;
+      payload.eaten_meals = activeDoneMeals.length > 0
+        ? activeDoneMeals
+        : meals.filter((m, i) => checked['meal_' + i]).map(m => m.name);
+
+      const moodLabels = { 1: 'Fatalny', 2: 'Słaby', 3: 'OK', 4: 'Dobry', 5: 'Świetny' };
+      const moodTxt = _activeDay?.mood ? (' Nastrój:' + moodLabels[_activeDay.mood]) : '';
+      payload.mood = `Sen:${_checkinSliders.sleep} Energia:${_checkinSliders.energy} Stres:${_checkinSliders.stress}${moodTxt}`;
 
       // Save locally too for offline mode
       if (p) {
@@ -12873,6 +13874,7 @@
         const slider = document.getElementById('checkin' + type.charAt(0).toUpperCase() + type.slice(1));
         if (slider) updateCheckinSlider(type, slider.value);
       });
+      updateSleepDuration(true);
       _renderWater();
       // Zsynchronizuj wyświetlanie wody z Smart Water Tracker
       if (typeof water !== 'undefined' && water.state) {
@@ -12902,6 +13904,12 @@
           if (saved.water_liters) { _waterValue = saved.water_liters; _renderWater(); }
           if (saved.weight) { const wInput = document.getElementById('checkinWeight'); if (wInput) wInput.value = saved.weight; }
         }
+      }
+
+      try {
+        initActiveDayFromPlan();
+      } catch (e) {
+        console.warn('[FitAI] initActiveDayFromPlan in initCheckinSliders failed:', e);
       }
     }
 
