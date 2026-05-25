@@ -1397,6 +1397,72 @@
                   <button class="btn btn-outline btn-sm" onclick="saveWeight()">Zapisz</button>
                 </div>
               </div>
+
+              <!-- WATER TRACKER -->
+              <div id="water-tracker"
+                style="margin-top:12px;border-radius:8px;padding:12px;border:1px dashed var(--border);background:rgba(0,229,255,0.02);">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px;">
+                  <div style="font-weight:700;">💧 Hydratacja</div>
+                  <div style="flex:1"></div>
+                  <div style="display:flex;gap:8px;align-items:center;">
+                    <div style="font-size:12px;color:var(--muted);">Cel: <span id="water-goal-lbl">2.0 L</span></div>
+                    <button class="btn btn-danger btn-sm" onclick="resetWater()" title="Resetuj wodę">Reset</button>
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+                  <div style="flex:1;height:10px;background:rgba(255,255,255,0.04);border-radius:6px;overflow:hidden;">
+                    <div id="water-progress"
+                      style="height:100%;width:0%;background:linear-gradient(90deg,#00e5ff,#00b3ff);"></div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;align-items:flex-end;min-width:100px;">
+                    <div style="font-weight:700;color:var(--cyan);" id="water-lbl">0.0 L</div>
+                    <button class="btn btn-ghost btn-sm" style="margin-top:6px;padding:4px 8px;" onclick="resetWater()"
+                      title="Resetuj wodę">↺ Reset</button>
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                  <button class="btn btn-ghost btn-sm" onclick="addWaterMl(150)">+150 ml</button>
+                  <button class="btn btn-ghost btn-sm" onclick="addWaterMl(250)">+250 ml</button>
+                  <button class="btn btn-ghost btn-sm" onclick="addWaterMl(500)">+500 ml</button>
+                  <div style="display:flex;gap:6px;align-items:center;">
+                    <input id="water-custom-ml" class="form-input" placeholder="ml" style="width:80px;padding:6px;"
+                      type="number">
+                    <button class="btn btn-outline btn-sm" onclick="addCustomWater()">Dodaj</button>
+                  </div>
+                  <div style="flex:1"></div>
+                  <button class="btn btn-outline btn-sm" onclick="resetWater()">Reset</button>
+                </div>
+                <div id="water-entries" style="font-size:13px;color:var(--muted);"></div>
+              </div>
+              <!-- DAY RATINGS -->
+              <div id="day-ratings"
+                style="margin-top:12px;border-radius:8px;padding:12px;border:1px dashed var(--border);background:rgba(255,255,255,0.01);">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                  <div style="font-weight:700;">📊 Ocena Dnia</div>
+                  <div style="font-size:12px;color:var(--muted);">Szybkie 1–10</div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 60px;gap:10px;align-items:center;margin-bottom:8px;">
+                  <label style="font-size:13px;color:var(--muted);">Energia</label>
+                  <div style="text-align:right;color:var(--cyan);font-weight:700;" id="lbl-energy">5</div>
+                  <input type="range" min="1" max="10" value="5" id="s-energy"
+                    oninput="onRatingChange('energy', this.value)">
+
+                  <label style="font-size:13px;color:var(--muted);">Samopoczucie</label>
+                  <div style="text-align:right;color:var(--cyan);font-weight:700;" id="lbl-mood">5</div>
+                  <input type="range" min="1" max="10" value="5" id="s-mood"
+                    oninput="onRatingChange('mood', this.value)">
+
+                  <label style="font-size:13px;color:var(--muted);">Readiness</label>
+                  <div style="text-align:right;color:var(--cyan);font-weight:700;" id="lbl-readiness">5</div>
+                  <input type="range" min="1" max="10" value="5" id="s-readiness"
+                    oninput="onRatingChange('readiness', this.value)">
+
+                  <label style="font-size:13px;color:var(--muted);">Stres</label>
+                  <div style="text-align:right;color:var(--cyan);font-weight:700;" id="lbl-stress">5</div>
+                  <input type="range" min="1" max="10" value="5" id="s-stress"
+                    oninput="onRatingChange('stress', this.value)">
+                </div>
+              </div>
               <div id="daily-summary-ai" style="margin-top:8px;"></div>
             </div>
           </div>
@@ -1659,7 +1725,9 @@
         date: null,
         meals: [],
         workouts: [],
-        weight: null
+        weight: null,
+        water_entries: [],   // { id, ml, time, synced }
+        water_liters: 0
       },
       logs: [],
       plan: null,
@@ -1697,6 +1765,8 @@
         buildDayCarousel();
         renderRecentLog();
         initCharts();
+        renderWater();
+        initRatingsUI();
         updateKPIs();
         setTodayDate();
         setTimeout(loadNextStep, 300);
@@ -1748,6 +1818,8 @@
               if (e.status === 'skipped') return s;
               return s + ((e.editable && e.editable.protein) || (e.data && e.data.protein) || e.protein || 0);
             }, 0)
+            ,
+            water_liters: getTodayWaterLiters()
           };
           state.logs.unshift(entry);
           if (state.logs.length > 30) state.logs.pop();
@@ -1777,6 +1849,8 @@
           if (e.status === 'skipped') return s;
           return s + ((e.editable && e.editable.protein) || (e.data && e.data.protein) || e.protein || 0);
         }, 0)
+        ,
+        water_liters: getTodayWaterLiters()
       };
       state.logs.unshift(entryLocal);
       if (state.logs.length > 30) state.logs.pop();
@@ -2053,7 +2127,8 @@
         const stored = td ? JSON.parse(td) : {};
         const today = new Date().toDateString();
         if (stored.date === today) {
-          state.today = stored;
+          // merge to preserve any newly added fields
+          state.today = Object.assign({}, state.today, stored);
         }
       } catch (e) { }
     }
@@ -2484,6 +2559,141 @@
       showToast(`⚖️ Waga ${v} kg zapisana!`);
     }
 
+    // ============================================================
+    // WATER TRACKER
+    // ============================================================
+    function calcWaterGoal(p) {
+      const w = p.weight || 75;
+      // 35 ml per kg -> liters
+      const liters = Math.max(1.5, Math.round((w * 0.035) * 10) / 10);
+      return liters;
+    }
+
+    function renderWater() {
+      const totalServer = state.today.water_liters || 0;
+      const unsyncedMl = (state.today.water_entries || []).filter(e => !e.synced).reduce((s, e) => s + (e.ml || 0), 0);
+      const totalLiters = Math.round((totalServer + unsyncedMl / 1000) * 10) / 10;
+      const goal = calcWaterGoal(state.profile);
+      const pct = Math.min(100, Math.round((totalLiters / goal) * 100));
+      document.getElementById('water-lbl').textContent = `${totalLiters.toFixed(1)} L`;
+      document.getElementById('water-goal-lbl').textContent = `${goal.toFixed(1)} L`;
+      document.getElementById('water-progress').style.width = pct + '%';
+      // entries list
+      const cont = document.getElementById('water-entries');
+      const entries = state.today.water_entries || [];
+      if (!entries.length) { cont.innerHTML = '<div style="color:var(--muted);font-size:12px;">Brak wpisów wody.</div>'; return; }
+      cont.innerHTML = entries.map((en, i) => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed rgba(255,255,255,0.02);">
+          <div style="font-size:13px;">${(en.ml || 0)} ml · <span style="color:var(--muted);font-size:12px;">${en.time || ''}</span></div>
+          <div>
+            ${en.synced ? '<span style="color:var(--muted);font-size:12px;margin-right:8px;">zapisano</span>' : ''}
+            <button class="btn btn-ghost btn-sm" ${en.synced ? 'disabled' : ''} onclick="removeWaterEntry(${i})">Usuń</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Ratings handlers
+    function onRatingChange(kind, val) {
+      const v = parseInt(val) || 5;
+      if (!state.today.ratings) state.today.ratings = {};
+      if (kind === 'energy') {
+        state.today.ratings.energy = v;
+        document.getElementById('lbl-energy').textContent = v;
+      } else if (kind === 'mood') {
+        state.today.ratings.mood = v;
+        document.getElementById('lbl-mood').textContent = v;
+      } else if (kind === 'readiness') {
+        state.today.ratings.readiness = v;
+        document.getElementById('lbl-readiness').textContent = v;
+      } else if (kind === 'stress') {
+        state.today.ratings.stress = v;
+        document.getElementById('lbl-stress').textContent = v;
+      }
+      state.today.date = new Date().toDateString();
+      saveToStorage();
+    }
+
+    function initRatingsUI() {
+      const r = state.today.ratings || {};
+      const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val;
+      };
+      setVal('s-energy', r.energy || 5); document.getElementById('lbl-energy').textContent = r.energy || 5;
+      setVal('s-mood', r.mood || 5); document.getElementById('lbl-mood').textContent = r.mood || 5;
+      setVal('s-readiness', r.readiness || 5); document.getElementById('lbl-readiness').textContent = r.readiness || 5;
+      setVal('s-stress', r.stress || 5); document.getElementById('lbl-stress').textContent = r.stress || 5;
+    }
+
+    function getTodayWaterLiters() {
+      const totalServer = state.today.water_liters || 0;
+      const unsyncedMl = (state.today.water_entries || []).filter(e => !e.synced).reduce((s, e) => s + (e.ml || 0), 0);
+      return Math.round((totalServer + unsyncedMl / 1000) * 10) / 10;
+    }
+
+    function addCustomWater() {
+      const v = parseInt(document.getElementById('water-custom-ml').value) || 0;
+      if (v <= 0) { showToast('Podaj ilość w ml'); return; }
+      addWaterMl(v);
+      document.getElementById('water-custom-ml').value = '';
+    }
+
+    async function addWaterMl(ml) {
+      if (!state.today.water_entries) state.today.water_entries = [];
+      const entry = { id: 'w-' + Date.now(), ml: ml, time: new Date().toLocaleTimeString('pl', { hour: '2-digit', minute: '2-digit' }), synced: false };
+      state.today.water_entries.push(entry);
+      state.today.date = new Date().toDateString();
+      saveToStorage();
+      renderWater();
+      updateKPIs();
+      // Try server increment
+      try {
+        const resp = await fetch('/app/water', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ ml }) });
+        if (resp.ok) {
+          const d = await resp.json();
+          // mark latest unsynced entry as synced
+          const idx = state.today.water_entries.findIndex(e => e.id === entry.id);
+          if (idx >= 0) state.today.water_entries[idx].synced = true;
+          state.today.water_liters = d.water_liters_today || (d.water_ml_today ? (d.water_ml_today / 1000) : state.today.water_liters);
+          saveToStorage(); renderWater(); showToast(`💧 Dodano ${ml} ml`);
+          return;
+        }
+      } catch (e) { console.warn('addWaterMl server failed', e); }
+      showToast('💧 Dodano lokalnie (brak serwera)');
+    }
+
+    function removeWaterEntry(i) {
+      const en = state.today.water_entries[i]; if (!en) return;
+      if (en.synced) { showToast('Ten wpis został zapisany na serwerze i nie może być usunięty lokalnie.'); return; }
+      state.today.water_entries.splice(i, 1);
+      saveToStorage(); renderWater(); updateKPIs();
+    }
+
+    async function resetWater() {
+      if (!confirm('Resetować dzienną ilość wody do 0?')) return;
+      // clear local entries
+      state.today.water_entries = [];
+      state.today.water_liters = 0;
+      state.today.date = new Date().toDateString();
+      saveToStorage(); renderWater(); updateKPIs();
+      // Try to reset on server via checkin (overwrite water_liters)
+      try {
+        const resp = await fetch('/app/checkin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ water_liters: 0 }) });
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.water_ml_today !== undefined) {
+            state.today.water_liters = (data.water_ml_today || 0) / 1000;
+          } else if (data.water_liters_today !== undefined) {
+            state.today.water_liters = data.water_liters_today;
+          }
+          saveToStorage(); renderWater(); showToast('💧 Woda zresetowana (serwer)');
+          return;
+        }
+      } catch (e) { console.warn('resetWater server failed', e); }
+      showToast('💧 Woda zresetowana lokalnie');
+    }
+
     async function submitCheckin() {
       const meals = state.today.meals;
       const workouts = state.today.workouts;
@@ -2502,6 +2712,8 @@
           if (e.status === 'skipped') return s;
           return s + ((e.editable && e.editable.protein) || (e.data && e.data.protein) || e.protein || 0);
         }, 0)
+        ,
+        water_liters: getTodayWaterLiters()
       };
       state.logs.unshift(entry);
       if (state.logs.length > 30) state.logs.pop();
@@ -2510,16 +2722,34 @@
       saveToStorage();
       renderRecentLog();
       updateKPIs();
+      // Try server checkin (best-effort)
+      try {
+        const foodStr = meals.map(e => ((e.data && e.data.name) || e.name) + ((e.editable && e.editable.kcal) ? ` (${e.editable.kcal} kcal)` : '')).join('\n');
+        const workoutStr = workouts.map(e => (e.data && e.data.name) || e.name).join('\n');
+        const ratings = state.today.ratings || {};
+        const resp = await fetch('/app/checkin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ food: foodStr, workout: workoutStr, weight: weight, water_liters: getTodayWaterLiters(), mood_score: ratings.mood || null, energy_score: ratings.energy || null }) });
+        if (resp.ok) {
+          const data = await resp.json();
+          state.streak = data.streak_days || state.streak;
+          if (data.total_xp) state.user.total_xp = data.total_xp;
+          if (data.water_ml_today) state.today.water_liters = (data.water_ml_today / 1000);
+          saveToStorage(); renderRecentLog(); updateKPIs();
+          showToast('✅ Raport zapisany na serwerze!');
+        }
+      } catch (e) { console.warn('submitCheckin -> server failed', e); }
       // AI analysis
       const aiCont = document.getElementById('daily-summary-ai');
       aiCont.innerHTML = '<div class="spinner" style="margin:12px auto;"></div>';
       const p = state.profile;
+      const waterLiters = getTodayWaterLiters();
+      const ratings = state.today.ratings || {};
       const prompt2 = `Analiza dnia dla ${p.name} (cel: ${p.goal}, ${calcProtein(p)}g białka / ${calcCalories(p)} kcal cel):
     Posiłki: ${meals.map(e => (e.data && e.data.name) || e.name).join(', ') || 'brak'} (${entry.totalKcal} kcal, ${entry.totalProtein}g białka)
     Trening: ${workouts.map(w => (w.data && w.data.name) || w.name).join(', ') || 'brak'}
-    Waga: ${weight || 'nie podano'} kg
+    Waga: ${weight || 'nie podano'} kg · Woda: ${waterLiters} L
+    Ocena: Energia ${ratings.energy || '-'} / Samopoczucie ${ratings.mood || '-'} / Readiness ${ratings.readiness || '-'} / Stres ${ratings.stress || '-'}
 
-    Daj BARDZO krótką (2-3 zdania) analizę dnia i 1 konkretną radę na jutro. Pisz po polsku, bezpośrednio.`;
+    Na podstawie powyższych danych, daj BARDZO krótką (2-3 zdania) analizę dnia i 1 konkretną radę na jutro: czy zalecić cięższy trening, utrzymanie intensywności, czy lżejszy dzień. Pisz po polsku, bezpośrednio.`;
       try {
         const r = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
