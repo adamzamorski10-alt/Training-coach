@@ -2478,6 +2478,75 @@
               <span>✅</span> Zapisz Check-in
             </button>
           </div>
+          <div id="checkinSummaryModal" class="hidden fixed inset-0 z-[1200] items-center justify-center p-4"
+            style="background:rgba(0,0,0,0.72);">
+            <div class="glass rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 shadow-2xl">
+              <div class="flex items-start justify-between gap-4 mb-5">
+                <div>
+                  <h4 class="text-2xl font-bold text-white" style="font-family:'Syne',sans-serif;">Podsumowanie
+                    check-in</h4>
+                  <p class="text-sm mt-1" style="color:var(--muted);">Sprawdź dane przed zapisaniem raportu.</p>
+                </div>
+                <button id="checkinSummaryCancelTop" type="button"
+                  class="btn-ghost px-4 py-2 rounded-xl text-sm font-bold">Anuluj</button>
+              </div>
+
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+                  <div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Posiłki</div>
+                  <div id="checkinSummaryMealsCount" class="text-2xl font-extrabold text-white mt-1">0</div>
+                </div>
+                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+                  <div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Kcal</div>
+                  <div id="checkinSummaryKcal" class="text-2xl font-extrabold text-white mt-1">0</div>
+                </div>
+                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+                  <div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Białko</div>
+                  <div id="checkinSummaryProtein" class="text-2xl font-extrabold text-white mt-1">0 g</div>
+                </div>
+                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+                  <div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Woda</div>
+                  <div id="checkinSummaryWater" class="text-2xl font-extrabold text-white mt-1">0.0 L</div>
+                </div>
+                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+                  <div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Sen</div>
+                  <div id="checkinSummarySleep" class="text-xl font-extrabold text-white mt-1">—</div>
+                </div>
+                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+                  <div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Nastrój</div>
+                  <div id="checkinSummaryMood" class="text-xl font-extrabold text-white mt-1">—</div>
+                </div>
+                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+                  <div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Energia</div>
+                  <div id="checkinSummaryEnergy" class="text-xl font-extrabold text-white mt-1">—</div>
+                </div>
+                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+                  <div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Stres</div>
+                  <div id="checkinSummaryStress" class="text-xl font-extrabold text-white mt-1">—</div>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="rounded-2xl p-4" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+                  <h5 class="text-sm font-bold text-white mb-3">Lista posiłków</h5>
+                  <div id="checkinSummaryMealsList" class="space-y-2 text-sm" style="color:var(--muted);"></div>
+                </div>
+                <div class="rounded-2xl p-4" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+                  <h5 class="text-sm font-bold text-white mb-3">Lista treningów</h5>
+                  <div id="checkinSummaryWorkoutsList" class="space-y-2 text-sm" style="color:var(--muted);"></div>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-end gap-3 mt-6 flex-wrap">
+                <button id="checkinSummaryCancel" type="button"
+                  class="btn-ghost px-5 py-2.5 rounded-xl text-sm font-bold">Anuluj</button>
+                <button id="checkinSummaryConfirm" type="button"
+                  class="btn-neon px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2">
+                  <span>✅</span> Potwierdź i zapisz
+                </button>
+              </div>
+            </div>
+          </div>
           <div id="checkinFeedback" class="hidden text-sm font-semibold text-center py-2 rounded-xl"
             style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.3);color:#34d399;"></div>
         </div>
@@ -13278,7 +13347,10 @@
           + ' class="flex-shrink-0 w-4 h-4 mt-0.5 cursor-pointer" style="accent-color:#a78bfa;">'
           + '<span class="text-base flex-shrink-0">' + (ex.isDrill ? '🏀' : '💪') + '</span>'
           + '<div class="flex-1 min-w-0">'
+          + '<div style="display:flex;align-items:center;gap:8px;">'
           + '<p class="text-sm font-medium text-white ' + (ex.done ? 'line-through' : '') + ' truncate">' + safeName + '</p>'
+          + (ex.pr ? ('<span class="text-xs ml-2 px-2 py-0.5 rounded-full" style="background:linear-gradient(90deg,#fbbf24,#fb7185);color:#111;">PR ' + (ex.pr.type || '') + '</span>') : '')
+          + '</div>'
           + '<p class="text-xs text-gray-500">' + details + '</p>'
           + (safeNotes ? '<p class="text-xs text-gray-600 mt-0.5 italic">' + safeNotes + '</p>' : '')
           + '</div>'
@@ -13310,6 +13382,23 @@
         _activeDay.exercises[i].done = !!val;
         _activeDay.exercises[i].status = !!val ? 'done' : 'planned';
         if (val) _activeDay.exercises[i].completed_at = new Date().toISOString(); else delete _activeDay.exercises[i].completed_at;
+        // If marking as done, record a result and detect PRs
+        if (val) {
+          try {
+            const ex = _activeDay.exercises[i];
+            const pr = recordExerciseResult(ex);
+            if (pr) {
+              ex.pr = pr; // attach PR info to exercise for UI
+              showToast('🏆 Nowy rekord: ' + (pr.type || 'PR'));
+            } else {
+              // clear previous PR marker if no PR now
+              if (ex.pr) delete ex.pr;
+            }
+          } catch (e) { console.warn('[FitAI] recordExerciseResult failed', e); }
+        } else {
+          // if unchecking, remove any transient PR marker
+          const ex = _activeDay.exercises[i]; if (ex && ex.pr) delete ex.pr;
+        }
         saveActiveDayState();
         renderActiveDayExercises();
         updateActiveDayProgress();
@@ -13330,6 +13419,71 @@
       saveActiveDayState();
       renderActiveDayExercises();
       updateActiveDayProgress();
+    }
+
+    // Record an exercise result into persistent dayLogs and detect PRs
+    function recordExerciseResult(ex) {
+      if (!ex || !ex.name) return null;
+      const p = getCurrentProfile();
+      if (!p) return null;
+      // ensure dayLogs structure per profileId
+      if (!state.dayLogs[p.id]) state.dayLogs[p.id] = { diet: [], training: [] };
+      const trainingLog = state.dayLogs[p.id].training || [];
+
+      const sets = Number(ex.sets) || 0;
+      const reps = Number(ex.reps) || 0;
+      const weight = Number(ex.weight) || 0;
+      const totalReps = sets * reps;
+      const volume = (weight > 0) ? (sets * reps * weight) : 0;
+
+      const entry = {
+        name: ex.name,
+        sets: sets,
+        reps: reps,
+        weight: weight,
+        totalReps: totalReps,
+        volume: volume,
+        ts: Date.now()
+      };
+
+      // push to history
+      trainingLog.push(entry);
+      state.dayLogs[p.id].training = trainingLog;
+      try { localStorage.setItem('fitai_logs_v3', JSON.stringify(state.dayLogs)); } catch (e) { console.warn('Failed to save logs', e); }
+
+      // detect PR (compare to previous entries excluding the one we just added)
+      const pr = detectPR(p.id, ex.name, entry, trainingLog.slice(0, -1));
+      return pr;
+    }
+
+    // Detect PR based on history array (previousEntries)
+    function detectPR(profileId, exName, currentEntry, previousEntries) {
+      // previousEntries: array of entries for this profile.training
+      if (!previousEntries || !previousEntries.length) return null;
+      // filter by same exercise name (case-insensitive)
+      const nameLow = String(exName || '').toLowerCase().trim();
+      const same = previousEntries.filter(e => String(e.name || '').toLowerCase().trim() === nameLow);
+      if (!same.length) return null;
+
+      // compute historical bests
+      let maxWeight = 0, maxTotalReps = 0, maxVolume = 0;
+      same.forEach(e => {
+        maxWeight = Math.max(maxWeight, Number(e.weight) || 0);
+        maxTotalReps = Math.max(maxTotalReps, Number(e.totalReps) || 0);
+        maxVolume = Math.max(maxVolume, Number(e.volume) || 0);
+      });
+
+      const curW = Number(currentEntry.weight) || 0;
+      const curTR = Number(currentEntry.totalReps) || 0;
+      const curV = Number(currentEntry.volume) || 0;
+
+      // Strictly greater required
+      if (curV > 0 && curV > maxVolume) return { type: 'volume', value: curV, prev: maxVolume };
+      if (curW > 0 && curW > maxWeight) return { type: 'weight', value: curW, prev: maxWeight };
+      if (curTR > 0 && curTR > maxTotalReps) return { type: 'reps', value: curTR, prev: maxTotalReps };
+
+      // no PR
+      return null;
     }
 
     // Edit / swap / skip helpers for meals
@@ -13831,12 +13985,178 @@
       if (bar) bar.style.width = Math.min(100, (_waterValue / 2.5) * 100) + '%';
     }
 
+    let pendingCheckinSummary = null;
+
+    function getCheckinMealList() {
+      const activeDoneMeals = (_activeDay?.meals || []).filter(m => m.done).map(m => ({
+        name: m.name,
+        kcal: Number((m.editable && m.editable.kcal) || m.kcal || 0),
+        protein: Number((m.editable && m.editable.protein) || m.protein || 0)
+      }));
+      if (activeDoneMeals.length > 0) return activeDoneMeals;
+      const p = getCurrentProfile();
+      if (!p) return [];
+      const todayIdx = (new Date().getDay() + 6) % 7;
+      const day = (Array.isArray(state.days) && state.days[todayIdx]) || getCurrentDayKey();
+      const checked = state.dayChecked[_todayCheckedKey(p.id)] || {};
+      const meals = (p.dietPlan?.[day] || []).filter(m => !m.hidden);
+      return meals.filter((m, i) => checked['meal_' + i]).map(m => ({
+        name: m.name,
+        kcal: Number(m.kcal) || 0,
+        protein: Number(m.protein) || 0
+      }));
+    }
+
+    function getCheckinWorkoutList() {
+      const activeDoneEx = (_activeDay?.exercises || []).filter(e => e.done).map(e => e.name);
+      if (activeDoneEx.length > 0) return activeDoneEx;
+      const p = getCurrentProfile();
+      if (!p) return [];
+      const todayIdx = (new Date().getDay() + 6) % 7;
+      const day = (Array.isArray(state.days) && state.days[todayIdx]) || getCurrentDayKey();
+      const checked = state.dayChecked[_todayCheckedKey(p.id)] || {};
+      const exercises = (p.trainingPlan?.[day] || []).filter(e => !e.hidden).slice(0, state.exerciseCount);
+      return exercises.filter((e, i) => checked['ex_' + i]).map(e => e.name);
+    }
+
+    function getCheckinMoodSummary(value) {
+      const labels = { 1: 'Fatalny', 2: 'Słaby', 3: 'OK', 4: 'Dobry', 5: 'Świetny' };
+      if (!value) return '—';
+      return `${value}/5 · ${labels[value] || '—'}`;
+    }
+
+    function getCheckinEnergySummary(value) {
+      if (!value) return '—';
+      return `${value}/10`;
+    }
+
+    function getCheckinStressSummary(value) {
+      if (!value) return '—';
+      return `${value}/10`;
+    }
+
+    function formatCheckinSleepSummary() {
+      const start = _activeDay?.sleepStart || null;
+      const end = _activeDay?.sleepEnd || null;
+      const minutes = Number(_activeDay?.sleepHours);
+      if (Number.isFinite(minutes) && minutes > 0) {
+        return `${(minutes / 60).toFixed(minutes % 60 === 0 ? 0 : 1)} h`;
+      }
+      if (start && end) return `${start} → ${end}`;
+      return '—';
+    }
+
+    function validateCheckinRequired() {
+      const missing = [];
+      const energy = _checkinSliders.energy;
+      const stress = _checkinSliders.stress;
+      const mood = _activeDay?.mood ?? null;
+      const hasSleep = Boolean((_activeDay?.sleepStart && _activeDay?.sleepEnd) || Number(_activeDay?.sleepHours) > 0);
+      const hasFoodOrWorkout = getCheckinMealList().length > 0 || getCheckinWorkoutList().length > 0;
+
+      if (mood == null) missing.push('Nastrój');
+      if (energy == null) missing.push('Energia');
+      if (!hasSleep) missing.push('Sen');
+      if (!hasFoodOrWorkout) missing.push('Posiłek lub trening');
+
+      if (missing.length > 0) {
+        showToast('⚠️ Uzupełnij brakujące dane: ' + missing.join(', '));
+        return { ok: false, missing };
+      }
+
+      return { ok: true, missing: [] };
+    }
+
+    function closeCheckinSummaryModal() {
+      const modal = document.getElementById('checkinSummaryModal');
+      if (!modal) return;
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      pendingCheckinSummary = null;
+      document.body.style.overflow = '';
+    }
+
+    function renderCheckinSummaryModal(summary) {
+      document.getElementById('checkinSummaryMealsCount').textContent = String(summary.meals.length);
+      document.getElementById('checkinSummaryKcal').textContent = String(summary.totalKcal);
+      document.getElementById('checkinSummaryProtein').textContent = `${summary.totalProtein} g`;
+      document.getElementById('checkinSummaryWater').textContent = `${summary.waterLiters.toFixed(1)} L`;
+      document.getElementById('checkinSummarySleep').textContent = summary.sleepText;
+      document.getElementById('checkinSummaryMood').textContent = summary.moodText;
+      document.getElementById('checkinSummaryEnergy').textContent = summary.energyText;
+      document.getElementById('checkinSummaryStress').textContent = summary.stressText;
+      const mealsList = document.getElementById('checkinSummaryMealsList');
+      const workoutsList = document.getElementById('checkinSummaryWorkoutsList');
+      mealsList.innerHTML = summary.meals.length
+        ? summary.meals.map(item => `<div class="flex items-center justify-between gap-3 rounded-xl px-3 py-2" style="background:rgba(255,255,255,0.03);"><span class="text-white">${item.name}</span><span class="whitespace-nowrap">${item.kcal} kcal · ${item.protein} g</span></div>`).join('')
+        : '<div class="text-sm">Brak posiłków.</div>';
+      workoutsList.innerHTML = summary.workouts.length
+        ? summary.workouts.map(item => `<div class="rounded-xl px-3 py-2" style="background:rgba(255,255,255,0.03); color:var(--text);">${item}</div>`).join('')
+        : '<div class="text-sm">Brak treningów.</div>';
+    }
+
+    function openCheckinSummaryModal(summary) {
+      pendingCheckinSummary = summary;
+      renderCheckinSummaryModal(summary);
+      const modal = document.getElementById('checkinSummaryModal');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function buildCheckinSummary() {
+      const meals = getCheckinMealList();
+      const workouts = getCheckinWorkoutList();
+      const sleep = _activeDay || {};
+      const mood = _activeDay?.mood ?? null;
+      const energy = _checkinSliders.energy ?? null;
+      const stress = _checkinSliders.stress ?? null;
+      return {
+        meals,
+        workouts,
+        totalKcal: meals.reduce((sum, item) => sum + (Number(item.kcal) || 0), 0),
+        totalProtein: meals.reduce((sum, item) => sum + (Number(item.protein) || 0), 0),
+        waterLiters: typeof water !== 'undefined' ? Math.round(water.current / 1000 * 10) / 10 : 0,
+        sleepText: formatCheckinSleepSummary(),
+        moodText: getCheckinMoodSummary(mood),
+        energyText: getCheckinEnergySummary(energy),
+        stressText: getCheckinStressSummary(stress),
+        sleep,
+        mood,
+        energy,
+        stress
+      };
+    }
+
     async function submitCheckin() {
+      const validation = validateCheckinRequired();
+      if (!validation.ok) return;
+      const summary = buildCheckinSummary();
+      openCheckinSummaryModal(summary);
+    }
+
+    async function submitCheckinConfirmed(summaryOverride) {
+      const summary = summaryOverride || pendingCheckinSummary || buildCheckinSummary();
       const profile = getCurrentProfile();
+      if (!profile) {
+        showToast('⚠️ Brak aktywnego profilu.');
+        return;
+      }
       const identityId = state.identityId;
       const feedback = document.getElementById('checkinFeedback');
+      const p = getCurrentProfile();
+      const todayIdx = (new Date().getDay() + 6) % 7;
+      const day = (Array.isArray(state.days) && state.days[todayIdx]) || getCurrentDayKey();
+      const k = _todayCheckedKey(p.id);
+      const checked = state.dayChecked[k] || {};
+      const meals = (p.dietPlan?.[day] || []).filter(m => !m.hidden);
+      const exercises = (p.trainingPlan?.[day] || []).filter(e => !e.hidden).slice(0, state.exerciseCount);
+      const doneMeals = meals.filter((m, i) => checked['meal_' + i]).map(m => m.name).join(', ');
+      const doneEx = exercises.filter((e, i) => checked['ex_' + i]).map(e => e.name).join(', ');
+      const activeDoneMeals = (_activeDay?.meals || []).filter(m => m.done).map(m => m.name);
+      const activeDoneEx = (_activeDay?.exercises || []).filter(e => e.done).map(e => e.name);
 
-      // Build payload from current UI state
       const payload = {
         food: '',
         workout: '',
@@ -13850,33 +14170,17 @@
         sleep_duration_minutes: _activeDay?.sleepHours ?? null,
         mood_score: _activeDay?.mood ?? null,
         training_rpe: _activeDay?.rpe ?? null,
-        // Woda jest logowana osobno przez Smart Water Tracker (water.add → /app/water)
-        // Do check-inu przekazujemy aktualny stan z trackera (tylko do info, nie do zmiany)
         water_liters: (typeof water !== 'undefined') ? Math.round(water.current / 1000 * 10000) / 10000 : null,
         waist_cm: parseFloat(document.getElementById('checkinWaist')?.value) || null,
         chest_cm: parseFloat(document.getElementById('checkinChest')?.value) || null,
         photo_path: document.getElementById('checkinPhoto')?.value?.trim() || null,
       };
 
-      // Also collect today checklist data if available
-      const p = getCurrentProfile();
-      const todayIdx = (new Date().getDay() + 6) % 7;
-      const day = (Array.isArray(state.days) && state.days[todayIdx]) || getCurrentDayKey();
-      const k = _todayCheckedKey(p.id);
-      const checked = state.dayChecked[k] || {};
-      const meals = (p.dietPlan?.[day] || []).filter(m => !m.hidden);
-      const exercises = (p.trainingPlan?.[day] || []).filter(e => !e.hidden).slice(0, state.exerciseCount);
-      const doneMeals = meals.filter((m, i) => checked['meal_' + i]).map(m => m.name).join(', ');
-      const doneEx = exercises.filter((e, i) => checked['ex_' + i]).map(e => e.name).join(', ');
       if (doneMeals) payload.food = doneMeals;
       if (doneEx) payload.workout = doneEx;
-
-      const activeDoneMeals = (_activeDay?.meals || []).filter(m => m.done).map(m => m.name);
-      const activeDoneEx = (_activeDay?.exercises || []).filter(e => e.done).map(e => e.name);
       if (activeDoneMeals.length > 0) payload.food = activeDoneMeals.join(', ');
       if (activeDoneEx.length > 0) payload.workout = activeDoneEx.join(', ');
 
-      // v3: send eaten_meals list as Single Source of Truth
       payload.eaten_meals = activeDoneMeals.length > 0
         ? activeDoneMeals
         : meals.filter((m, i) => checked['meal_' + i]).map(m => m.name);
@@ -13927,7 +14231,7 @@
             return;
           }
         } catch (e) {
-          apiErrorToast(e, 'Check-in');
+          if (typeof apiErrorToast === 'function') apiErrorToast(e, 'Check-in');
           console.warn('API offline, saved locally', e);
         }
       }
@@ -13938,6 +14242,25 @@
         feedback.classList.remove('hidden');
         setTimeout(() => feedback.classList.add('hidden'), 3500);
       }
+    }
+
+    const checkinSummaryConfirmBtn = document.getElementById('checkinSummaryConfirm');
+    if (checkinSummaryConfirmBtn) {
+      checkinSummaryConfirmBtn.onclick = async () => {
+        const snapshot = pendingCheckinSummary;
+        closeCheckinSummaryModal();
+        await submitCheckinConfirmed(snapshot);
+      };
+    }
+
+    const checkinSummaryCancelBtn = document.getElementById('checkinSummaryCancel');
+    if (checkinSummaryCancelBtn) {
+      checkinSummaryCancelBtn.onclick = closeCheckinSummaryModal;
+    }
+
+    const checkinSummaryCancelTopBtn = document.getElementById('checkinSummaryCancelTop');
+    if (checkinSummaryCancelTopBtn) {
+      checkinSummaryCancelTopBtn.onclick = closeCheckinSummaryModal;
     }
 
     /** Synchronizuje widok wody w check-inie z aktualną wartością z trackera/API */
