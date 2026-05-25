@@ -1259,21 +1259,24 @@
                 <div style="flex:1;">
                   <div style="margin-bottom:12px;">
                     <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
-                      <span>Treningi</span><span id="prog-workout-lbl" style="color:var(--cyan);">0/7</span></div>
+                      <span>Treningi</span><span id="prog-workout-lbl" style="color:var(--cyan);">0/7</span>
+                    </div>
                     <div class="prog-bar">
                       <div class="prog-fill" id="prog-workout" style="width:0%"></div>
                     </div>
                   </div>
                   <div style="margin-bottom:12px;">
                     <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
-                      <span>Posiłki</span><span id="prog-meals-lbl" style="color:var(--cyan);">0/7</span></div>
+                      <span>Posiłki</span><span id="prog-meals-lbl" style="color:var(--cyan);">0/7</span>
+                    </div>
                     <div class="prog-bar">
                       <div class="prog-fill" id="prog-meals" style="width:0%"></div>
                     </div>
                   </div>
                   <div>
                     <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
-                      <span>Waga</span><span id="prog-weight-lbl" style="color:var(--cyan);">0/7</span></div>
+                      <span>Waga</span><span id="prog-weight-lbl" style="color:var(--cyan);">0/7</span>
+                    </div>
                     <div class="prog-bar">
                       <div class="prog-fill" id="prog-weight" style="width:0%"></div>
                     </div>
@@ -1653,6 +1656,7 @@
         diet: 'high-protein', meals: 5, notes: '', equipment: ['hantle', 'sztanga', 'kółka', 'mata', 'maszyny']
       },
       today: {
+        date: null,
         meals: [],
         workouts: [],
         weight: null
@@ -1707,8 +1711,17 @@
       const weight = state.today.weight;
       if (!meals.length && !workouts.length) { showToast('⚠️ Dodaj najpierw posiłki lub trening!'); return; }
       // Build backend-friendly payload: flatten arrays into simple strings
-      const foodStr = meals.map(m => `${m.name}${m.kcal ? ` (${m.kcal} kcal)` : ''}`).join('\n');
-      const workoutStr = workouts.map(w => `${w.name}${w.sets ? ` — ${w.sets}` : ''}${w.note ? ` — ${w.note}` : ''}`).join('\n');
+      const foodStr = meals.map(e => {
+        const name = (e.data && e.data.name) || e.name || 'posiłek';
+        const kcal = (e.editable && e.editable.kcal) || (e.data && e.data.kcal) || e.kcal || 0;
+        return `${name}${kcal ? ` (${kcal} kcal)` : ''}`;
+      }).join('\n');
+      const workoutStr = workouts.map(e => {
+        const name = (e.data && e.data.name) || e.name || 'ćwiczenie';
+        const sets = (e.editable && e.editable.sets) || (e.data && e.data.sets) || '';
+        const note = (e.data && e.data.note) || e.note || '';
+        return `${name}${sets ? ` — ${sets}` : ''}${note ? ` — ${note}` : ''}`;
+      }).join('\n');
       try {
         const resp = await fetch('/app/checkin', {
           method: 'POST',
@@ -1727,8 +1740,14 @@
             dateRaw: new Date().toDateString(),
             meals: [...meals], workouts: [...workouts],
             weight,
-            totalKcal: meals.reduce((s, m) => s + (m.kcal || 0), 0),
-            totalProtein: meals.reduce((s, m) => s + (m.protein || 0), 0)
+            totalKcal: meals.reduce((s, e) => {
+              if (e.status === 'skipped') return s;
+              return s + ((e.editable && e.editable.kcal) || (e.data && e.data.kcal) || e.kcal || 0);
+            }, 0),
+            totalProtein: meals.reduce((s, e) => {
+              if (e.status === 'skipped') return s;
+              return s + ((e.editable && e.editable.protein) || (e.data && e.data.protein) || e.protein || 0);
+            }, 0)
           };
           state.logs.unshift(entry);
           if (state.logs.length > 30) state.logs.pop();
@@ -1750,8 +1769,14 @@
         dateRaw: new Date().toDateString(),
         meals: [...meals], workouts: [...workouts],
         weight,
-        totalKcal: meals.reduce((s, m) => s + (m.kcal || 0), 0),
-        totalProtein: meals.reduce((s, m) => s + (m.protein || 0), 0)
+        totalKcal: meals.reduce((s, e) => {
+          if (e.status === 'skipped') return s;
+          return s + ((e.editable && e.editable.kcal) || (e.data && e.data.kcal) || e.kcal || 0);
+        }, 0),
+        totalProtein: meals.reduce((s, e) => {
+          if (e.status === 'skipped') return s;
+          return s + ((e.editable && e.editable.protein) || (e.data && e.data.protein) || e.protein || 0);
+        }, 0)
       };
       state.logs.unshift(entryLocal);
       if (state.logs.length > 30) state.logs.pop();
@@ -1764,7 +1789,7 @@
       const aiCont = document.getElementById('daily-summary-ai');
       aiCont.innerHTML = '<div class="spinner" style="margin:12px auto;"></div>';
       const p = state.profile;
-      const prompt2 = `Analiza dnia dla ${p.name} (cel: ${p.goal}, ${calcProtein(p)}g białka / ${calcCalories(p)} kcal cel):\nPosiłki: ${meals.map(m => m.name).join(', ') || 'brak'} (${entryLocal.totalKcal} kcal, ${entryLocal.totalProtein}g białka)\nTrening: ${workouts.map(w => w.name).join(', ') || 'brak'}\nWaga: ${weight || 'nie podano'} kg\n\nDaj BARDZO krótką (2-3 zdania) analizę dnia i 1 konkretną radę na jutro. Pisz po polsku, bezpośrednio.`;
+      const prompt2 = `Analiza dnia dla ${p.name} (cel: ${p.goal}, ${calcProtein(p)}g białka / ${calcCalories(p)} kcal cel):\nPosiłki: ${meals.map(e => (e.data && e.data.name) || e.name).join(', ') || 'brak'} (${entryLocal.totalKcal} kcal, ${entryLocal.totalProtein}g białka)\nTrening: ${workouts.map(w => (w.data && w.data.name) || w.name).join(', ') || 'brak'}\nWaga: ${weight || 'nie podano'} kg\n\nDaj BARDZO krótką (2-3 zdania) analizę dnia i 1 konkretną radę na jutro. Pisz po polsku, bezpośrednio.`;
       try {
         const r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 300, messages: [{ role: 'user', content: prompt2 }] }) });
         const d = await r.json();
@@ -1807,8 +1832,17 @@
       // calories
       const kcalT = calcCalories(p);
       const protT = calcProtein(p);
-      const todayKcal = state.today.meals.reduce((s, m) => s + (m.kcal || 0), 0);
-      const todayProt = state.today.meals.reduce((s, m) => s + (m.protein || 0), 0);
+      // Sum macros from today's active entries (respect status)
+      const todayKcal = state.today.meals.reduce((s, entry) => {
+        if (entry.status === 'skipped') return s;
+        const kcal = (entry.editable && entry.editable.kcal) || (entry.data && entry.data.kcal) || entry.kcal || 0;
+        return s + kcal;
+      }, 0);
+      const todayProt = state.today.meals.reduce((s, entry) => {
+        if (entry.status === 'skipped') return s;
+        const prot = (entry.editable && entry.editable.protein) || (entry.data && entry.data.protein) || entry.protein || 0;
+        return s + prot;
+      }, 0);
       document.getElementById('kpi-kcal').textContent = todayKcal;
       document.getElementById('kpi-kcal-target').textContent = `/ ${kcalT} kcal`;
       document.getElementById('kpi-protein').textContent = todayProt + 'g';
@@ -2223,7 +2257,14 @@
       const protein = parseInt(document.getElementById('cm-prot').value) || 0;
       const carbs = parseInt(document.getElementById('cm-carb').value) || 0;
       const fat = parseInt(document.getElementById('cm-fat').value) || 0;
-      state.today.meals.push({ name, kcal, protein, carbs, fat, time: new Date().toLocaleTimeString('pl', { hour: '2-digit', minute: '2-digit' }) });
+      const entry = {
+        id: `custom-meal-${Date.now()}`,
+        source: 'custom',
+        status: 'custom',
+        data: { name, kcal, protein, carbs, fat, time: new Date().toLocaleTimeString('pl', { hour: '2-digit', minute: '2-digit' }) },
+        editable: { kcal, protein, carbs, fat, serving: 1 }
+      };
+      state.today.meals.push(entry);
       state.today.date = new Date().toDateString();
       saveToStorage();
       renderMealLog();
@@ -2237,7 +2278,15 @@
       const planIdx = [6, 0, 1, 2, 3, 4, 5][today];
       const d = state.plan.days?.[planIdx];
       if (!d?.meals?.length) { showToast('Brak posiłków w planie na dziś.'); return; }
-      state.today.meals = [...d.meals.map(m => ({ ...m, time: m.time || '' }))];
+      state.today.meals = d.meals.map((m, mi) => ({
+        id: `plan-meal-${planIdx}-${mi}`,
+        source: 'plan',
+        plan_day_index: planIdx,
+        plan_item_index: mi,
+        status: 'planned',
+        data: { ...m, time: m.time || '' },
+        editable: { kcal: m.kcal || 0, protein: m.protein || 0, carbs: m.carbs || 0, fat: m.fat || 0, serving: 1 }
+      }));
       state.today.date = new Date().toDateString();
       saveToStorage();
       renderMealLog();
@@ -2247,23 +2296,31 @@
     function renderMealLog() {
       const cont = document.getElementById('meal-log');
       if (!state.today.meals.length) { cont.innerHTML = '<div style="color:var(--muted);font-size:12px;text-align:center;padding:12px;">Brak zalogowanych posiłków.</div>'; return; }
-      cont.innerHTML = state.today.meals.map((m, i) => `
+      cont.innerHTML = state.today.meals.map((entry, i) => {
+        const m = entry.data || {};
+        const kcal = (entry.editable && entry.editable.kcal) || m.kcal || 0;
+        const prot = (entry.editable && entry.editable.protein) || m.protein || 0;
+        const time = m.time || '';
+        const badge = `<span class="tag" style="background:transparent;border:1px solid var(--border);color:var(--muted);">${entry.status}</span>`;
+        const swapBtn = entry.source === 'plan' ? `<button class="btn btn-ghost btn-sm" onclick="swapMealEntry(${i});event.stopPropagation();" title="Zamień">🔄</button>` : '';
+        return `
     <div class="log-entry">
       <div class="log-head">
-        <span class="log-name">${m.name}</span>
+        <div style="display:flex;gap:8px;align-items:center"><span class="log-name">${m.name}</span>${badge}</div>
         <div style="display:flex;gap:6px;align-items:center;">
-          <span class="log-time">${m.time || ''}</span>
-          <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;" onclick="removeMeal(${i})">✕</button>
+          <span class="log-time">${time}</span>
+          <button class="btn btn-ghost btn-sm" onclick="toggleMealDone(${i});event.stopPropagation();" title="Oznacz jako wykonane">✅</button>
+          <button class="btn btn-ghost btn-sm" onclick="editMeal(${i});event.stopPropagation();" title="Edytuj">✏️</button>
+          ${swapBtn}
+          <button class="btn btn-ghost btn-sm" onclick="removeMeal(${i});event.stopPropagation();" title="Usuń">✕</button>
         </div>
       </div>
       <div class="log-detail">
-        <span class="macro-pill p" style="font-size:10px;padding:2px 7px;">B:${m.protein || 0}g</span>
-        <span class="macro-pill c" style="font-size:10px;padding:2px 7px;">W:${m.carbs || 0}g</span>
-        <span class="macro-pill f" style="font-size:10px;padding:2px 7px;">T:${m.fat || 0}g</span>
-        <span class="macro-pill k" style="font-size:10px;padding:2px 7px;">${m.kcal || 0} kcal</span>
+        <span class="macro-pill p" style="font-size:10px;padding:2px 7px;">B:${prot}g</span>
+        <span class="macro-pill k" style="font-size:10px;padding:2px 7px;">${kcal} kcal</span>
       </div>
     </div>
-  `).join('');
+  `}).join('');
     }
     function removeMeal(i) {
       state.today.meals.splice(i, 1);
@@ -2276,7 +2333,14 @@
       const name = document.getElementById('cw-name').value || 'Ćwiczenie';
       const sets = document.getElementById('cw-sets').value || '';
       const note = document.getElementById('cw-note').value || '';
-      state.today.workouts.push({ name, sets, note, time: new Date().toLocaleTimeString('pl', { hour: '2-digit', minute: '2-digit' }) });
+      const entry = {
+        id: `custom-ex-${Date.now()}`,
+        source: 'custom',
+        status: 'custom',
+        data: { name, sets, note, time: new Date().toLocaleTimeString('pl', { hour: '2-digit', minute: '2-digit' }) },
+        editable: { sets, reps: '', weight_kg: 0, duration: 0 }
+      };
+      state.today.workouts.push(entry);
       state.today.date = new Date().toDateString();
       saveToStorage();
       renderWorkoutLog();
@@ -2289,7 +2353,15 @@
       const planIdx = [6, 0, 1, 2, 3, 4, 5][today];
       const d = state.plan.days?.[planIdx];
       if (!d?.workout?.exercises?.length) { showToast('Dzień odpoczynku lub brak treningu w planie.'); return; }
-      state.today.workouts = d.workout.exercises.map(ex => ({ name: ex.name, sets: `${ex.sets}x${ex.reps}`, note: 'Z planu', time: '' }));
+      state.today.workouts = d.workout.exercises.map((ex, ei) => ({
+        id: `plan-ex-${planIdx}-${ei}`,
+        source: 'plan',
+        plan_day_index: planIdx,
+        plan_item_index: ei,
+        status: 'planned',
+        data: { ...ex },
+        editable: { sets: ex.sets || 0, reps: ex.reps || '', weight_kg: ex.weight_kg || 0, duration: ex.duration_seconds || 0 }
+      }));
       state.today.date = new Date().toDateString();
       saveToStorage();
       renderWorkoutLog();
@@ -2298,23 +2370,107 @@
     function renderWorkoutLog() {
       const cont = document.getElementById('workout-log');
       if (!state.today.workouts.length) { cont.innerHTML = '<div style="color:var(--muted);font-size:12px;text-align:center;padding:12px;">Brak zalogowanych ćwiczeń.</div>'; return; }
-      cont.innerHTML = state.today.workouts.map((w, i) => `
+      cont.innerHTML = state.today.workouts.map((entry, i) => {
+        const w = entry.data || {};
+        const meta = entry.editable || {};
+        const info = meta.sets ? `${meta.sets} x ${meta.reps || ''}` : w.sets ? `${w.sets} x ${w.reps || ''}` : '';
+        const badge = `<span class="tag" style="background:transparent;border:1px solid var(--border);color:var(--muted);">${entry.status}</span>`;
+        const swapBtn = entry.source === 'plan' ? `<button class="btn btn-ghost btn-sm" onclick="swapExerciseEntry(${i});event.stopPropagation();" title="Zamień">🔄</button>` : '';
+        return `
     <div class="log-entry">
       <div class="log-head">
-        <span class="log-name">${w.name}</span>
+        <div style="display:flex;gap:8px;align-items:center"><span class="log-name">${w.name}</span>${badge}</div>
         <div style="display:flex;gap:6px;align-items:center;">
-          <span class="log-time">${w.sets}</span>
-          <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;" onclick="removeWorkout(${i})">✕</button>
+          <span class="log-time">${info}</span>
+          <button class="btn btn-ghost btn-sm" onclick="toggleWorkoutDone(${i});event.stopPropagation();" title="Oznacz jako wykonane">✅</button>
+          <button class="btn btn-ghost btn-sm" onclick="editWorkout(${i});event.stopPropagation();" title="Edytuj">✏️</button>
+          ${swapBtn}
+          <button class="btn btn-ghost btn-sm" onclick="removeWorkout(${i});event.stopPropagation();" title="Usuń">✕</button>
         </div>
       </div>
       ${w.note ? `<div class="log-detail">${w.note}</div>` : ''}
     </div>
-  `).join('');
+  `}).join('');
     }
     function removeWorkout(i) {
       state.today.workouts.splice(i, 1);
       renderWorkoutLog();
       saveToStorage();
+    }
+
+    // Toggle meal done/undone
+    function toggleMealDone(i) {
+      const e = state.today.meals[i]; if (!e) return;
+      e.status = e.status === 'done' ? (e.source === 'plan' ? 'planned' : 'custom') : 'done';
+      if (e.status === 'done') e.completed_at = new Date().toISOString(); else delete e.completed_at;
+      saveToStorage(); renderMealLog(); updateKPIs();
+    }
+
+    function editMeal(i) {
+      const e = state.today.meals[i]; if (!e) return;
+      const name = prompt('Nazwa posiłku', (e.data && e.data.name) || '');
+      if (name !== null) { e.data = e.data || {}; e.data.name = name; }
+      const kcal = prompt('Kalorie (kcal)', ((e.editable && e.editable.kcal) || (e.data && e.data.kcal) || 0));
+      if (kcal !== null) { e.editable = e.editable || {}; e.editable.kcal = parseInt(kcal) || 0; }
+      const prot = prompt('Białko (g)', ((e.editable && e.editable.protein) || (e.data && e.data.protein) || 0));
+      if (prot !== null) { e.editable = e.editable || {}; e.editable.protein = parseInt(prot) || 0; }
+      saveToStorage(); renderMealLog(); updateKPIs();
+    }
+
+    async function swapMealEntry(i) {
+      const e = state.today.meals[i]; if (!e || e.source !== 'plan') { showToast('Brak planowego posiłku do zamiany.'); return; }
+      showToast('🤖 Proszę czekać — zamiennik...');
+      try {
+        const resp = await fetch('/app/plan/swap', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+          body: JSON.stringify({ day_index: e.plan_day_index, section: 'meal', item_index: e.plan_item_index, alternative_index: 0 })
+        });
+        if (resp.ok) {
+          const data = await resp.json(); state.plan = data.plan || state.plan; saveToStorage();
+          // update entry from updated plan
+          const updated = state.plan.days?.[e.plan_day_index]?.meals?.[e.plan_item_index];
+          if (updated) { e.data = { ...updated, time: updated.time || e.data.time }; e.status = 'swapped'; }
+          renderMealLog(); updateKPIs(); showToast('✅ Zamieniono posiłek (serwer)'); return;
+        }
+      } catch (err) { console.warn('swapMealEntry failed', err); }
+      showToast('❌ Nie udało się zamienić posiłku (brak serwera).');
+    }
+
+    // Workouts
+    function toggleWorkoutDone(i) {
+      const e = state.today.workouts[i]; if (!e) return;
+      e.status = e.status === 'done' ? (e.source === 'plan' ? 'planned' : 'custom') : 'done';
+      if (e.status === 'done') e.completed_at = new Date().toISOString(); else delete e.completed_at;
+      saveToStorage(); renderWorkoutLog();
+    }
+
+    function editWorkout(i) {
+      const e = state.today.workouts[i]; if (!e) return;
+      const name = prompt('Nazwa ćwiczenia', (e.data && e.data.name) || '');
+      if (name !== null) { e.data = e.data || {}; e.data.name = name; }
+      const sets = prompt('Serie', ((e.editable && e.editable.sets) || (e.data && e.data.sets) || ''));
+      if (sets !== null) { e.editable = e.editable || {}; e.editable.sets = sets; }
+      const reps = prompt('Powtórzenia', ((e.editable && e.editable.reps) || (e.data && e.data.reps) || ''));
+      if (reps !== null) { e.editable = e.editable || {}; e.editable.reps = reps; }
+      saveToStorage(); renderWorkoutLog();
+    }
+
+    async function swapExerciseEntry(i) {
+      const e = state.today.workouts[i]; if (!e || e.source !== 'plan') { showToast('Brak planowego ćwiczenia do zamiany.'); return; }
+      showToast('🤖 Proszę czekać — zamiennik...');
+      try {
+        const resp = await fetch('/app/plan/swap', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+          body: JSON.stringify({ day_index: e.plan_day_index, section: 'exercise', item_index: e.plan_item_index, alternative_index: 0 })
+        });
+        if (resp.ok) {
+          const data = await resp.json(); state.plan = data.plan || state.plan; saveToStorage();
+          const updated = state.plan.days?.[e.plan_day_index]?.workout?.exercises?.[e.plan_item_index];
+          if (updated) { e.data = { ...updated }; e.status = 'swapped'; }
+          renderWorkoutLog(); showToast('✅ Zamieniono ćwiczenie (serwer)'); return;
+        }
+      } catch (err) { console.warn('swapExerciseEntry failed', err); }
+      showToast('❌ Nie udało się zamienić ćwiczenia (brak serwera).');
     }
 
     function saveWeight() {
@@ -2338,8 +2494,14 @@
         dateRaw: new Date().toDateString(),
         meals: [...meals], workouts: [...workouts],
         weight,
-        totalKcal: meals.reduce((s, m) => s + (m.kcal || 0), 0),
-        totalProtein: meals.reduce((s, m) => s + (m.protein || 0), 0)
+        totalKcal: meals.reduce((s, e) => {
+          if (e.status === 'skipped') return s;
+          return s + ((e.editable && e.editable.kcal) || (e.data && e.data.kcal) || e.kcal || 0);
+        }, 0),
+        totalProtein: meals.reduce((s, e) => {
+          if (e.status === 'skipped') return s;
+          return s + ((e.editable && e.editable.protein) || (e.data && e.data.protein) || e.protein || 0);
+        }, 0)
       };
       state.logs.unshift(entry);
       if (state.logs.length > 30) state.logs.pop();
@@ -2353,11 +2515,11 @@
       aiCont.innerHTML = '<div class="spinner" style="margin:12px auto;"></div>';
       const p = state.profile;
       const prompt2 = `Analiza dnia dla ${p.name} (cel: ${p.goal}, ${calcProtein(p)}g białka / ${calcCalories(p)} kcal cel):
-Posiłki: ${meals.map(m => m.name).join(', ') || 'brak'} (${entry.totalKcal} kcal, ${entry.totalProtein}g białka)
-Trening: ${workouts.map(w => w.name).join(', ') || 'brak'}
-Waga: ${weight || 'nie podano'} kg
+    Posiłki: ${meals.map(e => (e.data && e.data.name) || e.name).join(', ') || 'brak'} (${entry.totalKcal} kcal, ${entry.totalProtein}g białka)
+    Trening: ${workouts.map(w => (w.data && w.data.name) || w.name).join(', ') || 'brak'}
+    Waga: ${weight || 'nie podano'} kg
 
-Daj BARDZO krótką (2-3 zdania) analizę dnia i 1 konkretną radę na jutro. Pisz po polsku, bezpośrednio.`;
+    Daj BARDZO krótką (2-3 zdania) analizę dnia i 1 konkretną radę na jutro. Pisz po polsku, bezpośrednio.`;
       try {
         const r = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
