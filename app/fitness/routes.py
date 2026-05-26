@@ -190,6 +190,37 @@ def daily_checkin(
                 existing.mood = log.mood
             if log.weight is not None:
                 existing.weight = log.weight
+            # Nowe pola — aktualizuj tylko jeśli podane
+            if log.sleep_hours is not None:
+                existing.sleep_hours = log.sleep_hours
+            if log.sleep_quality is not None:
+                existing.sleep_quality = log.sleep_quality
+            if log.sleep_start is not None:
+                existing.sleep_start = log.sleep_start
+            if log.sleep_end is not None:
+                existing.sleep_end = log.sleep_end
+            if log.energy_level is not None:
+                existing.energy_level = log.energy_level
+            # energy_score to alias energy_level
+            if log.energy_score is not None:
+                existing.energy_level = log.energy_score
+            if log.stress_level is not None:
+                existing.stress_level = log.stress_level
+            if log.mood_score is not None:
+                existing.mood_score = log.mood_score
+            if log.rpe is not None:
+                existing.rpe = log.rpe
+            if log.meals_eaten is not None:
+                existing.meals_eaten = log.meals_eaten
+            if log.workouts_done is not None:
+                existing.workouts_done = log.workouts_done
+            if log.notes is not None:
+                existing.notes = log.notes
+            # Woda — jeśli podana w ml, dodaj do water_liters
+            if log.water_ml is not None:
+                existing.water_liters = round(
+                    (existing.water_liters or 0) + log.water_ml / 1000, 4
+                )
             existing.logged_at = datetime.now()  # ← Use datetime object
             entry = existing
         else:
@@ -201,6 +232,18 @@ def daily_checkin(
                 workout=log.workout,
                 mood=log.mood,
                 weight=log.weight,
+                sleep_hours=log.sleep_hours,
+                sleep_quality=log.sleep_quality,
+                sleep_start=log.sleep_start,
+                sleep_end=log.sleep_end,
+                energy_level=log.energy_level or log.energy_score,
+                stress_level=log.stress_level,
+                mood_score=log.mood_score,
+                rpe=log.rpe,
+                meals_eaten=log.meals_eaten,
+                workouts_done=log.workouts_done,
+                notes=log.notes,
+                water_liters=round(log.water_ml / 1000, 4) if log.water_ml else None,
             )
 
         session.add(entry)
@@ -211,6 +254,9 @@ def daily_checkin(
         had_previous_workout = existing and existing.workout
 
         xp_earned = _XP_CHECKIN
+
+        if log.water_ml is not None and log.water_ml >= 500:
+            xp_earned += _XP_WATER_LOGGED
         
         if log.weight is not None:
             xp_earned += _XP_WEIGHT_LOGGED
@@ -231,6 +277,9 @@ def daily_checkin(
         # ANTI-SPAM: Award XP for workout ONLY once per day
         if log.workout and (is_new_entry or (not had_previous_workout)):
             xp_earned += _XP_WORKOUT_LOGGED
+
+        if log.meals_eaten:
+            xp_earned += min(log.meals_eaten * _XP_MEAL_LOGGED, 25)
 
         user.total_xp = (user.total_xp or 0) + xp_earned
 
@@ -259,6 +308,62 @@ def daily_checkin(
                 user.total_xp
             ),
         }
+
+
+@router.get("/checkin-history")
+def get_checkin_history(
+    limit: int = 30,
+    user: UserDB = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    """
+    Zwraca historię check-inów użytkownika (ostatnie N dni).
+    Używane do statystyk, wykresów i generowania planów.
+    """
+    logs = list(
+        session.exec(
+            select(DailyLogDB)
+            .where(DailyLogDB.user_id == user.id)
+            .order_by(DailyLogDB.log_date.desc())
+        ).all()
+    )[:max(1, min(limit, 365))]
+
+    logs_with_data = [l for l in logs if any([
+        l.sleep_hours, l.energy_level, l.stress_level,
+        l.weight, l.mood_score, l.rpe
+    ])]
+
+    avg_sleep = None
+    avg_energy = None
+    avg_stress = None
+    avg_rpe = None
+
+    sleep_vals = [l.sleep_hours for l in logs if l.sleep_hours is not None]
+    energy_vals = [l.energy_level for l in logs if l.energy_level is not None]
+    stress_vals = [l.stress_level for l in logs if l.stress_level is not None]
+    rpe_vals = [l.rpe for l in logs if l.rpe is not None]
+
+    if sleep_vals:
+        avg_sleep = round(sum(sleep_vals) / len(sleep_vals), 1)
+    if energy_vals:
+        avg_energy = round(sum(energy_vals) / len(energy_vals), 1)
+    if stress_vals:
+        avg_stress = round(sum(stress_vals) / len(stress_vals), 1)
+    if rpe_vals:
+        avg_rpe = round(sum(rpe_vals) / len(rpe_vals), 1)
+
+    return {
+        "logs": [l.to_dict() for l in logs],
+        "stats": {
+            "total_checkins": len(logs),
+            "checkins_with_data": len(logs_with_data),
+            "avg_sleep_hours": avg_sleep,
+            "avg_energy_level": avg_energy,
+            "avg_stress_level": avg_stress,
+            "avg_rpe": avg_rpe,
+            "streak_days": user.streak_days,
+        }
+    }
 
 
 @router.post("/exercise-result")

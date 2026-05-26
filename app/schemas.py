@@ -128,23 +128,68 @@ class WaterLogRequest(BaseModel):
 
 
 class AppDailyCheckinRequest(BaseModel):
+    # Pola tekstowe (legacy — zachowane dla kompatybilności)
     food: str = ""
     workout: str = ""
     mood: str = ""
+    # Podstawowe dane liczbowe
     weight: Optional[float] = None
-    # ── Recovery / autoregulation fields (used by RECOVERY_PROMPT) ───────────
-    mood_score: Optional[int] = Field(
-        default=None, ge=1, le=10,
-        description="Nastrój 1–10 (opcjonalne, uzupełnia pole mood)"
+    water_ml: Optional[int] = Field(
+        default=None, ge=0, le=10000,
+        description="Spożyta woda w ml (zostanie przeliczona na litry)"
     )
-    energy_score: Optional[int] = Field(
+    # Sen
+    sleep_hours: Optional[float] = Field(
+        default=None, ge=0, le=24,
+        description="Czas snu w godzinach (np. 7.5)"
+    )
+    sleep_quality: Optional[int] = Field(
+        default=None, ge=1, le=10,
+        description="Jakość snu 1–10"
+    )
+    sleep_start: Optional[str] = Field(
+        default=None,
+        description="Godzina zaśnięcia HH:MM (np. 23:00)"
+    )
+    sleep_end: Optional[str] = Field(
+        default=None,
+        description="Godzina wstania HH:MM (np. 07:00)"
+    )
+    # Samopoczucie
+    energy_level: Optional[int] = Field(
         default=None, ge=1, le=10,
         description="Poziom energii 1–10"
     )
-    soreness: Optional[str] = Field(
-        default=None,
-        description="Opis zakwasów / bólu, np. 'klatka piersiowa, uda'"
+    stress_level: Optional[int] = Field(
+        default=None, ge=1, le=10,
+        description="Poziom stresu 1–10"
     )
+    mood_score: Optional[int] = Field(
+        default=None, ge=1, le=5,
+        description="Nastrój 1–5 (1=fatalny, 5=świetny)"
+    )
+    # Trening
+    rpe: Optional[int] = Field(
+        default=None, ge=1, le=10,
+        description="RPE treningu 1–10"
+    )
+    meals_eaten: Optional[int] = Field(
+        default=None, ge=0, le=20,
+        description="Liczba zjedzonych posiłków"
+    )
+    workouts_done: Optional[int] = Field(
+        default=None, ge=0, le=50,
+        description="Liczba wykonanych ćwiczeń/drilli"
+    )
+    notes: Optional[str] = Field(
+        default=None, max_length=1000,
+        description="Dowolna notatka do dnia"
+    )
+    # Legacy — zachowane dla kompatybilności
+    energy_score: Optional[int] = Field(
+        default=None, ge=1, le=10
+    )
+    soreness: Optional[str] = None
 
 
 # ─── Fitness / Exercise Schemas ───────────────────────────────────────────────

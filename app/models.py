@@ -160,6 +160,18 @@ class DailyLogDB(SQLModel, table=True):
     mood: str = ""
     weight: Optional[float] = None
     water_liters: Optional[float] = None          # spożycie wody w litrach (inkrementowane)
+    # ── Check-in rozszerzony (Mój Dzień v2) ──────────────────────────────
+    sleep_hours: Optional[float] = None      # czas snu w godzinach (np. 7.5)
+    sleep_quality: Optional[int] = None      # jakość snu 1-10
+    sleep_start: Optional[str] = None        # godzina zaśnięcia "23:00"
+    sleep_end: Optional[str] = None          # godzina wstania "07:00"
+    energy_level: Optional[int] = None       # poziom energii 1-10
+    stress_level: Optional[int] = None       # poziom stresu 1-10
+    mood_score: Optional[int] = None         # nastrój 1-5 (emoji scale)
+    rpe: Optional[int] = None                # RPE treningu 1-10
+    meals_eaten: Optional[int] = None        # liczba zjedzonych posiłków
+    workouts_done: Optional[int] = None      # liczba wykonanych ćwiczeń
+    notes: Optional[str] = None              # notatka do dnia
     logged_at: datetime = Field(default_factory=datetime.now)  # Rzeczywisty datetime
 
     user: "UserDB" = Relationship(
@@ -178,6 +190,17 @@ class DailyLogDB(SQLModel, table=True):
             "mood": self.mood,
             "weight": self.weight,
             "water_liters": self.water_liters,
+            "sleep_hours": self.sleep_hours,
+            "sleep_quality": self.sleep_quality,
+            "sleep_start": self.sleep_start,
+            "sleep_end": self.sleep_end,
+            "energy_level": self.energy_level,
+            "stress_level": self.stress_level,
+            "mood_score": self.mood_score,
+            "rpe": self.rpe,
+            "meals_eaten": self.meals_eaten,
+            "workouts_done": self.workouts_done,
+            "notes": self.notes,
             "logged_at": self.logged_at.isoformat(),
         }
 
