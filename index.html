@@ -2461,9 +2461,10 @@
               <span>✅</span> Zapisz Check-in
             </button>
           </div>
-          <div id="checkinConfirmModal" class="hidden fixed inset-0 z-[1200] items-center justify-center p-4"
-            style="background:rgba(0,0,0,0.72);">
-            <div class="glass rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 shadow-2xl">
+          <div id="checkinConfirmModal" class="hidden fixed inset-0 items-center justify-center p-4"
+            style="z-index:10000;min-height:100dvh;background:rgba(0,0,0,0.86);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);">
+            <div class="glass rounded-2xl w-full max-w-3xl max-h-[88vh] overflow-y-auto p-6 shadow-2xl"
+              style="margin:auto;border:1px solid rgba(0,229,255,0.28);box-shadow:0 32px 90px rgba(0,0,0,0.78),0 0 80px rgba(0,229,255,0.08);">
               <div class="flex items-start justify-between gap-4 mb-5">
                 <div>
                   <h4 class="text-2xl font-bold text-white" style="font-family:'Syne',sans-serif;">Podsumowanie
@@ -14141,6 +14142,16 @@
       renderCheckinSummaryModal(summary);
       const modal = document.getElementById('checkinConfirmModal');
       if (!modal) return;
+      if (modal.parentElement !== document.body) {
+        document.body.appendChild(modal);
+      }
+      modal.style.position = 'fixed';
+      modal.style.inset = '0';
+      modal.style.zIndex = '10000';
+      modal.style.minHeight = '100dvh';
+      modal.style.background = 'rgba(0,0,0,0.86)';
+      modal.style.backdropFilter = 'blur(10px)';
+      modal.style.webkitBackdropFilter = 'blur(10px)';
       modal.classList.remove('hidden');
       modal.classList.add('flex');
       document.body.style.overflow = 'hidden';
