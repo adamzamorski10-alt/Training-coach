@@ -2282,23 +2282,6 @@
           </div>
         </div>
 
-        <div class="glass p-6">
-          <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
-            <h4 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">📋 Plan dnia — checklista
-            </h4>
-            <div class="flex gap-2">
-              <button onclick="openAddOtherModal('diet')"
-                class="btn-outline-cyan px-3 py-1.5 rounded-xl text-xs font-bold">+ Posiłek</button>
-              <button onclick="openAddOtherModal('training')"
-                class="btn-ghost px-3 py-1.5 rounded-xl text-xs font-bold">+ Trening</button>
-            </div>
-          </div>
-          <div id="planChecklistContainer" class="space-y-2">
-            <p class="text-sm text-gray-500 italic text-center py-8">Ładowanie...</p>
-          </div>
-          <div id="extraItemsContainer" class="space-y-2 mt-2"></div>
-        </div>
-
         <!-- ══════════ CHECK-IN v2 ══════════ -->
         <div class="glass p-6 rounded-2xl space-y-6">
           <div class="flex items-center gap-3 mb-1">
@@ -2478,7 +2461,7 @@
               <span>✅</span> Zapisz Check-in
             </button>
           </div>
-          <div id="checkinSummaryModal" class="hidden fixed inset-0 z-[1200] items-center justify-center p-4"
+          <div id="checkinConfirmModal" class="hidden fixed inset-0 z-[1200] items-center justify-center p-4"
             style="background:rgba(0,0,0,0.72);">
             <div class="glass rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 shadow-2xl">
               <div class="flex items-start justify-between gap-4 mb-5">
@@ -7328,10 +7311,12 @@
      * Called on tab switch to "Mój Dzień" and "Plan".
      */
     async function _loadTodayEatenFromBackend() {
-      const identityId = state.identityId;
-      if (!identityId || !window.API_BASE) return;
+      const token = localStorage.getItem('fitai_token');
+      if (!token || !window.API_BASE) return;
       try {
-        const r = await fetch(window.API_BASE + '/app/checkin/' + identityId);
+        const r = await fetch(window.API_BASE + '/app/checkin', {
+          headers: { 'Authorization': 'Bearer ' + token },
+        });
         if (!r.ok) return;
         const data = await r.json();
         const todayDate = new Date().toISOString().slice(0, 10);
@@ -12265,6 +12250,7 @@
     // ========== TODAY PLAN CHECKLIST ==========
     function loadTodayPlanChecklist() {
       const p = getCurrentProfile();
+      if (!p) return;
       const todayIdx = (new Date().getDay() + 6) % 7;
       const day = state.days[todayIdx];
       // Use date-based key (Single Source of Truth)
@@ -12307,6 +12293,12 @@
       // Update day label
       const dayLabel = document.getElementById('todayDayLabel');
       if (dayLabel) dayLabel.textContent = new Date().toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' });
+
+      if (!container) {
+        updateDayProgress();
+        updateDaySummaryCounters();
+        return;
+      }
 
       if (meals.length === 0 && exercises.length === 0) {
         container.innerHTML = '<p class="text-sm text-gray-500 italic text-center py-8">Brak planu na dziś. Uzupełnij profil i zapisz go.</p>';
@@ -13134,7 +13126,7 @@
 
     function _extractTodayDayKey() {
       const days = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
-      const today = state.currentDay !== undefined ? state.currentDay : ((new Date().getDay() + 6) % 7);
+      const today = (new Date().getDay() + 6) % 7;
       return days[today] || 'Pon';
     }
 
@@ -13148,11 +13140,79 @@
       return 'inne';
     }
 
+    function _activeDayPlanMeal(m, i) {
+      return {
+        id: m.id || ('plan_m_' + i),
+        name: m.name || ('Posiłek ' + (i + 1)),
+        kcal: Number(m.kcal) || 0,
+        protein: Number(m.protein) || 0,
+        carbs: Number(m.carbs) || 0,
+        fat: Number(m.fat) || 0,
+        category: _normalizeMealCategory(m.category || m._type || m.type),
+        done: false,
+        custom: false,
+        status: 'planned',
+        source: 'plan',
+        planIndex: i,
+      };
+    }
+
+    function _activeDayPlanExercise(e, i) {
+      return {
+        id: e.id || ('plan_e_' + i),
+        name: e.name || ('Ćwiczenie ' + (i + 1)),
+        sets: Number(e.sets) || 3,
+        reps: Number(e.reps) || 10,
+        weight: Number(e.weight) || 0,
+        done: false,
+        custom: false,
+        isDrill: !!(e.isDrill || e._sport),
+        sport: e.sport || null,
+        notes: e.notes || e.desc || '',
+        status: 'planned',
+        source: 'plan',
+        planIndex: i,
+      };
+    }
+
+    function _mergeActiveDayPlanItems(currentItems, planItems) {
+      const current = Array.isArray(currentItems) ? currentItems : [];
+      const used = new Set();
+      const sameItem = (a, b) => {
+        if (!a || !b) return false;
+        if (a.id && b.id && a.id === b.id) return true;
+        if (a.source === 'plan' && b.source === 'plan' && a.planIndex === b.planIndex && a.name === b.name) return true;
+        return String(a.name || '').trim().toLowerCase() === String(b.name || '').trim().toLowerCase();
+      };
+
+      const merged = planItems.map(planItem => {
+        const existingIndex = current.findIndex((item, idx) => !used.has(idx) && sameItem(item, planItem));
+        if (existingIndex === -1) return planItem;
+        used.add(existingIndex);
+        const existing = current[existingIndex];
+        return {
+          ...planItem,
+          done: !!existing.done || existing.status === 'done',
+          status: existing.status || planItem.status,
+          completed_at: existing.completed_at,
+          pr: existing.pr,
+        };
+      });
+
+      current.forEach((item, idx) => {
+        if (!used.has(idx) && item && item.source !== 'plan') merged.push(item);
+      });
+
+      return merged;
+    }
+
     // ── Inicjalizacja ────────────────────────────────────────────────────────
 
     function initActiveDayFromPlan() {
       console.log('[FitAI] initActiveDayFromPlan()');
       const dateStr = new Date().toDateString();
+      const p = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
+      const dayKey = _extractTodayDayKey();
       const dateEl = document.getElementById('activeDayDate');
       if (dateEl) {
         dateEl.textContent = new Date().toLocaleDateString('pl-PL', { weekday: 'short', day: '2-digit', month: 'short' });
@@ -13167,9 +13227,6 @@
           date: dateStr,
         }, saved);
       } else {
-        const p = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
-        const dayKey = _extractTodayDayKey();
-
         _activeDay = {
           meals: [], exercises: [], rpe: null, mood: null,
           sleepStart: null, sleepEnd: null, sleepHours: null,
@@ -13179,43 +13236,27 @@
         if (p && p.dietPlan && Array.isArray(p.dietPlan[dayKey])) {
           _activeDay.meals = p.dietPlan[dayKey]
             .filter(m => m && !m.hidden)
-            .map((m, i) => ({
-                id: m.id || ('plan_m_' + i),
-              name: m.name || ('Posiłek ' + (i + 1)),
-              kcal: Number(m.kcal) || 0,
-              protein: Number(m.protein) || 0,
-              carbs: Number(m.carbs) || 0,
-              fat: Number(m.fat) || 0,
-              category: _normalizeMealCategory(m.category || m._type || m.type),
-                done: false,
-                custom: false,
-                status: 'planned',
-                source: 'plan',
-                planIndex: i,
-            }));
+            .map(_activeDayPlanMeal);
         }
 
         if (p && p.trainingPlan && Array.isArray(p.trainingPlan[dayKey])) {
           _activeDay.exercises = p.trainingPlan[dayKey]
             .filter(e => e && !e.hidden)
-            .map((e, i) => ({
-                id: e.id || ('plan_e_' + i),
-              name: e.name || ('Ćwiczenie ' + (i + 1)),
-              sets: Number(e.sets) || 3,
-              reps: Number(e.reps) || 10,
-              weight: Number(e.weight) || 0,
-              done: false,
-              custom: false,
-              isDrill: !!(e.isDrill || e._sport),
-              sport: e.sport || null,
-              notes: '',
-                status: 'planned',
-                source: 'plan',
-                planIndex: i,
-            }));
+            .map(_activeDayPlanExercise);
         }
-        saveActiveDayState();
       }
+
+      if (p && p.dietPlan && Array.isArray(p.dietPlan[dayKey])) {
+        const planMeals = p.dietPlan[dayKey].filter(m => m && !m.hidden).map(_activeDayPlanMeal);
+        _activeDay.meals = _mergeActiveDayPlanItems(_activeDay.meals, planMeals);
+      }
+
+      if (p && p.trainingPlan && Array.isArray(p.trainingPlan[dayKey])) {
+        const planExercises = p.trainingPlan[dayKey].filter(e => e && !e.hidden).map(_activeDayPlanExercise);
+        _activeDay.exercises = _mergeActiveDayPlanItems(_activeDay.exercises, planExercises);
+      }
+
+      saveActiveDayState();
 
       const ssEl = document.getElementById('sleepStart');
       const seEl = document.getElementById('sleepEnd');
@@ -14068,7 +14109,7 @@
     }
 
     function closeCheckinSummaryModal() {
-      const modal = document.getElementById('checkinSummaryModal');
+      const modal = document.getElementById('checkinConfirmModal');
       if (!modal) return;
       modal.classList.add('hidden');
       modal.classList.remove('flex');
@@ -14098,7 +14139,7 @@
     function openCheckinSummaryModal(summary) {
       pendingCheckinSummary = summary;
       renderCheckinSummaryModal(summary);
-      const modal = document.getElementById('checkinSummaryModal');
+      const modal = document.getElementById('checkinConfirmModal');
       if (!modal) return;
       modal.classList.remove('hidden');
       modal.classList.add('flex');
@@ -14129,9 +14170,279 @@
       };
     }
 
+    function _validateCheckin() {
+      const errors = [];
+
+      const weightEl = document.getElementById('checkinWeight')
+        || document.getElementById('weightInput')
+        || document.querySelector('input[placeholder*="waga"]')
+        || document.querySelector('input[placeholder*="kg"]');
+      const weight = parseFloat(weightEl?.value);
+      if (!weight || weight < 20 || weight > 500) {
+        errors.push({
+          field: '⚖️ Waga',
+          msg: 'Wpisz aktualną wagę w kg (np. 75.5)',
+          el: weightEl,
+        });
+      }
+
+      const sleepStartEl = document.getElementById('sleepStart');
+      const sleepEndEl = document.getElementById('sleepEnd');
+      if (sleepStartEl && sleepEndEl && (!sleepStartEl.value || !sleepEndEl.value)) {
+        errors.push({
+          field: '🌙 Czas snu',
+          msg: 'Zalecane: uzupełnij godziny snu dla lepszej analizy',
+          optional: true,
+          el: sleepStartEl,
+        });
+      }
+
+      return errors;
+    }
+
+    function _showCheckinValidationModal(errors) {
+      document.getElementById('checkinValidationModal')?.remove();
+
+      const required = errors.filter(e => !e.optional);
+      const optional = errors.filter(e => e.optional);
+      const hasRequired = required.length > 0;
+
+      const modal = document.createElement('div');
+      modal.id = 'checkinValidationModal';
+      modal.style.cssText = [
+        'position:fixed', 'inset:0', 'z-index:10000',
+        'display:flex', 'align-items:center', 'justify-content:center',
+        'padding:16px', 'background:rgba(0,0,0,0.8)',
+        'backdrop-filter:blur(8px)',
+      ].join(';');
+
+      const renderItem = (e, color, rgb) => `
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:12px;border-radius:12px;margin-bottom:10px;background:rgba(${rgb},0.06);border:1px solid rgba(${rgb},0.2);">
+          <span style="font-size:20px;flex-shrink:0;">${e.field.split(' ')[0]}</span>
+          <div>
+            <p style="font-size:13px;font-weight:600;color:${color};">${e.field.split(' ').slice(1).join(' ')}</p>
+            <p style="font-size:12px;color:#64748b;margin-top:2px;">${e.msg}</p>
+          </div>
+        </div>`;
+
+      modal.innerHTML = `
+        <div style="background:rgba(10,11,16,0.98);border:1px solid ${hasRequired ? 'rgba(239,68,68,0.4)' : 'rgba(250,204,21,0.4)'};border-radius:20px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.6);animation:springBounce 0.4s cubic-bezier(0.34,1.56,0.64,1);">
+          <div style="padding:20px 24px;background:${hasRequired ? 'rgba(239,68,68,0.06)' : 'rgba(250,204,21,0.06)'};border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:12px;">
+            <span style="font-size:28px;">${hasRequired ? '⚠️' : '💡'}</span>
+            <div>
+              <h3 style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:#fff;">${hasRequired ? 'Uzupełnij wymagane dane' : 'Pola zalecane'}</h3>
+              <p style="font-size:12px;color:#64748b;margin-top:2px;">${hasRequired ? 'Brakujące informacje są potrzebne do analizy' : 'Możesz zapisać — te dane pomogą AI lepiej Cię rozumieć'}</p>
+            </div>
+          </div>
+          <div style="padding:20px 24px;">
+            ${required.map(e => renderItem(e, '#f87171', '239,68,68')).join('')}
+            ${optional.map(e => renderItem(e, '#facc15', '250,204,21')).join('')}
+          </div>
+          <div style="padding:16px 24px;display:flex;gap:10px;border-top:1px solid rgba(255,255,255,0.07);">
+            <button onclick="document.getElementById('checkinValidationModal').remove()" style="flex:1;padding:10px;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#9ca3af;">Wróć i uzupełnij</button>
+            ${!hasRequired ? `<button onclick="document.getElementById('checkinValidationModal').remove();_executeSaveCheckin();" style="flex:1;padding:10px;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;background:linear-gradient(135deg,rgba(0,229,255,0.2),rgba(124,58,237,0.2));border:1px solid rgba(0,229,255,0.4);color:#00e5ff;">Zapisz mimo to</button>` : ''}
+          </div>
+        </div>`;
+
+      document.body.appendChild(modal);
+      modal.addEventListener('click', e => {
+        if (e.target === modal) modal.remove();
+      });
+
+      const firstRequired = required[0]?.el;
+      if (firstRequired) {
+        setTimeout(() => {
+          firstRequired.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          firstRequired.style.borderColor = 'rgba(239,68,68,0.6)';
+          firstRequired.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.15)';
+          firstRequired.focus();
+          setTimeout(() => {
+            firstRequired.style.borderColor = '';
+            firstRequired.style.boxShadow = '';
+          }, 3000);
+        }, 100);
+      }
+    }
+
+    function _showCheckinSummaryModal() {
+      const p = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
+      if (!p) return;
+
+      document.getElementById('checkinSummaryModal')?.remove();
+
+      const weight = parseFloat(document.getElementById('checkinWeight')?.value
+        || document.getElementById('weightInput')?.value || 0);
+      const sleepQual = parseInt(document.getElementById('checkinSleep')?.value
+        || document.getElementById('sleepVal')?.value || 5);
+      const energy = parseInt(document.getElementById('checkinEnergy')?.value || 5);
+      const stress = parseInt(document.getElementById('checkinStress')?.value || 5);
+
+      const sleepStartEl = document.getElementById('sleepStart');
+      const sleepEndEl = document.getElementById('sleepEnd');
+      let sleepHours = null;
+      if (sleepStartEl?.value && sleepEndEl?.value) {
+        const [sh, sm] = sleepStartEl.value.split(':').map(Number);
+        const [eh, em] = sleepEndEl.value.split(':').map(Number);
+        let mins = (eh * 60 + em) - (sh * 60 + sm);
+        if (mins < 0) mins += 1440;
+        sleepHours = (mins / 60).toFixed(1);
+      }
+
+      const mood = typeof _activeDay !== 'undefined' ? _activeDay.mood : null;
+      const rpe = typeof _activeDay !== 'undefined' ? _activeDay.rpe : null;
+      const streak = p.streak_days || p.streakDays || 0;
+      const level = p.level || 1;
+      const xp = p.total_xp || p.totalXp || 0;
+
+      const suggestions = [];
+      if (sleepHours !== null && parseFloat(sleepHours) < 6) suggestions.push({ icon: '😴', color: '#f87171', text: 'Mało snu (' + sleepHours + 'h) — jutro lżejszy trening' });
+      if (energy <= 3) suggestions.push({ icon: '⚡', color: '#facc15', text: 'Niska energia — rozważ dzień aktywnego odpoczynku' });
+      if (stress >= 8) suggestions.push({ icon: '🧘', color: '#a78bfa', text: 'Wysoki stres — joga lub spacer zamiast siłowni' });
+      if (rpe !== null && rpe >= 9) suggestions.push({ icon: '🏆', color: '#4ade80', text: 'Świetny wysiłek RPE ' + rpe + '! Zadbaj o regenerację' });
+      if (suggestions.length === 0) suggestions.push({ icon: '✅', color: '#4ade80', text: 'Wszystko wygląda świetnie — dobry dzień!' });
+
+      const sleepScore = sleepHours !== null ? Math.min(100, parseFloat(sleepHours) / 8 * 100) : sleepQual * 10;
+      const energyScore = energy * 10;
+      const stressScore = (10 - stress) * 10;
+      const dayScore = Math.round((sleepScore + energyScore + stressScore) / 3);
+      const scoreColor = dayScore >= 75 ? '#4ade80' : dayScore >= 50 ? '#facc15' : '#f87171';
+      const scoreEmoji = dayScore >= 75 ? '🔥' : dayScore >= 50 ? '👍' : '😴';
+      const MOOD_EMOJIS = { 1: '😴', 2: '😐', 3: '🙂', 4: '😄', 5: '🔥' };
+
+      const rgbFor = color => color === '#4ade80' ? '74,222,128' : color === '#facc15' ? '250,204,21' : color === '#a78bfa' ? '124,58,237' : '239,68,68';
+      const modal = document.createElement('div');
+      modal.id = 'checkinSummaryModal';
+      modal.style.cssText = [
+        'position:fixed', 'inset:0', 'z-index:10000',
+        'display:flex', 'align-items:center', 'justify-content:center',
+        'padding:16px', 'background:rgba(0,0,0,0.85)',
+        'backdrop-filter:blur(12px)',
+      ].join(';');
+
+      modal.innerHTML = `
+        <div style="background:rgba(10,11,16,0.98);border:1px solid rgba(0,229,255,0.25);border-radius:24px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;box-shadow:0 32px 80px rgba(0,0,0,0.7),0 0 60px rgba(0,229,255,0.06);animation:springBounce 0.4s cubic-bezier(0.34,1.56,0.64,1);">
+          <div style="padding:28px 24px 20px;text-align:center;background:linear-gradient(135deg,rgba(0,229,255,0.05),rgba(124,58,237,0.05));border-bottom:1px solid rgba(255,255,255,0.07);">
+            <div style="font-size:48px;margin-bottom:8px;">${scoreEmoji}</div>
+            <h2 style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#fff;margin-bottom:4px;">Dzień zapisany! 🎉</h2>
+            <p style="font-size:13px;color:#64748b;">${new Date().toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+            <div style="margin:16px auto 0;width:90px;height:90px;position:relative;display:inline-block;">
+              <svg viewBox="0 0 90 90" style="width:90px;height:90px;transform:rotate(-90deg)">
+                <circle cx="45" cy="45" r="36" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"/>
+                <circle cx="45" cy="45" r="36" fill="none" stroke="${scoreColor}" stroke-width="8" stroke-linecap="round" stroke-dasharray="226" stroke-dashoffset="${Math.round(226 - (dayScore / 100) * 226)}"/>
+              </svg>
+              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                <span style="font-size:20px;font-weight:800;color:${scoreColor};font-family:'Syne',sans-serif;">${dayScore}</span>
+                <span style="font-size:9px;color:#64748b;margin-top:1px;">/ 100</span>
+              </div>
+            </div>
+            <p style="font-size:11px;color:#64748b;margin-top:6px;">Wynik dnia</p>
+          </div>
+          <div style="padding:20px 24px;">
+            <p style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;">📊 Statystyki dnia</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+              ${weight > 0 ? `<div style="padding:12px;border-radius:14px;text-align:center;background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.12);"><p style="font-size:22px;font-weight:800;color:#00e5ff;font-family:'Syne',sans-serif;">${weight} kg</p><p style="font-size:10px;color:#64748b;margin-top:2px;">⚖️ Waga</p></div>` : ''}
+              ${sleepHours !== null ? `<div style="padding:12px;border-radius:14px;text-align:center;background:rgba(${parseFloat(sleepHours) >= 7 ? '74,222,128' : '239,68,68'},0.06);border:1px solid rgba(${parseFloat(sleepHours) >= 7 ? '74,222,128' : '239,68,68'},0.15);"><p style="font-size:22px;font-weight:800;color:${parseFloat(sleepHours) >= 7 ? '#4ade80' : '#f87171'};font-family:'Syne',sans-serif;">${sleepHours}h</p><p style="font-size:10px;color:#64748b;margin-top:2px;">🌙 Sen</p></div>` : ''}
+              <div style="padding:12px;border-radius:14px;text-align:center;background:rgba(${energy >= 7 ? '74,222,128' : energy >= 4 ? '250,204,21' : '239,68,68'},0.06);border:1px solid rgba(${energy >= 7 ? '74,222,128' : energy >= 4 ? '250,204,21' : '239,68,68'},0.15);"><p style="font-size:22px;font-weight:800;color:${energy >= 7 ? '#4ade80' : energy >= 4 ? '#facc15' : '#f87171'};font-family:'Syne',sans-serif;">${energy}/10</p><p style="font-size:10px;color:#64748b;margin-top:2px;">⚡ Energia</p></div>
+              <div style="padding:12px;border-radius:14px;text-align:center;background:rgba(${stress <= 3 ? '74,222,128' : stress <= 6 ? '250,204,21' : '239,68,68'},0.06);border:1px solid rgba(${stress <= 3 ? '74,222,128' : stress <= 6 ? '250,204,21' : '239,68,68'},0.15);"><p style="font-size:22px;font-weight:800;color:${stress <= 3 ? '#4ade80' : stress <= 6 ? '#facc15' : '#f87171'};font-family:'Syne',sans-serif;">${stress}/10</p><p style="font-size:10px;color:#64748b;margin-top:2px;">🧠 Stres</p></div>
+              ${mood !== null ? `<div style="padding:12px;border-radius:14px;text-align:center;background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.15);"><p style="font-size:26px;font-family:'Syne',sans-serif;">${MOOD_EMOJIS[mood] || '🙂'}</p><p style="font-size:10px;color:#64748b;margin-top:2px;">🎭 Nastrój</p></div>` : ''}
+              ${rpe !== null ? `<div style="padding:12px;border-radius:14px;text-align:center;background:rgba(${rpe >= 8 ? '239,68,68' : rpe >= 5 ? '250,204,21' : '74,222,128'},0.06);border:1px solid rgba(${rpe >= 8 ? '239,68,68' : rpe >= 5 ? '250,204,21' : '74,222,128'},0.15);"><p style="font-size:22px;font-weight:800;color:${rpe >= 8 ? '#f87171' : rpe >= 5 ? '#facc15' : '#4ade80'};font-family:'Syne',sans-serif;">RPE ${rpe}</p><p style="font-size:10px;color:#64748b;margin-top:2px;">🔥 Wysiłek</p></div>` : ''}
+            </div>
+            <div style="padding:12px 16px;border-radius:14px;margin-bottom:16px;background:linear-gradient(135deg,rgba(0,229,255,0.06),rgba(124,58,237,0.06));border:1px solid rgba(0,229,255,0.12);display:flex;align-items:center;justify-content:space-between;">
+              <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:20px;">🔥</span><div><p style="font-size:12px;font-weight:700;color:#fff;">Streak: ${streak} dni</p><p style="font-size:11px;color:#64748b;">Level ${level} · ${xp} XP</p></div></div>
+              <div style="text-align:right;"><p style="font-size:11px;color:#4ade80;font-weight:600;">+10 XP</p><p style="font-size:10px;color:#64748b;">za check-in</p></div>
+            </div>
+            <p style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">💡 Sugestie na jutro</p>
+            <div>
+              ${suggestions.map(s => `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-radius:12px;margin-bottom:8px;background:rgba(${rgbFor(s.color)},0.06);border:1px solid rgba(${rgbFor(s.color)},0.15);"><span style="font-size:16px;flex-shrink:0;">${s.icon}</span><p style="font-size:12px;color:#d1d5db;line-height:1.5;">${s.text}</p></div>`).join('')}
+            </div>
+          </div>
+          <div style="padding:16px 24px;border-top:1px solid rgba(255,255,255,0.07);display:flex;gap:10px;">
+            <button onclick="document.getElementById('checkinSummaryModal').remove();showTab('postepy');" style="flex:1;padding:10px;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#9ca3af;">📈 Pokaż postępy</button>
+            <button onclick="document.getElementById('checkinSummaryModal').remove();" style="flex:2;padding:10px;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,rgba(0,229,255,0.2),rgba(124,58,237,0.2));border:1px solid rgba(0,229,255,0.4);color:#00e5ff;">✅ Świetnie, zamknij</button>
+          </div>
+        </div>`;
+
+      document.body.appendChild(modal);
+      modal.addEventListener('click', e => {
+        if (e.target === modal) modal.remove();
+      });
+    }
+
+    async function _saveCheckinToAPI(payloadOverride) {
+      const token = localStorage.getItem('fitai_token');
+      if (!token || !window.API_BASE) {
+        console.warn('[saveCheckin] Brak tokena lub API_BASE — zapis tylko lokalnie');
+        return null;
+      }
+
+      const payload = payloadOverride || {
+        food: getCheckinMealList().map(m => m.name).join(', '),
+        workout: getCheckinWorkoutList().join(', '),
+        mood: `Sen:${_checkinSliders.sleep} Energia:${_checkinSliders.energy} Stres:${_checkinSliders.stress}`,
+        weight: parseFloat(document.getElementById('checkinWeight')?.value) || null,
+        sleep_quality: _checkinSliders.sleep,
+        energy_level: _checkinSliders.energy,
+        energy_score: _checkinSliders.energy,
+        stress_level: _checkinSliders.stress,
+        sleep_start: _activeDay?.sleepStart || null,
+        sleep_end: _activeDay?.sleepEnd || null,
+        sleep_duration_minutes: _activeDay?.sleepHours ?? null,
+        mood_score: _activeDay?.mood ?? null,
+        training_rpe: _activeDay?.rpe ?? null,
+        water_liters: (typeof water !== 'undefined') ? Math.round(water.current / 1000 * 10000) / 10000 : null,
+        eaten_meals: getCheckinMealList().map(m => m.name),
+      };
+
+      Object.keys(payload).forEach(k => {
+        if (payload[k] === null || payload[k] === undefined || payload[k] === '') delete payload[k];
+      });
+
+      try {
+        const res = await fetch(window.API_BASE + '/app/checkin', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const err = await res.text();
+          console.error('[saveCheckin] Błąd API:', res.status, err);
+          return null;
+        }
+
+        const data = await res.json();
+        console.log('[saveCheckin] Zapisano do bazy:', data);
+        const p = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
+        if (data.streak_days !== undefined && p) p.streak_days = data.streak_days;
+        if (data.total_xp !== undefined && p) p.total_xp = data.total_xp;
+        else if (data.xp_earned !== undefined && p) p.total_xp = (p.total_xp || 0) + data.xp_earned;
+        if (data.level !== undefined && p) p.level = data.level;
+        if (typeof saveState === 'function') saveState();
+        return data;
+      } catch (e) {
+        console.error('[saveCheckin] Błąd sieci:', e.message);
+        return null;
+      }
+    }
+
+    async function _executeSaveCheckin(summaryOverride) {
+      const saved = await submitCheckinConfirmed(summaryOverride);
+      if (saved) _showCheckinSummaryModal();
+      return saved;
+    }
+
     async function submitCheckin() {
-      const validation = validateCheckinRequired();
-      if (!validation.ok) return;
+      // ── Walidacja pól check-in ─────────────────────────────────────
+      const checkinValidationErrors = _validateCheckin();
+      if (checkinValidationErrors.length > 0) {
+        _showCheckinValidationModal(checkinValidationErrors);
+        return;
+      }
+      // ── Koniec walidacji ───────────────────────────────────────────
+
       const summary = buildCheckinSummary();
       openCheckinSummaryModal(summary);
     }
@@ -14141,9 +14452,8 @@
       const profile = getCurrentProfile();
       if (!profile) {
         showToast('⚠️ Brak aktywnego profilu.');
-        return;
+        return false;
       }
-      const identityId = state.identityId;
       const feedback = document.getElementById('checkinFeedback');
       const p = getCurrentProfile();
       const todayIdx = (new Date().getDay() + 6) % 7;
@@ -14164,6 +14474,7 @@
         weight: parseFloat(document.getElementById('checkinWeight')?.value) || null,
         sleep_quality: _checkinSliders.sleep,
         energy_level: _checkinSliders.energy,
+        energy_score: _checkinSliders.energy,
         stress_level: _checkinSliders.stress,
         sleep_start: _activeDay?.sleepStart || null,
         sleep_end: _activeDay?.sleepEnd || null,
@@ -14198,43 +14509,30 @@
       }
 
       // Try API if online
-      if (identityId && window.API_BASE) {
-        try {
-          const r = await fetch(window.API_BASE + '/app/checkin/' + identityId, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          });
-          if (r.ok) {
-            const data = await r.json();
-            // ── ZADANIE 2: Odśwież dane po każdym check-inie ────────────────────
-            updateDashboard();
-            // Odśwież stats jeśli zakładka Postępy jest otwarta
-            if (document.getElementById('tab-postepy') && !document.getElementById('tab-postepy').classList.contains('hidden')) {
-              _statsData = null; // wymuś ponowne pobranie, nie tylko re-render
-              initCharts();
-            }
-            // ── Aktualizuj wskaźnik wody w check-inie ─────────────────────────
-            if (data.water_ml_today !== undefined) _syncCheckinWaterDisplay(data.water_ml_today);
-            // ── Aktualizuj XP jeśli jest w odpowiedzi ─────────────────────────
-            if (data.xp_earned) {
-              showToast('✅ Check-in zapisany! +' + data.xp_earned + ' XP 🔥 Streak: ' + (data.streak_days || 1) + ' dni', 'success');
-              _updateXpBar(data.total_xp);
-            } else {
-              showToast('✅ Check-in zapisany! Streak: ' + (data.streak_days || 1) + ' dni 🔥', 'success');
-            }
-            if (feedback) {
-              feedback.textContent = '✅ Zapisano!';
-              feedback.classList.remove('hidden');
-              setTimeout(() => feedback.classList.add('hidden'), 3000);
-            }
-            return;
+      if (window.API_BASE) {
+        const data = await _saveCheckinToAPI(payload);
+        if (data) {
+          updateDashboard();
+          if (document.getElementById('tab-postepy') && !document.getElementById('tab-postepy').classList.contains('hidden')) {
+            _statsData = null;
+            initCharts();
           }
-        } catch (e) {
-          if (typeof apiErrorToast === 'function') apiErrorToast(e, 'Check-in');
-          console.warn('API offline, saved locally', e);
+          if (data.water_ml_today !== undefined) _syncCheckinWaterDisplay(data.water_ml_today);
+          if (data.xp_earned) {
+            showToast('✅ Check-in zapisany! +' + data.xp_earned + ' XP 🔥 Streak: ' + (data.streak_days || 1) + ' dni', 'success');
+            _updateXpBar(data.total_xp);
+          } else {
+            showToast('✅ Check-in zapisany! Streak: ' + (data.streak_days || 1) + ' dni 🔥', 'success');
+          }
+          if (feedback) {
+            feedback.textContent = '✅ Zapisano!';
+            feedback.classList.remove('hidden');
+            setTimeout(() => feedback.classList.add('hidden'), 3000);
+          }
+          return true;
         }
       }
+
       // Offline success
       updateDashboard();
       if (feedback) {
@@ -14242,6 +14540,7 @@
         feedback.classList.remove('hidden');
         setTimeout(() => feedback.classList.add('hidden'), 3500);
       }
+      return true;
     }
 
     const checkinSummaryConfirmBtn = document.getElementById('checkinSummaryConfirm');
@@ -14249,7 +14548,7 @@
       checkinSummaryConfirmBtn.onclick = async () => {
         const snapshot = pendingCheckinSummary;
         closeCheckinSummaryModal();
-        await submitCheckinConfirmed(snapshot);
+        await _executeSaveCheckin(snapshot);
       };
     }
 

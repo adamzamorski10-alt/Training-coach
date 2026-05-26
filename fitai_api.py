@@ -399,6 +399,18 @@ class DailyLogDB(SQLModel, table=True):
     mood: str = ""
     weight: Optional[float] = None
     water_liters: Optional[float] = None          # spożycie wody w litrach (inkrementowane)
+    sleep_quality: Optional[int] = None
+    energy_level: Optional[int] = None
+    stress_level: Optional[int] = None
+    sleep_start: Optional[str] = None
+    sleep_end: Optional[str] = None
+    sleep_duration_minutes: Optional[int] = None
+    mood_score: Optional[int] = None
+    training_rpe: Optional[int] = None
+    waist_cm: Optional[float] = None
+    chest_cm: Optional[float] = None
+    photo_path: Optional[str] = None
+    eaten_meals_json: str = "[]"
     logged_at: str = Field(default_factory=lambda: datetime.now().isoformat())
 
     user: "UserDB" = Relationship(
@@ -417,8 +429,30 @@ class DailyLogDB(SQLModel, table=True):
             "mood": self.mood,
             "weight": self.weight,
             "water_liters": self.water_liters,
+            "sleep_quality": self.sleep_quality,
+            "energy_level": self.energy_level,
+            "stress_level": self.stress_level,
+            "sleep_start": self.sleep_start,
+            "sleep_end": self.sleep_end,
+            "sleep_duration_minutes": self.sleep_duration_minutes,
+            "mood_score": self.mood_score,
+            "training_rpe": self.training_rpe,
+            "waist_cm": self.waist_cm,
+            "chest_cm": self.chest_cm,
+            "photo_path": self.photo_path,
+            "eaten_meals": self.get_eaten_meals(),
             "logged_at": self.logged_at,
         }
+
+    def set_eaten_meals(self, meals: list[str]) -> None:
+        self.eaten_meals_json = json.dumps(meals or [], ensure_ascii=False)
+
+    def get_eaten_meals(self) -> list[str]:
+        try:
+            data = json.loads(self.eaten_meals_json or "[]")
+            return data if isinstance(data, list) else []
+        except Exception:
+            return []
 
 
 class ExerciseResultDB(SQLModel, table=True):
@@ -512,7 +546,42 @@ class DrillResultDB(SQLModel, table=True):
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
+    _ensure_daily_log_columns()
     _create_composite_indexes()
+
+
+def _ensure_daily_log_columns():
+    """Adds new check-in columns to existing local SQLite databases."""
+    if engine.url.get_backend_name() != "sqlite":
+        return
+
+    column_defs = {
+        "sleep_quality": "INTEGER",
+        "energy_level": "INTEGER",
+        "stress_level": "INTEGER",
+        "sleep_start": "TEXT",
+        "sleep_end": "TEXT",
+        "sleep_duration_minutes": "INTEGER",
+        "mood_score": "INTEGER",
+        "training_rpe": "INTEGER",
+        "waist_cm": "REAL",
+        "chest_cm": "REAL",
+        "photo_path": "TEXT",
+        "eaten_meals_json": "TEXT DEFAULT '[]'",
+    }
+
+    try:
+        with engine.connect() as conn:
+            existing = {
+                row[1]
+                for row in conn.execute(_text("PRAGMA table_info(daily_logs)")).fetchall()
+            }
+            for name, ddl_type in column_defs.items():
+                if name not in existing:
+                    conn.execute(_text(f"ALTER TABLE daily_logs ADD COLUMN {name} {ddl_type}"))
+            conn.commit()
+    except OperationalError as exc:
+        print(f"[FitAI] Ostrzeżenie: nie udało się zaktualizować daily_logs: {exc}")
 
 
 def _create_composite_indexes():
@@ -930,6 +999,18 @@ class AppDailyCheckinRequest(BaseModel):
     workout: str = ""
     mood: str = ""
     weight: Optional[float] = None
+    sleep_quality: Optional[int] = Field(default=None, ge=1, le=10)
+    energy_level: Optional[int] = Field(default=None, ge=1, le=10)
+    stress_level: Optional[int] = Field(default=None, ge=1, le=10)
+    sleep_start: Optional[str] = None
+    sleep_end: Optional[str] = None
+    sleep_duration_minutes: Optional[int] = None
+    training_rpe: Optional[int] = Field(default=None, ge=1, le=10)
+    water_liters: Optional[float] = None
+    waist_cm: Optional[float] = None
+    chest_cm: Optional[float] = None
+    photo_path: Optional[str] = None
+    eaten_meals: list[str] = []
     # ── Recovery / autoregulation fields (used by RECOVERY_PROMPT) ───────────
     mood_score: Optional[int] = Field(
         default=None, ge=1, le=10,
@@ -2817,6 +2898,30 @@ def app_dashboard(user: UserDB = Depends(get_current_user)):
         return _build_dashboard(user, logs)
 
 
+@app.get("/app/checkin", tags=["checkin"])
+def app_get_daily_checkin(user: UserDB = Depends(get_current_user)):
+    with Session(engine) as session:
+        today = date.today().isoformat()
+        entry = session.exec(
+            select(DailyLogDB)
+            .where(DailyLogDB.user_id == user.id)
+            .where(DailyLogDB.log_date == today)
+        ).first()
+        if not entry:
+            return {
+                "status": "empty",
+                "date": today,
+                "today_eaten": [],
+                "log": None,
+            }
+        return {
+            "status": "ok",
+            "date": today,
+            "today_eaten": entry.get_eaten_meals(),
+            "log": entry.to_dict(),
+        }
+
+
 @app.post("/app/checkin", tags=["checkin"])
 def app_daily_checkin(log: AppDailyCheckinRequest, user: UserDB = Depends(get_current_user)):
     with Session(engine) as session:
@@ -2841,6 +2946,11 @@ def app_daily_checkin(log: AppDailyCheckinRequest, user: UserDB = Depends(get_cu
             wc = getattr(log, "waist_cm", None)
             cc = getattr(log, "chest_cm", None)
             pp = getattr(log, "photo_path", None)
+            ss = getattr(log, "sleep_start", None)
+            se = getattr(log, "sleep_end", None)
+            sd = getattr(log, "sleep_duration_minutes", None)
+            ms = getattr(log, "mood_score", None)
+            tr = getattr(log, "training_rpe", None)
             if sq is not None: existing.sleep_quality  = sq
             if el is not None: existing.energy_level   = el
             if sl is not None: existing.stress_level   = sl
@@ -2848,6 +2958,11 @@ def app_daily_checkin(log: AppDailyCheckinRequest, user: UserDB = Depends(get_cu
             if wc is not None: existing.waist_cm       = wc
             if cc is not None: existing.chest_cm       = cc
             if pp is not None: existing.photo_path     = pp
+            if ss is not None: existing.sleep_start    = ss
+            if se is not None: existing.sleep_end      = se
+            if sd is not None: existing.sleep_duration_minutes = sd
+            if ms is not None: existing.mood_score     = ms
+            if tr is not None: existing.training_rpe   = tr
             if hasattr(log, "eaten_meals") and log.eaten_meals:
                 existing.set_eaten_meals(log.eaten_meals)
             existing.logged_at = datetime.now().isoformat()
@@ -2864,6 +2979,11 @@ def app_daily_checkin(log: AppDailyCheckinRequest, user: UserDB = Depends(get_cu
                 waist_cm=getattr(log, "waist_cm", None),
                 chest_cm=getattr(log, "chest_cm", None),
                 photo_path=getattr(log, "photo_path", None),
+                sleep_start=getattr(log, "sleep_start", None),
+                sleep_end=getattr(log, "sleep_end", None),
+                sleep_duration_minutes=getattr(log, "sleep_duration_minutes", None),
+                mood_score=getattr(log, "mood_score", None),
+                training_rpe=getattr(log, "training_rpe", None),
             )
             if hasattr(log, "eaten_meals") and log.eaten_meals:
                 entry.set_eaten_meals(log.eaten_meals)
