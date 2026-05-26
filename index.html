@@ -14379,34 +14379,111 @@
       });
     }
 
-    async function _saveCheckinToAPI(payloadOverride) {
+    async function _saveCheckinToAPI() {
       const token = localStorage.getItem('fitai_token');
       if (!token || !window.API_BASE) {
-        console.warn('[saveCheckin] Brak tokena lub API_BASE — zapis tylko lokalnie');
-        return null;
+        console.warn('[saveCheckin] Brak tokena lub API_BASE — tylko lokalny zapis');
+        return { saved_locally_only: true };
       }
 
-      const payload = payloadOverride || {
-        food: getCheckinMealList().map(m => m.name).join(', '),
-        workout: getCheckinWorkoutList().join(', '),
-        mood: `Sen:${_checkinSliders.sleep} Energia:${_checkinSliders.energy} Stres:${_checkinSliders.stress}`,
-        weight: parseFloat(document.getElementById('checkinWeight')?.value) || null,
-        sleep_quality: _checkinSliders.sleep,
-        energy_level: _checkinSliders.energy,
-        energy_score: _checkinSliders.energy,
-        stress_level: _checkinSliders.stress,
-        sleep_start: _activeDay?.sleepStart || null,
-        sleep_end: _activeDay?.sleepEnd || null,
-        sleep_duration_minutes: _activeDay?.sleepHours ?? null,
-        mood_score: _activeDay?.mood ?? null,
-        training_rpe: _activeDay?.rpe ?? null,
-        water_liters: (typeof water !== 'undefined') ? Math.round(water.current / 1000 * 10000) / 10000 : null,
-        eaten_meals: getCheckinMealList().map(m => m.name),
-      };
+      // ── Zbierz dane z formularzy ───────────────────────────────────────────
 
-      Object.keys(payload).forEach(k => {
-        if (payload[k] === null || payload[k] === undefined || payload[k] === '') delete payload[k];
-      });
+      // Waga
+      const weight = parseFloat(
+        document.getElementById('checkinWeight')?.value ||
+        document.getElementById('weightInput')?.value ||
+        document.querySelector('[id*="weight"]')?.value || ''
+      ) || null;
+
+      // Sen — jakość (suwak)
+      const sleepQuality = parseInt(
+        document.getElementById('sleepVal')?.value ||
+        document.getElementById('checkinSleep')?.value ||
+        document.getElementById('checkinSleepQuality')?.value || ''
+      ) || null;
+
+      // Sen — godziny (obliczone z pól sleepStart/sleepEnd)
+      let sleepHours = null;
+      const sleepStart = document.getElementById('sleepStart')?.value || null;
+      const sleepEnd = document.getElementById('sleepEnd')?.value || null;
+      if (sleepStart && sleepEnd) {
+        const [sh, sm] = sleepStart.split(':').map(Number);
+        const [eh, em] = sleepEnd.split(':').map(Number);
+        let mins = (eh * 60 + em) - (sh * 60 + sm);
+        if (mins < 0) mins += 1440;
+        sleepHours = parseFloat((mins / 60).toFixed(1));
+      }
+
+      // Energia
+      const energyLevel = parseInt(
+        document.getElementById('checkinEnergy')?.value ||
+        document.getElementById('energyVal')?.value || ''
+      ) || null;
+
+      // Stres
+      const stressLevel = parseInt(
+        document.getElementById('checkinStress')?.value ||
+        document.getElementById('stressVal')?.value || ''
+      ) || null;
+
+      // Nastrój (1-5 z przycisków)
+      const moodScore = typeof _activeDay !== 'undefined' && _activeDay.mood
+        ? _activeDay.mood : null;
+
+      // RPE treningu
+      const rpe = typeof _activeDay !== 'undefined' && _activeDay.rpe
+        ? _activeDay.rpe : null;
+
+      // Posiłki i ćwiczenia z aktywnego dnia
+      const mealsEaten = typeof _activeDay !== 'undefined'
+        ? (_activeDay.meals || []).filter(m => m.done).length : null;
+      const workoutsDone = typeof _activeDay !== 'undefined'
+        ? (_activeDay.exercises || []).filter(e => e.done).length : null;
+
+      // Woda (z water trackera)
+      const waterMl = parseInt(
+        document.getElementById('waterCurrentMl')?.textContent ||
+        document.getElementById('waterValue')?.textContent ||
+        document.getElementById('waterAmount')?.value ||
+        document.querySelector('[id*="water"]')?.textContent || ''
+      ) || null;
+
+      // Notatka (opcjonalna)
+      const notes = document.getElementById('checkinNotes')?.value?.trim() || null;
+
+      // ── Zbuduj payload ────────────────────────────────────────────────────
+
+      const payload = {};
+      if (weight !== null) payload.weight = weight;
+      if (sleepHours !== null) payload.sleep_hours = sleepHours;
+      if (sleepQuality !== null) payload.sleep_quality = sleepQuality;
+      if (sleepStart) payload.sleep_start = sleepStart;
+      if (sleepEnd) payload.sleep_end = sleepEnd;
+      if (energyLevel !== null) payload.energy_level = energyLevel;
+      if (stressLevel !== null) payload.stress_level = stressLevel;
+      if (moodScore !== null) payload.mood_score = moodScore;
+      if (rpe !== null) payload.rpe = rpe;
+      if (mealsEaten !== null) payload.meals_eaten = mealsEaten;
+      if (workoutsDone !== null) payload.workouts_done = workoutsDone;
+      if (waterMl !== null) payload.water_ml = waterMl;
+      if (notes) payload.notes = notes;
+
+      // Pola tekstowe (legacy)
+      payload.food = (typeof _activeDay !== 'undefined'
+        ? (_activeDay.meals || []).filter(m => m.done)
+          .map(m => m.name).join(', ')
+        : '') || '';
+      payload.workout = (typeof _activeDay !== 'undefined'
+        ? (_activeDay.exercises || []).filter(e => e.done)
+          .map(e => e.name).join(', ')
+        : '') || '';
+      payload.mood = moodScore
+        ? ['', 'Fatalny', 'Słaby', 'OK', 'Dobry', 'Świetny'][moodScore] || ''
+        : '';
+
+      console.log('[saveCheckin] Payload:', JSON.stringify(payload, null, 2));
+
+      // ── Wyślij do API ─────────────────────────────────────────────────────
 
       try {
         const res = await fetch(window.API_BASE + '/app/checkin', {
@@ -14419,29 +14496,80 @@
         });
 
         if (!res.ok) {
-          const err = await res.text();
-          console.error('[saveCheckin] Błąd API:', res.status, err);
-          return null;
+          const errText = await res.text();
+          console.error('[saveCheckin] Błąd API:', res.status, errText);
+          return { error: errText, status: res.status };
         }
 
         const data = await res.json();
-        console.log('[saveCheckin] Zapisano do bazy:', data);
+        console.log('[saveCheckin] ✅ Zapisano w bazie:', data);
+
+        // Zaktualizuj profil z odpowiedzi serwera
         const p = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
-        if (data.streak_days !== undefined && p) p.streak_days = data.streak_days;
-        if (data.total_xp !== undefined && p) p.total_xp = data.total_xp;
-        else if (data.xp_earned !== undefined && p) p.total_xp = (p.total_xp || 0) + data.xp_earned;
-        if (data.level !== undefined && p) p.level = data.level;
-        if (typeof saveState === 'function') saveState();
+        if (p && data) {
+          if (data.streak_days !== undefined) p.streak_days = data.streak_days;
+          if (data.total_xp !== undefined) p.total_xp = data.total_xp;
+          if (data.level !== undefined) p.level = data.level;
+          if (typeof saveState === 'function') saveState();
+        }
+
+        // Aktualizuj streak na dashboardzie
+        const streakEl = document.getElementById('kpiStreak');
+        if (streakEl && data.streak_days !== undefined) {
+          streakEl.textContent = data.streak_days;
+        }
+        const xpEl = document.getElementById('kpiXP') || document.getElementById('totalXpEl');
+        if (xpEl && data.total_xp !== undefined) {
+          xpEl.textContent = data.total_xp;
+        }
+
         return data;
+
       } catch (e) {
         console.error('[saveCheckin] Błąd sieci:', e.message);
+        return { error: e.message, network_error: true };
+      }
+    }
+
+    async function loadCheckinHistory(limit) {
+      limit = limit || 30;
+      const token = localStorage.getItem('fitai_token');
+      if (!token || !window.API_BASE) return null;
+
+      try {
+        const res = await fetch(
+          window.API_BASE + '/app/checkin-history?limit=' + limit,
+          { headers: { 'Authorization': 'Bearer ' + token } }
+        );
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        console.log('[loadCheckinHistory] Załadowano:', data.stats);
+        return data;
+      } catch (e) {
+        console.warn('[loadCheckinHistory] Błąd:', e.message);
         return null;
       }
     }
 
     async function _executeSaveCheckin(summaryOverride) {
       const saved = await submitCheckinConfirmed(summaryOverride);
-      if (saved) _showCheckinSummaryModal();
+      if (!saved) return saved;
+
+      // Zapis do API
+      _saveCheckinToAPI()
+        .then(apiResult => {
+          if (apiResult && !apiResult.error && !apiResult.saved_locally_only) {
+            console.log('[saveCheckin] Dane zapisane w bazie danych');
+          } else if (apiResult?.saved_locally_only) {
+            console.log('[saveCheckin] Brak połączenia — dane tylko lokalnie');
+          } else if (apiResult?.error) {
+            console.error('[saveCheckin] Błąd zapisu do bazy:', apiResult.error);
+          }
+        })
+        .catch(e => console.error('[saveCheckin] Nieoczekiwany błąd:', e));
+
+      // Pokaż modal podsumowania
+      _showCheckinSummaryModal();
       return saved;
     }
 
@@ -14519,35 +14647,9 @@
         saveState();
       }
 
-      // Try API if online
-      if (window.API_BASE) {
-        const data = await _saveCheckinToAPI(payload);
-        if (data) {
-          updateDashboard();
-          if (document.getElementById('tab-postepy') && !document.getElementById('tab-postepy').classList.contains('hidden')) {
-            _statsData = null;
-            initCharts();
-          }
-          if (data.water_ml_today !== undefined) _syncCheckinWaterDisplay(data.water_ml_today);
-          if (data.xp_earned) {
-            showToast('✅ Check-in zapisany! +' + data.xp_earned + ' XP 🔥 Streak: ' + (data.streak_days || 1) + ' dni', 'success');
-            _updateXpBar(data.total_xp);
-          } else {
-            showToast('✅ Check-in zapisany! Streak: ' + (data.streak_days || 1) + ' dni 🔥', 'success');
-          }
-          if (feedback) {
-            feedback.textContent = '✅ Zapisano!';
-            feedback.classList.remove('hidden');
-            setTimeout(() => feedback.classList.add('hidden'), 3000);
-          }
-          return true;
-        }
-      }
-
-      // Offline success
       updateDashboard();
       if (feedback) {
-        feedback.textContent = '✅ Check-in zapisany lokalnie!';
+        feedback.textContent = '✅ Check-in zapisany lokalnie — synchronizuję z API...';
         feedback.classList.remove('hidden');
         setTimeout(() => feedback.classList.add('hidden'), 3500);
       }
