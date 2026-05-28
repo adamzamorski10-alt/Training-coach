@@ -4129,17 +4129,17 @@
 
         <div class="flex gap-2 p-1 rounded-2xl"
           style="background:rgba(255,255,255,0.04);border:1px solid var(--border);">
-          <button onclick="switchProgressSubTab('overview')" data-progress-subtab="overview"
-            class="flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-all"
+          <button class="sub-tab-btn btn-ghost px-4 py-2 rounded-lg text-sm transition-all" data-subtab="overview"
+            onclick="showSubTab('overview')"
             style="background:rgba(0,229,255,0.14);border:1px solid rgba(0,229,255,0.35);color:var(--cyan);">📈
             Przegląd</button>
-          <button onclick="switchProgressSubTab('weekly')" data-progress-subtab="weekly"
-            class="flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-all"
+          <button class="sub-tab-btn btn-ghost px-4 py-2 rounded-lg text-sm transition-all"
+            data-subtab="weekly-analysis" onclick="showSubTab('weekly-analysis')"
             style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);color:var(--muted);">📊
             Analiza Tygodnia</button>
         </div>
 
-        <div id="progressSubtab-overview" class="space-y-6">
+        <div id="subtab-overview" class="subtab-panel space-y-6">
 
           <!-- KPI Cards -->
           <div class="grid grid-cols-3 gap-3" id="kpiCards">
@@ -4346,28 +4346,8 @@
 
         </div>
 
-        <div id="progressSubtab-weekly" class="hidden space-y-6">
-          <div class="glass rounded-2xl overflow-hidden" style="border:1px solid rgba(124,58,237,0.15);">
-            <div class="px-5 py-4 flex items-center justify-between"
-              style="background:rgba(124,58,237,0.04);border-bottom:1px solid rgba(255,255,255,0.07);">
-              <div>
-                <h2 class="text-sm font-bold text-white uppercase tracking-wider">📊 Analiza Tygodnia</h2>
-                <p class="text-xs text-gray-500 mt-0.5">Trening, drille, dieta, check-iny, sen, nawodnienie i nastrój
-                </p>
-              </div>
-              <button onclick="refreshWeeklyAnalysisPanel(true)" class="text-xs px-3 py-1.5 rounded-lg transition-all"
-                style="background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.3);color:#a78bfa;">🔄
-                Odśwież</button>
-            </div>
-            <div id="weeklyAnalysisPanelContent" class="p-5">
-              <div class="glass rounded-2xl p-6 text-center space-y-3" style="border:1px solid rgba(124,58,237,0.15);">
-                <div class="text-3xl">📊</div>
-                <p class="text-white font-bold" style="font-family:'Syne',sans-serif;">Kliknij "Analiza Tygodnia", aby
-                  pobrać dane</p>
-                <p class="text-xs" style="color:var(--muted);">Panel pobiera dane z ostatnich 7 dni po zalogowaniu.</p>
-              </div>
-            </div>
-          </div>
+        <div id="subtab-weekly-analysis" class="subtab-panel hidden">
+          <div id="subtab-weekly-analysis-content" class="space-y-6"></div>
         </div>
 
       </section>
@@ -7504,197 +7484,427 @@
         _loadProfileIntoForm();
       }
       if (tabId === 'postepy') {
-        switchProgressSubTab('overview');
+        showSubTab('overview');
       }
     }
 
-    let _weeklyAnalysisPanelCache = null;
-    let _weeklyAnalysisPanelLoadedAt = 0;
-    let _weeklyAnalysisPanelLoading = null;
+    let weeklyAnalysisData = null;
+    let weeklyAnalysisLoading = null;
 
-    function switchProgressSubTab(tabId) {
-      const overviewPanel = document.getElementById('progressSubtab-overview');
-      const weeklyPanel = document.getElementById('progressSubtab-weekly');
-      const buttons = document.querySelectorAll('[data-progress-subtab]');
+    function showSubTab(subtabId) {
+      const normalized = subtabId === 'weekly' ? 'weekly-analysis' : subtabId;
+      const panels = document.querySelectorAll('.subtab-panel');
+      panels.forEach(panel => panel.classList.add('hidden'));
 
-      if (overviewPanel) overviewPanel.classList.toggle('hidden', tabId !== 'overview');
-      if (weeklyPanel) weeklyPanel.classList.toggle('hidden', tabId !== 'weekly');
+      const activePanel = document.getElementById('subtab-' + normalized);
+      if (activePanel) activePanel.classList.remove('hidden');
 
-      buttons.forEach(btn => {
-        const active = btn.getAttribute('data-progress-subtab') === tabId;
+      document.querySelectorAll('.sub-tab-btn').forEach(btn => {
+        const active = btn.getAttribute('data-subtab') === normalized;
         btn.classList.toggle('active', active);
         btn.classList.toggle('text-cyan-400', active);
         btn.classList.toggle('text-gray-400', !active);
-        if (active) {
-          btn.style.background = 'rgba(0,229,255,0.14)';
-          btn.style.borderColor = 'rgba(0,229,255,0.35)';
-          btn.style.color = 'var(--cyan)';
-        } else {
-          btn.style.background = 'rgba(255,255,255,0.03)';
-          btn.style.borderColor = 'rgba(255,255,255,0.08)';
-          btn.style.color = 'var(--muted)';
-        }
+        btn.style.background = active ? 'rgba(0,229,255,0.14)' : 'rgba(255,255,255,0.03)';
+        btn.style.borderColor = active ? 'rgba(0,229,255,0.35)' : 'rgba(255,255,255,0.08)';
+        btn.style.color = active ? 'var(--cyan)' : 'var(--muted)';
       });
 
-      if (tabId === 'weekly') {
-        refreshWeeklyAnalysisPanel();
+      if (normalized === 'weekly-analysis') {
+        loadWeeklyAnalysis();
       }
     }
 
-    function _formatWeeklyAnalysisValue(value, fallback = '—') {
-      return value === null || value === undefined || value === '' ? fallback : value;
+    function switchProgressSubTab(tabId) {
+      showSubTab(tabId === 'weekly' ? 'weekly-analysis' : tabId);
+    }
+
+    function formatPlDate(dateValue) {
+      return new Date(dateValue).toLocaleDateString('pl-PL', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      }).replace('.', '');
+    }
+
+    function formatRangeLabel(startDate, endDate) {
+      const start = formatPlDate(startDate).replace(/\b\d{4}\b/, '').trim();
+      const end = formatPlDate(endDate);
+      return `${start} – ${end}`;
+    }
+
+    function formatHours(value) {
+      if (value === null || value === undefined) return 'Brak danych';
+      return `${value.toFixed(1)}h`;
+    }
+
+    function formatVolume(value) {
+      if (value === null || value === undefined) return 'Brak danych';
+      return `${Math.round(value).toLocaleString('pl-PL')} kg`;
+    }
+
+    function generateTrainingSuggestion(summary, days) {
+      if ((summary.weekly_plan_completion_pct || 0) >= 80) return 'Świetny tydzień! Utrzymaj tempo.';
+      if ((summary.active_days || 0) <= 2) return 'Za mało aktywności — spróbuj dodać 1-2 sesje więcej.';
+      if ((summary.avg_rpe || 0) >= 8.5) return 'Bardzo wysokie RPE — rozważ dzień regeneracji.';
+      const bestDay = days.find(day => day.day_label === summary.best_training_day);
+      if (bestDay) return `${bestDay.day_full} to Twój szczyt — planuj ciężkie sesje właśnie wtedy.`;
+      return 'Regularność to klucz — trzymaj plan tygodniowy.';
+    }
+
+    function generateDietSuggestion(summary, days) {
+      const weekend = days.filter(day => ['Sob', 'Niedz'].includes(day.day_label));
+      const weekendLogged = weekend.filter(day => day.food_logged).length;
+      if (weekendLogged === 0 && (summary.food_logged_days || 0) >= 4) {
+        return 'W weekend zapominasz logować — ustaw przypomnienie.';
+      }
+      if ((summary.avg_water_ml || 0) < 1500) return 'Pijesz za mało wody — cel to min. 2L dziennie.';
+      if ((summary.food_logged_days || 0) < 4) return 'Loguj posiłki regularnie — dane = lepszy plan.';
+      return 'Dobra regularność logowania! Utrzymaj nawyk.';
+    }
+
+    function generateRecoverySuggestion(summary) {
+      if (summary.avg_sleep_hours !== null && summary.avg_sleep_hours !== undefined && summary.avg_sleep_hours < 7) {
+        return 'Śpisz za mało — spróbuj kłaść się 30 min wcześniej przez 3 dni.';
+      }
+      if (summary.avg_stress_level !== null && summary.avg_stress_level !== undefined && summary.avg_stress_level > 6.5) {
+        return 'Wysoki stres — rozważ regeneracyjny trening lub dzień wolny.';
+      }
+      if (summary.avg_energy_level !== null && summary.avg_energy_level !== undefined && summary.avg_energy_level < 5) {
+        return 'Niska energia — sprawdź nawodnienie i sen w kolejnym tygodniu.';
+      }
+      if ((summary.checkin_days || 0) < 4) return 'Uzupełniaj check-iny codziennie — to cenne dane.';
+      return 'Regeneracja wygląda dobrze! Kontynuuj.';
+    }
+
+    function getMoodEmoji(score) {
+      const moodMap = { 1: '😴', 2: '😐', 3: '🙂', 4: '😄', 5: '🔥' };
+      return moodMap[Math.max(1, Math.min(5, Math.round(score || 0)))] || '—';
+    }
+
+    function getWeekRange(days) {
+      if (!days.length) return '';
+      return formatRangeLabel(days[0].date, days[days.length - 1].date);
+    }
+
+    function buildWeeklySuggestions(summary, days) {
+      return {
+        training: generateTrainingSuggestion(summary, days),
+        diet: generateDietSuggestion(summary, days),
+        recovery: generateRecoverySuggestion(summary),
+      };
+    }
+
+    function showDayDetails(dateValue) {
+      if (!weeklyAnalysisData || !Array.isArray(weeklyAnalysisData.days)) return;
+      const day = weeklyAnalysisData.days.find(item => item.date === dateValue);
+      if (!day) return;
+
+      const panel = document.getElementById('day-details-panel');
+      const content = document.getElementById('day-details-content');
+      if (!panel || !content) return;
+
+      const exText = day.exercises_logged > 0
+        ? `${day.exercises_logged} sesji`
+        : 'Brak danych';
+      const drillText = day.drills_logged > 0
+        ? `${day.drills_logged} sesje`
+        : 'Brak danych';
+      const waterText = day.water_ml > 0 ? `${day.water_ml}ml (${day.water_pct}%)` : 'Brak danych';
+      const sleepText = day.sleep_hours !== null && day.sleep_hours !== undefined
+        ? `${day.sleep_hours.toFixed(1)}h`
+        : 'Brak danych';
+      const moodText = day.mood_score !== null && day.mood_score !== undefined
+        ? `${getMoodEmoji(day.mood_score)} (${day.mood_score}/5)`
+        : 'Brak danych';
+
+      const exercisesLine = day.exercises_logged > 0
+        ? `${day.exercises_logged} / ${day.exercises_planned || 0} zaplanowanych (${day.exercise_completion_pct || 0}%)`
+        : 'Brak danych — zaloguj aby zobaczyć analizę';
+      const drillAccuracy = day.avg_drill_accuracy_pct !== null && day.avg_drill_accuracy_pct !== undefined
+        ? `${day.drills_logged} sesje | Śr. skuteczność ${Math.round(day.avg_drill_accuracy_pct)}% | RPE ${day.avg_drill_rpe ?? '—'}`
+        : 'Brak danych — zaloguj aby zobaczyć analizę';
+
+      content.innerHTML = `
+        <div class="grid gap-3 md:grid-cols-2">
+          <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+            <div class="text-sm font-semibold text-white mb-1">💪 Trening</div>
+            <div class="text-sm text-gray-300">${exercisesLine}</div>
+            <div class="text-xs text-gray-500 mt-1">${day.exercise_completion_pct ? `${day.exercise_completion_pct}% realizacji` : 'Brak danych — zaloguj aby zobaczyć analizę'}</div>
+            <div class="text-xs text-gray-500 mt-2">${day.total_volume_kg ? `${formatVolume(day.total_volume_kg)}` : 'Brak danych'}</div>
+          </div>
+          <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+            <div class="text-sm font-semibold text-white mb-1">🎯 Drille</div>
+            <div class="text-sm text-gray-300">${drillText}</div>
+            <div class="text-xs text-gray-500 mt-1">${drillAccuracy}</div>
+          </div>
+          <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+            <div class="text-sm font-semibold text-white mb-1">🍽 Dieta</div>
+            <div class="text-sm text-gray-300">${day.food_logged ? '✓ zalogowana' : 'Brak danych — zaloguj aby zobaczyć analizę'}</div>
+            <div class="text-xs text-gray-500 mt-1">Woda: ${waterText}</div>
+          </div>
+          <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+            <div class="text-sm font-semibold text-white mb-1">😴 Sen</div>
+            <div class="text-sm text-gray-300">${sleepText} | Jakość: ${day.sleep_quality !== null && day.sleep_quality !== undefined ? `${day.sleep_quality}/10` : 'Brak danych'}</div>
+          </div>
+          <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+            <div class="text-sm font-semibold text-white mb-1">🧠 Samopoczucie</div>
+            <div class="text-sm text-gray-300">Energia ${day.energy_level !== null && day.energy_level !== undefined ? day.energy_level : 'Brak danych'} | Stres ${day.stress_level !== null && day.stress_level !== undefined ? day.stress_level : 'Brak danych'}</div>
+            <div class="text-xs text-gray-500 mt-1">Nastrój: ${moodText}</div>
+          </div>
+          <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+            <div class="text-sm font-semibold text-white mb-1">⚖️ Waga</div>
+            <div class="text-sm text-gray-300">${day.weight !== null && day.weight !== undefined ? `${day.weight} kg` : 'Brak danych'}</div>
+          </div>
+        </div>`;
+
+      panel.classList.remove('hidden');
+      panel.style.maxHeight = panel.scrollHeight + 'px';
+      panel.style.opacity = '1';
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     function renderWeeklyAnalysisPanel(payload) {
-      const content = document.getElementById('weeklyAnalysisPanelContent');
+      const content = document.getElementById('subtab-weekly-analysis-content');
       if (!content) return;
 
+      weeklyAnalysisData = payload;
       const days = Array.isArray(payload?.days) ? payload.days : [];
       const summary = payload?.summary || {};
+      const hasAnyData = days.some(day => day.exercises_logged || day.drills_logged || day.checkin_done || day.food_logged || day.water_ml || day.sleep_hours !== null || day.energy_level !== null || day.stress_level !== null || day.mood_score !== null || day.weight !== null);
+      const weekRange = getWeekRange(days);
+      const suggestions = buildWeeklySuggestions(summary, days);
+      const streakDots = days.map((day, idx) => {
+        const active = (day.exercises_logged > 0 || day.drills_logged > 0);
+        const label = day.day_label;
+        return `<span class="w-3 h-3 rounded-full inline-block ${active ? 'bg-green-400' : 'bg-gray-600'}" title="${label}"></span>`;
+      }).join('');
 
-      if (!days.length) {
+      if (!hasAnyData) {
         content.innerHTML = `
-          <div class="glass rounded-2xl p-6 text-center space-y-3" style="border:1px solid rgba(124,58,237,0.15);">
-            <div class="text-3xl">📊</div>
-            <p class="text-white font-bold" style="font-family:'Syne',sans-serif;">Brak danych z ostatnich 7 dni</p>
-            <p class="text-xs" style="color:var(--muted);">Zaloguj check-in, trening, drill lub wodę, a analiza pojawi się automatycznie.</p>
+          <div class="text-center py-16">
+            <div class="text-5xl mb-4">📊</div>
+            <h3 class="text-lg font-semibold text-gray-300">Brak danych z tego tygodnia</h3>
+            <p class="text-gray-500 text-sm mt-2">Zacznij logować treningi, drille i check-iny — Twoja analiza pojawi się tutaj.</p>
+            <button onclick="showTab('my-day')" class="btn-neon mt-4 px-6 py-2 rounded-lg text-sm">Zacznij od Mój Dzień</button>
           </div>`;
         return;
       }
 
-      const metricCards = [
-        { label: 'Aktywne dni', value: summary.active_days ?? 0, note: `Check-iny: ${summary.checkin_days ?? 0}` },
-        { label: 'Plan treningowy', value: `${summary.weekly_plan_completion_pct ?? 0}%`, note: `Najlepszy dzień: ${summary.best_training_day || '—'}` },
-        { label: 'Nawodnienie', value: `${summary.avg_water_ml ?? 0} ml`, note: `Dni z celem 2L: ${summary.water_goal_days ?? 0}` },
-        { label: 'Regeneracja', value: `${summary.avg_sleep_hours ?? '—'} h`, note: `Średnie RPE: ${summary.avg_rpe ?? '—'}` },
+      const kpis = [
+        { value: `${summary.active_days || 0} / 7`, label: 'Aktywne dni', icon: '🏃', color: 'from-cyan-400 to-violet-400' },
+        { value: `${summary.weekly_plan_completion_pct || 0}%`, label: 'Plan Realizacja', icon: '📋', color: 'from-cyan-400 to-violet-400' },
+        { value: `${(summary.total_exercises || 0) + (summary.total_drills || 0)}`, label: 'Ćwiczenia + Drille', icon: '💪', color: 'from-cyan-400 to-violet-400' },
+        { value: formatHours(summary.avg_sleep_hours), label: 'Śr. Sen', icon: '😴', color: 'from-cyan-400 to-violet-400' },
+        { value: summary.avg_water_ml ? `${Math.round(summary.avg_water_ml).toLocaleString('pl-PL')}ml` : 'Brak danych', label: 'Śr. Woda', icon: '💧', color: 'from-cyan-400 to-violet-400' },
+        { value: summary.weight_change === null || summary.weight_change === undefined ? 'Brak danych' : `${summary.weight_change > 0 ? '+' : ''}${summary.weight_change.toFixed(1)} kg`, label: 'Zmiana Wagi', icon: '⚖️', color: 'from-green-400 to-emerald-400' },
       ];
 
-      const dayCards = days.map(day => {
-        const trainingPct = Math.max(0, Math.min(100, day.exercise_completion_pct || 0));
-        const waterPct = Math.max(0, Math.min(100, day.water_pct || 0));
-        const drillAcc = day.avg_drill_accuracy_pct === null || day.avg_drill_accuracy_pct === undefined
-          ? '—'
-          : `${Math.round(day.avg_drill_accuracy_pct)}%`;
-        const sleepHours = day.sleep_hours === null || day.sleep_hours === undefined ? '—' : `${day.sleep_hours} h`;
-        const weight = day.weight === null || day.weight === undefined ? '—' : `${day.weight} kg`;
+      const chartColumns = days.map((day, idx) => {
+        const trainingHeight = Math.max(0, Math.min(100, day.exercise_completion_pct || 0));
+        const drillsHeight = Math.max(0, Math.min(30, (day.drills_logged || 0) * 20));
+        const checkinHeight = day.checkin_done ? 8 : 0;
+        const totalScore = day.exercise_completion_pct || 0;
+        let glow = 'none';
+        let border = '1px solid rgba(255,255,255,0.08)';
+        if (totalScore >= 80) {
+          glow = '0 0 10px rgba(34,197,94,0.5)';
+          border = '1px solid rgba(34,197,94,0.45)';
+        } else if (totalScore >= 50) {
+          glow = '0 0 8px rgba(0,229,255,0.4)';
+          border = '1px solid rgba(0,229,255,0.35)';
+        } else if (totalScore > 0) {
+          glow = '0 0 6px rgba(245,158,11,0.4)';
+          border = '1px solid rgba(245,158,11,0.3)';
+        }
+        if (day.is_today) {
+          border = '2px solid rgb(34,211,238)';
+          glow = '0 0 10px rgba(0,229,255,0.35)';
+        }
+
+        const totalAttempts = day.exercises_planned || day.drills_logged || 0;
+        const status = totalAttempts > 0 ? `${day.exercises_logged || 0}/${day.exercises_planned || 0}` : '—';
 
         return `
-          <article class="rounded-2xl p-4 transition-all" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
-            <div class="flex items-start justify-between gap-3 mb-3">
-              <div>
-                <div class="flex items-center gap-2 flex-wrap">
-                  <h3 class="font-bold text-white" style="font-family:'Syne',sans-serif;">${day.day_full}</h3>
-                  <span class="text-[11px] px-2 py-0.5 rounded-full" style="background:${day.is_today ? 'rgba(0,229,255,0.14)' : 'rgba(255,255,255,0.05)'};border:1px solid ${day.is_today ? 'rgba(0,229,255,0.35)' : 'rgba(255,255,255,0.08)'};color:${day.is_today ? 'var(--cyan)' : 'var(--muted)'};">${day.date}</span>
-                </div>
-                <p class="text-xs mt-1" style="color:var(--muted);">${day.day_label} • ${day.is_today ? 'Dziś' : 'Ostatnie 7 dni'}</p>
-              </div>
-              <div class="text-right">
-                <div class="text-sm font-bold text-white">${trainingPct}% treningu</div>
-                <div class="text-xs" style="color:var(--muted);">${day.exercises_logged || 0}/${day.exercises_planned || 0} ćw.</div>
-              </div>
+          <div class="weekly-chart-col flex flex-col items-center gap-1 cursor-pointer ${day.is_today ? 'bg-[rgba(0,229,255,0.05)] rounded-xl p-2' : ''}" data-date="${day.date}" onclick="showDayDetails('${day.date}')" style="animation:springBounce 0.45s ease both;animation-delay:${idx * 60}ms;">
+            <div class="bar-stack relative w-full flex items-end justify-center" style="height:80px;position:relative;${border};box-shadow:${glow};border-radius:14px;padding:6px;background:rgba(255,255,255,0.02);overflow:hidden;">
+              <div class="bar-segment bar-training absolute bottom-0 left-1/2 -translate-x-1/2 w-[68%] rounded-t-md" data-target-height="${trainingHeight}" style="height:0%;background:rgba(0,229,255,0.7);transition:height 0.6s ease-out;"></div>
+              <div class="bar-segment bar-drills absolute left-1/2 -translate-x-1/2 w-[68%] rounded-t-md" data-target-height="${drillsHeight}" style="bottom:${trainingHeight}%;height:0%;background:rgba(124,58,237,0.6);transition:height 0.6s ease-out;"></div>
+              <div class="bar-segment bar-checkin absolute left-1/2 -translate-x-1/2 w-[68%] rounded-t-md" data-target-height="${checkinHeight}" style="bottom:${trainingHeight + drillsHeight}%;height:0%;background:rgba(34,197,94,0.5);transition:height 0.6s ease-out;"></div>
             </div>
-
-            <div class="space-y-3">
-              <div>
-                <div class="flex justify-between text-xs mb-1"><span style="color:var(--muted);">Trening</span><span style="color:var(--cyan);">${day.total_volume_kg || 0} kg</span></div>
-                <div class="progress-bar" style="height:8px;background:rgba(0,229,255,0.08);"><div class="progress-fill" style="width:${trainingPct}%;background:linear-gradient(90deg,var(--cyan),var(--violet));"></div></div>
-              </div>
-              <div class="grid gap-3 md:grid-cols-2 text-xs">
-                <div class="rounded-xl p-3" style="background:rgba(0,229,255,0.05);border:1px solid rgba(0,229,255,0.12);">
-                  <div class="font-semibold text-white mb-1">Drille</div>
-                  <div style="color:var(--muted);">${day.drills_logged || 0} zapisów • celność ${drillAcc} • RPE ${_formatWeeklyAnalysisValue(day.avg_drill_rpe)}</div>
-                </div>
-                <div class="rounded-xl p-3" style="background:rgba(124,58,237,0.05);border:1px solid rgba(124,58,237,0.12);">
-                  <div class="font-semibold text-white mb-1">Dieta i check-in</div>
-                  <div style="color:var(--muted);">Posiłki: ${_formatWeeklyAnalysisValue(day.meals_eaten)} • Woda: ${day.water_ml || 0} ml • Check-in: ${day.checkin_done ? 'tak' : 'nie'}</div>
-                </div>
-                <div class="rounded-xl p-3" style="background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.12);">
-                  <div class="font-semibold text-white mb-1">Regeneracja</div>
-                  <div style="color:var(--muted);">Sen: ${sleepHours} • Jakość: ${_formatWeeklyAnalysisValue(day.sleep_quality)} • Energia: ${_formatWeeklyAnalysisValue(day.energy_level)}</div>
-                </div>
-                <div class="rounded-xl p-3" style="background:rgba(245,158,11,0.05);border:1px solid rgba(245,158,11,0.12);">
-                  <div class="font-semibold text-white mb-1">Samopoczucie</div>
-                  <div style="color:var(--muted);">Stres: ${_formatWeeklyAnalysisValue(day.stress_level)} • Nastrój: ${_formatWeeklyAnalysisValue(day.mood_score)} • Waga: ${weight}</div>
-                </div>
-              </div>
-
-              <div class="grid gap-3 md:grid-cols-2 text-xs">
-                <div>
-                  <div class="flex justify-between mb-1"><span style="color:var(--muted);">Nawodnienie</span><span style="color:var(--cyan);">${day.water_ml || 0} ml</span></div>
-                  <div class="progress-bar" style="height:8px;background:rgba(0,229,255,0.08);"><div class="progress-fill" style="width:${waterPct}%;background:linear-gradient(90deg,var(--cyan),#38bdf8);"></div></div>
-                </div>
-                <div class="flex items-center justify-between rounded-xl px-3 py-2" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
-                  <span style="color:var(--muted);">Dzienne RPE</span>
-                  <span class="font-bold text-white">${_formatWeeklyAnalysisValue(day.daily_rpe)}</span>
-                </div>
-              </div>
-            </div>
-          </article>`;
+            <span class="day-label text-xs text-gray-400">${day.day_label}</span>
+            <span class="day-stat text-xs text-gray-500">${status}</span>
+          </div>`;
       }).join('');
 
+      const currentDate = new Date(days.find(day => day.is_today)?.date || days[days.length - 1]?.date || Date.now());
+      const currentTitle = currentDate.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
+
       content.innerHTML = `
-        <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          ${metricCards.map(card => `
-            <div class="glass rounded-2xl p-4" style="border:1px solid rgba(124,58,237,0.14);">
-              <p class="text-xs font-semibold uppercase tracking-wider" style="color:var(--muted);font-family:'Syne',sans-serif;">${card.label}</p>
-              <p class="text-2xl font-extrabold mt-2" style="font-family:'Syne',sans-serif;color:${card.label === 'Regeneracja' ? '#a78bfa' : 'var(--cyan)'};">${card.value}</p>
-              <p class="text-xs mt-1" style="color:var(--muted);">${card.note}</p>
-            </div>`).join('')}
-        </div>
+        <div class="space-y-6">
+          <div class="glass rounded-2xl p-4 md:p-5 flex flex-col gap-3 md:gap-0 md:flex-row md:items-end md:justify-between" style="border:1px solid rgba(124,58,237,0.14);">
+            <div>
+              <div class="flex items-center gap-3 flex-wrap">
+                <h2 class="text-xl md:text-2xl font-bold text-white" style="font-family:'Syne',sans-serif;">📊 Analiza Tygodnia</h2>
+                <select disabled class="bg-transparent text-sm rounded-lg px-3 py-2 border border-gray-700 text-gray-300 opacity-80">
+                  <option>Ten tydzień</option>
+                </select>
+                <button onclick="loadWeeklyAnalysis(true)" class="btn-ghost px-3 py-2 rounded-lg text-sm">↻ Odśwież</button>
+              </div>
+              <p class="text-xs text-gray-400 mt-1">${weekRange}</p>
+            </div>
+          </div>
 
-        <div class="grid gap-3 md:grid-cols-3 mt-4">
-          <div class="glass rounded-2xl p-4" style="border:1px solid rgba(255,255,255,0.07);">
-            <p class="text-xs font-semibold uppercase tracking-wider" style="color:var(--muted);font-family:'Syne',sans-serif;">Łączne treningi</p>
-            <p class="text-3xl font-extrabold mt-2" style="font-family:'Syne',sans-serif;color:var(--cyan);">${summary.total_exercises ?? 0}</p>
-            <p class="text-xs mt-1" style="color:var(--muted);">Wolumen: ${summary.total_volume_kg ?? 0} kg</p>
-          </div>
-          <div class="glass rounded-2xl p-4" style="border:1px solid rgba(255,255,255,0.07);">
-            <p class="text-xs font-semibold uppercase tracking-wider" style="color:var(--muted);font-family:'Syne',sans-serif;">Łączne drille</p>
-            <p class="text-3xl font-extrabold mt-2" style="font-family:'Syne',sans-serif;color:#a78bfa;">${summary.total_drills ?? 0}</p>
-            <p class="text-xs mt-1" style="color:var(--muted);">XP w tym tygodniu: ${summary.xp_this_week ?? 0}</p>
-          </div>
-          <div class="glass rounded-2xl p-4" style="border:1px solid rgba(255,255,255,0.07);">
-            <p class="text-xs font-semibold uppercase tracking-wider" style="color:var(--muted);font-family:'Syne',sans-serif;">Zmiana wagi</p>
-            <p class="text-3xl font-extrabold mt-2" style="font-family:'Syne',sans-serif;color:#fbbf24;">${summary.weight_change === null || summary.weight_change === undefined ? '—' : `${summary.weight_change} kg`}</p>
-            <p class="text-xs mt-1" style="color:var(--muted);">od pierwszego pomiaru do ostatniego</p>
-          </div>
-        </div>
+          <div id="weekly-analysis-empty" class="hidden"></div>
 
-        <div class="mt-4 space-y-3">
-          ${dayCards}
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+            ${kpis.map((card, idx) => `
+              <div class="glass rounded-xl p-4 relative overflow-hidden weekly-kpi-card" style="animation:springBounce 0.45s ease both;animation-delay:${idx * 80}ms;">
+                <div class="absolute top-3 right-3 text-lg opacity-40">${card.icon}</div>
+                <div class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r ${card.color}">${card.value}</div>
+                <div class="text-xs text-gray-400 uppercase tracking-wide mt-1">${card.label}</div>
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="glass rounded-2xl p-4 md:p-5" style="border:1px solid rgba(255,255,255,0.08);">
+            <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
+              <div>
+                <h3 class="text-lg font-bold text-white">Tygodniowy wykres</h3>
+                <p class="text-xs text-gray-500">Trening, drille i check-in w układzie 7 dni</p>
+              </div>
+              <div class="flex gap-4 text-xs text-gray-400">
+                <span style="color:#00e5ff">■ Trening</span>
+                <span style="color:#7c3aed">■ Drille</span>
+                <span style="color:#22c55e">■ Check-in</span>
+              </div>
+            </div>
+            <div class="flex items-end justify-between gap-2 md:gap-3 overflow-x-auto pb-1">
+              ${chartColumns}
+            </div>
+          </div>
+
+          <div id="day-details-panel" class="hidden glass rounded-2xl p-4 md:p-5" style="border:1px solid rgba(255,255,255,0.08);max-height:0;overflow:hidden;transition:max-height 0.4s ease, opacity 0.4s ease;opacity:0;">
+            <div class="flex items-center justify-between gap-3 mb-4">
+              <div>
+                <h3 class="text-lg font-bold text-white" id="day-details-title">Szczegóły Dnia</h3>
+                <p class="text-xs text-gray-500">Dane pobrane z weeklyData.days</p>
+              </div>
+              <button onclick="document.getElementById('day-details-panel').classList.add('hidden');document.getElementById('day-details-panel').style.maxHeight='0';document.getElementById('day-details-panel').style.opacity='0';" class="text-gray-400 hover:text-white text-xl">×</button>
+            </div>
+            <div id="day-details-content"></div>
+          </div>
+
+          <div class="grid gap-4 md:grid-cols-3">
+            <div class="glass rounded-2xl p-5 weekly-summary-card" style="animation:springBounce 0.45s ease both;animation-delay:120ms;">
+              <h3 class="text-base font-bold text-white mb-3">🏋️ Trening & Sport</h3>
+              <div class="space-y-2 text-sm text-gray-300">
+                <div class="flex justify-between gap-3"><span>Ćwiczenia siłowe</span><span>${summary.total_exercises ?? 0} sesji</span></div>
+                <div class="flex justify-between gap-3"><span>Drille sportowe</span><span>${summary.total_drills ?? 0} sesji</span></div>
+                <div class="flex justify-between gap-3"><span>Wolumen</span><span>${summary.total_volume_kg !== null && summary.total_volume_kg !== undefined ? Math.round(summary.total_volume_kg).toLocaleString('pl-PL') + ' kg' : 'Brak danych'}</span></div>
+                <div class="flex justify-between gap-3"><span>Śr. RPE treningu</span><span>${summary.avg_rpe !== null && summary.avg_rpe !== undefined ? summary.avg_rpe.toFixed(1) : 'Brak danych'}</span></div>
+              </div>
+              <div class="mt-4 pt-4 border-t border-white/5 text-sm text-gray-300">
+                <div class="font-semibold text-white mb-1">Najlepszy dzień: ${summary.best_training_day || 'Brak danych'}</div>
+                <div class="text-gray-400 italic">${generateTrainingSuggestion(summary, days)}</div>
+              </div>
+            </div>
+
+            <div class="glass rounded-2xl p-5 weekly-summary-card" style="animation:springBounce 0.45s ease both;animation-delay:200ms;">
+              <h3 class="text-base font-bold text-white mb-3">🍽 Dieta & Nawodnienie</h3>
+              <div class="space-y-3 text-sm text-gray-300">
+                <div>
+                  <div class="flex justify-between gap-3 mb-1"><span>Zalogowane dni</span><span>${summary.food_logged_days ?? 0} / 7</span></div>
+                  <div class="progress-bar" style="height:10px;background:rgba(255,255,255,0.05);"><div class="progress-fill" style="width:${Math.round(((summary.food_logged_days || 0) / 7) * 100)}%;background:linear-gradient(90deg,var(--cyan),var(--violet));transition:width 0.8s ease-out;"></div></div>
+                </div>
+                <div>
+                  <div class="flex justify-between gap-3 mb-1"><span>Śr. woda</span><span>${summary.avg_water_ml !== null && summary.avg_water_ml !== undefined ? Math.round(summary.avg_water_ml).toLocaleString('pl-PL') + ' ml/dzień' : 'Brak danych'}</span></div>
+                  <div class="progress-bar" style="height:10px;background:rgba(255,255,255,0.05);"><div class="progress-fill" style="width:${Math.max(0, Math.min(100, Math.round((summary.avg_water_ml || 0) / 2500 * 100)))}%;background:linear-gradient(90deg,#00e5ff,#22c55e);transition:width 0.8s ease-out;"></div></div>
+                </div>
+                <div class="flex justify-between gap-3"><span>Cel ≥ 2L osiągnięty</span><span>${summary.water_goal_days ?? 0} dni</span></div>
+              </div>
+              <div class="mt-4 pt-4 border-t border-white/5 text-sm text-gray-300">
+                <div class="text-gray-400 italic">${generateDietSuggestion(summary, days)}</div>
+              </div>
+            </div>
+
+            <div class="glass rounded-2xl p-5 weekly-summary-card" style="animation:springBounce 0.45s ease both;animation-delay:280ms;">
+              <h3 class="text-base font-bold text-white mb-3">😴 Regeneracja & Samopoczucie</h3>
+              <div class="space-y-2 text-sm text-gray-300">
+                <div class="flex justify-between gap-3"><span>Śr. sen</span><span>${summary.avg_sleep_hours !== null && summary.avg_sleep_hours !== undefined ? summary.avg_sleep_hours.toFixed(1) + 'h' : 'Brak danych'}</span></div>
+                <div class="flex justify-between gap-3"><span>Śr. jakość</span><span>${summary.avg_sleep_quality !== null && summary.avg_sleep_quality !== undefined ? summary.avg_sleep_quality.toFixed(1) + ' / 10' : 'Brak danych'}</span></div>
+                <div class="flex justify-between gap-3"><span>Śr. energia</span><span>${summary.avg_energy_level !== null && summary.avg_energy_level !== undefined ? summary.avg_energy_level.toFixed(1) + ' / 10' : 'Brak danych'}</span></div>
+                <div class="flex justify-between gap-3"><span>Śr. stres</span><span>${summary.avg_stress_level !== null && summary.avg_stress_level !== undefined ? summary.avg_stress_level.toFixed(1) + ' / 10' : 'Brak danych'}</span></div>
+                <div class="flex justify-between gap-3"><span>Śr. nastrój</span><span>${summary.avg_mood_score !== null && summary.avg_mood_score !== undefined ? getMoodEmoji(summary.avg_mood_score) + ' (' + summary.avg_mood_score.toFixed(1) + '/5)' : 'Brak danych'}</span></div>
+                <div class="flex justify-between gap-3"><span>Check-iny</span><span>${summary.checkin_days ?? 0} / 7 dni</span></div>
+              </div>
+              <div class="mt-4 pt-4 border-t border-white/5 text-sm text-gray-300">
+                <div class="text-gray-400 italic">${generateRecoverySuggestion(summary)}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="glass rounded-2xl p-5 weekly-summary-card" style="animation:springBounce 0.45s ease both;animation-delay:360ms;">
+            <div class="flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <h3 class="text-base font-bold text-white mb-1">🔥 Streak & XP tygodnia</h3>
+                <p class="text-xs text-gray-500">Aktywność liczona jako trening lub drill</p>
+              </div>
+              <div class="text-sm text-gray-300">XP tygodnia: <span class="font-bold text-white">${summary.xp_this_week ?? 0}</span></div>
+            </div>
+            <div class="mt-4 flex flex-wrap items-center gap-3">
+              <div class="text-sm text-gray-300">Streak: <span class="font-bold text-white">${summary.streak_days ?? 0} dni z rzędu</span></div>
+              <div class="flex items-center gap-2">${streakDots}</div>
+              <div class="text-xs text-gray-500">Pon Wt Śr Czw Pt Sob Niedz</div>
+            </div>
+            <div class="mt-4">
+              <div class="flex justify-between text-xs text-gray-400 mb-2"><span>XP w tym tygodniu</span><span>${summary.xp_this_week ?? 0}/400</span></div>
+              <div class="progress-bar" style="height:10px;background:rgba(255,255,255,0.05);">
+                <div class="progress-fill" style="width:${Math.max(0, Math.min(100, Math.round(((summary.xp_this_week || 0) / 400) * 100)))}%;background:linear-gradient(90deg,var(--cyan),var(--violet));transition:width 0.8s ease-out;"></div>
+              </div>
+            </div>
+          </div>
         </div>`;
+
+      requestAnimationFrame(() => {
+        content.querySelectorAll('[data-target-height]').forEach(el => {
+          el.style.height = el.getAttribute('data-target-height') + '%';
+        });
+      });
     }
 
-    async function refreshWeeklyAnalysisPanel(force = false) {
-      const content = document.getElementById('weeklyAnalysisPanelContent');
+    async function loadWeeklyAnalysis(force = false) {
+      const content = document.getElementById('subtab-weekly-analysis-content');
       if (!content) return null;
 
       const token = localStorage.getItem('fitai_token');
       if (!token || !window.API_BASE) {
         content.innerHTML = `
-          <div class="glass rounded-2xl p-6 text-center space-y-3" style="border:1px solid rgba(124,58,237,0.15);">
-            <div class="text-3xl">🔒</div>
-            <p class="text-white font-bold" style="font-family:'Syne',sans-serif;">Zaloguj się, aby zobaczyć analizę tygodnia</p>
-            <p class="text-xs" style="color:var(--muted);">Endpoint wymaga autoryzacji Bearer z localStorage.</p>
+          <div class="text-center py-16">
+            <div class="text-5xl mb-4">🔒</div>
+            <h3 class="text-lg font-semibold text-gray-300">Zaloguj się, aby zobaczyć analizę tygodnia</h3>
+            <p class="text-gray-500 text-sm mt-2">Endpoint wymaga autoryzacji Bearer z localStorage.</p>
           </div>`;
         return null;
       }
 
-      const now = Date.now();
-      if (!force && _weeklyAnalysisPanelCache && (now - _weeklyAnalysisPanelLoadedAt) < 300000) {
-        renderWeeklyAnalysisPanel(_weeklyAnalysisPanelCache);
-        return _weeklyAnalysisPanelCache;
+      if (!force && weeklyAnalysisData && weeklyAnalysisData.days && weeklyAnalysisData.days.length) {
+        renderWeeklyAnalysisPanel(weeklyAnalysisData);
+        return weeklyAnalysisData;
       }
 
-      if (_weeklyAnalysisPanelLoading) return _weeklyAnalysisPanelLoading;
+      if (weeklyAnalysisLoading) return weeklyAnalysisLoading;
 
       content.innerHTML = `
-        <div class="glass rounded-2xl p-6 text-center space-y-3" style="border:1px solid rgba(124,58,237,0.15);">
-          <div class="text-3xl animate-pulse">📊</div>
-          <p class="text-white font-bold" style="font-family:'Syne',sans-serif;">Ładowanie analizy tygodnia...</p>
+        <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          ${Array.from({ length: 6 }).map(() => '<div class="skeleton-card animate-pulse glass rounded-xl h-20"></div>').join('')}
+        </div>
+        <div class="glass rounded-2xl p-4 mt-4">
+          <div class="grid grid-cols-7 gap-2">
+            ${Array.from({ length: 7 }).map(() => '<div class="skeleton-card animate-pulse glass rounded-xl h-24"></div>').join('')}
+          </div>
         </div>`;
 
-      _weeklyAnalysisPanelLoading = fetch(window.API_BASE + '/app/weekly-analysis', {
+      weeklyAnalysisLoading = fetch(window.API_BASE + '/app/weekly-analysis', {
         headers: { 'Authorization': 'Bearer ' + token },
       })
         .then(async res => {
@@ -7702,26 +7912,25 @@
           return res.json();
         })
         .then(data => {
-          _weeklyAnalysisPanelCache = data;
-          _weeklyAnalysisPanelLoadedAt = Date.now();
+          weeklyAnalysisData = data;
           renderWeeklyAnalysisPanel(data);
           return data;
         })
         .catch(err => {
-          console.warn('[refreshWeeklyAnalysisPanel] Błąd:', err.message);
+          console.warn('[loadWeeklyAnalysis] Błąd:', err.message);
           content.innerHTML = `
-            <div class="glass rounded-2xl p-6 text-center space-y-3" style="border:1px solid rgba(239,68,68,0.18);">
-              <div class="text-3xl">⚠️</div>
-              <p class="text-white font-bold" style="font-family:'Syne',sans-serif;">Nie udało się pobrać analizy</p>
-              <p class="text-xs" style="color:var(--muted);">${err.message}</p>
+            <div class="text-center py-16">
+              <div class="text-5xl mb-4">⚠️</div>
+              <h3 class="text-lg font-semibold text-gray-300">Nie udało się pobrać analizy</h3>
+              <p class="text-gray-500 text-sm mt-2">${err.message}</p>
             </div>`;
           return null;
         })
         .finally(() => {
-          _weeklyAnalysisPanelLoading = null;
+          weeklyAnalysisLoading = null;
         });
 
-      return _weeklyAnalysisPanelLoading;
+      return weeklyAnalysisLoading;
     }
 
     function switchProfileTab(tabId) {
