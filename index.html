@@ -7872,17 +7872,139 @@
       });
     }
 
+    function buildLocalWeeklyAnalysis() {
+      const profile = (typeof getCurrentProfile === 'function') ? getCurrentProfile() : null;
+      if (!profile) return null;
+
+      const dayLabels = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
+      const fullNames = {
+        Pon: 'Poniedziałek',
+        Wt: 'Wtorek',
+        'Śr': 'Środa',
+        Czw: 'Czwartek',
+        Pt: 'Piątek',
+        Sob: 'Sobota',
+        Niedz: 'Niedziela',
+      };
+
+      const now = new Date();
+      const jsWeekday = now.getDay();
+      const mondayOffset = jsWeekday === 0 ? -6 : 1 - jsWeekday;
+      const monday = new Date(now);
+      monday.setDate(now.getDate() + mondayOffset);
+
+      const days = dayLabels.map((label, idx) => {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + idx);
+        const dateIso = d.toISOString().slice(0, 10);
+
+        const planned = Array.isArray(profile.trainingPlan?.[label]) ? profile.trainingPlan[label].length : 0;
+        let checked = {};
+        try {
+          if (typeof _checkedKey === 'function' && state?.dayChecked) {
+            checked = state.dayChecked[_checkedKey(profile.id, idx)] || {};
+          }
+        } catch (e) {
+          checked = {};
+        }
+        const exercisesLogged = Object.keys(checked).filter(key => key.startsWith('ex_') && checked[key]).length;
+        const foodLogged = Object.keys(checked).filter(key => key.startsWith('meal_') && checked[key]).length > 0;
+
+        return {
+          date: dateIso,
+          day_label: label,
+          day_full: fullNames[label] || label,
+          is_today: dateIso === now.toISOString().slice(0, 10),
+          exercises_logged: exercisesLogged,
+          exercises_planned: planned,
+          exercise_completion_pct: planned > 0 ? Math.round((exercisesLogged / planned) * 100) : 0,
+          total_volume_kg: 0,
+          avg_exercise_rpe: null,
+          drills_logged: 0,
+          avg_drill_accuracy_pct: null,
+          avg_drill_rpe: null,
+          food_logged: foodLogged,
+          meals_eaten: foodLogged ? Object.keys(checked).filter(key => key.startsWith('meal_') && checked[key]).length : null,
+          water_ml: 0,
+          water_pct: 0,
+          checkin_done: exercisesLogged > 0 || foodLogged,
+          sleep_hours: null,
+          sleep_quality: null,
+          energy_level: null,
+          stress_level: null,
+          mood_score: null,
+          daily_rpe: null,
+          weight: null,
+        };
+      });
+
+      const activeDays = days.filter(day => day.exercises_logged > 0 || day.drills_logged > 0).length;
+      const checkinDays = days.filter(day => day.checkin_done).length;
+      const planDays = days.filter(day => day.exercises_planned > 0);
+      const summary = {
+        active_days: activeDays,
+        checkin_days: checkinDays,
+        total_exercises: days.reduce((acc, day) => acc + (day.exercises_logged || 0), 0),
+        total_drills: 0,
+        total_volume_kg: 0,
+        weekly_plan_completion_pct: planDays.length > 0
+          ? Math.round(planDays.reduce((acc, day) => acc + (day.exercise_completion_pct || 0), 0) / planDays.length)
+          : 0,
+        best_training_day: planDays.length > 0
+          ? planDays.sort((a, b) => (b.exercise_completion_pct || 0) - (a.exercise_completion_pct || 0))[0].day_label
+          : null,
+        food_logged_days: days.filter(day => day.food_logged).length,
+        avg_water_ml: 0,
+        water_goal_days: 0,
+        avg_sleep_hours: null,
+        avg_sleep_quality: null,
+        avg_energy_level: null,
+        avg_stress_level: null,
+        avg_mood_score: null,
+        avg_rpe: null,
+        streak_days: profile.streak_days || 0,
+        xp_this_week: activeDays * 50 + checkinDays * 10,
+        weight_change: null,
+      };
+
+      return { days, summary, source: 'local' };
+    }
+
     async function loadWeeklyAnalysis(force = false) {
       const content = document.getElementById('subtab-weekly-analysis-content');
       if (!content) return null;
 
-      const token = localStorage.getItem('fitai_token');
+      const token = (() => {
+        if (window._fitaiToken) return window._fitaiToken;
+        if (state && state.token) return state.token;
+        const lsToken = localStorage.getItem('fitai_token');
+        if (lsToken) return lsToken;
+        try {
+          if (typeof netlifyIdentity !== 'undefined' && netlifyIdentity.currentUser) {
+            return netlifyIdentity.currentUser()?.token?.access_token || null;
+          }
+        } catch (e) {
+          return null;
+        }
+        return null;
+      })();
+
       if (!token || !window.API_BASE) {
+        const localData = buildLocalWeeklyAnalysis();
+        if (localData) {
+          renderWeeklyAnalysisPanel(localData);
+          const banner = document.createElement('div');
+          banner.className = 'glass rounded-xl px-4 py-3 text-xs mt-3';
+          banner.style.cssText = 'border:1px solid rgba(251,191,36,0.25);background:rgba(251,191,36,0.07);color:#fbbf24;';
+          banner.textContent = 'Tryb lokalny: brak JWT do backendu, analiza wyliczona z danych zapisanych w przeglądarce.';
+          content.prepend(banner);
+          return localData;
+        }
         content.innerHTML = `
           <div class="text-center py-16">
             <div class="text-5xl mb-4">🔒</div>
             <h3 class="text-lg font-semibold text-gray-300">Zaloguj się, aby zobaczyć analizę tygodnia</h3>
-            <p class="text-gray-500 text-sm mt-2">Endpoint wymaga autoryzacji Bearer z localStorage.</p>
+            <p class="text-gray-500 text-sm mt-2">Endpoint wymaga autoryzacji Bearer (JWT).</p>
           </div>`;
         return null;
       }
@@ -7918,6 +8040,18 @@
         })
         .catch(err => {
           console.warn('[loadWeeklyAnalysis] Błąd:', err.message);
+          if ((err.message || '').includes('401') || (err.message || '').includes('403')) {
+            const localData = buildLocalWeeklyAnalysis();
+            if (localData) {
+              renderWeeklyAnalysisPanel(localData);
+              const banner = document.createElement('div');
+              banner.className = 'glass rounded-xl px-4 py-3 text-xs mt-3';
+              banner.style.cssText = 'border:1px solid rgba(251,191,36,0.25);background:rgba(251,191,36,0.07);color:#fbbf24;';
+              banner.textContent = 'API odrzuciło token (401/403). Pokazuję analizę lokalną z danych przeglądarki.';
+              content.prepend(banner);
+              return localData;
+            }
+          }
           content.innerHTML = `
             <div class="text-center py-16">
               <div class="text-5xl mb-4">⚠️</div>
