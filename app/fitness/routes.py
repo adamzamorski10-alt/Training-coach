@@ -43,6 +43,7 @@ from app.schemas import (
     AppOnboardingRequest,
     DrillResultRequest,
     ExerciseResultRequest,
+    NicknameChangeRequest,
     ProfileUpdateRequest,
     SportConfigRequest,
     WaterLogRequest,
@@ -290,24 +291,63 @@ def app_onboarding(
     user: UserDB = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
-    user_key = _web_user_key(payload.identity_id)
-    try:
-        user = upsert_user_from_profile(
-            user_key,
-            payload.model_dump(),
-            session,
-            identity_id=payload.identity_id,
-            email=payload.email,
+    db_user = session.get(UserDB, user.id)
+    if not db_user:
+        raise HTTPException(
+            status_code=404,
+            detail="Użytkownik nie znaleziony. Zarejestruj się przez /auth/register.",
         )
-        return {
-            "status": "ok",
-            "user_id": user_key,
-            "plan": user.plan,
-            "role": user.role,
-        }
+
+    payload_dict = payload.model_dump()
+    update_fields = [
+        "name",
+        "age",
+        "height",
+        "weight",
+        "target_weight",
+        "gender",
+        "goal",
+        "frequency",
+        "diet",
+        "allergies",
+        "meals_per_day",
+        "notes",
+    ]
+    for field in update_fields:
+        if field in payload_dict and payload_dict[field] is not None:
+            setattr(db_user, field, payload_dict[field])
+
+    for list_field, key in [
+        ("sports_json", "sports"),
+        ("training_focus_json", "training_focus"),
+        ("improvement_areas_json", "improvement_areas"),
+        ("preferred_foods_json", "preferred_foods"),
+        ("avoid_foods_json", "avoid_foods"),
+        ("available_equipment_json", "available_equipment"),
+        ("avoid_exercises_json", "avoid_exercises"),
+    ]:
+        if key in payload_dict and payload_dict[key]:
+            db_user.set_list(list_field, payload_dict[key])
+
+    db_user.calories_target = calc_calories(db_user)
+    db_user.protein_target = calc_protein(db_user)
+    db_user.updated_at = datetime.now()
+
+    try:
+        session.add(db_user)
+        session.commit()
+        session.refresh(db_user)
     except SQLAlchemyError as exc:
         session.rollback()
-        raise HTTPException(status_code=500, detail="Database error — please try again later") from exc
+        raise HTTPException(status_code=500, detail="Błąd zapisu profilu") from exc
+
+    return {
+        "status": "ok",
+        "user_id": db_user.id,
+        "nickname": db_user.nickname,
+        "plan": db_user.plan,
+        "role": db_user.role,
+    }
 
 
 @router.get("/profile")

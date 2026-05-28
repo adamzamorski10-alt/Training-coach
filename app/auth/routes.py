@@ -2,6 +2,7 @@
 Auth Routes — registration, login, password change, token refresh
 """
 
+import re
 from datetime import datetime
 from typing import Optional
 
@@ -15,9 +16,8 @@ from app.auth import (
     hash_password,
     verify_password,
 )
-from app.database import engine
-from app.fitness.calculations import calc_calories, calc_protein
 from app.database import engine, get_session
+from app.fitness.calculations import calc_calories, calc_protein
 from app.models import UserDB
 from app.schemas import (
     ChangePasswordRequest,
@@ -43,7 +43,6 @@ def register(payload: RegisterRequest):
             select(UserDB).where(UserDB.email == payload.email.lower().strip())
         ).first()
         if existing:
-        import re
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Konto z tym e-mailem już istnieje",
@@ -148,25 +147,6 @@ def login(payload: LoginRequest):
             plan=user.plan,
         )
 
-
-@router.get("/check-nickname")
-def check_nickname(nickname: str, session: Session = Depends(get_session)):
-    if not nickname or len(nickname.strip()) < 3:
-        return {"available": False, "reason": "Za krótki (min. 3 znaki)"}
-    normalized = nickname.strip().lower()
-    if len(normalized) > 30:
-        return {"available": False, "reason": "Za długi (max 30 znaków)"}
-    if not __import__("re").match(r"^[a-z0-9_\-.]+$", normalized):
-        return {"available": False, "reason": "Nieprawidłowe znaki (tylko a-z, 0-9, _ - .)"}
-
-    existing = session.exec(select(UserDB).where(UserDB.nickname == normalized)).first()
-    return {
-        "available": existing is None,
-        "nickname": normalized,
-        "reason": None if existing is None else "Ten nick jest już zajęty",
-    }
-
-
 @router.get("/me")
 def me(user: UserDB = Depends(get_current_user)):
     """Zwraca profil aktualnie zalogowanego użytkownika."""
@@ -238,15 +218,11 @@ def check_nickname(nickname: str, session: Session = Depends(get_session)):
         "reason": None if existing is None else "Ten nick jest już zajęty",
     }
 
-@router.post("/users/{user_id}")
+
+@router.post("/users/{user_id}", deprecated=True)
 def create_or_update_user(user_id: str, profile: UserProfile):
-    """Legacy endpoint — tworzy lub aktualizuje użytkownika."""
-    from app.fitness.utils import upsert_user_from_profile
-    
-    with Session(engine) as session:
-        user = upsert_user_from_profile(user_id, profile.model_dump(), session)
-        return {
-            "status": "ok",
-            "user_id": user_id,
-            "calories_target": user.calories_target,
-        }
+    """DEPRECATED — wyłączony od FitAI v2.1. Użyj POST /auth/register."""
+    raise HTTPException(
+        status_code=status.HTTP_410_GONE,
+        detail="Ten endpoint jest wyłączony. Użyj POST /auth/register.",
+    )

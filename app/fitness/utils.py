@@ -18,10 +18,16 @@ def upsert_user_from_profile(
     *,
     identity_id: Optional[str] = None,
     email: Optional[str] = None,
+    allow_create: bool = False,
 ) -> UserDB:
     """Create or update user from profile dict (legacy + new)."""
     user = session.exec(select(UserDB).where(UserDB.user_key == user_key)).first()
     if not user:
+        if not allow_create:
+            from fastapi import HTTPException
+
+            raise HTTPException(status_code=404, detail=f"Użytkownik '{user_key}' nie istnieje.")
+
         user = UserDB(
             user_key=user_key,
             name=payload.get("name", ""),
@@ -53,9 +59,12 @@ def upsert_user_from_profile(
         if field in payload:
             setattr(user, field, payload[field])
 
-    if identity_id:
+    if "nickname" in payload and payload["nickname"] and not user.nickname:
+        user.nickname = payload["nickname"]
+
+    if identity_id and not user.identity_id:
         user.identity_id = identity_id
-    if email:
+    if email and not user.email:
         user.email = email
     if not user.start_weight:
         user.start_weight = user.weight
