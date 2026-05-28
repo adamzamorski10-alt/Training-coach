@@ -2198,7 +2198,8 @@
             <div class="flex items-center gap-2">
               <span id="waterGoalLabel" class="text-xs font-bold" style="color:var(--muted);">Cel: 2500 ml</span>
               <button onclick="water.fetchWeather()" class="btn-ghost px-3 py-1.5 rounded-xl text-xs">📍 Pogoda</button>
-              <button onclick="water.reset()" class="btn-ghost px-3 py-1.5 rounded-xl text-xs" title="Resetuj dzienny licznik wody">Reset</button>
+              <button onclick="water.reset()" class="btn-ghost px-3 py-1.5 rounded-xl text-xs"
+                title="Resetuj dzienny licznik wody">Reset</button>
             </div>
           </div>
           <!-- Ring + current ml -->
@@ -2476,46 +2477,56 @@
               </div>
 
               <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+                <div class="rounded-xl p-3"
+                  style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
                   <div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Posiłki</div>
                   <div id="checkinSummaryMealsCount" class="text-2xl font-extrabold text-white mt-1">0</div>
                 </div>
-                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+                <div class="rounded-xl p-3"
+                  style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
                   <div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Kcal</div>
                   <div id="checkinSummaryKcal" class="text-2xl font-extrabold text-white mt-1">0</div>
                 </div>
-                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+                <div class="rounded-xl p-3"
+                  style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
                   <div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Białko</div>
                   <div id="checkinSummaryProtein" class="text-2xl font-extrabold text-white mt-1">0 g</div>
                 </div>
-                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+                <div class="rounded-xl p-3"
+                  style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
                   <div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Woda</div>
                   <div id="checkinSummaryWater" class="text-2xl font-extrabold text-white mt-1">0.0 L</div>
                 </div>
-                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+                <div class="rounded-xl p-3"
+                  style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
                   <div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Sen</div>
                   <div id="checkinSummarySleep" class="text-xl font-extrabold text-white mt-1">—</div>
                 </div>
-                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+                <div class="rounded-xl p-3"
+                  style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
                   <div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Nastrój</div>
                   <div id="checkinSummaryMood" class="text-xl font-extrabold text-white mt-1">—</div>
                 </div>
-                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+                <div class="rounded-xl p-3"
+                  style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
                   <div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Energia</div>
                   <div id="checkinSummaryEnergy" class="text-xl font-extrabold text-white mt-1">—</div>
                 </div>
-                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+                <div class="rounded-xl p-3"
+                  style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
                   <div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Stres</div>
                   <div id="checkinSummaryStress" class="text-xl font-extrabold text-white mt-1">—</div>
                 </div>
               </div>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="rounded-2xl p-4" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+                <div class="rounded-2xl p-4"
+                  style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
                   <h5 class="text-sm font-bold text-white mb-3">Lista posiłków</h5>
                   <div id="checkinSummaryMealsList" class="space-y-2 text-sm" style="color:var(--muted);"></div>
                 </div>
-                <div class="rounded-2xl p-4" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+                <div class="rounded-2xl p-4"
+                  style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
                   <h5 class="text-sm font-bold text-white mb-3">Lista treningów</h5>
                   <div id="checkinSummaryWorkoutsList" class="space-y-2 text-sm" style="color:var(--muted);"></div>
                 </div>
@@ -4116,204 +4127,245 @@
           </div>
         </div>
 
-        <!-- KPI Cards -->
-        <div class="grid grid-cols-3 gap-3" id="kpiCards">
-          <!-- Weight delta -->
-          <div class="glass p-4 rounded-2xl relative overflow-hidden">
-            <div
-              style="position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle,rgba(0,229,255,0.08) 0%,transparent 70%);pointer-events:none;">
-            </div>
-            <p class="text-xs font-semibold uppercase tracking-wider"
-              style="color:var(--muted);font-family:'Syne',sans-serif;">Zmiana wagi</p>
-            <p id="kpiWeightDelta" class="text-3xl font-extrabold mt-2"
-              style="font-family:'Syne',sans-serif;color:var(--cyan);">—</p>
-            <p class="text-xs mt-1" style="color:var(--muted);">od pierwszego wpisu</p>
-          </div>
-          <!-- Avg RPE -->
-          <div class="glass p-4 rounded-2xl relative overflow-hidden">
-            <div
-              style="position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle,rgba(124,58,237,0.1) 0%,transparent 70%);pointer-events:none;">
-            </div>
-            <p class="text-xs font-semibold uppercase tracking-wider"
-              style="color:var(--muted);font-family:'Syne',sans-serif;">Średnie RPE</p>
-            <p id="kpiAvgRpe" class="text-3xl font-extrabold mt-2" style="font-family:'Syne',sans-serif;color:#a78bfa;">
-              —</p>
-            <p class="text-xs mt-1" style="color:var(--muted);">intensywność, ostatnie 7 dni</p>
-          </div>
-          <!-- Goal date -->
-          <div class="glass p-4 rounded-2xl relative overflow-hidden">
-            <div
-              style="position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle,rgba(245,158,11,0.08) 0%,transparent 70%);pointer-events:none;">
-            </div>
-            <p class="text-xs font-semibold uppercase tracking-wider"
-              style="color:var(--muted);font-family:'Syne',sans-serif;">Cel wagowy</p>
-            <p id="kpiGoalDate" class="text-xl font-extrabold mt-2 leading-tight"
-              style="font-family:'Syne',sans-serif;color:#fbbf24;">—</p>
-            <p class="text-xs mt-1" style="color:var(--muted);">prognozowana data</p>
-          </div>
+        <div class="flex gap-2 p-1 rounded-2xl"
+          style="background:rgba(255,255,255,0.04);border:1px solid var(--border);">
+          <button onclick="switchProgressSubTab('overview')" data-progress-subtab="overview"
+            class="flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-all"
+            style="background:rgba(0,229,255,0.14);border:1px solid rgba(0,229,255,0.35);color:var(--cyan);">📈
+            Przegląd</button>
+          <button onclick="switchProgressSubTab('weekly')" data-progress-subtab="weekly"
+            class="flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-all"
+            style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);color:var(--muted);">📊
+            Analiza Tygodnia</button>
         </div>
 
-        <!-- Weight Trend Chart -->
-        <div class="glass p-5 rounded-2xl">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">Trend wagowy</h2>
-              <p class="text-xs mt-0.5" style="color:var(--muted);">Waga dzienna + linia celu</p>
-            </div>
-            <div class="flex items-center gap-3 text-xs" style="color:var(--muted);">
-              <span class="flex items-center gap-1.5"><span
-                  style="display:inline-block;width:20px;height:2px;background:linear-gradient(90deg,var(--cyan),var(--violet));border-radius:2px;"></span>Waga</span>
-              <span class="flex items-center gap-1.5"><span
-                  style="display:inline-block;width:20px;height:2px;background:rgba(251,191,36,0.7);border-radius:2px;border-top:2px dashed rgba(251,191,36,0.7);"></span>Cel</span>
-            </div>
-          </div>
-          <div id="weightChartWrap" style="position:relative;">
-            <canvas id="weightChart" style="max-height:260px;width:100%;"></canvas>
-            <div id="weightChartEmpty" class="hidden"
-              style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
-              <div style="font-size:2.5rem;">⚖️</div>
-              <p class="font-bold text-white text-sm" style="font-family:'Syne',sans-serif;">Zacznij logować
-                treningi,<br>aby zobaczyć magię danych</p>
-              <p class="text-xs text-center" style="color:var(--muted);">Dodaj pierwszą wagę w zakładce Mój Dzień</p>
-            </div>
-          </div>
-        </div>
+        <div id="progressSubtab-overview" class="space-y-6">
 
-        <!-- Training Volume Chart + Diet Compliance row -->
-        <div class="grid gap-4" style="grid-template-columns:2fr 1fr;">
-          <!-- Volume bar chart -->
+          <!-- KPI Cards -->
+          <div class="grid grid-cols-3 gap-3" id="kpiCards">
+            <!-- Weight delta -->
+            <div class="glass p-4 rounded-2xl relative overflow-hidden">
+              <div
+                style="position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle,rgba(0,229,255,0.08) 0%,transparent 70%);pointer-events:none;">
+              </div>
+              <p class="text-xs font-semibold uppercase tracking-wider"
+                style="color:var(--muted);font-family:'Syne',sans-serif;">Zmiana wagi</p>
+              <p id="kpiWeightDelta" class="text-3xl font-extrabold mt-2"
+                style="font-family:'Syne',sans-serif;color:var(--cyan);">—</p>
+              <p class="text-xs mt-1" style="color:var(--muted);">od pierwszego wpisu</p>
+            </div>
+            <!-- Avg RPE -->
+            <div class="glass p-4 rounded-2xl relative overflow-hidden">
+              <div
+                style="position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle,rgba(124,58,237,0.1) 0%,transparent 70%);pointer-events:none;">
+              </div>
+              <p class="text-xs font-semibold uppercase tracking-wider"
+                style="color:var(--muted);font-family:'Syne',sans-serif;">Średnie RPE</p>
+              <p id="kpiAvgRpe" class="text-3xl font-extrabold mt-2"
+                style="font-family:'Syne',sans-serif;color:#a78bfa;">
+                —</p>
+              <p class="text-xs mt-1" style="color:var(--muted);">intensywność, ostatnie 7 dni</p>
+            </div>
+            <!-- Goal date -->
+            <div class="glass p-4 rounded-2xl relative overflow-hidden">
+              <div
+                style="position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle,rgba(245,158,11,0.08) 0%,transparent 70%);pointer-events:none;">
+              </div>
+              <p class="text-xs font-semibold uppercase tracking-wider"
+                style="color:var(--muted);font-family:'Syne',sans-serif;">Cel wagowy</p>
+              <p id="kpiGoalDate" class="text-xl font-extrabold mt-2 leading-tight"
+                style="font-family:'Syne',sans-serif;color:#fbbf24;">—</p>
+              <p class="text-xs mt-1" style="color:var(--muted);">prognozowana data</p>
+            </div>
+          </div>
+
+          <!-- Weight Trend Chart -->
           <div class="glass p-5 rounded-2xl">
-            <div class="mb-4">
-              <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">Wolumen
-                treningowy
-              </h2>
-              <p class="text-xs mt-0.5" style="color:var(--muted);">Serie × powtórzenia × ciężar [kg]</p>
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">Trend wagowy</h2>
+                <p class="text-xs mt-0.5" style="color:var(--muted);">Waga dzienna + linia celu</p>
+              </div>
+              <div class="flex items-center gap-3 text-xs" style="color:var(--muted);">
+                <span class="flex items-center gap-1.5"><span
+                    style="display:inline-block;width:20px;height:2px;background:linear-gradient(90deg,var(--cyan),var(--violet));border-radius:2px;"></span>Waga</span>
+                <span class="flex items-center gap-1.5"><span
+                    style="display:inline-block;width:20px;height:2px;background:rgba(251,191,36,0.7);border-radius:2px;border-top:2px dashed rgba(251,191,36,0.7);"></span>Cel</span>
+              </div>
             </div>
-            <div id="volumeChartWrap" style="position:relative;">
-              <canvas id="volumeChart" style="max-height:180px;width:100%;"></canvas>
-              <div id="volumeChartEmpty" class="hidden"
-                style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">
-                <div style="font-size:2rem;">🏋️</div>
+            <div id="weightChartWrap" style="position:relative;">
+              <canvas id="weightChart" style="max-height:260px;width:100%;"></canvas>
+              <div id="weightChartEmpty" class="hidden"
+                style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
+                <div style="font-size:2.5rem;">⚖️</div>
+                <p class="font-bold text-white text-sm" style="font-family:'Syne',sans-serif;">Zacznij logować
+                  treningi,<br>aby zobaczyć magię danych</p>
+                <p class="text-xs text-center" style="color:var(--muted);">Dodaj pierwszą wagę w zakładce Mój Dzień</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Training Volume Chart + Diet Compliance row -->
+          <div class="grid gap-4" style="grid-template-columns:2fr 1fr;">
+            <!-- Volume bar chart -->
+            <div class="glass p-5 rounded-2xl">
+              <div class="mb-4">
+                <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">Wolumen
+                  treningowy
+                </h2>
+                <p class="text-xs mt-0.5" style="color:var(--muted);">Serie × powtórzenia × ciężar [kg]</p>
+              </div>
+              <div id="volumeChartWrap" style="position:relative;">
+                <canvas id="volumeChart" style="max-height:180px;width:100%;"></canvas>
+                <div id="volumeChartEmpty" class="hidden"
+                  style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">
+                  <div style="font-size:2rem;">🏋️</div>
+                  <p class="text-xs font-semibold text-white text-center" style="font-family:'Syne',sans-serif;">Brak
+                    historii ćwiczeń</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Diet Compliance + Streak mini-cards -->
+            <div class="flex flex-col gap-4">
+              <div class="glass p-5 rounded-2xl flex-1 flex flex-col justify-between">
+                <p class="text-xs font-semibold uppercase tracking-wider"
+                  style="color:var(--muted);font-family:'Syne',sans-serif;">Diet Compliance</p>
+                <div class="text-center my-2">
+                  <svg viewBox="0 0 80 80" width="80" height="80" style="margin:0 auto;display:block;">
+                    <circle cx="40" cy="40" r="32" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="7" />
+                    <circle id="dietComplianceRing" cx="40" cy="40" r="32" fill="none" stroke="url(#statsGrad)"
+                      stroke-width="7" stroke-linecap="round" stroke-dasharray="201" stroke-dashoffset="201"
+                      style="transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1)" />
+                    <defs>
+                      <linearGradient id="statsGrad" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stop-color="#00e5ff" />
+                        <stop offset="100%" stop-color="#7c3aed" />
+                      </linearGradient>
+                    </defs>
+                    <text x="40" y="45" text-anchor="middle" font-size="14" font-weight="800" fill="white"
+                      id="dietComplianceText" style="font-family:'Syne',sans-serif;">—</text>
+                  </svg>
+                </div>
+                <p class="text-xs text-center" style="color:var(--muted);">dni z posiłkami</p>
+              </div>
+              <div class="glass p-5 rounded-2xl flex-1 flex flex-col justify-center items-center gap-2">
+                <p class="text-xs font-semibold uppercase tracking-wider"
+                  style="color:var(--muted);font-family:'Syne',sans-serif;">Streak</p>
+                <p id="kpiStreak" class="text-4xl font-extrabold"
+                  style="font-family:'Syne',sans-serif;background:linear-gradient(135deg,var(--cyan),var(--violet));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+                  0</p>
+                <p class="text-xs" style="color:var(--muted);">dni z rzędu 🔥</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Body Measurements Chart ── -->
+          <div class="glass p-5 rounded-2xl">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">📐 Obwody ciała
+                </h2>
+                <p class="text-xs mt-0.5" style="color:var(--muted);">Pas i klatka piersiowa (cm)</p>
+              </div>
+              <div class="flex items-center gap-3 text-xs" style="color:var(--muted);">
+                <span class="flex items-center gap-1.5"><span
+                    style="display:inline-block;width:14px;height:2px;background:#00e5ff;border-radius:2px;"></span>Pas</span>
+                <span class="flex items-center gap-1.5"><span
+                    style="display:inline-block;width:14px;height:2px;background:#a78bfa;border-radius:2px;"></span>Klatka</span>
+              </div>
+            </div>
+            <div id="measurementsChartWrap" style="position:relative;">
+              <canvas id="measurementsChart" style="max-height:220px;width:100%;"></canvas>
+              <div id="measurementsChartEmpty"
+                style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
+                <div style="font-size:2rem;">📏</div>
                 <p class="text-xs font-semibold text-white text-center" style="font-family:'Syne',sans-serif;">Brak
-                  historii ćwiczeń</p>
+                  pomiarów</p>
+                <p class="text-xs text-center" style="color:var(--muted);">Uzupełnij obwody w Check-inie</p>
               </div>
             </div>
           </div>
 
-          <!-- Diet Compliance + Streak mini-cards -->
-          <div class="flex flex-col gap-4">
-            <div class="glass p-5 rounded-2xl flex-1 flex flex-col justify-between">
-              <p class="text-xs font-semibold uppercase tracking-wider"
-                style="color:var(--muted);font-family:'Syne',sans-serif;">Diet Compliance</p>
-              <div class="text-center my-2">
-                <svg viewBox="0 0 80 80" width="80" height="80" style="margin:0 auto;display:block;">
-                  <circle cx="40" cy="40" r="32" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="7" />
-                  <circle id="dietComplianceRing" cx="40" cy="40" r="32" fill="none" stroke="url(#statsGrad)"
-                    stroke-width="7" stroke-linecap="round" stroke-dasharray="201" stroke-dashoffset="201"
-                    style="transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1)" />
-                  <defs>
-                    <linearGradient id="statsGrad" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stop-color="#00e5ff" />
-                      <stop offset="100%" stop-color="#7c3aed" />
-                    </linearGradient>
-                  </defs>
-                  <text x="40" y="45" text-anchor="middle" font-size="14" font-weight="800" fill="white"
-                    id="dietComplianceText" style="font-family:'Syne',sans-serif;">—</text>
+          <!-- ── Wellness Chart (Sen / Energia / Stres) ── -->
+          <div class="glass p-5 rounded-2xl">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">🧠 Wellness — Sen
+                  ·
+                  Energia · Stres</h2>
+                <p class="text-xs mt-0.5" style="color:var(--muted);">Skala 1–10 z dziennych check-inów</p>
+              </div>
+            </div>
+            <canvas id="wellnessChart" style="max-height:200px;width:100%;"></canvas>
+          </div>
+
+          <!-- ── Activity Heatmap ── -->
+          <div class="glass p-5 rounded-2xl">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">📅 Heatmapa
+                  aktywności</h2>
+                <p class="text-xs mt-0.5" style="color:var(--muted);">Dni z pełną realizacją planu — ostatnie 365 dni
+                </p>
+              </div>
+            </div>
+            <div id="activityHeatmap" style="min-height:80px;"></div>
+          </div>
+
+          <!-- ── AI Insights ── -->
+          <div class="glass p-5 rounded-2xl">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0"
+                style="background:linear-gradient(135deg,rgba(0,229,255,0.15),rgba(124,58,237,0.15));border:1px solid rgba(0,229,255,0.25);">
+                🤖</div>
+              <div>
+                <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">Wnioski AI</h2>
+                <p class="text-xs mt-0.5" style="color:var(--muted);">Automatyczna analiza Twoich danych</p>
+              </div>
+              <button onclick="refreshStats()"
+                class="ml-auto btn-ghost px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M21 2v6h-6" />
+                  <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+                  <path d="M3 22v-6h6" />
+                  <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
                 </svg>
+                Odśwież
+              </button>
+            </div>
+            <div id="aiInsightsList" class="space-y-2">
+              <div class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm"
+                style="background:rgba(255,255,255,0.03);border:1px solid var(--border);">
+                <span class="text-lg flex-shrink-0">📊</span>
+                <span style="color:var(--muted);">Wejdź w zakładkę Postępy, aby zobaczyć wnioski po zalogowaniu
+                  check-inów.</span>
               </div>
-              <p class="text-xs text-center" style="color:var(--muted);">dni z posiłkami</p>
-            </div>
-            <div class="glass p-5 rounded-2xl flex-1 flex flex-col justify-center items-center gap-2">
-              <p class="text-xs font-semibold uppercase tracking-wider"
-                style="color:var(--muted);font-family:'Syne',sans-serif;">Streak</p>
-              <p id="kpiStreak" class="text-4xl font-extrabold"
-                style="font-family:'Syne',sans-serif;background:linear-gradient(135deg,var(--cyan),var(--violet));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
-                0</p>
-              <p class="text-xs" style="color:var(--muted);">dni z rzędu 🔥</p>
             </div>
           </div>
+
         </div>
 
-        <!-- ── Body Measurements Chart ── -->
-        <div class="glass p-5 rounded-2xl">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">📐 Obwody ciała
-              </h2>
-              <p class="text-xs mt-0.5" style="color:var(--muted);">Pas i klatka piersiowa (cm)</p>
+        <div id="progressSubtab-weekly" class="hidden space-y-6">
+          <div class="glass rounded-2xl overflow-hidden" style="border:1px solid rgba(124,58,237,0.15);">
+            <div class="px-5 py-4 flex items-center justify-between"
+              style="background:rgba(124,58,237,0.04);border-bottom:1px solid rgba(255,255,255,0.07);">
+              <div>
+                <h2 class="text-sm font-bold text-white uppercase tracking-wider">📊 Analiza Tygodnia</h2>
+                <p class="text-xs text-gray-500 mt-0.5">Trening, drille, dieta, check-iny, sen, nawodnienie i nastrój
+                </p>
+              </div>
+              <button onclick="refreshWeeklyAnalysisPanel(true)" class="text-xs px-3 py-1.5 rounded-lg transition-all"
+                style="background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.3);color:#a78bfa;">🔄
+                Odśwież</button>
             </div>
-            <div class="flex items-center gap-3 text-xs" style="color:var(--muted);">
-              <span class="flex items-center gap-1.5"><span
-                  style="display:inline-block;width:14px;height:2px;background:#00e5ff;border-radius:2px;"></span>Pas</span>
-              <span class="flex items-center gap-1.5"><span
-                  style="display:inline-block;width:14px;height:2px;background:#a78bfa;border-radius:2px;"></span>Klatka</span>
-            </div>
-          </div>
-          <div id="measurementsChartWrap" style="position:relative;">
-            <canvas id="measurementsChart" style="max-height:220px;width:100%;"></canvas>
-            <div id="measurementsChartEmpty"
-              style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
-              <div style="font-size:2rem;">📏</div>
-              <p class="text-xs font-semibold text-white text-center" style="font-family:'Syne',sans-serif;">Brak
-                pomiarów</p>
-              <p class="text-xs text-center" style="color:var(--muted);">Uzupełnij obwody w Check-inie</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── Wellness Chart (Sen / Energia / Stres) ── -->
-        <div class="glass p-5 rounded-2xl">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">🧠 Wellness — Sen
-                ·
-                Energia · Stres</h2>
-              <p class="text-xs mt-0.5" style="color:var(--muted);">Skala 1–10 z dziennych check-inów</p>
-            </div>
-          </div>
-          <canvas id="wellnessChart" style="max-height:200px;width:100%;"></canvas>
-        </div>
-
-        <!-- ── Activity Heatmap ── -->
-        <div class="glass p-5 rounded-2xl">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">📅 Heatmapa
-                aktywności</h2>
-              <p class="text-xs mt-0.5" style="color:var(--muted);">Dni z pełną realizacją planu — ostatnie 365 dni
-              </p>
-            </div>
-          </div>
-          <div id="activityHeatmap" style="min-height:80px;"></div>
-        </div>
-
-        <!-- ── AI Insights ── -->
-        <div class="glass p-5 rounded-2xl">
-          <div class="flex items-center gap-3 mb-4">
-            <div class="w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0"
-              style="background:linear-gradient(135deg,rgba(0,229,255,0.15),rgba(124,58,237,0.15));border:1px solid rgba(0,229,255,0.25);">
-              🤖</div>
-            <div>
-              <h2 class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">Wnioski AI</h2>
-              <p class="text-xs mt-0.5" style="color:var(--muted);">Automatyczna analiza Twoich danych</p>
-            </div>
-            <button onclick="refreshStats()"
-              class="ml-auto btn-ghost px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M21 2v6h-6" />
-                <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
-                <path d="M3 22v-6h6" />
-                <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
-              </svg>
-              Odśwież
-            </button>
-          </div>
-          <div id="aiInsightsList" class="space-y-2">
-            <div class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm"
-              style="background:rgba(255,255,255,0.03);border:1px solid var(--border);">
-              <span class="text-lg flex-shrink-0">📊</span>
-              <span style="color:var(--muted);">Wejdź w zakładkę Postępy, aby zobaczyć wnioski po zalogowaniu
-                check-inów.</span>
+            <div id="weeklyAnalysisPanelContent" class="p-5">
+              <div class="glass rounded-2xl p-6 text-center space-y-3" style="border:1px solid rgba(124,58,237,0.15);">
+                <div class="text-3xl">📊</div>
+                <p class="text-white font-bold" style="font-family:'Syne',sans-serif;">Kliknij "Analiza Tygodnia", aby
+                  pobrać dane</p>
+                <p class="text-xs" style="color:var(--muted);">Panel pobiera dane z ostatnich 7 dni po zalogowaniu.</p>
+              </div>
             </div>
           </div>
         </div>
@@ -7451,6 +7503,225 @@
       if (tabId === 'profile') {
         _loadProfileIntoForm();
       }
+      if (tabId === 'postepy') {
+        switchProgressSubTab('overview');
+      }
+    }
+
+    let _weeklyAnalysisPanelCache = null;
+    let _weeklyAnalysisPanelLoadedAt = 0;
+    let _weeklyAnalysisPanelLoading = null;
+
+    function switchProgressSubTab(tabId) {
+      const overviewPanel = document.getElementById('progressSubtab-overview');
+      const weeklyPanel = document.getElementById('progressSubtab-weekly');
+      const buttons = document.querySelectorAll('[data-progress-subtab]');
+
+      if (overviewPanel) overviewPanel.classList.toggle('hidden', tabId !== 'overview');
+      if (weeklyPanel) weeklyPanel.classList.toggle('hidden', tabId !== 'weekly');
+
+      buttons.forEach(btn => {
+        const active = btn.getAttribute('data-progress-subtab') === tabId;
+        btn.classList.toggle('active', active);
+        btn.classList.toggle('text-cyan-400', active);
+        btn.classList.toggle('text-gray-400', !active);
+        if (active) {
+          btn.style.background = 'rgba(0,229,255,0.14)';
+          btn.style.borderColor = 'rgba(0,229,255,0.35)';
+          btn.style.color = 'var(--cyan)';
+        } else {
+          btn.style.background = 'rgba(255,255,255,0.03)';
+          btn.style.borderColor = 'rgba(255,255,255,0.08)';
+          btn.style.color = 'var(--muted)';
+        }
+      });
+
+      if (tabId === 'weekly') {
+        refreshWeeklyAnalysisPanel();
+      }
+    }
+
+    function _formatWeeklyAnalysisValue(value, fallback = '—') {
+      return value === null || value === undefined || value === '' ? fallback : value;
+    }
+
+    function renderWeeklyAnalysisPanel(payload) {
+      const content = document.getElementById('weeklyAnalysisPanelContent');
+      if (!content) return;
+
+      const days = Array.isArray(payload?.days) ? payload.days : [];
+      const summary = payload?.summary || {};
+
+      if (!days.length) {
+        content.innerHTML = `
+          <div class="glass rounded-2xl p-6 text-center space-y-3" style="border:1px solid rgba(124,58,237,0.15);">
+            <div class="text-3xl">📊</div>
+            <p class="text-white font-bold" style="font-family:'Syne',sans-serif;">Brak danych z ostatnich 7 dni</p>
+            <p class="text-xs" style="color:var(--muted);">Zaloguj check-in, trening, drill lub wodę, a analiza pojawi się automatycznie.</p>
+          </div>`;
+        return;
+      }
+
+      const metricCards = [
+        { label: 'Aktywne dni', value: summary.active_days ?? 0, note: `Check-iny: ${summary.checkin_days ?? 0}` },
+        { label: 'Plan treningowy', value: `${summary.weekly_plan_completion_pct ?? 0}%`, note: `Najlepszy dzień: ${summary.best_training_day || '—'}` },
+        { label: 'Nawodnienie', value: `${summary.avg_water_ml ?? 0} ml`, note: `Dni z celem 2L: ${summary.water_goal_days ?? 0}` },
+        { label: 'Regeneracja', value: `${summary.avg_sleep_hours ?? '—'} h`, note: `Średnie RPE: ${summary.avg_rpe ?? '—'}` },
+      ];
+
+      const dayCards = days.map(day => {
+        const trainingPct = Math.max(0, Math.min(100, day.exercise_completion_pct || 0));
+        const waterPct = Math.max(0, Math.min(100, day.water_pct || 0));
+        const drillAcc = day.avg_drill_accuracy_pct === null || day.avg_drill_accuracy_pct === undefined
+          ? '—'
+          : `${Math.round(day.avg_drill_accuracy_pct)}%`;
+        const sleepHours = day.sleep_hours === null || day.sleep_hours === undefined ? '—' : `${day.sleep_hours} h`;
+        const weight = day.weight === null || day.weight === undefined ? '—' : `${day.weight} kg`;
+
+        return `
+          <article class="rounded-2xl p-4 transition-all" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
+            <div class="flex items-start justify-between gap-3 mb-3">
+              <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <h3 class="font-bold text-white" style="font-family:'Syne',sans-serif;">${day.day_full}</h3>
+                  <span class="text-[11px] px-2 py-0.5 rounded-full" style="background:${day.is_today ? 'rgba(0,229,255,0.14)' : 'rgba(255,255,255,0.05)'};border:1px solid ${day.is_today ? 'rgba(0,229,255,0.35)' : 'rgba(255,255,255,0.08)'};color:${day.is_today ? 'var(--cyan)' : 'var(--muted)'};">${day.date}</span>
+                </div>
+                <p class="text-xs mt-1" style="color:var(--muted);">${day.day_label} • ${day.is_today ? 'Dziś' : 'Ostatnie 7 dni'}</p>
+              </div>
+              <div class="text-right">
+                <div class="text-sm font-bold text-white">${trainingPct}% treningu</div>
+                <div class="text-xs" style="color:var(--muted);">${day.exercises_logged || 0}/${day.exercises_planned || 0} ćw.</div>
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <div>
+                <div class="flex justify-between text-xs mb-1"><span style="color:var(--muted);">Trening</span><span style="color:var(--cyan);">${day.total_volume_kg || 0} kg</span></div>
+                <div class="progress-bar" style="height:8px;background:rgba(0,229,255,0.08);"><div class="progress-fill" style="width:${trainingPct}%;background:linear-gradient(90deg,var(--cyan),var(--violet));"></div></div>
+              </div>
+              <div class="grid gap-3 md:grid-cols-2 text-xs">
+                <div class="rounded-xl p-3" style="background:rgba(0,229,255,0.05);border:1px solid rgba(0,229,255,0.12);">
+                  <div class="font-semibold text-white mb-1">Drille</div>
+                  <div style="color:var(--muted);">${day.drills_logged || 0} zapisów • celność ${drillAcc} • RPE ${_formatWeeklyAnalysisValue(day.avg_drill_rpe)}</div>
+                </div>
+                <div class="rounded-xl p-3" style="background:rgba(124,58,237,0.05);border:1px solid rgba(124,58,237,0.12);">
+                  <div class="font-semibold text-white mb-1">Dieta i check-in</div>
+                  <div style="color:var(--muted);">Posiłki: ${_formatWeeklyAnalysisValue(day.meals_eaten)} • Woda: ${day.water_ml || 0} ml • Check-in: ${day.checkin_done ? 'tak' : 'nie'}</div>
+                </div>
+                <div class="rounded-xl p-3" style="background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.12);">
+                  <div class="font-semibold text-white mb-1">Regeneracja</div>
+                  <div style="color:var(--muted);">Sen: ${sleepHours} • Jakość: ${_formatWeeklyAnalysisValue(day.sleep_quality)} • Energia: ${_formatWeeklyAnalysisValue(day.energy_level)}</div>
+                </div>
+                <div class="rounded-xl p-3" style="background:rgba(245,158,11,0.05);border:1px solid rgba(245,158,11,0.12);">
+                  <div class="font-semibold text-white mb-1">Samopoczucie</div>
+                  <div style="color:var(--muted);">Stres: ${_formatWeeklyAnalysisValue(day.stress_level)} • Nastrój: ${_formatWeeklyAnalysisValue(day.mood_score)} • Waga: ${weight}</div>
+                </div>
+              </div>
+
+              <div class="grid gap-3 md:grid-cols-2 text-xs">
+                <div>
+                  <div class="flex justify-between mb-1"><span style="color:var(--muted);">Nawodnienie</span><span style="color:var(--cyan);">${day.water_ml || 0} ml</span></div>
+                  <div class="progress-bar" style="height:8px;background:rgba(0,229,255,0.08);"><div class="progress-fill" style="width:${waterPct}%;background:linear-gradient(90deg,var(--cyan),#38bdf8);"></div></div>
+                </div>
+                <div class="flex items-center justify-between rounded-xl px-3 py-2" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+                  <span style="color:var(--muted);">Dzienne RPE</span>
+                  <span class="font-bold text-white">${_formatWeeklyAnalysisValue(day.daily_rpe)}</span>
+                </div>
+              </div>
+            </div>
+          </article>`;
+      }).join('');
+
+      content.innerHTML = `
+        <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          ${metricCards.map(card => `
+            <div class="glass rounded-2xl p-4" style="border:1px solid rgba(124,58,237,0.14);">
+              <p class="text-xs font-semibold uppercase tracking-wider" style="color:var(--muted);font-family:'Syne',sans-serif;">${card.label}</p>
+              <p class="text-2xl font-extrabold mt-2" style="font-family:'Syne',sans-serif;color:${card.label === 'Regeneracja' ? '#a78bfa' : 'var(--cyan)'};">${card.value}</p>
+              <p class="text-xs mt-1" style="color:var(--muted);">${card.note}</p>
+            </div>`).join('')}
+        </div>
+
+        <div class="grid gap-3 md:grid-cols-3 mt-4">
+          <div class="glass rounded-2xl p-4" style="border:1px solid rgba(255,255,255,0.07);">
+            <p class="text-xs font-semibold uppercase tracking-wider" style="color:var(--muted);font-family:'Syne',sans-serif;">Łączne treningi</p>
+            <p class="text-3xl font-extrabold mt-2" style="font-family:'Syne',sans-serif;color:var(--cyan);">${summary.total_exercises ?? 0}</p>
+            <p class="text-xs mt-1" style="color:var(--muted);">Wolumen: ${summary.total_volume_kg ?? 0} kg</p>
+          </div>
+          <div class="glass rounded-2xl p-4" style="border:1px solid rgba(255,255,255,0.07);">
+            <p class="text-xs font-semibold uppercase tracking-wider" style="color:var(--muted);font-family:'Syne',sans-serif;">Łączne drille</p>
+            <p class="text-3xl font-extrabold mt-2" style="font-family:'Syne',sans-serif;color:#a78bfa;">${summary.total_drills ?? 0}</p>
+            <p class="text-xs mt-1" style="color:var(--muted);">XP w tym tygodniu: ${summary.xp_this_week ?? 0}</p>
+          </div>
+          <div class="glass rounded-2xl p-4" style="border:1px solid rgba(255,255,255,0.07);">
+            <p class="text-xs font-semibold uppercase tracking-wider" style="color:var(--muted);font-family:'Syne',sans-serif;">Zmiana wagi</p>
+            <p class="text-3xl font-extrabold mt-2" style="font-family:'Syne',sans-serif;color:#fbbf24;">${summary.weight_change === null || summary.weight_change === undefined ? '—' : `${summary.weight_change} kg`}</p>
+            <p class="text-xs mt-1" style="color:var(--muted);">od pierwszego pomiaru do ostatniego</p>
+          </div>
+        </div>
+
+        <div class="mt-4 space-y-3">
+          ${dayCards}
+        </div>`;
+    }
+
+    async function refreshWeeklyAnalysisPanel(force = false) {
+      const content = document.getElementById('weeklyAnalysisPanelContent');
+      if (!content) return null;
+
+      const token = localStorage.getItem('fitai_token');
+      if (!token || !window.API_BASE) {
+        content.innerHTML = `
+          <div class="glass rounded-2xl p-6 text-center space-y-3" style="border:1px solid rgba(124,58,237,0.15);">
+            <div class="text-3xl">🔒</div>
+            <p class="text-white font-bold" style="font-family:'Syne',sans-serif;">Zaloguj się, aby zobaczyć analizę tygodnia</p>
+            <p class="text-xs" style="color:var(--muted);">Endpoint wymaga autoryzacji Bearer z localStorage.</p>
+          </div>`;
+        return null;
+      }
+
+      const now = Date.now();
+      if (!force && _weeklyAnalysisPanelCache && (now - _weeklyAnalysisPanelLoadedAt) < 300000) {
+        renderWeeklyAnalysisPanel(_weeklyAnalysisPanelCache);
+        return _weeklyAnalysisPanelCache;
+      }
+
+      if (_weeklyAnalysisPanelLoading) return _weeklyAnalysisPanelLoading;
+
+      content.innerHTML = `
+        <div class="glass rounded-2xl p-6 text-center space-y-3" style="border:1px solid rgba(124,58,237,0.15);">
+          <div class="text-3xl animate-pulse">📊</div>
+          <p class="text-white font-bold" style="font-family:'Syne',sans-serif;">Ładowanie analizy tygodnia...</p>
+        </div>`;
+
+      _weeklyAnalysisPanelLoading = fetch(window.API_BASE + '/app/weekly-analysis', {
+        headers: { 'Authorization': 'Bearer ' + token },
+      })
+        .then(async res => {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.json();
+        })
+        .then(data => {
+          _weeklyAnalysisPanelCache = data;
+          _weeklyAnalysisPanelLoadedAt = Date.now();
+          renderWeeklyAnalysisPanel(data);
+          return data;
+        })
+        .catch(err => {
+          console.warn('[refreshWeeklyAnalysisPanel] Błąd:', err.message);
+          content.innerHTML = `
+            <div class="glass rounded-2xl p-6 text-center space-y-3" style="border:1px solid rgba(239,68,68,0.18);">
+              <div class="text-3xl">⚠️</div>
+              <p class="text-white font-bold" style="font-family:'Syne',sans-serif;">Nie udało się pobrać analizy</p>
+              <p class="text-xs" style="color:var(--muted);">${err.message}</p>
+            </div>`;
+          return null;
+        })
+        .finally(() => {
+          _weeklyAnalysisPanelLoading = null;
+        });
+
+      return _weeklyAnalysisPanelLoading;
     }
 
     function switchProfileTab(tabId) {
@@ -13329,9 +13600,9 @@
           + '<p class="text-xs text-gray-500">' + kcal + ' kcal • ' + protein + ' g</p>'
           + '</div>'
           + (meal.custom ? '<span class="text-xs text-violet-400 flex-shrink-0">własne</span>' : '')
-            + '<div style="display:flex;gap:8px;align-items:center">'
-            + '<button onclick="removeMealFromDay(' + i + ')" class="text-gray-700 hover:text-red-400 text-lg flex-shrink-0 transition-colors ml-1">×</button>'
-            + '</div>'
+          + '<div style="display:flex;gap:8px;align-items:center">'
+          + '<button onclick="removeMealFromDay(' + i + ')" class="text-gray-700 hover:text-red-400 text-lg flex-shrink-0 transition-colors ml-1">×</button>'
+          + '</div>'
           + '</div>';
       }).join('');
 

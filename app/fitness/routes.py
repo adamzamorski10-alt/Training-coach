@@ -2,7 +2,8 @@
 Fitness Routes — Profile, dashboard, daily checkin, exercise/drill logging
 """
 
-from datetime import date, datetime
+import json
+from datetime import date, datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -50,8 +51,232 @@ from app.fitness.utils import upsert_user_from_profile
 router = APIRouter(prefix="/app", tags=["fitness"])
 
 
+_DAY_LABELS_PL = {0: "Pon", 1: "Wt", 2: "Śr", 3: "Czw", 4: "Pt", 5: "Sob", 6: "Niedz"}
+_DAY_FULL_NAMES_PL = {
+    0: "Poniedziałek",
+    1: "Wtorek",
+    2: "Środa",
+    3: "Czwartek",
+    4: "Piątek",
+    5: "Sobota",
+    6: "Niedziela",
+}
+
+
 def _web_user_key(identity_id: str) -> str:
     return f"web:{identity_id}"
+
+
+def _round_float(value: Optional[float]) -> Optional[float]:
+    return None if value is None else round(float(value), 1)
+
+
+def _planned_items_count(day_plan) -> int:
+    if isinstance(day_plan, list):
+        return len(day_plan)
+    if isinstance(day_plan, dict):
+        total = 0
+        for item in day_plan.values():
+            total += _planned_items_count(item) if isinstance(item, (list, dict)) else int(bool(item))
+        return total
+    return 0
+
+
+def _daily_log_has_data(log: DailyLogDB) -> bool:
+    return any([
+        bool((log.food or "").strip()),
+        bool((log.workout or "").strip()),
+        bool((log.mood or "").strip()),
+        log.weight is not None,
+        log.water_liters is not None,
+        log.sleep_hours is not None,
+        log.sleep_quality is not None,
+        log.energy_level is not None,
+        log.stress_level is not None,
+        log.mood_score is not None,
+        log.rpe is not None,
+        log.meals_eaten is not None,
+        log.workouts_done is not None,
+        bool((log.notes or "").strip()),
+    ])
+
+
+def _latest_non_null(logs: list[DailyLogDB], field_name: str):
+    for log in sorted(logs, key=lambda item: item.logged_at, reverse=True):
+        value = getattr(log, field_name, None)
+        if value is not None:
+            return value
+    return None
+
+
+def _safe_weekly_plan(weekly_plan_json: Optional[str]) -> dict:
+    try:
+        return json.loads(weekly_plan_json or "{}") if weekly_plan_json else {}
+    except json.JSONDecodeError:
+        return {}
+
+
+@router.get("/weekly-analysis")
+def get_weekly_analysis(
+    user: UserDB = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    """Zwraca spójny tygodniowy przegląd wszystkich modułów użytkownika."""
+    try:
+        today = date.today()
+        week_start = today - timedelta(days=6)
+
+        daily_logs = list(
+            session.exec(
+                select(DailyLogDB)
+                .where(DailyLogDB.user_id == user.id)
+                .where(DailyLogDB.log_date >= week_start)
+                .where(DailyLogDB.log_date <= today)
+                .order_by(DailyLogDB.log_date)
+            ).all()
+        )
+        exercise_results = list(
+            session.exec(
+                select(ExerciseResultDB)
+                .where(ExerciseResultDB.user_id == user.id)
+                .where(ExerciseResultDB.session_date >= week_start)
+                .where(ExerciseResultDB.session_date <= today)
+                .order_by(ExerciseResultDB.session_date)
+            ).all()
+        )
+        drill_results = list(
+            session.exec(
+                select(DrillResultDB)
+                .where(DrillResultDB.user_id == user.id)
+                .where(DrillResultDB.session_date >= week_start)
+                .where(DrillResultDB.session_date <= today)
+                .order_by(DrillResultDB.session_date)
+            ).all()
+        )
+        weekly_plan = _safe_weekly_plan(user.weekly_plan_json)
+        training_plan = weekly_plan.get("training", {}) if isinstance(weekly_plan, dict) else {}
+
+        daily_logs_by_date: dict[date, list[DailyLogDB]] = {}
+        for log in daily_logs:
+            daily_logs_by_date.setdefault(log.log_date, []).append(log)
+
+        exercise_by_date: dict[date, list[ExerciseResultDB]] = {}
+        for result in exercise_results:
+            exercise_by_date.setdefault(result.session_date, []).append(result)
+
+        drill_by_date: dict[date, list[DrillResultDB]] = {}
+        for result in drill_results:
+            drill_by_date.setdefault(result.session_date, []).append(result)
+
+        days_list = []
+        all_rpe_values: list[float] = []
+        weight_points: list[float] = []
+
+        for offset in range(7):
+            current_date = week_start + timedelta(days=offset)
+            day_label = _DAY_LABELS_PL[current_date.weekday()]
+            day_full = _DAY_FULL_NAMES_PL[current_date.weekday()]
+            day_logs = daily_logs_by_date.get(current_date, [])
+            day_exercises = exercise_by_date.get(current_date, [])
+            day_drills = drill_by_date.get(current_date, [])
+
+            planned_exercises = _planned_items_count(training_plan.get(day_label, [])) if isinstance(training_plan, dict) else 0
+            exercises_logged = len(day_exercises)
+            exercise_completion_pct = int(round((exercises_logged / planned_exercises) * 100)) if planned_exercises else 0
+            total_volume_kg = round(
+                sum((result.sets or 0) * (result.reps or 0) * float(result.weight_kg or 0) for result in day_exercises),
+                1,
+            )
+            exercise_rpe_values = [result.rpe for result in day_exercises if result.rpe is not None]
+            avg_exercise_rpe = round(sum(exercise_rpe_values) / len(exercise_rpe_values), 1) if exercise_rpe_values else None
+            if exercise_rpe_values:
+                all_rpe_values.extend(exercise_rpe_values)
+
+            drill_accuracy_values = [
+                round((result.success_count / result.total_attempts) * 100, 1)
+                for result in day_drills
+                if result.total_attempts and result.total_attempts > 0
+            ]
+            drill_rpe_values = [result.rpe for result in day_drills if result.rpe is not None]
+            avg_drill_accuracy_pct = round(sum(drill_accuracy_values) / len(drill_accuracy_values), 1) if drill_accuracy_values else None
+            avg_drill_rpe = round(sum(drill_rpe_values) / len(drill_rpe_values), 1) if drill_rpe_values else None
+            if drill_rpe_values:
+                all_rpe_values.extend(drill_rpe_values)
+
+            food_logged = any(bool((log.food or "").strip()) for log in day_logs)
+            meals_values = [log.meals_eaten for log in day_logs if log.meals_eaten is not None]
+            meals_eaten = meals_values[-1] if meals_values else None
+            water_liters = sum(float(log.water_liters or 0) for log in day_logs)
+            water_ml = round(water_liters * 1000) if water_liters > 0 else 0
+            water_pct = min(100, int(round((water_ml / 2500) * 100))) if water_ml else 0
+
+            checkin_done = any(_daily_log_has_data(log) for log in day_logs)
+            sleep_hours = _latest_non_null(day_logs, "sleep_hours")
+            sleep_quality = _latest_non_null(day_logs, "sleep_quality")
+            energy_level = _latest_non_null(day_logs, "energy_level")
+            stress_level = _latest_non_null(day_logs, "stress_level")
+            mood_score = _latest_non_null(day_logs, "mood_score")
+            daily_rpe = _latest_non_null(day_logs, "rpe")
+            weight = _latest_non_null(day_logs, "weight")
+            if daily_rpe is not None:
+                all_rpe_values.append(daily_rpe)
+            if weight is not None:
+                weight_points.append(float(weight))
+
+            days_list.append({
+                "date": current_date.isoformat(),
+                "day_label": day_label,
+                "day_full": day_full,
+                "is_today": current_date == today,
+                "exercises_logged": exercises_logged,
+                "exercises_planned": planned_exercises,
+                "exercise_completion_pct": exercise_completion_pct,
+                "total_volume_kg": total_volume_kg,
+                "avg_exercise_rpe": avg_exercise_rpe,
+                "drills_logged": len(day_drills),
+                "avg_drill_accuracy_pct": avg_drill_accuracy_pct,
+                "avg_drill_rpe": avg_drill_rpe,
+                "food_logged": food_logged,
+                "meals_eaten": meals_eaten,
+                "water_ml": water_ml,
+                "water_pct": water_pct,
+                "checkin_done": checkin_done,
+                "sleep_hours": _round_float(sleep_hours),
+                "sleep_quality": sleep_quality,
+                "energy_level": energy_level,
+                "stress_level": stress_level,
+                "mood_score": mood_score,
+                "daily_rpe": daily_rpe,
+                "weight": _round_float(weight),
+            })
+
+        plan_days = [day for day in days_list if day["exercises_planned"] > 0]
+        water_days = [day["water_ml"] for day in days_list if day["water_ml"] > 0]
+        summary = {
+            "active_days": len([day for day in days_list if day["exercises_logged"] > 0 or day["drills_logged"] > 0]),
+            "checkin_days": len([day for day in days_list if day["checkin_done"]]),
+            "total_exercises": sum(day["exercises_logged"] for day in days_list),
+            "total_drills": sum(day["drills_logged"] for day in days_list),
+            "total_volume_kg": round(sum(day["total_volume_kg"] for day in days_list), 1),
+            "weekly_plan_completion_pct": int(round(sum(day["exercise_completion_pct"] for day in plan_days) / len(plan_days))) if plan_days else 0,
+            "best_training_day": max(plan_days, key=lambda day: (day["exercise_completion_pct"], day["exercises_logged"]))["day_label"] if plan_days else None,
+            "food_logged_days": len([day for day in days_list if day["food_logged"]]),
+            "avg_water_ml": int(round(sum(water_days) / len(water_days))) if water_days else 0,
+            "water_goal_days": len([day for day in days_list if day["water_ml"] >= 2000]),
+            "avg_sleep_hours": round(sum(day["sleep_hours"] for day in days_list if day["sleep_hours"] is not None) / len([day for day in days_list if day["sleep_hours"] is not None]), 1) if any(day["sleep_hours"] is not None for day in days_list) else None,
+            "avg_sleep_quality": round(sum(day["sleep_quality"] for day in days_list if day["sleep_quality"] is not None) / len([day for day in days_list if day["sleep_quality"] is not None]), 1) if any(day["sleep_quality"] is not None for day in days_list) else None,
+            "avg_energy_level": round(sum(day["energy_level"] for day in days_list if day["energy_level"] is not None) / len([day for day in days_list if day["energy_level"] is not None]), 1) if any(day["energy_level"] is not None for day in days_list) else None,
+            "avg_stress_level": round(sum(day["stress_level"] for day in days_list if day["stress_level"] is not None) / len([day for day in days_list if day["stress_level"] is not None]), 1) if any(day["stress_level"] is not None for day in days_list) else None,
+            "avg_mood_score": round(sum(day["mood_score"] for day in days_list if day["mood_score"] is not None) / len([day for day in days_list if day["mood_score"] is not None]), 1) if any(day["mood_score"] is not None for day in days_list) else None,
+            "avg_rpe": round(sum(all_rpe_values) / len(all_rpe_values), 1) if all_rpe_values else None,
+            "streak_days": user.streak_days,
+            "xp_this_week": len([day for day in days_list if day["exercises_logged"] > 0 or day["drills_logged"] > 0]) * 50 + len([day for day in days_list if day["checkin_done"]]) * 10,
+            "weight_change": round(weight_points[-1] - weight_points[0], 1) if len(weight_points) >= 2 else None,
+        }
+
+        return {"days": days_list, "summary": summary}
+    except SQLAlchemyError as exc:
+        raise HTTPException(status_code=500, detail="Database error") from exc
 
 
 @router.post("/onboarding")
