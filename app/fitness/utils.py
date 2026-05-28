@@ -82,7 +82,7 @@ def upsert_user_from_profile(
 
     user.calories_target = calc_calories(user)
     user.protein_target = calc_protein(user)
-    user.updated_at = datetime.now().isoformat()
+    user.updated_at = datetime.now()
     session.add(user)
     session.commit()
     session.refresh(user)

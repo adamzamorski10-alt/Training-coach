@@ -15082,6 +15082,8 @@
       if (waterMl !== null) payload.water_ml = waterMl;
       if (notes) payload.notes = notes;
 
+      Object.keys(payload).forEach(key => payload[key] === null && delete payload[key]);
+
       // Pola tekstowe (legacy)
       payload.food = (typeof _activeDay !== 'undefined'
         ? (_activeDay.meals || []).filter(m => m.done)
@@ -15109,14 +15111,27 @@
           body: JSON.stringify(payload),
         });
 
-        if (!res.ok) {
-          const errText = await res.text();
-          console.error('[saveCheckin] Błąd API:', res.status, errText);
-          return { error: errText, status: res.status };
+        const rawText = await res.text();
+        let data = null;
+        try {
+          data = rawText ? JSON.parse(rawText) : null;
+        } catch (parseErr) {
+          data = { raw: rawText };
         }
 
-        const data = await res.json();
+        if (!res.ok) {
+          const errDetail = data?.detail || data?.error || data?.raw || ('HTTP ' + res.status);
+          console.error('[saveCheckin] Błąd API:', res.status, errDetail);
+          showToast(typeof errDetail === 'string' ? errDetail : 'Błąd zapisu check-inu');
+          return { error: errDetail, status: res.status };
+        }
+
         console.log('[saveCheckin] ✅ Zapisano w bazie:', data);
+        showToast(`✅ Check-in zapisany! +${data?.xp_earned ?? 0} XP 🔥`);
+
+        if (typeof updateDashboard === 'function') {
+          updateDashboard();
+        }
 
         // Zaktualizuj profil z odpowiedzi serwera
         const p = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
@@ -22873,24 +22888,42 @@
 
       /** Wysyła inkrement wody do backendu POST /app/water */
       async _syncWaterToApi(addedMl) {
-        const identityId = (typeof state !== 'undefined') ? state.identityId : null;
-        if (!identityId || !window.API_BASE) return;
+        const token = localStorage.getItem('fitai_token');
+        if (!token || !window.API_BASE) return;
         try {
           const r = await fetch(window.API_BASE + '/app/water', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + token,
+            },
             body: JSON.stringify({ ml: addedMl }),
           });
-          if (r.ok) {
-            const data = await r.json();
-            // Aktualizuj XP jeśli serwer przyznał
-            if (data.xp_earned && typeof _updateXpBar === 'function') {
-              _updateXpBar(data.total_xp);
-              if (typeof showToast === 'function') showToast('+' + data.xp_earned + ' XP za nawodnienie! 💧', 'info', 2500);
+          const data = await r.json();
+          if (!r.ok) {
+            throw new Error(data?.detail || ('HTTP ' + r.status));
+          }
+
+          if (typeof data.water_ml_today === 'number') {
+            this.current = data.water_ml_today;
+            this._render();
+            if (typeof _syncCheckinWaterDisplay === 'function') {
+              _syncCheckinWaterDisplay(data.water_ml_today);
             }
+          }
+
+          // Aktualizuj XP jeśli serwer przyznał
+          if (data.xp_earned && typeof _updateXpBar === 'function') {
+            _updateXpBar(data.total_xp);
+            if (typeof showToast === 'function') showToast('+' + data.xp_earned + ' XP za nawodnienie! 💧');
+          }
+
+          if (typeof updateDashboard === 'function') {
+            updateDashboard();
           }
         } catch (e) {
           console.warn('[FitAI Water] Sync offline — dane zapisane lokalnie', e);
+          if (typeof showToast === 'function') showToast('Błąd zapisu wody');
         }
       },
 

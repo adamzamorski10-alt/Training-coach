@@ -535,6 +535,25 @@ def daily_checkin(
         }
 
 
+@router.get("/debug/today-log")
+def debug_today_log(
+    user: UserDB = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    today = date.today()
+    log = session.exec(
+        select(DailyLogDB)
+        .where(DailyLogDB.user_id == user.id)
+        .where(DailyLogDB.log_date == today)
+    ).first()
+    return {
+        "has_log": log is not None,
+        "log": log.to_dict() if log else None,
+        "user_id": user.id,
+        "today": today.isoformat(),
+    }
+
+
 @router.get("/checkin-history")
 def get_checkin_history(
     limit: int = 30,

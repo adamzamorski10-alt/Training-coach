@@ -164,7 +164,7 @@ def change_password(
     with Session(engine) as session:
         db_user = session.get(UserDB, user.id)
         db_user.hashed_password = hash_password(payload.new_password)
-        db_user.updated_at = datetime.now().isoformat()
+        db_user.updated_at = datetime.now()
         session.add(db_user)
         session.commit()
     return {"status": "ok", "message": "Hasło zostało zmienione"}
