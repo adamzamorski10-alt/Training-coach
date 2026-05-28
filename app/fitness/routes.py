@@ -7,7 +7,8 @@ from datetime import date, datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy.exc import SQLAlchemyError
+from pydantic import BaseModel
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlmodel import Session, select
 
 from app.auth.dependencies import get_current_user
@@ -49,6 +50,10 @@ from app.schemas import (
 from app.fitness.utils import upsert_user_from_profile
 
 router = APIRouter(prefix="/app", tags=["fitness"])
+
+
+class NicknameChangeRequest(BaseModel):
+    new_nickname: str
 
 
 _DAY_LABELS_PL = {0: "Pon", 1: "Wt", 2: "Śr", 3: "Czw", 4: "Pt", 5: "Sob", 6: "Niedz"}
@@ -379,6 +384,39 @@ def update_profile(
             "profile": db_user.to_profile_dict(),
         }
 
+@router.put("/profile/nickname")
+def change_nickname(
+    payload: NicknameChangeRequest,
+    user: UserDB = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    import re
+
+    normalized = payload.new_nickname.strip().lower()
+    if not re.match(r"^[a-z0-9_\-.]+$", normalized) or len(normalized) < 3:
+        raise HTTPException(status_code=422, detail="Nieprawidłowy nick")
+
+    existing = session.exec(select(UserDB).where(UserDB.nickname == normalized)).first()
+    if existing and existing.id != user.id:
+        raise HTTPException(status_code=409, detail="Ten nick jest już zajęty")
+
+    db_user = session.get(UserDB, user.id)
+    if not db_user:
+        raise HTTPException(status_code=404, detail="Użytkownik nie znaleziony")
+
+    old_nickname = db_user.nickname
+    db_user.nickname = normalized
+    db_user.user_key = f"native:nick:{normalized}"
+    db_user.updated_at = datetime.now()
+    session.add(db_user)
+    try:
+        session.commit()
+        session.refresh(db_user)
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(status_code=409, detail="Nick zajęty")
+
+    return {"status": "ok", "old_nickname": old_nickname, "new_nickname": normalized}
 
 @router.get("/dashboard")
 def get_dashboard(user: UserDB = Depends(get_current_user)):

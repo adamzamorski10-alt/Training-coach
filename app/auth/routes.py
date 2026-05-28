@@ -17,6 +17,7 @@ from app.auth import (
 )
 from app.database import engine
 from app.fitness.calculations import calc_calories, calc_protein
+from app.database import engine, get_session
 from app.models import UserDB
 from app.schemas import (
     ChangePasswordRequest,
@@ -36,19 +37,31 @@ def register(payload: RegisterRequest):
     Zwraca JWT gotowy do użycia w nagłówku Authorization: Bearer <token>.
     """
     with Session(engine) as session:
+        normalized_nickname = payload.nickname.strip().lower()
         # Sprawdź unikalność e-maila
         existing = session.exec(
             select(UserDB).where(UserDB.email == payload.email.lower().strip())
         ).first()
         if existing:
+        import re
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Konto z tym e-mailem już istnieje",
             )
 
+        existing_nickname = session.exec(
+            select(UserDB).where(UserDB.nickname == normalized_nickname)
+        ).first()
+        if existing_nickname:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Ten nick jest już zajęty",
+            )
+        from app.database import engine, get_session
         user = UserDB(
-            user_key=f"native:{payload.email.lower().strip()}",
+            user_key=f"native:nick:{normalized_nickname}",
             email=payload.email.lower().strip(),
+            nickname=normalized_nickname,
             hashed_password=hash_password(payload.password),
             name=payload.name,
             age=payload.age,
@@ -85,6 +98,7 @@ def register(payload: RegisterRequest):
         return TokenResponse(
             access_token=token,
             user_id=user.id,
+            nickname=user.nickname,
             name=user.name,
             role=user.role,
             plan=user.plan,
@@ -128,10 +142,29 @@ def login(payload: LoginRequest):
         return TokenResponse(
             access_token=token,
             user_id=user.id,
+            nickname=user.nickname,
             name=user.name,
             role=user.role,
             plan=user.plan,
         )
+
+
+@router.get("/check-nickname")
+def check_nickname(nickname: str, session: Session = Depends(get_session)):
+    if not nickname or len(nickname.strip()) < 3:
+        return {"available": False, "reason": "Za krótki (min. 3 znaki)"}
+    normalized = nickname.strip().lower()
+    if len(normalized) > 30:
+        return {"available": False, "reason": "Za długi (max 30 znaków)"}
+    if not __import__("re").match(r"^[a-z0-9_\-.]+$", normalized):
+        return {"available": False, "reason": "Nieprawidłowe znaki (tylko a-z, 0-9, _ - .)"}
+
+    existing = session.exec(select(UserDB).where(UserDB.nickname == normalized)).first()
+    return {
+        "available": existing is None,
+        "nickname": normalized,
+        "reason": None if existing is None else "Ten nick jest już zajęty",
+    }
 
 
 @router.get("/me")
@@ -181,11 +214,29 @@ def refresh(user: UserDB = Depends(get_current_user)):
     return TokenResponse(
         access_token=token,
         user_id=user.id,
+        nickname=user.nickname,
         name=user.name,
         role=user.role,
         plan=user.plan,
     )
 
+@router.get("/check-nickname")
+def check_nickname(nickname: str, session: Session = Depends(get_session)):
+    if not nickname or len(nickname.strip()) < 3:
+        return {"available": False, "reason": "Za krótki (min. 3 znaki)"}
+
+    normalized = nickname.strip().lower()
+    if len(normalized) > 30:
+        return {"available": False, "reason": "Za długi (max 30 znaków)"}
+    if not re.match(r"^[a-z0-9_\-.]+$", normalized):
+        return {"available": False, "reason": "Nieprawidłowe znaki (tylko a-z, 0-9, _ - .)"}
+
+    existing = session.exec(select(UserDB).where(UserDB.nickname == normalized)).first()
+    return {
+        "available": existing is None,
+        "nickname": normalized,
+        "reason": None if existing is None else "Ten nick jest już zajęty",
+    }
 
 @router.post("/users/{user_id}")
 def create_or_update_user(user_id: str, profile: UserProfile):

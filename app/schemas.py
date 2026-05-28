@@ -2,9 +2,10 @@
 FitAI Schemas — Pydantic request/response models for FastAPI
 """
 
+import re
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.config import JWT_EXPIRE_MINUTES
 
@@ -14,6 +15,7 @@ from app.config import JWT_EXPIRE_MINUTES
 class RegisterRequest(BaseModel):
     email: str
     password: str
+    nickname: str
     name: str
     age: int
     height: float
@@ -23,6 +25,25 @@ class RegisterRequest(BaseModel):
     goal: str = "Utrzymanie wagi"
     frequency: str = "3-4 razy w tygodniu"
     diet: str = "Brak preferencji"
+
+    @field_validator("nickname")
+    @classmethod
+    def validate_nickname(cls, value: str) -> str:
+        value = value.strip().lower()
+        if len(value) < 3:
+            raise ValueError("Nick musi mieć co najmniej 3 znaki")
+        if len(value) > 30:
+            raise ValueError("Nick może mieć maksymalnie 30 znaków")
+        if not re.match(r"^[a-z0-9_\-.]+$", value):
+            raise ValueError("Nick może zawierać tylko litery a-z, cyfry, _, - i .")
+        return value
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str) -> str:
+        if len(value) < 8:
+            raise ValueError("Hasło musi mieć co najmniej 8 znaków")
+        return value
 
 
 class LoginRequest(BaseModel):
@@ -35,6 +56,7 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     expires_in: int = JWT_EXPIRE_MINUTES * 60   # sekundy
     user_id: str
+    nickname: str
     name: str
     role: str
     plan: str
