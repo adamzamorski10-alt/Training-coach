@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""FitAI Dashboard Generator - synchronizes index output from source HTML."""
+"""FitAI Dashboard Generator - synchronizes the source HTML into app/index.html."""
 
 from __future__ import annotations
 

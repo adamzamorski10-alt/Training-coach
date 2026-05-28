@@ -24,6 +24,7 @@ class UserDB(SQLModel, table=True):
     user_key: str = Field(unique=True, index=True)          # "web:<identity_id>" lub legacy user_id
     identity_id: Optional[str] = Field(default=None, index=True)
     email: Optional[str] = Field(default=None, index=True)
+    nickname: Optional[str] = Field(default=None, unique=True, index=True)
     name: str
     age: int
     height: float
@@ -105,6 +106,7 @@ class UserDB(SQLModel, table=True):
             "user_key": self.user_key,
             "identity_id": self.identity_id,
             "email": self.email,
+            "nickname": self.nickname,
             "name": self.name,
             "age": self.age,
             "height": self.height,

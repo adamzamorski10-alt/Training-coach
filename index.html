@@ -3427,6 +3427,18 @@
                 style="font-family:'Syne',sans-serif;">
                 Cześć, Użytkowniku!
               </h4>
+              <div class="flex items-center gap-2 mt-0.5">
+                <span class="text-xs text-gray-500">@</span>
+                <span
+                  id="profile-nickname"
+                  class="text-sm font-mono text-cyan-400 tracking-wide"
+                ></span>
+                <button
+                  onclick="openChangeNicknameModal()"
+                  class="ml-1 text-xs text-gray-600 hover:text-gray-400 transition-colors"
+                  title="Zmień nick"
+                >✏️</button>
+              </div>
               <p id="profileWelcomeSub" class="text-sm text-gray-400 mt-0.5"></p>
             </div>
             <div class="flex-shrink-0 text-right">
@@ -9680,6 +9692,12 @@
       const welcomeName = document.getElementById('profileWelcomeName');
       if (welcomeName && p?.name) welcomeName.textContent = 'Cześć, ' + p.name + '!';
 
+      const nicknameEl = document.getElementById('profile-nickname');
+      if (nicknameEl) {
+        nicknameEl.textContent = p?.nickname || 'brak nicku';
+        if (p?.nickname) localStorage.setItem('fitai_nickname', p.nickname);
+      }
+
       const welcomeSub = document.getElementById('profileWelcomeSub');
       if (welcomeSub) {
         welcomeSub.textContent = '';
@@ -9696,6 +9714,110 @@
       if (levelEl) levelEl.textContent = 'Lvl ' + (p?.level ?? '1');
 
       _recalcProfile();
+    }
+
+    function prefillNicknameFromCache() {
+      const cached = localStorage.getItem('fitai_nickname');
+      if (cached) {
+        const el = document.getElementById('profile-nickname');
+        if (el) el.textContent = cached;
+      }
+    }
+
+    let nicknameValid = true;
+
+    async function checkNicknameAvailability(value) {
+      const messageEl = document.getElementById('nickname-message');
+      const normalized = String(value || '').trim().toLowerCase();
+      nicknameValid = false;
+
+      if (!normalized) {
+        if (messageEl) messageEl.textContent = 'Min. 3 znaki, tylko a-z 0-9 _ - .';
+        return false;
+      }
+
+      if (normalized.length < 3) {
+        if (messageEl) messageEl.textContent = 'Min. 3 znaki';
+        return false;
+      }
+
+      if (!/^[a-z0-9_\-.]+$/.test(normalized)) {
+        if (messageEl) messageEl.textContent = 'Tylko a-z, 0-9, _ - .';
+        return false;
+      }
+
+      try {
+        const res = await fetch(`${window.API_BASE}/auth/check-nickname?nickname=${encodeURIComponent(normalized)}`);
+        const data = await res.json();
+        nicknameValid = Boolean(data.available);
+        if (messageEl) {
+          messageEl.textContent = data.available ? 'Nick dostępny' : (data.reason || 'Ten nick jest już zajęty');
+          messageEl.className = `text-xs mb-4 ${data.available ? 'text-cyan-400' : 'text-red-400'}`;
+        }
+        return data.available;
+      } catch {
+        if (messageEl) messageEl.textContent = 'Nie można sprawdzić dostępności nicku';
+        return false;
+      }
+    }
+
+    function openChangeNicknameModal() {
+      const currentNick = localStorage.getItem('fitai_nickname') || '';
+      const modal = document.createElement('div');
+      modal.id = 'change-nickname-modal';
+      modal.className = 'fixed inset-0 bg-black/70 flex items-center justify-center z-50';
+      modal.innerHTML = `
+       <div class="glass rounded-2xl p-6 w-full max-w-sm mx-4 slideUp">
+         <h3 class="font-bold text-lg mb-4">✏️ Zmień Nick</h3>
+         <input type="text" id="new-nickname-input" value="${currentNick}"
+           maxlength="30" placeholder="Nowy nick"
+           class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5
+                  text-white focus:border-cyan-400 focus:outline-none mb-1"
+           oninput="checkNicknameAvailability(this.value)" />
+         <p id="nickname-message" class="text-xs text-gray-500 mb-4">Min. 3 znaki, tylko a-z 0-9 _ - .</p>
+         <div class="flex gap-3">
+           <button onclick="document.getElementById('change-nickname-modal').remove()"
+             class="flex-1 btn-ghost rounded-lg py-2 text-sm">Anuluj</button>
+           <button onclick="submitNicknameChange()"
+             class="flex-1 btn-neon rounded-lg py-2 text-sm font-semibold">Zapisz</button>
+         </div>
+       </div>`;
+      document.body.appendChild(modal);
+      modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+      document.addEventListener('keydown', function esc(e) {
+        if (e.key === 'Escape') { modal.remove(); document.removeEventListener('keydown', esc); }
+      });
+      checkNicknameAvailability(currentNick);
+    }
+
+    async function submitNicknameChange() {
+      const newNick = document.getElementById('new-nickname-input')?.value.trim().toLowerCase();
+      const currentNick = localStorage.getItem('fitai_nickname') || '';
+      if (!newNick || newNick.length < 3) { showToast('Min. 3 znaki', 'error'); return; }
+      if (newNick !== currentNick && !nicknameValid) { showToast('Ten nick jest niedostępny', 'error'); return; }
+      try {
+        const res = await fetch(`${window.API_BASE}/app/profile/nickname`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('fitai_token')}`
+          },
+          body: JSON.stringify({ new_nickname: newNick })
+        });
+        if (!res.ok) {
+          const e = await res.json();
+          showToast(e.detail || 'Błąd', 'error');
+          return;
+        }
+        const data = await res.json();
+        localStorage.setItem('fitai_nickname', data.new_nickname);
+        const nicknameEl = document.getElementById('profile-nickname');
+        if (nicknameEl) nicknameEl.textContent = data.new_nickname;
+        document.getElementById('change-nickname-modal')?.remove();
+        showToast(`✅ Nick zmieniony na @${data.new_nickname}`, 'success');
+      } catch {
+        showToast('Błąd połączenia', 'error');
+      }
     }
 
     function _recalcProfile() {
@@ -12269,6 +12391,10 @@
     window.switchProfileTab = switchProfileTab;
     window.saveProfileData = saveProfileData;
     window.loadProfileFormData = loadProfileFormData;
+    window.prefillNicknameFromCache = prefillNicknameFromCache;
+    window.openChangeNicknameModal = openChangeNicknameModal;
+    window.submitNicknameChange = submitNicknameChange;
+    window.checkNicknameAvailability = checkNicknameAvailability;
 
     function renderGoalsGrid() {
       const p = getCurrentProfile();
@@ -23417,6 +23543,7 @@
     // ─── Boot — podpięcie wszystkiego po DOMContentLoaded ────────────────────────
 
     document.addEventListener('DOMContentLoaded', () => {
+      prefillNicknameFromCache();
       // Water Tracker
       water.init();
 
