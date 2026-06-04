@@ -1907,20 +1907,43 @@
 
       <!-- ====== TAB: MY DAY ====== -->
       <section id="tab-my-day" class="hidden space-y-6">
-        <div class="flex justify-between items-start flex-wrap gap-3">
-          <div>
-            <h3 class="text-3xl font-bold" style="font-family:'Syne',sans-serif;">Mój Dzień</h3>
-            <p class="text-sm text-gray-500 mt-1" id="todayDayLabel">—</p>
-          </div>
-          <div class="glass rounded-2xl px-5 py-3 text-right" style="min-width:170px;">
-            <p class="text-xs text-gray-500 mb-1">Postęp dnia</p>
-            <p class="text-2xl font-bold text-cyan-400" style="font-family:'Syne',sans-serif;" id="dayProgressLabel">0%
-            </p>
-            <div class="progress-bar mt-1">
-              <div id="dayProgressBar" class="progress-fill bg-gradient-to-r from-cyan-500 to-violet-500"
-                style="width:0%"></div>
+        <div class="glass rounded-3xl p-5 md:p-6 space-y-5" id="activeDayHeaderCard">
+          <div class="flex justify-between items-start flex-wrap gap-3">
+            <div>
+              <h3 class="text-3xl font-bold" style="font-family:'Syne',sans-serif;">Mój Dzień</h3>
+              <p class="text-sm text-gray-500 mt-1" id="todayDayLabel">—</p>
+              <p class="text-xs text-gray-500 mt-1" id="todayDateLabel">—</p>
             </div>
-            <p class="text-xs text-gray-600 mt-1" id="dayProgressCount">0 / 0 zadań</p>
+            <div class="text-right">
+              <p class="text-xs text-gray-500 mb-1">Dzisiejszy postęp</p>
+              <p class="text-2xl font-bold text-cyan-400" style="font-family:'Syne',sans-serif;" id="activeDayProgress">
+                0%</p>
+              <p class="text-xs text-gray-600 mt-1" id="dayProgressCount">0 / 0 zadań</p>
+            </div>
+          </div>
+
+          <div class="grid gap-3 md:grid-cols-2">
+            <div class="rounded-2xl p-4" style="background:rgba(0,229,255,0.05);border:1px solid rgba(0,229,255,0.14);">
+              <div class="flex items-center justify-between gap-3 mb-2">
+                <p class="text-xs font-bold uppercase tracking-wider text-cyan-200">Kalorie</p>
+                <p class="text-sm font-semibold text-cyan-100" id="dayKcalSummary">0 / 0 kcal</p>
+              </div>
+              <div class="progress-bar">
+                <div id="dayKcalProgressBar" class="progress-fill bg-gradient-to-r from-cyan-400 to-sky-500"
+                  style="width:0%"></div>
+              </div>
+            </div>
+            <div class="rounded-2xl p-4"
+              style="background:rgba(124,58,237,0.05);border:1px solid rgba(124,58,237,0.14);">
+              <div class="flex items-center justify-between gap-3 mb-2">
+                <p class="text-xs font-bold uppercase tracking-wider text-violet-200">Białko</p>
+                <p class="text-sm font-semibold text-violet-100" id="dayProteinSummary">0 / 0 g białka</p>
+              </div>
+              <div class="progress-bar">
+                <div id="dayProteinProgressBar" class="progress-fill bg-gradient-to-r from-violet-500 to-fuchsia-500"
+                  style="width:0%"></div>
+              </div>
+            </div>
           </div>
         </div>
         <div id="macroAlertBanner" class="hidden alert-warn">
@@ -3429,15 +3452,10 @@
               </h4>
               <div class="flex items-center gap-2 mt-0.5">
                 <span class="text-xs text-gray-500">@</span>
-                <span
-                  id="profile-nickname"
-                  class="text-sm font-mono text-cyan-400 tracking-wide"
-                ></span>
-                <button
-                  onclick="openChangeNicknameModal()"
+                <span id="profile-nickname" class="text-sm font-mono text-cyan-400 tracking-wide"></span>
+                <button onclick="openChangeNicknameModal()"
                   class="ml-1 text-xs text-gray-600 hover:text-gray-400 transition-colors"
-                  title="Zmień nick"
-                >✏️</button>
+                  title="Zmień nick">✏️</button>
               </div>
               <p id="profileWelcomeSub" class="text-sm text-gray-400 mt-0.5"></p>
             </div>
@@ -24231,6 +24249,656 @@
         'color:#00e5ff;font-weight:bold;',
         'color:#64748b;',
       );
+
+      const _dayTrackerState = window.__dayTrackerState || {
+        currentDate: null,
+        log: null,
+        planMeals: [],
+        planWorkouts: [],
+        kcalConsumed: 0,
+        proteinConsumed: 0,
+        kcalTarget: 0,
+        proteinTarget: 0,
+        currentRpe: 5,
+      };
+      window.__dayTrackerState = _dayTrackerState;
+
+      function _dayTrackerGetTargets() {
+        const profile = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
+        const kcalTarget = Number(profile?.calories_target || profile?.caloriesTarget || 2200) || 2200;
+        const proteinTarget = Number(profile?.protein_target || profile?.proteinTarget || 187) || 187;
+        return { kcalTarget, proteinTarget };
+      }
+
+      function _dayTrackerNotifyError(error, fallbackMessage) {
+        console.error('[FitAI][day-tracker]', error);
+        if (typeof showToast === 'function') {
+          showToast(fallbackMessage || 'Wystąpił błąd podczas aktualizacji dnia.');
+        }
+      }
+
+      function _dayTrackerNormalizeMeal(item) {
+        return {
+          item_id: String(item?.item_id || item?.id || crypto.randomUUID()),
+          item_type: 'meal',
+          name: item?.name || 'Posiłek',
+          source: item?.source || 'custom',
+          kcal: Number(item?.kcal || 0),
+          protein: Number(item?.protein || 0),
+          meal_type: item?.meal_type || item?.category || 'inne',
+          checked: !!(item?.checked ?? item?.done),
+          notes: item?.notes || '',
+        };
+      }
+
+      function _dayTrackerNormalizeWorkout(item) {
+        return {
+          item_id: String(item?.item_id || item?.id || crypto.randomUUID()),
+          item_type: 'workout',
+          name: item?.name || 'Ćwiczenie',
+          source: item?.source || 'custom',
+          sets: Number(item?.sets || 0),
+          reps: Number(item?.reps || 0),
+          weight_kg: Number(item?.weight_kg ?? item?.weight ?? 0),
+          rpe: item?.rpe ?? null,
+          checked: !!(item?.checked ?? item?.done),
+          notes: item?.notes || '',
+        };
+      }
+
+      function _dayTrackerSyncFromLog(log, planMeals, planWorkouts) {
+        const meals = [
+          ...(Array.isArray(log?.meals) ? log.meals : []),
+          ...(Array.isArray(log?.custom_meals) ? log.custom_meals : []),
+        ].map(_dayTrackerNormalizeMeal);
+        const workouts = (Array.isArray(log?.workouts) ? log.workouts : []).map(_dayTrackerNormalizeWorkout);
+
+        _dayTrackerState.currentDate = log?.date || new Date().toISOString().slice(0, 10);
+        _dayTrackerState.log = log || null;
+        _dayTrackerState.planMeals = Array.isArray(planMeals) ? planMeals.map(_dayTrackerNormalizeMeal) : [];
+        _dayTrackerState.planWorkouts = Array.isArray(planWorkouts) ? planWorkouts.map(_dayTrackerNormalizeWorkout) : [];
+        _dayTrackerState.kcalConsumed = Number(log?.kcal_consumed ?? 0) || 0;
+        _dayTrackerState.proteinConsumed = Number(log?.protein_consumed ?? 0) || 0;
+
+        const targets = _dayTrackerGetTargets();
+        _dayTrackerState.kcalTarget = targets.kcalTarget;
+        _dayTrackerState.proteinTarget = targets.proteinTarget;
+
+        _activeDay = {
+          meals,
+          exercises: workouts,
+          rpe: Number(log?.rpe || _dayTrackerState.currentRpe || 5),
+          mood: log?.mood_score ?? null,
+          sleepStart: log?.sleep_start || null,
+          sleepEnd: log?.sleep_end || null,
+          sleepHours: log?.sleep_hours ? Math.round(Number(log.sleep_hours) * 60) : null,
+          date: _dayTrackerState.currentDate,
+          weight: log?.weight ?? null,
+        };
+
+        const today = new Date();
+        const dayLabel = today.toLocaleDateString('pl-PL', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+        const dayLabelShort = today.toLocaleDateString('pl-PL', { weekday: 'long' });
+        const dateText = today.toLocaleDateString('pl-PL', { day: '2-digit', month: 'long', year: 'numeric' });
+        const todayDayLabel = document.getElementById('todayDayLabel');
+        const todayDateLabel = document.getElementById('todayDateLabel');
+        if (todayDayLabel) todayDayLabel.textContent = dayLabelShort.charAt(0).toUpperCase() + dayLabelShort.slice(1);
+        if (todayDateLabel) todayDateLabel.textContent = dateText;
+        const activeDayDate = document.getElementById('activeDayDate');
+        if (activeDayDate) activeDayDate.textContent = dayLabel;
+
+        renderActiveDayMeals();
+        renderActiveDayExercises();
+        recalcBars(_dayTrackerState.kcalConsumed, _dayTrackerState.proteinConsumed);
+      }
+
+      async function loadTodayData() {
+        try {
+          const token = localStorage.getItem('fitai_token');
+          if (!token) {
+            throw new Error('Brak tokena logowania');
+          }
+          const response = await fetch(`${window.API_BASE}/app/day/today`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const payload = await response.json();
+          if (!response.ok) {
+            throw new Error(payload?.detail || 'Nie udało się pobrać danych dnia');
+          }
+          _dayTrackerSyncFromLog(payload.log, payload.plan_meals, payload.plan_workouts);
+          return payload;
+        } catch (error) {
+          _dayTrackerNotifyError(error, 'Nie udało się załadować dzisiejszych danych.');
+          return null;
+        }
+      }
+
+      function recalcBars(kcalConsumed, proteinConsumed) {
+        const kcalTarget = _dayTrackerState.kcalTarget || _dayTrackerGetTargets().kcalTarget;
+        const proteinTarget = _dayTrackerState.proteinTarget || _dayTrackerGetTargets().proteinTarget;
+        const kcal = Number(kcalConsumed ?? _dayTrackerState.kcalConsumed ?? 0);
+        const protein = Number(proteinConsumed ?? _dayTrackerState.proteinConsumed ?? 0);
+        const kcalPct = kcalTarget > 0 ? Math.min(100, Math.round((kcal / kcalTarget) * 100)) : 0;
+        const proteinPct = proteinTarget > 0 ? Math.min(100, Math.round((protein / proteinTarget) * 100)) : 0;
+
+        const setText = (id, value) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = value;
+        };
+        const setWidth = (id, pct) => {
+          const el = document.getElementById(id);
+          if (el) el.style.width = `${pct}%`;
+        };
+
+        setText('dayKcalSummary', `${kcal} / ${kcalTarget} kcal`);
+        setText('dayProteinSummary', `${protein} / ${proteinTarget} g białka`);
+        setText('daySumKcal', String(kcal));
+        setText('daySumProt', String(protein));
+        setText('activeDayKcalDone', String(kcal));
+        setText('activeDayKcalTarget', String(kcalTarget));
+        setText('activeDayProgress', `${Math.round((kcalPct + proteinPct) / 2)}%`);
+        setText('dayProgressLabel', `${Math.round((kcalPct + proteinPct) / 2)}%`);
+        setText('dayProgressCount', `${_activeDay.meals.length + _activeDay.exercises.length} zadań`);
+        setWidth('dayKcalProgressBar', kcalPct);
+        setWidth('dayProteinProgressBar', proteinPct);
+        setWidth('dayProgressBar', Math.round((kcalPct + proteinPct) / 2));
+      }
+
+      async function toggleItem(itemId, itemType, checked) {
+        try {
+          const token = localStorage.getItem('fitai_token');
+          if (!token) throw new Error('Brak tokena logowania');
+          const response = await fetch(`${window.API_BASE}/app/day/item/toggle`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ item_id: itemId, item_type: itemType, checked: !!checked, log_date: _dayTrackerState.currentDate }),
+          });
+          const payload = await response.json();
+          if (!response.ok) throw new Error(payload?.detail || 'Nie udało się zapisać zmiany');
+
+          const itemCollections = itemType === 'meal' ? [_activeDay.meals] : [_activeDay.exercises];
+          itemCollections.forEach(collection => {
+            const item = collection.find(entry => String(entry.item_id) === String(itemId));
+            if (item) {
+              item.checked = !!checked;
+              item.done = !!checked;
+            }
+          });
+
+          _dayTrackerState.kcalConsumed = Number(payload.kcal_consumed ?? _dayTrackerState.kcalConsumed ?? 0);
+          _dayTrackerState.proteinConsumed = Number(payload.protein_consumed ?? _dayTrackerState.proteinConsumed ?? 0);
+          recalcBars(_dayTrackerState.kcalConsumed, _dayTrackerState.proteinConsumed);
+          renderActiveDayMeals();
+          renderActiveDayExercises();
+          if (typeof showToast === 'function') {
+            showToast(checked ? '✅ Zapisano element dnia' : '↩ Cofnięto odhaczenie');
+          }
+          return payload;
+        } catch (error) {
+          _dayTrackerNotifyError(error, 'Nie udało się zmienić stanu elementu.');
+          return null;
+        }
+      }
+
+      async function addItem(itemType, data) {
+        try {
+          const token = localStorage.getItem('fitai_token');
+          if (!token) throw new Error('Brak tokena logowania');
+          const response = await fetch(`${window.API_BASE}/app/day/item/add`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ item_type: itemType, log_date: _dayTrackerState.currentDate, ...data }),
+          });
+          const payload = await response.json();
+          if (!response.ok) throw new Error(payload?.detail || 'Nie udało się dodać elementu');
+          _dayTrackerSyncFromLog(payload.log, _dayTrackerState.planMeals, _dayTrackerState.planWorkouts);
+          recalcBars(payload.kcal_consumed, payload.protein_consumed);
+          if (typeof showToast === 'function') showToast('✅ Dodano element do dnia');
+          return payload;
+        } catch (error) {
+          _dayTrackerNotifyError(error, 'Nie udało się dodać elementu dnia.');
+          return null;
+        }
+      }
+
+      async function swapItem(itemId, itemType, newData) {
+        try {
+          const token = localStorage.getItem('fitai_token');
+          if (!token) throw new Error('Brak tokena logowania');
+          const response = await fetch(`${window.API_BASE}/app/day/item/swap`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ item_id: itemId, item_type: itemType, log_date: _dayTrackerState.currentDate, ...newData }),
+          });
+          const payload = await response.json();
+          if (!response.ok) throw new Error(payload?.detail || 'Nie udało się podmienić elementu');
+          _dayTrackerSyncFromLog(payload.log, _dayTrackerState.planMeals, _dayTrackerState.planWorkouts);
+          recalcBars(payload.kcal_consumed, payload.protein_consumed);
+          if (typeof showToast === 'function') showToast('🔄 Zapisano zamianę');
+          return payload;
+        } catch (error) {
+          _dayTrackerNotifyError(error, 'Nie udało się podmienić elementu dnia.');
+          return null;
+        }
+      }
+
+      function _dayTrackerMealBadgeLabel(mealType) {
+        const normalized = String(mealType || 'inne').toLowerCase();
+        const labels = {
+          sniadanie: 'Śniadanie',
+          śniadanie: 'Śniadanie',
+          przekaska: 'Przekąska',
+          przekąska: 'Przekąska',
+          obiad: 'Obiad',
+          kolacja: 'Kolacja',
+          inne: 'Inne',
+        };
+        return labels[normalized] || mealType || 'Inne';
+      }
+
+      function renderActiveDayMeals() {
+        const container = document.getElementById('activeDayMealsList');
+        if (!container) return;
+        const meals = (_activeDay.meals || []).filter(Boolean);
+
+        if (!meals.length) {
+          container.innerHTML = '<p class="text-sm text-gray-600 italic text-center py-3">Brak posiłków na dziś.</p>';
+          recalcBars(_dayTrackerState.kcalConsumed, _dayTrackerState.proteinConsumed);
+          return;
+        }
+
+        container.innerHTML = meals.map(item => {
+          const checked = !!(item.checked || item.done);
+          const strike = checked ? 'line-through opacity-70' : '';
+          const opacity = checked ? '0.5' : '1';
+          const checkColor = checked ? '#22c55e' : '#94a3b8';
+          return `
+            <div class="glass rounded-2xl p-4 transition-all" style="opacity:${opacity};border-color:${checked ? 'rgba(34,197,94,0.25)' : 'rgba(255,255,255,0.08)'};">
+              <div class="flex items-start gap-3">
+                <label class="flex items-center justify-center w-10 h-10 rounded-xl" style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.15);cursor:pointer;">
+                  <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleItem('${item.item_id}','meal',this.checked)" class="sr-only">
+                  <span style="color:${checkColor};font-size:18px;${checked ? 'animation:checkPop 0.28s ease-out;' : ''}">✓</span>
+                </label>
+                <div class="flex-1 min-w-0">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <p class="text-sm md:text-base font-semibold text-white ${strike}">${escapeHTML(item.name)}</p>
+                    <span class="chip">${escapeHTML(_dayTrackerMealBadgeLabel(item.meal_type))}</span>
+                    <span class="chip">${Number(item.kcal || 0)} kcal</span>
+                    <span class="chip">${Number(item.protein || 0)} g białka</span>
+                  </div>
+                  <div class="mt-3 flex flex-wrap gap-2">
+                    <button onclick="swapDayMeal('${item.item_id}')" class="btn-ghost px-3 py-1.5 rounded-xl text-xs font-bold">🔄 Zamień</button>
+                    <button onclick="editDayMealPortion('${item.item_id}')" class="btn-outline-cyan px-3 py-1.5 rounded-xl text-xs font-bold">✏️ Edytuj porcję</button>
+                  </div>
+                </div>
+              </div>
+            </div>`;
+        }).join('');
+
+        recalcBars(_dayTrackerState.kcalConsumed, _dayTrackerState.proteinConsumed);
+      }
+
+      function renderActiveDayExercises() {
+        const container = document.getElementById('activeDayExerciseList');
+        if (!container) return;
+        const workouts = (_activeDay.exercises || []).filter(Boolean);
+
+        const rpeSection = document.getElementById('rpeSection');
+        if (rpeSection) rpeSection.classList.toggle('hidden', workouts.length === 0);
+
+        if (!workouts.length) {
+          container.innerHTML = '<p class="text-sm text-gray-600 italic text-center py-3">Brak ćwiczeń na dziś.</p>';
+          recalcBars(_dayTrackerState.kcalConsumed, _dayTrackerState.proteinConsumed);
+          return;
+        }
+
+        container.innerHTML = workouts.map(item => {
+          const checked = !!(item.checked || item.done);
+          const strike = checked ? 'line-through opacity-70' : '';
+          const opacity = checked ? '0.5' : '1';
+          const rpeValue = checked ? Number(item.rpe ?? _dayTrackerState.currentRpe ?? 5) : Number(item.rpe ?? _dayTrackerState.currentRpe ?? 5);
+          return `
+            <div class="glass rounded-2xl p-4 transition-all" style="opacity:${opacity};border-color:${checked ? 'rgba(124,58,237,0.25)' : 'rgba(255,255,255,0.08)'};">
+              <div class="flex items-start gap-3">
+                <label class="flex items-center justify-center w-10 h-10 rounded-xl" style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.15);cursor:pointer;">
+                  <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleItem('${item.item_id}','workout',this.checked)" class="sr-only">
+                  <span style="color:${checked ? '#22c55e' : '#a78bfa'};font-size:18px;${checked ? 'animation:checkPop 0.28s ease-out;' : ''}">✓</span>
+                </label>
+                <div class="flex-1 min-w-0">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <p class="text-sm md:text-base font-semibold text-white ${strike}">${escapeHTML(item.name)}</p>
+                    <span class="chip">Serie × Powt × Ciężar</span>
+                  </div>
+                  <div class="mt-3 grid gap-2 md:grid-cols-4 items-end">
+                    <label class="text-xs text-gray-400 block">
+                      Serie
+                      <input type="number" min="1" value="${Number(item.sets || 0)}" class="mt-1 w-full rounded-xl px-3 py-2 text-sm" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);" onchange="swapDayWorkout('${item.item_id}', { sets: Number(this.value) || 0, reps: ${Number(item.reps || 0)}, weight_kg: ${Number(item.weight_kg || 0)} })">
+                    </label>
+                    <label class="text-xs text-gray-400 block">
+                      Powt.
+                      <input type="number" min="1" value="${Number(item.reps || 0)}" class="mt-1 w-full rounded-xl px-3 py-2 text-sm" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);" onchange="swapDayWorkout('${item.item_id}', { sets: ${Number(item.sets || 0)}, reps: Number(this.value) || 0, weight_kg: ${Number(item.weight_kg || 0)} })">
+                    </label>
+                    <label class="text-xs text-gray-400 block">
+                      Ciężar (kg)
+                      <input type="number" min="0" step="0.5" value="${Number(item.weight_kg || 0)}" class="mt-1 w-full rounded-xl px-3 py-2 text-sm" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);" onchange="swapDayWorkout('${item.item_id}', { sets: ${Number(item.sets || 0)}, reps: ${Number(item.reps || 0)}, weight_kg: Number(this.value) || 0 })">
+                    </label>
+                    <div class="flex flex-wrap gap-2">
+                      <button onclick="editDayWorkout('${item.item_id}')" class="btn-outline-cyan px-3 py-2 rounded-xl text-xs font-bold">✏️ Edytuj</button>
+                      <button onclick="swapDayWorkout('${item.item_id}')" class="btn-ghost px-3 py-2 rounded-xl text-xs font-bold">🔄 Zamień</button>
+                    </div>
+                  </div>
+                  <div class="mt-3 ${checked ? '' : 'hidden'}" id="rpeWrap_${item.item_id}">
+                    <label class="text-xs text-gray-400 block mb-2">RPE 1-10</label>
+                    <input type="range" min="1" max="10" value="${rpeValue}" class="w-full" style="accent-color:#a78bfa;" oninput="setWorkoutRpe('${item.item_id}', this.value)">
+                    <div class="flex justify-between text-[11px] text-gray-500 mt-1"><span>1</span><span>5</span><span>10</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>`;
+        }).join('');
+
+        recalcBars(_dayTrackerState.kcalConsumed, _dayTrackerState.proteinConsumed);
+      }
+
+      async function swapDayMeal(itemId) {
+        const item = [...(_activeDay.meals || [])].find(entry => String(entry.item_id) === String(itemId));
+        if (!item) return;
+        const newName = prompt('Nowa nazwa posiłku', item.name || '');
+        if (newName === null) return;
+        const newKcal = prompt('Nowe kcal', String(item.kcal ?? 0));
+        if (newKcal === null) return;
+        const newProtein = prompt('Nowe białko (g)', String(item.protein ?? 0));
+        if (newProtein === null) return;
+        await swapItem(itemId, 'meal', {
+          new_name: newName.trim() || item.name,
+          new_kcal: Number(newKcal) || 0,
+          new_protein: Number(newProtein) || 0,
+        });
+      }
+
+      async function editDayMealPortion(itemId) {
+        const item = [...(_activeDay.meals || [])].find(entry => String(entry.item_id) === String(itemId));
+        if (!item) return;
+        const newKcal = prompt('Nowe kcal', String(item.kcal ?? 0));
+        if (newKcal === null) return;
+        const newProtein = prompt('Nowe białko (g)', String(item.protein ?? 0));
+        if (newProtein === null) return;
+        await swapItem(itemId, 'meal', {
+          new_name: item.name,
+          new_kcal: Number(newKcal) || 0,
+          new_protein: Number(newProtein) || 0,
+        });
+      }
+
+      async function swapDayWorkout(itemId, newData) {
+        const item = [...(_activeDay.exercises || [])].find(entry => String(entry.item_id) === String(itemId));
+        if (!item) return;
+        const current = newData || {};
+        if (!newData) {
+          const newName = prompt('Nowa nazwa ćwiczenia', item.name || '');
+          if (newName === null) return;
+          current.new_name = newName.trim() || item.name;
+          current.new_kcal = 0;
+          current.new_protein = 0;
+        }
+        await swapItem(itemId, 'workout', {
+          new_name: current.new_name || item.name,
+          new_kcal: current.new_kcal ?? 0,
+          new_protein: current.new_protein ?? 0,
+          sets: current.sets ?? item.sets,
+          reps: current.reps ?? item.reps,
+          weight_kg: current.weight_kg ?? item.weight_kg,
+        });
+        if (typeof current.sets === 'number') item.sets = current.sets;
+        if (typeof current.reps === 'number') item.reps = current.reps;
+        if (typeof current.weight_kg === 'number') item.weight_kg = current.weight_kg;
+      }
+
+      async function editDayWorkout(itemId) {
+        const item = [...(_activeDay.exercises || [])].find(entry => String(entry.item_id) === String(itemId));
+        if (!item) return;
+        const sets = prompt('Serie', String(item.sets ?? 0));
+        if (sets === null) return;
+        const reps = prompt('Powtórzenia', String(item.reps ?? 0));
+        if (reps === null) return;
+        const weightKg = prompt('Ciężar (kg)', String(item.weight_kg ?? 0));
+        if (weightKg === null) return;
+        await swapItem(itemId, 'workout', {
+          new_name: item.name,
+          new_kcal: 0,
+          new_protein: 0,
+          sets: Number(sets) || 0,
+          reps: Number(reps) || 0,
+          weight_kg: Number(weightKg) || 0,
+        });
+        item.sets = Number(sets) || 0;
+        item.reps = Number(reps) || 0;
+        item.weight_kg = Number(weightKg) || 0;
+        renderActiveDayExercises();
+      }
+
+      async function setWorkoutRpe(itemId, value) {
+        const item = [...(_activeDay.exercises || [])].find(entry => String(entry.item_id) === String(itemId));
+        if (!item) return;
+        item.rpe = Number(value) || 1;
+        _dayTrackerState.currentRpe = item.rpe;
+      }
+
+      function updateActiveDayProgress() {
+        const meals = _activeDay.meals || [];
+        const workouts = _activeDay.exercises || [];
+        const total = meals.length + workouts.length;
+        const doneMeals = meals.filter(item => item.checked || item.done).length;
+        const doneWorkouts = workouts.filter(item => item.checked || item.done).length;
+        const done = doneMeals + doneWorkouts;
+        const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+        const progressEl = document.getElementById('activeDayProgress');
+        const labelEl = document.getElementById('dayProgressLabel');
+        const barEl = document.getElementById('dayProgressBar');
+        const countEl = document.getElementById('dayProgressCount');
+        const trainCountEl = document.getElementById('dayTrainCount');
+        if (progressEl) progressEl.textContent = `${pct}%`;
+        if (labelEl) labelEl.textContent = `${pct}%`;
+        if (barEl) barEl.style.width = `${pct}%`;
+        if (countEl) countEl.textContent = `${done} / ${total} zadań`;
+        if (trainCountEl) trainCountEl.textContent = String(doneWorkouts);
+        updateActiveDayInsights();
+      }
+
+      function updateActiveDayKcal() {
+        recalcBars(_dayTrackerState.kcalConsumed, _dayTrackerState.proteinConsumed);
+      }
+
+      async function toggleMealDone(itemId, value) {
+        await toggleItem(itemId, 'meal', value);
+      }
+
+      async function toggleExDone(itemId, value) {
+        const item = [...(_activeDay.exercises || [])].find(entry => String(entry.item_id) === String(itemId));
+        if (item && value && item.rpe == null) {
+          item.rpe = _dayTrackerState.currentRpe || 5;
+        }
+        await toggleItem(itemId, 'workout', value);
+      }
+
+      async function addMealFromSearch(meal) {
+        await addItem('meal', {
+          name: meal?.name || 'Posiłek',
+          source: meal?.source || 'plan',
+          kcal: Number(meal?.kcal || 0),
+          protein: Number(meal?.protein || 0),
+          meal_type: meal?.meal_type || meal?.category || 'inne',
+        });
+      }
+
+      async function addCustomMealToDay() {
+        const name = document.getElementById('customMealName')?.value?.trim();
+        if (!name) {
+          if (typeof showToast === 'function') showToast('⚠️ Podaj nazwę posiłku');
+          return;
+        }
+        await addItem('meal', {
+          name,
+          source: 'custom',
+          kcal: Number(document.getElementById('customMealKcal')?.value) || 0,
+          protein: Number(document.getElementById('customMealProtein')?.value) || 0,
+          meal_type: document.getElementById('customMealCategory')?.value || 'inne',
+        });
+        ['customMealName', 'customMealKcal', 'customMealProtein', 'customMealCarbs', 'customMealFat'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.value = '';
+        });
+        closeAddMealToDay();
+      }
+
+      async function addExerciseFromSearch(exercise) {
+        await addItem('workout', {
+          name: exercise?.name || 'Ćwiczenie',
+          source: exercise?.source || 'plan',
+          sets: Number(exercise?.sets || 0),
+          reps: Number(exercise?.reps || 0),
+          weight_kg: Number(exercise?.weight || exercise?.weight_kg || 0),
+          rpe: exercise?.rpe ?? null,
+        });
+      }
+
+      async function addCustomExerciseToDay() {
+        const name = document.getElementById('customExName')?.value?.trim();
+        if (!name) {
+          if (typeof showToast === 'function') showToast('⚠️ Podaj nazwę ćwiczenia');
+          return;
+        }
+        await addItem('workout', {
+          name,
+          source: 'custom',
+          sets: Number(document.getElementById('customExSets')?.value) || 3,
+          reps: Number(document.getElementById('customExReps')?.value) || 10,
+          weight_kg: Number(document.getElementById('customExWeight')?.value) || 0,
+          rpe: _dayTrackerState.currentRpe || 5,
+        });
+        ['customExName', 'customExSets', 'customExReps', 'customExWeight', 'customExNotes'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.value = '';
+        });
+        closeAddExerciseToDay();
+      }
+
+      function updateRPE(val, skipSave) {
+        const nextValue = Math.max(1, Math.min(10, Number(val) || 5));
+        _dayTrackerState.currentRpe = nextValue;
+        const valueEl = document.getElementById('rpeValue');
+        const descEl = document.getElementById('activeDayRpeDesc');
+        if (valueEl) valueEl.textContent = String(nextValue);
+        if (descEl) {
+          const map = {
+            1: 'Bardzo lekko', 2: 'Lekko', 3: 'Umiarkowanie lekko', 4: 'Umiarkowanie',
+            5: 'Umiarkowanie ciężko', 6: 'Solidny wysiłek', 7: 'Ciężko', 8: 'Bardzo ciężko',
+            9: 'Ekstremalnie ciężko', 10: 'Maksymalny wysiłek',
+          };
+          descEl.textContent = map[nextValue] || '';
+        }
+        if (!skipSave) saveActiveDayState?.();
+        updateActiveDayInsights();
+      }
+
+      function updateSleepDuration(skipSave) {
+        const start = document.getElementById('sleepStart')?.value;
+        const end = document.getElementById('sleepEnd')?.value;
+        const badge = document.getElementById('sleepDurationBadge');
+        const out = document.getElementById('sleepHours');
+        if (!start || !end) {
+          _activeDay.sleepStart = start || null;
+          _activeDay.sleepEnd = end || null;
+          _activeDay.sleepHours = null;
+          if (badge) badge.classList.add('hidden');
+          if (!skipSave) saveActiveDayState?.();
+          updateActiveDayInsights();
+          return;
+        }
+        const [sh, sm] = start.split(':').map(Number);
+        const [eh, em] = end.split(':').map(Number);
+        let startMin = sh * 60 + sm;
+        let endMin = eh * 60 + em;
+        if (endMin <= startMin) endMin += 24 * 60;
+        const diff = endMin - startMin;
+        const h = Math.floor(diff / 60);
+        const m = diff % 60;
+        if (out) out.textContent = `${h}h ${m}min`;
+        if (badge) badge.classList.remove('hidden');
+        _activeDay.sleepStart = start;
+        _activeDay.sleepEnd = end;
+        _activeDay.sleepHours = diff;
+        if (!skipSave) saveActiveDayState?.();
+        updateActiveDayInsights();
+      }
+
+      function setMood(level, skipSave) {
+        const value = Number(level);
+        if (value < 1 || value > 5) return;
+        _activeDay.mood = value;
+        for (let i = 1; i <= 5; i++) {
+          const btn = document.getElementById('mood_' + i);
+          if (!btn) continue;
+          const active = i === value;
+          btn.style.background = active ? 'rgba(0,229,255,0.12)' : 'rgba(255,255,255,0.04)';
+          btn.style.borderColor = active ? 'rgba(0,229,255,0.35)' : 'rgba(255,255,255,0.08)';
+          btn.style.transform = active ? 'translateY(-2px)' : 'translateY(0)';
+        }
+        if (!skipSave) saveActiveDayState?.();
+        updateActiveDayInsights();
+      }
+
+      function initActiveDayFromPlan() {
+        loadTodayData();
+      }
+
+      function openAddMealToDay() {
+        const modal = document.getElementById('addMealToDayModal');
+        if (!modal) return;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        searchMealForDay('');
+        setTimeout(() => document.getElementById('addMealSearch')?.focus(), 30);
+      }
+
+      function openAddExerciseToDay() {
+        const modal = document.getElementById('addExerciseToDayModal');
+        if (!modal) return;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        searchExerciseForDay('');
+        setTimeout(() => document.getElementById('addExerciseSearch')?.focus(), 30);
+      }
+
+      function swapActiveDayMeal(indexOrId) {
+        const item = [...(_activeDay.meals || [])].find(entry => String(entry.item_id) === String(indexOrId));
+        if (!item) return;
+        swapDayMeal(item.item_id);
+      }
+
+      function swapActiveDayExercise(indexOrId) {
+        const item = [...(_activeDay.exercises || [])].find(entry => String(entry.item_id) === String(indexOrId));
+        if (!item) return;
+        swapDayWorkout(item.item_id);
+      }
+
+      function renderExtraItems() { }
+      function removeExtraItem() { }
+      function updateDaySummaryCounters() { }
+      function updateDayProgress() { }
+
+      window.loadTodayData = loadTodayData;
+      window.toggleItem = toggleItem;
+      window.addItem = addItem;
+      window.swapItem = swapItem;
+      window.recalcBars = recalcBars;
+      window.swapDayMeal = swapDayMeal;
+      window.swapDayWorkout = swapDayWorkout;
+      window.editDayMealPortion = editDayMealPortion;
+      window.editDayWorkout = editDayWorkout;
+      window.setWorkoutRpe = setWorkoutRpe;
+
+      recalcBars(_dayTrackerState.kcalConsumed, _dayTrackerState.proteinConsumed);
 
     })();
   </script>

@@ -159,6 +159,9 @@ class DailyLogDB(SQLModel, table=True):
     log_date: date = Field(index=True)           # Rzeczywista data, nie string
     food: str = ""
     workout: str = ""
+    meals_json: str = "[]"
+    workouts_json: str = "[]"
+    custom_meals_json: str = "[]"
     mood: str = ""
     weight: Optional[float] = None
     water_liters: Optional[float] = None          # spożycie wody w litrach (inkrementowane)
@@ -189,6 +192,12 @@ class DailyLogDB(SQLModel, table=True):
             "date": self.log_date.isoformat(),  # Serialize to ISO format for API
             "food": self.food,
             "workout": self.workout,
+            "meals_json": self.meals_json,
+            "workouts_json": self.workouts_json,
+            "custom_meals_json": self.custom_meals_json,
+            "meals": self.get_meals(),
+            "workouts": self.get_workouts(),
+            "custom_meals": self.get_custom_meals(),
             "mood": self.mood,
             "weight": self.weight,
             "water_liters": self.water_liters,
@@ -205,6 +214,34 @@ class DailyLogDB(SQLModel, table=True):
             "notes": self.notes,
             "logged_at": self.logged_at.isoformat(),
         }
+
+    def _load_json_list(self, field_name: str) -> list:
+        try:
+            value = json.loads(getattr(self, field_name, "[]") or "[]")
+            return value if isinstance(value, list) else []
+        except (TypeError, json.JSONDecodeError):
+            return []
+
+    def _store_json_list(self, field_name: str, value: list) -> None:
+        setattr(self, field_name, json.dumps(value or [], ensure_ascii=False))
+
+    def get_meals(self) -> list:
+        return self._load_json_list("meals_json")
+
+    def set_meals(self, value: list) -> None:
+        self._store_json_list("meals_json", value)
+
+    def get_workouts(self) -> list:
+        return self._load_json_list("workouts_json")
+
+    def set_workouts(self, value: list) -> None:
+        self._store_json_list("workouts_json", value)
+
+    def get_custom_meals(self) -> list:
+        return self._load_json_list("custom_meals_json")
+
+    def set_custom_meals(self, value: list) -> None:
+        self._store_json_list("custom_meals_json", value)
 
 
 class ExerciseResultDB(SQLModel, table=True):

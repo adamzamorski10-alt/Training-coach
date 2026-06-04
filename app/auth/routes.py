@@ -56,7 +56,6 @@ def register(payload: RegisterRequest):
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Ten nick jest już zajęty",
             )
-        from app.database import engine, get_session
         user = UserDB(
             user_key=f"native:nick:{normalized_nickname}",
             email=payload.email.lower().strip(),

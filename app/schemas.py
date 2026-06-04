@@ -112,6 +112,10 @@ class ProfileUpdateRequest(BaseModel):
     notes: Optional[str] = None
 
 
+class NicknameChangeRequest(BaseModel):
+    new_nickname: str
+
+
 class AppOnboardingRequest(BaseModel):
     identity_id: str
     email: str
@@ -212,6 +216,40 @@ class AppDailyCheckinRequest(BaseModel):
         default=None, ge=1, le=10
     )
     soreness: Optional[str] = None
+
+
+class DayItemToggleRequest(BaseModel):
+    item_id: str
+    item_type: str
+    checked: bool
+    log_date: Optional[str] = None
+
+
+class DayItemAddRequest(BaseModel):
+    item_type: str
+    name: str
+    source: str = "custom"
+    kcal: Optional[int] = None
+    protein: Optional[float] = None
+    sets: Optional[int] = None
+    reps: Optional[int] = None
+    weight_kg: Optional[float] = None
+    rpe: Optional[int] = None
+    meal_type: Optional[str] = None
+    log_date: Optional[str] = None
+
+
+class DayItemSwapRequest(BaseModel):
+    item_id: str
+    item_type: str
+    new_name: str
+    new_kcal: Optional[int] = None
+    new_protein: Optional[float] = None
+    sets: Optional[int] = None
+    reps: Optional[int] = None
+    weight_kg: Optional[float] = None
+    rpe: Optional[int] = None
+    log_date: Optional[str] = None
 
 
 # ─── Fitness / Exercise Schemas ───────────────────────────────────────────────

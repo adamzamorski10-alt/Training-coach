@@ -33,6 +33,9 @@ from app.legacy_routes import router as legacy_router
 from app.meta.routes import router as meta_router
 from app.plan.routes import router as plan_router
 
+# Eager bootstrap so older SQLite workspaces get missing columns before the first request.
+create_db_and_tables()
+
 # Initialize FastAPI app
 app = FastAPI(
     title=APP_NAME,

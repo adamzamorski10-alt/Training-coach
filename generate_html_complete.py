@@ -17,9 +17,17 @@ def main() -> int:
         print(f"❌ {src.name} nie istnieje")
         return 1
 
+    targets = [dst]
+    if dst.name == "index.html":
+        alt = dst.with_name("index_new.html")
+        if alt.exists():
+            targets.append(alt)
+
     if src != dst:
         dst.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(src, dst)
+        for target in targets:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(src, target)
     else:
         # Keep behavior deterministic even when source and output are the same path.
         _ = src.read_text(encoding="utf-8")

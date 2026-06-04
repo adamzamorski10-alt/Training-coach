@@ -4,7 +4,8 @@ Fitness Routes — Profile, dashboard, daily checkin, exercise/drill logging
 
 import json
 from datetime import date, datetime, timedelta
-from typing import Optional
+from typing import Any, Optional
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
@@ -41,6 +42,9 @@ from app.models import DailyLogDB, DrillResultDB, ExerciseResultDB, UserDB
 from app.schemas import (
     AppDailyCheckinRequest,
     AppOnboardingRequest,
+    DayItemAddRequest,
+    DayItemSwapRequest,
+    DayItemToggleRequest,
     DrillResultRequest,
     ExerciseResultRequest,
     NicknameChangeRequest,
@@ -120,6 +124,362 @@ def _safe_weekly_plan(weekly_plan_json: Optional[str]) -> dict:
         return json.loads(weekly_plan_json or "{}") if weekly_plan_json else {}
     except json.JSONDecodeError:
         return {}
+
+
+def _resolve_log_date(log_date: Optional[str]) -> date:
+    if not log_date:
+        return date.today()
+    try:
+        return date.fromisoformat(log_date)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="Nieprawidłowy format log_date") from exc
+
+
+def _today_day_labels(target_date: date) -> tuple[str, str]:
+    return _DAY_LABELS_PL[target_date.weekday()], _DAY_FULL_NAMES_PL[target_date.weekday()]
+
+
+def _ensure_day_log(session: Session, user_id: str, target_date: date) -> DailyLogDB:
+    log = session.exec(
+        select(DailyLogDB)
+        .where(DailyLogDB.user_id == user_id)
+        .where(DailyLogDB.log_date == target_date)
+    ).first()
+    if log:
+        return log
+
+    log = DailyLogDB(user_id=user_id, log_date=target_date)
+    session.add(log)
+    session.commit()
+    session.refresh(log)
+    return log
+
+
+def _normalize_day_meal(item: dict[str, Any], source: str = "custom") -> dict[str, Any]:
+    name = str(item.get("name") or item.get("title") or "Posiłek").strip()
+    meal_type = str(item.get("meal_type") or item.get("category") or item.get("slot") or "inne").strip() or "inne"
+    return {
+        "item_id": str(item.get("item_id") or item.get("id") or uuid4()),
+        "item_type": "meal",
+        "name": name,
+        "source": str(item.get("source") or source or "custom"),
+        "kcal": int(item.get("kcal") or 0),
+        "protein": float(item.get("protein") or 0),
+        "meal_type": meal_type,
+        "checked": bool(item.get("checked") or item.get("done") or item.get("status") == "done"),
+        "notes": item.get("notes"),
+    }
+
+
+def _normalize_day_workout(item: dict[str, Any], source: str = "custom") -> dict[str, Any]:
+    name = str(item.get("name") or item.get("exercise_name") or "Ćwiczenie").strip()
+    weight_kg = item.get("weight_kg")
+    if weight_kg is None:
+        weight_kg = item.get("weight")
+    return {
+        "item_id": str(item.get("item_id") or item.get("id") or uuid4()),
+        "item_type": "workout",
+        "name": name,
+        "source": str(item.get("source") or source or "custom"),
+        "sets": int(item.get("sets") or 0),
+        "reps": int(item.get("reps") or 0),
+        "weight_kg": float(weight_kg or 0),
+        "rpe": int(item.get("rpe") or 0) if item.get("rpe") is not None else None,
+        "checked": bool(item.get("checked") or item.get("done") or item.get("status") == "done"),
+        "notes": item.get("notes"),
+    }
+
+
+def _extract_plan_items_for_day(weekly_plan: dict, target_date: date) -> tuple[list[dict], list[dict]]:
+    if not isinstance(weekly_plan, dict):
+        return [], []
+
+    day_label, day_full = _today_day_labels(target_date)
+    plan_meals: list[dict] = []
+    plan_workouts: list[dict] = []
+
+    days = weekly_plan.get("days", [])
+    if isinstance(days, list):
+        for day_entry in days:
+            if not isinstance(day_entry, dict):
+                continue
+            if day_entry.get("day") not in {day_label, day_full, target_date.isoformat()}:
+                continue
+            plan_meals = list(day_entry.get("meals", []) or [])
+            workout = day_entry.get("workout", {}) or {}
+            if isinstance(workout, dict):
+                plan_workouts = list(workout.get("exercises", []) or [])
+            elif isinstance(workout, list):
+                plan_workouts = list(workout)
+            break
+
+    if not plan_meals:
+        diet = weekly_plan.get("diet", {})
+        if isinstance(diet, dict):
+            plan_meals = list(diet.get(day_label) or diet.get(day_full) or [])
+
+    if not plan_workouts:
+        training = weekly_plan.get("training", {})
+        if isinstance(training, dict):
+            day_training = training.get(day_label) or training.get(day_full) or []
+            if isinstance(day_training, dict):
+                plan_workouts = list(day_training.get("exercises", []) or [])
+            elif isinstance(day_training, list):
+                plan_workouts = list(day_training)
+
+    return plan_meals, plan_workouts
+
+
+def _find_day_item(log: DailyLogDB, item_id: str, item_type: str) -> tuple[Optional[str], Optional[dict[str, Any]], Optional[int]]:
+    lookup = [
+        ("meals_json", log.get_meals()),
+        ("custom_meals_json", log.get_custom_meals()),
+    ] if item_type == "meal" else [("workouts_json", log.get_workouts())]
+
+    for field_name, items in lookup:
+        for index, item in enumerate(items):
+            if str(item.get("item_id")) == str(item_id):
+                return field_name, item, index
+    return None, None, None
+
+
+def _set_day_items(log: DailyLogDB, field_name: str, items: list[dict[str, Any]]) -> None:
+    if field_name == "meals_json":
+        log.set_meals(items)
+    elif field_name == "custom_meals_json":
+        log.set_custom_meals(items)
+    elif field_name == "workouts_json":
+        log.set_workouts(items)
+
+
+def _sync_day_log_fields(log: DailyLogDB) -> tuple[int, float]:
+    meals = [*log.get_meals(), *log.get_custom_meals()]
+    workouts = log.get_workouts()
+
+    checked_meals = [item for item in meals if item.get("checked")]
+    checked_workouts = [item for item in workouts if item.get("checked")]
+
+    kcal_consumed = int(sum(float(item.get("kcal") or 0) for item in checked_meals))
+    protein_consumed = round(sum(float(item.get("protein") or 0) for item in checked_meals), 1)
+
+    log.food = " | ".join(item.get("name", "") for item in checked_meals if item.get("name"))
+    log.workout = " | ".join(item.get("name", "") for item in checked_workouts if item.get("name"))
+    log.meals_eaten = len(checked_meals)
+    log.workouts_done = len(checked_workouts)
+
+    return kcal_consumed, protein_consumed
+
+
+def _log_workout_result(user: UserDB, target_date: date, workout_item: dict[str, Any], session: Session) -> ExerciseResultDB:
+    result = ExerciseResultDB(
+        user_id=user.id,
+        exercise_name=str(workout_item.get("name") or "Ćwiczenie"),
+        session_date=target_date,
+        sets=int(workout_item.get("sets") or 1),
+        reps=int(workout_item.get("reps") or 1),
+        weight_kg=float(workout_item.get("weight_kg") or 0),
+        rpe=int(workout_item.get("rpe") or 1),
+        notes=str(workout_item.get("notes") or ""),
+    )
+    session.add(result)
+    session.commit()
+    session.refresh(result)
+    return result
+
+
+@router.get("/day/today")
+def get_today_day_tracker(
+    user: UserDB = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    target_date = date.today()
+    log = _ensure_day_log(session, user.id, target_date)
+
+    weekly_plan = _safe_weekly_plan(user.weekly_plan_json)
+    plan_meals_raw, plan_workouts_raw = _extract_plan_items_for_day(weekly_plan, target_date)
+
+    if not log.get_meals() and plan_meals_raw:
+        log.set_meals([_normalize_day_meal(item, source="plan") for item in plan_meals_raw])
+    if not log.get_workouts() and plan_workouts_raw:
+        log.set_workouts([_normalize_day_workout(item, source="plan") for item in plan_workouts_raw])
+
+    kcal_consumed, protein_consumed = _sync_day_log_fields(log)
+    session.add(log)
+    session.commit()
+    session.refresh(log)
+
+    return {
+        "log": log.to_dict(),
+        "plan_meals": [_normalize_day_meal(item, source="plan") for item in plan_meals_raw],
+        "plan_workouts": [_normalize_day_workout(item, source="plan") for item in plan_workouts_raw],
+        "kcal_consumed": kcal_consumed,
+        "protein_consumed": protein_consumed,
+    }
+
+
+@router.post("/day/item/toggle")
+def toggle_day_item(
+    payload: DayItemToggleRequest,
+    user: UserDB = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    target_date = _resolve_log_date(payload.log_date)
+    log = _ensure_day_log(session, user.id, target_date)
+
+    field_name, item, index = _find_day_item(log, payload.item_id, payload.item_type)
+    if not item or field_name is None or index is None:
+        raise HTTPException(status_code=404, detail="Nie znaleziono elementu dnia")
+
+    previous_checked = bool(item.get("checked"))
+    item["checked"] = bool(payload.checked)
+    item["updated_at"] = datetime.now().isoformat()
+
+    items = log.get_meals() if field_name == "meals_json" else log.get_custom_meals() if field_name == "custom_meals_json" else log.get_workouts()
+    items[index] = item
+    _set_day_items(log, field_name, items)
+
+    xp_earned = 0
+    if payload.checked and not previous_checked:
+        if payload.item_type == "meal":
+            xp_earned = 10
+        elif payload.item_type == "workout":
+            xp_earned = 20
+            _log_workout_result(user, target_date, item, session)
+
+    kcal_consumed, protein_consumed = _sync_day_log_fields(log)
+    session.add(log)
+
+    if xp_earned:
+        db_user = session.get(UserDB, user.id)
+        if db_user:
+            db_user.total_xp = (db_user.total_xp or 0) + xp_earned
+            db_user.updated_at = datetime.now()
+            session.add(db_user)
+
+    session.commit()
+    session.refresh(log)
+
+    return {
+        "status": "ok",
+        "kcal_consumed": kcal_consumed,
+        "protein_consumed": protein_consumed,
+        "xp_earned": xp_earned,
+    }
+
+
+@router.post("/day/item/add")
+def add_day_item(
+    payload: DayItemAddRequest,
+    user: UserDB = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    target_date = _resolve_log_date(payload.log_date)
+    log = _ensure_day_log(session, user.id, target_date)
+    item_type = payload.item_type.strip().lower()
+
+    if item_type not in {"meal", "workout"}:
+        raise HTTPException(status_code=422, detail="item_type musi mieć wartość meal albo workout")
+
+    item_id = str(uuid4())
+    source = (payload.source or "custom").strip().lower() or "custom"
+
+    if item_type == "meal":
+        item = {
+            "item_id": item_id,
+            "item_type": "meal",
+            "name": payload.name,
+            "source": source,
+            "kcal": int(payload.kcal or 0),
+            "protein": float(payload.protein or 0),
+            "meal_type": payload.meal_type or "inne",
+            "checked": False,
+        }
+        if source == "custom":
+            items = log.get_custom_meals()
+            items.append(item)
+            log.set_custom_meals(items)
+        else:
+            items = log.get_meals()
+            items.append(item)
+            log.set_meals(items)
+    else:
+        item = {
+            "item_id": item_id,
+            "item_type": "workout",
+            "name": payload.name,
+            "source": source,
+            "sets": int(payload.sets or 0),
+            "reps": int(payload.reps or 0),
+            "weight_kg": float(payload.weight_kg or 0),
+            "rpe": int(payload.rpe or 0) if payload.rpe is not None else None,
+            "checked": False,
+        }
+        items = log.get_workouts()
+        items.append(item)
+        log.set_workouts(items)
+
+    kcal_consumed, protein_consumed = _sync_day_log_fields(log)
+    session.add(log)
+    session.commit()
+    session.refresh(log)
+
+    return {
+        "status": "ok",
+        "log": log.to_dict(),
+        "kcal_consumed": kcal_consumed,
+        "protein_consumed": protein_consumed,
+    }
+
+
+@router.post("/day/item/swap")
+def swap_day_item(
+    payload: DayItemSwapRequest,
+    user: UserDB = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    target_date = _resolve_log_date(payload.log_date)
+    log = _ensure_day_log(session, user.id, target_date)
+
+    field_name, item, index = _find_day_item(log, payload.item_id, payload.item_type)
+    if not item or field_name is None or index is None:
+        raise HTTPException(status_code=404, detail="Nie znaleziono elementu dnia")
+
+    item["name"] = payload.new_name
+    if payload.item_type == "meal":
+        if payload.new_kcal is not None:
+            item["kcal"] = int(payload.new_kcal)
+        if payload.new_protein is not None:
+            item["protein"] = float(payload.new_protein)
+    else:
+        if payload.new_kcal is not None:
+            item["kcal"] = int(payload.new_kcal)
+        if payload.new_protein is not None:
+            item["protein"] = float(payload.new_protein)
+        if payload.sets is not None:
+            item["sets"] = int(payload.sets)
+        if payload.reps is not None:
+            item["reps"] = int(payload.reps)
+        if payload.weight_kg is not None:
+            item["weight_kg"] = float(payload.weight_kg)
+        if payload.rpe is not None:
+            item["rpe"] = int(payload.rpe)
+    item["updated_at"] = datetime.now().isoformat()
+
+    items = log.get_meals() if field_name == "meals_json" else log.get_custom_meals() if field_name == "custom_meals_json" else log.get_workouts()
+    items[index] = item
+    _set_day_items(log, field_name, items)
+
+    kcal_consumed, protein_consumed = _sync_day_log_fields(log)
+    session.add(log)
+    session.commit()
+    session.refresh(log)
+
+    return {
+        "status": "ok",
+        "log": log.to_dict(),
+        "kcal_consumed": kcal_consumed,
+        "protein_consumed": protein_consumed,
+    }
 
 
 @router.get("/weekly-analysis")
