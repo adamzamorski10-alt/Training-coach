@@ -2209,61 +2209,100 @@
           </div>
         </div>
 
-        <!-- ══════ WATER TRACKER ══════ -->
+        <!-- ══════ SMART WATER TRACKER ══════ -->
         <div class="glass p-5 rounded-2xl" id="waterTrackerCard">
           <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
             <div class="flex items-center gap-2">
               <span class="text-xl">💧</span>
-              <h4 class="text-base font-bold text-white" style="font-family:'Syne',sans-serif;">Nawodnienie</h4>
+              <h4 class="text-base font-bold text-white" style="font-family:'Syne',sans-serif;">Smart Water Tracker</h4>
+              <span id="weatherBadge" class="hidden text-xs px-2 py-0.5 rounded-full font-bold"
+                style="background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.4);color:#fbbf24;"></span>
             </div>
-            <button onclick="toggleWaterGoalEditor()" class="btn-ghost px-3 py-1.5 rounded-xl text-xs font-bold">⚙ Cel</button>
-          </div>
-
-          <div id="waterGoalEditor" class="hidden mb-4 p-3 rounded-xl"
-            style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
-            <p class="text-xs text-gray-400 mb-2">Zmień dzienny cel nawodnienia (ml)</p>
-            <div class="flex gap-2">
-              <input type="number" id="waterGoalInput" min="500" max="10000" step="50" class="flex-1 text-sm"
-                style="color:#38bdf8;" placeholder="2500">
-              <button onclick="saveWaterGoal()" class="btn-outline-cyan px-3 py-2 rounded-xl text-xs font-bold">Zapisz</button>
+            <div class="flex items-center gap-2">
+              <span id="waterGoalLabel" class="text-xs font-bold" style="color:var(--muted);">Cel: 2500 ml</span>
+              <button onclick="water.fetchWeather()" class="btn-ghost px-3 py-1.5 rounded-xl text-xs">📍 Pogoda</button>
+              <button onclick="water.reset()" class="btn-ghost px-3 py-1.5 rounded-xl text-xs"
+                title="Resetuj dzienny licznik wody">Reset</button>
             </div>
           </div>
-
-          <div class="flex items-center gap-5 mb-4 flex-wrap md:flex-nowrap">
-            <div style="position:relative;flex-shrink:0;width:112px;height:112px;">
-              <svg width="112" height="112" viewBox="0 0 112 112">
-                <circle cx="56" cy="56" r="46" fill="none" stroke="rgba(56,189,248,0.12)" stroke-width="10" />
-                <circle id="waterRing" cx="56" cy="56" r="46" fill="none" stroke="#22d3ee" stroke-width="10"
-                  stroke-linecap="round" stroke-dasharray="289.03" stroke-dashoffset="289.03"
-                  style="transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset 0.6s ease,stroke 0.6s ease;" />
+          <!-- Ring + current ml -->
+          <div class="flex items-center gap-5 mb-4">
+            <div style="position:relative;flex-shrink:0;width:80px;height:80px;">
+              <svg width="80" height="80" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(56,189,248,0.1)" stroke-width="8" />
+                <circle id="waterRing" cx="40" cy="40" r="34" fill="none" stroke="url(#wg)" stroke-width="8"
+                  stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6"
+                  style="transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset 0.7s cubic-bezier(0.4,0,0.2,1);" />
+                <defs>
+                  <linearGradient id="wg" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stop-color="#38bdf8" />
+                    <stop offset="100%" stop-color="#0ea5e9" />
+                  </linearGradient>
+                </defs>
               </svg>
               <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
-                <span id="waterPct" class="text-base font-extrabold"
-                  style="color:#22d3ee;font-family:'Syne',sans-serif;">0%</span>
+                <span id="waterPct" class="text-xs font-extrabold"
+                  style="color:#38bdf8;font-family:'Syne',sans-serif;">0%</span>
               </div>
             </div>
-
-            <div class="flex-1 min-w-[200px]">
-              <p class="text-3xl font-extrabold" style="font-family:'Syne',sans-serif;color:#38bdf8;">
-                <span id="waterCurrentMl">0</span>
-                <span class="text-base text-gray-400 font-bold">/ <span id="waterGoalMl">2500</span> ml</span>
-              </p>
-              <p id="waterGoalLabel" class="text-sm text-gray-400 mt-1">0% dziennego celu</p>
-              <p class="text-xs mt-2" style="color:var(--muted);">
-                <span id="waterGlassCount">0</span>/<span id="waterGlassTotal">10</span> szklanek
-              </p>
+            <div class="flex-1">
+              <div class="flex items-end gap-1 mb-1">
+                <span id="waterCurrentMl" class="text-3xl font-extrabold"
+                  style="font-family:'Syne',sans-serif;color:#38bdf8;">0</span>
+                <span class="text-sm mb-0.5" style="color:var(--muted);">/ <span id="waterGoalMl">2500</span> ml</span>
+              </div>
               <div id="waterCupsRow" class="flex gap-1 flex-wrap mt-1"></div>
+              <p id="waterMotivation" class="text-xs mt-2" style="color:var(--muted);">Zacznij dzień od szklanki wody!
+              </p>
             </div>
           </div>
-
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
-            <button onclick="addWater(150)" class="btn-ghost py-2 rounded-xl text-xs font-bold">+150ml</button>
-            <button onclick="addWater(250)" class="btn-ghost py-2 rounded-xl text-xs font-bold">+250ml</button>
-            <button onclick="addWater(330)" class="btn-ghost py-2 rounded-xl text-xs font-bold">+330ml</button>
-            <button onclick="addWater(500)" class="btn-ghost py-2 rounded-xl text-xs font-bold">+500ml</button>
+          <!-- Quick add buttons -->
+          <div class="grid grid-cols-5 gap-2 mb-3">
+            <button onclick="water.add(150)"
+              class="btn-ghost py-2 rounded-xl text-xs font-bold flex flex-col items-center gap-0.5"><span
+                style="font-size:1.1rem;">🥤</span><span>150ml</span></button>
+            <button onclick="water.add(200)"
+              class="btn-ghost py-2 rounded-xl text-xs font-bold flex flex-col items-center gap-0.5"><span
+                style="font-size:1.1rem;">🫙</span><span>200ml</span></button>
+            <button onclick="water.add(250)"
+              class="btn-ghost py-2 rounded-xl text-xs font-bold flex flex-col items-center gap-0.5"><span
+                style="font-size:1.1rem;">🥛</span><span>250ml</span></button>
+            <button onclick="water.add(330)"
+              class="btn-ghost py-2 rounded-xl text-xs font-bold flex flex-col items-center gap-0.5"><span
+                style="font-size:1.1rem;">🍺</span><span>330ml</span></button>
+            <button onclick="water.add(500)"
+              class="btn-ghost py-2 rounded-xl text-xs font-bold flex flex-col items-center gap-0.5"><span
+                style="font-size:1.1rem;">🍶</span><span>500ml</span></button>
           </div>
-          <div class="flex justify-center">
-            <button onclick="resetWater()" class="btn-ghost px-4 py-2 rounded-xl text-xs font-bold">↺ Resetuj</button>
+          <!-- Custom + undo -->
+          <div class="flex gap-2">
+            <input type="number" id="waterCustomMl" placeholder="Własna ilość ml" min="1" max="2000"
+              class="flex-1 text-sm" style="color:#38bdf8;">
+            <button onclick="water.addCustom()" class="btn-outline-cyan px-4 py-2 rounded-xl text-xs font-bold">+
+              Dodaj</button>
+            <button onclick="water.undo()" class="btn-ghost px-3 py-2 rounded-xl text-xs font-bold"
+              title="Cofnij ostatni wpis">↩</button>
+          </div>
+          <!-- Weather info row -->
+          <div id="weatherInfoRow" class="hidden mt-3 rounded-xl px-4 py-3 flex items-center gap-3"
+            style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.2);">
+            <span id="weatherIcon" class="text-2xl">☀️</span>
+            <div class="flex-1">
+              <p id="weatherDesc" class="text-xs font-bold text-yellow-300"></p>
+              <p id="weatherAdvice" class="text-xs mt-0.5" style="color:var(--muted);"></p>
+            </div>
+          </div>
+          <!-- Location + Temperature info strip -->
+          <div id="waterLocationStrip" class="mt-3 rounded-xl px-4 py-2.5 flex items-center justify-between gap-2"
+            style="background:rgba(0,229,255,0.04);border:1px solid rgba(0,229,255,0.12);">
+            <span id="waterLocationText" class="text-xs font-semibold flex items-center gap-1.5"
+              style="color:var(--muted);">
+              <span class="animate-pulse"
+                style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--cyan);opacity:0.5;"></span>
+              Pobieranie lokalizacji…
+            </span>
+            <span id="waterTempText" class="text-xs font-extrabold"
+              style="color:var(--cyan);font-family:'Syne',sans-serif;letter-spacing:0.03em;opacity:0.5;">—°C</span>
           </div>
         </div>
 
@@ -3049,69 +3088,16 @@
               <!-- Sport > Loguj Wynik -->
               <div class="plan-tab-panel" id="panel-sport-log">
                 <div id="sport-log" class="space-y-5">
-                  <div class="glass p-6">
-                    <h4 class="text-lg font-bold text-white mb-5" style="font-family:'Syne',sans-serif;">📝 Zaloguj
-                      wynik drilla</h4>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="glass p-6 rounded-2xl">
+                    <div class="flex items-center justify-between gap-4 flex-wrap">
                       <div>
-                        <label class="block text-xs text-gray-400 mb-1">Drill *</label>
-                        <select id="logDrillName" class="w-full text-sm">
-                          <option value="">Wybierz drill…</option>
-                        </select>
+                        <h4 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">💪 Dodaj Log
+                          Treningowy</h4>
+                        <p class="text-sm mt-1" style="color:var(--muted);">Wybierz drill z historii lub katalogu, a
+                          formularz sam pokaże właściwe pola.</p>
                       </div>
-                      <div>
-                        <label class="block text-xs text-gray-400 mb-1">Data sesji</label>
-                        <input type="date" id="logDrillDate" class="w-full text-sm">
-                      </div>
-                      <div>
-                        <label class="block text-xs text-gray-400 mb-1">Trafienia (sukcesy)</label>
-                        <input type="number" id="logSuccessCount" placeholder="np. 15" min="0" class="w-full text-sm">
-                      </div>
-                      <div>
-                        <label class="block text-xs text-gray-400 mb-1">Łączna liczba prób</label>
-                        <input type="number" id="logTotalAttempts" placeholder="np. 20" min="1" class="w-full text-sm">
-                      </div>
-                      <div class="md:col-span-2">
-                        <label class="block text-xs text-gray-400 mb-2">RPE — Ocena wysiłku (1–10)</label>
-                        <div class="flex items-center gap-4">
-                          <span class="text-xs text-gray-600 w-4">1</span>
-                          <input type="range" id="logRPE" min="1" max="10" value="6"
-                            oninput="updateRPELabel(this.value)" class="flex-1">
-                          <span class="text-xs text-gray-600 w-4">10</span>
-                          <span id="rpeLabel" class="text-cyan-400 font-bold text-lg w-8 text-right"
-                            style="font-family:'Syne',sans-serif;">6</span>
-                        </div>
-                        <div id="rpeDesc" class="text-xs text-gray-500 mt-1">Umiarkowany wysiłek</div>
-                      </div>
-                      <div class="md:col-span-2">
-                        <label class="block text-xs text-gray-400 mb-1">Notatki (opcjonalnie)</label>
-                        <textarea id="logDrillNotes" placeholder="np. Słaba forma w rzutach z lewej strony..."
-                          class="w-full text-sm" rows="2"></textarea>
-                      </div>
-                    </div>
-                    <div class="flex gap-3 mt-5">
-                      <button onclick="submitDrillResult()" class="btn-neon px-6 py-2.5 rounded-xl font-bold text-sm">✅
-                        Zapisz wynik</button>
-                      <button onclick="switchPlanSubTab('sport','drills')"
-                        class="btn-ghost px-6 py-2.5 rounded-xl text-sm">Anuluj</button>
-                    </div>
-                  </div>
-                  <div id="accuracyPreview" class="glass p-5 hidden">
-                    <h5 class="text-sm font-bold text-white mb-3">Podgląd skuteczności</h5>
-                    <div class="flex items-center gap-6">
-                      <div class="text-center">
-                        <div class="text-4xl font-bold text-cyan-400" style="font-family:'Syne',sans-serif;"
-                          id="previewAccuracy">—</div>
-                        <div class="text-xs text-gray-500 mt-1">Skuteczność</div>
-                      </div>
-                      <div class="flex-1">
-                        <div class="progress-bar" style="height:10px;">
-                          <div id="previewBar" class="progress-fill bg-gradient-to-r from-cyan-500 to-violet-500"
-                            style="width:0%"></div>
-                        </div>
-                        <div class="flex justify-between text-xs text-gray-600 mt-1"><span>0%</span><span
-                            id="previewTarget" class="text-cyan-400">Cel: 70%</span><span>100%</span></div>
-                      </div>
+                      <button onclick="openDrillLogWizard()" class="btn-neon px-6 py-2.5 rounded-xl font-bold text-sm">+
+                        Dodaj log</button>
                     </div>
                   </div>
                 </div>
@@ -17723,6 +17709,299 @@
       }
     }
 
+    const _drillWizard = {
+      selected: null,
+      searchTimer: null,
+      results: { user_drills: [], catalog_drills: [] },
+    };
+
+    function _escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    }
+
+    function _sportCatalogOptions() {
+      const sports = new Set(['koszykówka', 'piłka nożna', 'tenis', 'boks', 'siatkówka', 'bieganie']);
+      Object.values(window.SPORT_DRILLS || {}).forEach(s => {
+        if (s?.label) sports.add(String(s.label).toLowerCase());
+      });
+      return [...sports];
+    }
+
+    function _categoryCatalogOptions(sport) {
+      const cats = new Set(['rzuty', 'drybling', 'podania', 'obrona', 'sprint', 'technika']);
+      const sd = window.SPORT_DRILLS || {};
+      const sportKey = typeof resolveSportId === 'function' ? resolveSportId(sport || '') : sport;
+      Object.entries(sd[sportKey] || {}).forEach(([key, val]) => {
+        if (key !== 'emoji' && val?.drills) cats.add(key);
+      });
+      return [...cats];
+    }
+
+    function openDrillLogWizard() {
+      document.getElementById('drillWizardModal')?.remove();
+      _drillWizard.selected = null;
+      _drillWizard.results = { user_drills: [], catalog_drills: [] };
+      const modal = document.createElement('div');
+      modal.id = 'drillWizardModal';
+      modal.className = 'fixed inset-0 z-[260] flex items-center justify-center p-4';
+      modal.style.background = 'rgba(0,0,0,0.72)';
+      modal.innerHTML = `
+        <div class="glass rounded-2xl p-5 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div id="drillWizardContent"></div>
+        </div>`;
+      document.body.appendChild(modal);
+      renderDrillWizardStep1();
+      searchDrillWizard();
+    }
+
+    function closeDrillLogWizard() {
+      document.getElementById('drillWizardModal')?.remove();
+      _drillWizard.selected = null;
+    }
+
+    function renderDrillWizardStep1() {
+      const content = document.getElementById('drillWizardContent');
+      if (!content) return;
+      const sports = _sportCatalogOptions();
+      const defaultSport = 'koszykówka';
+      content.innerHTML = `
+        <div class="flex items-center justify-between gap-3 mb-4">
+          <h4 class="text-xl font-bold text-white" style="font-family:'Syne',sans-serif;">💪 Dodaj Log Treningowy</h4>
+          <button onclick="closeDrillLogWizard()" class="btn-ghost px-3 py-1.5 rounded-xl text-sm">✕</button>
+        </div>
+        <input id="drillWizardSearch" type="text" placeholder="🔍 Szukaj: wpisz nazwę drilla..."
+          class="w-full text-sm mb-3" oninput="debouncedDrillWizardSearch()">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">SPORT</label>
+            <select id="drillWizardSport" class="w-full text-sm" onchange="renderDrillWizardCategories(); searchDrillWizard();">
+              <option value="">Wszystkie</option>
+              ${sports.map(s => `<option value="${_escapeHtml(s)}" ${s === defaultSport ? 'selected' : ''}>${_escapeHtml(s[0].toUpperCase() + s.slice(1))}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">KAT</label>
+            <select id="drillWizardCategory" class="w-full text-sm" onchange="searchDrillWizard()"></select>
+          </div>
+        </div>
+        <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">── Z Twojej historii ──</div>
+        <div id="drillWizardUserResults" class="space-y-2 mb-5"></div>
+        <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">── Z katalogu ──</div>
+        <div id="drillWizardCatalogResults" class="space-y-2"></div>
+        <button onclick="selectDrillWizardCustom()" class="btn-ghost w-full mt-4 py-2 rounded-xl text-sm font-bold">+
+          Dodaj własny drill</button>`;
+      renderDrillWizardCategories();
+    }
+
+    function renderDrillWizardCategories() {
+      const sport = document.getElementById('drillWizardSport')?.value || '';
+      const catEl = document.getElementById('drillWizardCategory');
+      if (!catEl) return;
+      const cats = _categoryCatalogOptions(sport);
+      catEl.innerHTML = '<option value="">Wszystkie</option>' + cats.map(c => `<option value="${_escapeHtml(c)}">${_escapeHtml(c)}</option>`).join('');
+    }
+
+    function debouncedDrillWizardSearch() {
+      clearTimeout(_drillWizard.searchTimer);
+      _drillWizard.searchTimer = setTimeout(searchDrillWizard, 300);
+    }
+
+    async function searchDrillWizard() {
+      const q = document.getElementById('drillWizardSearch')?.value || '';
+      const sport = document.getElementById('drillWizardSport')?.value || '';
+      const category = document.getElementById('drillWizardCategory')?.value || '';
+      const params = new URLSearchParams();
+      if (q) params.set('q', q);
+      if (sport) params.set('sport', sport);
+      if (category) params.set('category', category);
+      try {
+        const headers = typeof _fitaiApiHeaders === 'function' ? _fitaiApiHeaders() : {};
+        const r = await fetch(`${window.API_BASE || 'http://localhost:8000'}/app/drills/search?${params}`, { headers });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        _drillWizard.results = await r.json();
+      } catch (e) {
+        console.warn('[FitAI Sport] Drill search fallback:', e);
+        _drillWizard.results = { user_drills: [], catalog_drills: localDrillCatalogSearch(q, sport, category) };
+      }
+      renderDrillWizardResults();
+    }
+
+    function localDrillCatalogSearch(q, sport, category) {
+      const qNorm = String(q || '').toLowerCase();
+      const sportNorm = String(sport || '').toLowerCase();
+      const catNorm = String(category || '').toLowerCase();
+      const out = [];
+      Object.entries(window.SPORT_DRILLS || {}).forEach(([sportKey, sportObj]) => {
+        Object.entries(sportObj || {}).forEach(([catKey, cat]) => {
+          if (catKey === 'emoji' || !Array.isArray(cat?.drills)) return;
+          cat.drills.forEach(d => {
+            const item = { name: d.name, sport: d.sport || sportKey, category: d.category || catKey, target_pct: d.target_pct, total_attempts: d.total_attempts };
+            if (sportNorm && !String(item.sport).toLowerCase().includes(sportNorm)) return;
+            if (catNorm && !String(item.category).toLowerCase().includes(catNorm)) return;
+            if (qNorm && !String(item.name).toLowerCase().includes(qNorm)) return;
+            out.push(item);
+          });
+        });
+      });
+      return out.slice(0, 25);
+    }
+
+    function renderDrillWizardResults() {
+      const userEl = document.getElementById('drillWizardUserResults');
+      const catalogEl = document.getElementById('drillWizardCatalogResults');
+      if (!userEl || !catalogEl) return;
+      const user = _drillWizard.results.user_drills || [];
+      const catalog = _drillWizard.results.catalog_drills || [];
+      userEl.innerHTML = user.length ? user.map((d, i) => `
+        <div class="glass rounded-xl p-3 flex items-center gap-3">
+          <div class="flex-1 min-w-0"><p class="text-sm font-bold text-white">🔄 ${_escapeHtml(d.name)}</p>
+          <p class="text-xs text-gray-500">${_escapeHtml(d.last_session || 'ostatnio')} · ${d.total_sessions || 1} sesji</p></div>
+          <button onclick="selectDrillWizard('user', ${i})" class="btn-ghost px-3 py-1.5 rounded-xl text-xs font-bold">Wybierz</button>
+        </div>`).join('') : '<p class="text-xs text-gray-500 italic py-2">Brak dopasowań z historii.</p>';
+      catalogEl.innerHTML = catalog.length ? catalog.map((d, i) => `
+        <div class="glass rounded-xl p-3 flex items-center gap-3">
+          <div class="flex-1 min-w-0"><p class="text-sm font-bold text-white">📋 ${_escapeHtml(d.name)}</p>
+          <p class="text-xs text-gray-500">${_escapeHtml(d.sport || 'sport')} · ${_escapeHtml(d.category || 'kategoria')} · cel ${d.target_pct ?? '—'}%</p></div>
+          <button onclick="selectDrillWizard('catalog', ${i})" class="btn-ghost px-3 py-1.5 rounded-xl text-xs font-bold">Wybierz</button>
+        </div>`).join('') : '<p class="text-xs text-gray-500 italic py-2">Brak dopasowań w katalogu.</p>';
+    }
+
+    function selectDrillWizard(source, index) {
+      const list = source === 'user' ? (_drillWizard.results.user_drills || []) : (_drillWizard.results.catalog_drills || []);
+      const item = list[index];
+      if (!item) return;
+      _drillWizard.selected = { ...item };
+      renderDrillWizardStep2();
+    }
+
+    function selectDrillWizardCustom() {
+      const name = prompt('Nazwa własnego drilla');
+      if (!name) return;
+      _drillWizard.selected = { name, sport: document.getElementById('drillWizardSport')?.value || '', category: document.getElementById('drillWizardCategory')?.value || '', target_pct: null, total_attempts: null };
+      renderDrillWizardStep2();
+    }
+
+    function lookupDrillType(drill) {
+      const name = String(drill?.name || '').toLowerCase();
+      if (drill?.total_attempts !== null && drill?.total_attempts !== undefined) return 'attempts';
+      if (name.includes('sprint') || name.includes('bieg') || name.includes('run')) return 'timed';
+      return 'skill';
+    }
+
+    function renderDrillWizardStep2() {
+      const d = _drillWizard.selected;
+      const content = document.getElementById('drillWizardContent');
+      if (!d || !content) return;
+      const type = lookupDrillType(d);
+      const today = new Date().toISOString().slice(0, 10);
+      const dynamic = type === 'attempts' ? `
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-xs text-gray-400 mb-1">Trafienia</label><input id="wizardSuccess" type="number" min="0" class="w-full text-sm" oninput="updateWizardAccuracy()"></div>
+          <div><label class="block text-xs text-gray-400 mb-1">Próby</label><input id="wizardAttempts" type="number" min="1" value="${d.total_attempts || ''}" class="w-full text-sm" oninput="updateWizardAccuracy()"></div>
+        </div>
+        <div class="mt-3">
+          <div class="flex justify-between text-xs mb-1"><span id="wizardAccuracyLabel">Skuteczność: 0%</span><span>Cel: ${d.target_pct ?? 0}%</span></div>
+          <div class="progress-bar" style="height:10px;"><div id="wizardAccuracyBar" class="progress-fill" style="width:0%;background:#fbbf24;transition:width .3s ease,background .3s ease;"></div></div>
+        </div>` : type === 'timed' ? `
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-xs text-gray-400 mb-1">Czas MM:SS</label><input id="wizardTime" type="text" placeholder="03:30" class="w-full text-sm"></div>
+          <div><label class="block text-xs text-gray-400 mb-1">Dystans m</label><input id="wizardDistance" type="number" min="1" class="w-full text-sm"></div>
+        </div>` : `
+        <div><label class="block text-xs text-gray-400 mb-1">Czas trwania (opcjonalnie, min)</label><input id="wizardDuration" type="number" min="0" class="w-full text-sm"></div>`;
+      content.innerHTML = `
+        <div class="flex items-center justify-between gap-3 mb-4">
+          <button onclick="renderDrillWizardStep1(); searchDrillWizard();" class="btn-ghost px-3 py-1.5 rounded-xl text-sm">← Wróć</button>
+          <button onclick="closeDrillLogWizard()" class="btn-ghost px-3 py-1.5 rounded-xl text-sm">✕</button>
+        </div>
+        <h4 class="text-xl font-bold text-white mb-1" style="font-family:'Syne',sans-serif;">📋 ${_escapeHtml(d.name)}</h4>
+        <p class="text-sm mb-4" style="color:var(--muted);">Cel: ${d.target_pct ?? '—'}% trafień</p>
+        <div class="space-y-4">
+          <div><label class="block text-xs text-gray-400 mb-1">Data</label><input id="wizardDate" type="date" value="${today}" class="w-full text-sm"></div>
+          ${dynamic}
+          <div>
+            <label class="block text-xs text-gray-400 mb-2">RPE (1-10): 😌──🟡──💀</label>
+            <input id="wizardRpe" type="range" min="1" max="10" value="7" class="w-full" oninput="updateWizardRpeLabel(this.value)">
+            <p id="wizardRpeLabel" class="text-xs text-cyan-400 mt-1 font-bold">7 — Ciężko</p>
+          </div>
+          <div><label class="block text-xs text-gray-400 mb-1">Notatka</label><textarea id="wizardNotes" rows="2" class="w-full text-sm"></textarea></div>
+          <button onclick="submitDrillWizardResult()" class="btn-neon w-full py-2.5 rounded-xl font-bold text-sm">Zapisz Log <span id="wizardXpHint">+20 XP</span></button>
+        </div>`;
+      updateWizardRpeLabel(7);
+      updateWizardAccuracy();
+    }
+
+    function updateWizardAccuracy() {
+      const d = _drillWizard.selected || {};
+      const success = parseInt(document.getElementById('wizardSuccess')?.value || '0', 10);
+      const attempts = parseInt(document.getElementById('wizardAttempts')?.value || '0', 10);
+      const pct = attempts > 0 ? Math.round(success / attempts * 100) : 0;
+      const reached = d.target_pct != null && pct >= Number(d.target_pct);
+      const label = document.getElementById('wizardAccuracyLabel');
+      const bar = document.getElementById('wizardAccuracyBar');
+      const xp = document.getElementById('wizardXpHint');
+      if (label) label.textContent = `Skuteczność: ${pct}%`;
+      if (bar) {
+        bar.style.width = Math.min(100, pct) + '%';
+        bar.style.background = reached ? '#22c55e' : '#fbbf24';
+      }
+      if (xp) xp.textContent = reached ? '+20 XP (+15 bonus)' : '+20 XP';
+    }
+
+    function updateWizardRpeLabel(val) {
+      const labels = { 1: 'Lekko', 2: 'Lekko', 3: 'Ok', 4: 'Ok', 5: 'Umiark.', 6: 'Umiark.', 7: 'Ciężko', 8: 'Ciężko', 9: 'Bardzo ciężko', 10: 'Max 💀' };
+      const el = document.getElementById('wizardRpeLabel');
+      if (el) el.textContent = `${val} — ${labels[val] || ''}`;
+    }
+
+    function _parseMmSs(value) {
+      const parts = String(value || '').split(':').map(v => parseInt(v, 10));
+      if (parts.length === 2 && parts.every(Number.isFinite)) return parts[0] * 60 + parts[1];
+      const raw = parseFloat(value);
+      return Number.isFinite(raw) ? raw : null;
+    }
+
+    async function submitDrillWizardResult() {
+      const d = _drillWizard.selected;
+      if (!d) return;
+      const type = lookupDrillType(d);
+      const payload = {
+        drill_name: d.name,
+        drill_category: d.category || null,
+        drill_sport: d.sport || null,
+        target_pct: d.target_pct ?? null,
+        session_date: document.getElementById('wizardDate')?.value || new Date().toISOString().slice(0, 10),
+        rpe: parseInt(document.getElementById('wizardRpe')?.value || '7', 10),
+        notes: document.getElementById('wizardNotes')?.value || '',
+      };
+      if (type === 'attempts') {
+        payload.success_count = parseInt(document.getElementById('wizardSuccess')?.value || '0', 10);
+        payload.total_attempts = parseInt(document.getElementById('wizardAttempts')?.value || '0', 10);
+        if (!payload.total_attempts) { showToast('⚠️ Podaj liczbę prób'); return; }
+      } else if (type === 'timed') {
+        payload.time_seconds = _parseMmSs(document.getElementById('wizardTime')?.value);
+        payload.distance_meters = parseFloat(document.getElementById('wizardDistance')?.value || '0') || null;
+      } else {
+        const mins = parseFloat(document.getElementById('wizardDuration')?.value || '0') || 0;
+        payload.duration_seconds = Math.round(mins * 60);
+      }
+      try {
+        const headers = typeof _fitaiApiHeaders === 'function' ? _fitaiApiHeaders(true) : { 'Content-Type': 'application/json' };
+        const r = await fetch(`${window.API_BASE || 'http://localhost:8000'}/app/drill-result`, { method: 'POST', headers, body: JSON.stringify(payload) });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.detail || 'Błąd zapisu');
+        const st = loadSportState();
+        if (!st.drill_history) st.drill_history = [];
+        st.drill_history.unshift({ ...payload, date: payload.session_date, accuracy_pct: data.accuracy_pct, logged_at: new Date().toISOString() });
+        saveSportState(st);
+        showToast(`✅ Log zapisany! +${data.xp_earned || 20} XP`);
+        closeDrillLogWizard();
+        renderDrillHistory();
+      } catch (e) {
+        showToast('⚠️ Nie udało się zapisać logu');
+        console.warn('[FitAI Sport] Drill wizard submit:', e);
+      }
+    }
+
     function submitDrillResult() {
       const name = document.getElementById('logDrillName')?.value;
       const dateVal = document.getElementById('logDrillDate')?.value;
@@ -22963,188 +23242,271 @@
 
     // ─── 2. Smart Water Tracker ───────────────────────────────────────────────────
 
-    const WATER_GOAL_DEFAULT = 2500;
-    const WATER_RING_CIRC = 289.03;
-    const waterState = {
-      currentMl: 0,
-      goalMl: WATER_GOAL_DEFAULT,
-      didShowGoalToast: false,
-    };
-
-    function getWaterAuthHeaders() {
-      const token = localStorage.getItem('fitai_token');
-      return token
-        ? { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }
-        : { 'Content-Type': 'application/json' };
-    }
-
-    function updateWaterRing(currentMl, goalMl) {
-      const safeGoal = Math.max(1, parseInt(goalMl || WATER_GOAL_DEFAULT, 10));
-      const pct = Math.max(0, Math.min(100, Math.round((currentMl / safeGoal) * 100)));
-      const offset = WATER_RING_CIRC - (WATER_RING_CIRC * pct / 100);
-
-      const ring = document.getElementById('waterRing');
-      const pctEl = document.getElementById('waterPct');
-      const labelEl = document.getElementById('waterGoalLabel');
-
-      let ringColor = '#22d3ee';
-      if (pct < 40) ringColor = '#f59e0b';
-      if (pct > 80) ringColor = '#22c55e';
-
-      if (ring) {
-        ring.setAttribute('stroke-dashoffset', String(offset));
-        ring.setAttribute('stroke', ringColor);
-      }
-      if (pctEl) {
-        pctEl.textContent = pct + '%';
-        pctEl.style.color = ringColor;
-      }
-      if (labelEl) {
-        labelEl.textContent = pct + '% dziennego celu';
-      }
-    }
-
-    function renderGlasses(currentMl, goalMl) {
-      const cups = document.getElementById('waterCupsRow');
-      const glassesDone = Math.floor(currentMl / 250);
-      const glassesTarget = Math.max(1, Math.round(goalMl / 250));
-      const glassCount = document.getElementById('waterGlassCount');
-      const glassTotal = document.getElementById('waterGlassTotal');
-
-      if (glassCount) glassCount.textContent = String(glassesDone);
-      if (glassTotal) glassTotal.textContent = String(glassesTarget);
-
-      if (!cups) return;
-      cups.innerHTML = Array.from({ length: glassesTarget }, (_, i) => {
-        const active = i < glassesDone;
-        return '<span style="font-size:1rem;opacity:' + (active ? '1' : '0.2') + ';transition:opacity 0.6s ease;">🥛</span>';
-      }).join('');
-    }
-
-    function renderWater(currentMl, goalMl) {
-      const currentEl = document.getElementById('waterCurrentMl');
-      const goalEl = document.getElementById('waterGoalMl');
-      const goalInput = document.getElementById('waterGoalInput');
-
-      if (currentEl) currentEl.textContent = Number(currentMl || 0).toLocaleString();
-      if (goalEl) goalEl.textContent = Number(goalMl || WATER_GOAL_DEFAULT).toLocaleString();
-      if (goalInput && document.activeElement !== goalInput) goalInput.value = String(goalMl || WATER_GOAL_DEFAULT);
-
-      updateWaterRing(currentMl, goalMl);
-      renderGlasses(currentMl, goalMl);
-    }
-
-    async function loadWaterData() {
-      if (!window.API_BASE) return;
-      try {
-        const r = await fetch(window.API_BASE + '/app/water/today', {
-          method: 'GET',
-          headers: getWaterAuthHeaders(),
-        });
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-
-        const data = await r.json();
-        waterState.currentMl = parseInt(data.water_ml || 0, 10);
-        waterState.goalMl = parseInt(data.goal_ml || WATER_GOAL_DEFAULT, 10);
-        waterState.didShowGoalToast = waterState.currentMl >= waterState.goalMl;
-        renderWater(waterState.currentMl, waterState.goalMl);
-
-        if (typeof _syncCheckinWaterDisplay === 'function') {
-          _syncCheckinWaterDisplay(waterState.currentMl);
-        }
-      } catch (e) {
-        console.warn('[FitAI Water] Nie udało się pobrać danych dziennych', e);
-      }
-    }
-
-    async function addWater(ml) {
-      const value = parseInt(ml, 10);
-      if (!value || value <= 0) return;
-      try {
-        const r = await fetch(window.API_BASE + '/app/water', {
-          method: 'POST',
-          headers: getWaterAuthHeaders(),
-          body: JSON.stringify({ ml: value }),
-        });
-        const data = await r.json();
-        if (!r.ok) throw new Error(data?.detail || ('HTTP ' + r.status));
-
-        waterState.currentMl = parseInt(data.water_ml_today || 0, 10);
-        renderWater(waterState.currentMl, waterState.goalMl);
-
-        if (typeof _syncCheckinWaterDisplay === 'function') {
-          _syncCheckinWaterDisplay(waterState.currentMl);
-        }
-
-        if (data.xp_earned && typeof _updateXpBar === 'function') {
-          _updateXpBar(data.total_xp);
-        }
-
-        if (!waterState.didShowGoalToast && waterState.currentMl >= waterState.goalMl) {
-          waterState.didShowGoalToast = true;
-          if (typeof showToast === 'function') {
-            showToast('🎉 Cel nawodnienia osiągnięty! +15 XP');
-          }
-        }
-      } catch (e) {
-        console.warn('[FitAI Water] Błąd dodawania wody', e);
-        if (typeof showToast === 'function') showToast('Błąd zapisu wody');
-      }
-    }
-
-    async function resetWater() {
-      try {
-        const r = await fetch(window.API_BASE + '/app/water/reset', {
-          method: 'DELETE',
-          headers: getWaterAuthHeaders(),
-        });
-        const data = await r.json();
-        if (!r.ok) throw new Error(data?.detail || ('HTTP ' + r.status));
-
-        waterState.currentMl = 0;
-        waterState.didShowGoalToast = false;
-        renderWater(waterState.currentMl, waterState.goalMl);
-        if (typeof _syncCheckinWaterDisplay === 'function') _syncCheckinWaterDisplay(0);
-      } catch (e) {
-        console.warn('[FitAI Water] Błąd resetu wody', e);
-      }
-    }
-
-    function toggleWaterGoalEditor() {
-      const el = document.getElementById('waterGoalEditor');
-      if (el) el.classList.toggle('hidden');
-    }
-
-    async function saveWaterGoal() {
-      const input = document.getElementById('waterGoalInput');
-      const value = parseInt((input && input.value) || '0', 10);
-      if (!value || value < 500 || value > 10000) {
-        if (typeof showToast === 'function') showToast('Podaj cel od 500 do 10000 ml');
-        return;
-      }
-
-      try {
-        const r = await fetch(window.API_BASE + '/app/profile', {
-          method: 'PUT',
-          headers: getWaterAuthHeaders(),
-          body: JSON.stringify({ water_goal_ml: value }),
-        });
-        const data = await r.json();
-        if (!r.ok) throw new Error(data?.detail || ('HTTP ' + r.status));
-
-        waterState.goalMl = parseInt(data?.profile?.water_goal_ml || value, 10);
-        waterState.didShowGoalToast = waterState.currentMl >= waterState.goalMl;
-        renderWater(waterState.currentMl, waterState.goalMl);
-        toggleWaterGoalEditor();
-      } catch (e) {
-        console.warn('[FitAI Water] Błąd zapisu celu nawodnienia', e);
-      }
-    }
+    const WATER_GOAL_DEFAULT = 2500;   // ml
+    const WATER_GOAL_HOT = 3500;   // ml gdy temp > 25°C
+    const WATER_HOT_THRESHOLD = 25;     // °C
 
     const water = {
-      init: loadWaterData,
-      add: addWater,
-      reset: resetWater,
+      _goal: WATER_GOAL_DEFAULT,
+      _history: [],  // stos ml do cofania
+
+      // Klucz localStorage zmienia się co dobę → automatyczny reset
+      _key() { return 'fitai_water_' + new Date().toISOString().slice(0, 10); },
+      get current() { return parseInt(localStorage.getItem(this._key()) || '0', 10); },
+      set current(v) { localStorage.setItem(this._key(), Math.max(0, v)); },
+
+      init() { this._render(); this.fetchWeather(); },
+
+      add(ml) {
+        ml = parseInt(ml, 10); if (!ml || ml <= 0) return;
+        this._history.push(ml);
+        this.current += ml;
+        this._render();
+        this._toast('+' + ml + ' ml');
+        // ── ZADANIE 2+3: Zsynchronizuj widok wody w check-inie i wyślij do API ──
+        if (typeof _syncCheckinWaterDisplay === 'function') {
+          _syncCheckinWaterDisplay(this.current);
+        }
+        this._syncWaterToApi(ml);
+      },
+
+      /** Wysyła inkrement wody do backendu POST /app/water */
+      async _syncWaterToApi(addedMl) {
+        const token = localStorage.getItem('fitai_token');
+        if (!token || !window.API_BASE) return;
+        try {
+          const r = await fetch(window.API_BASE + '/app/water', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + token,
+            },
+            body: JSON.stringify({ ml: addedMl }),
+          });
+          const data = await r.json();
+          if (!r.ok) {
+            throw new Error(data?.detail || ('HTTP ' + r.status));
+          }
+
+          if (typeof data.water_ml_today === 'number') {
+            this.current = data.water_ml_today;
+            this._render();
+            if (typeof _syncCheckinWaterDisplay === 'function') {
+              _syncCheckinWaterDisplay(data.water_ml_today);
+            }
+          }
+
+          // Aktualizuj XP jeśli serwer przyznał
+          if (data.xp_earned && typeof _updateXpBar === 'function') {
+            _updateXpBar(data.total_xp);
+            if (typeof showToast === 'function') showToast('+' + data.xp_earned + ' XP za nawodnienie! 💧');
+          }
+
+          if (typeof updateDashboard === 'function') {
+            updateDashboard();
+          }
+        } catch (e) {
+          console.warn('[FitAI Water] Sync offline — dane zapisane lokalnie', e);
+          if (typeof showToast === 'function') showToast('Błąd zapisu wody');
+        }
+      },
+
+      addCustom() {
+        const inp = document.getElementById('waterCustomMl');
+        const v = parseInt((inp && inp.value) || '0', 10);
+        if (v > 0 && v <= 2000) { this.add(v); if (inp) inp.value = ''; }
+      },
+
+      undo() {
+        if (!this._history.length) return;
+        this.current -= this._history.pop();
+        this._render();
+      },
+
+      reset() {
+        // Clear today's water history and value
+        this._history = [];
+        this.current = 0;
+        this._render();
+        this._toast('Resetowano licznik wody');
+        if (typeof _syncCheckinWaterDisplay === 'function') _syncCheckinWaterDisplay(0);
+      },
+
+      setGoal(ml) { this._goal = ml; this._render(); },
+
+      _render() {
+        const cur = this.current, goal = this._goal;
+        const pct = Math.min(100, Math.round(cur / goal * 100));
+
+        // SVG ring — obwód = 2*π*34 ≈ 213.6
+        const ring = document.getElementById('waterRing');
+        if (ring) ring.setAttribute('stroke-dashoffset', 213.6 - (213.6 * pct / 100));
+
+        const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+        set('waterPct', pct + '%');
+        set('waterCurrentMl', cur.toLocaleString());
+        set('waterGoalMl', goal.toLocaleString());
+        set('waterGoalLabel', 'Cel: ' + goal.toLocaleString() + ' ml');
+
+        // Ikonki kubków (co 250 ml)
+        const cups = document.getElementById('waterCupsRow');
+        if (cups) {
+          const total = Math.round(goal / 250), filled = Math.floor(cur / 250);
+          cups.innerHTML = Array.from({ length: total }, (_, i) =>
+            '<span style="font-size:0.95rem;opacity:' + (i < filled ? 1 : 0.18) + ';transition:opacity 0.35s">💧</span>'
+          ).join('');
+        }
+
+        // Komunikat motywacyjny
+        const msg = document.getElementById('waterMotivation');
+        if (msg) {
+          const msgs = [[100, '🎉 Cel dzienny osiągnięty! Doskonale!'], [75, 'Blisko! Jeszcze trochę. 🔥'],
+          [50, 'Połowa celu — świetnie! 🎯'], [25, 'Dobry start! Nawadniaj się. 💪'], [0, 'Zacznij dzień od szklanki wody! 🌅']];
+          msg.textContent = (msgs.find(([p]) => pct >= p) || [0, ''])[1];
+        }
+      },
+
+      async fetchWeather() {
+        const isSecure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
+        if (!isSecure) {
+          console.warn('[FitAI Weather] Geolokalizacja wymaga HTTPS. Używam domyślnej pogody (20°C).');
+          this._applyWeather(20, 'brak danych (HTTP)', false);
+          this._updateLocationStrip('Lokalizacja niedostępna', 20);
+          return;
+        }
+
+        if (!navigator.geolocation) {
+          console.warn('[FitAI Weather] Przeglądarka nie obsługuje geolokalizacji. Używam domyślnej pogody (20°C).');
+          this._applyWeather(20, 'geolokalizacja niedostępna', false);
+          this._updateLocationStrip('Geolokalizacja niedostępna', 20);
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          async pos => {
+            try {
+              const { latitude: lat, longitude: lon } = pos.coords;
+
+              // Open-Meteo — darmowy, nie wymaga klucza API
+              const url = 'https://api.open-meteo.com/v1/forecast'
+                + '?latitude=' + lat
+                + '&longitude=' + lon
+                + '&current=temperature_2m,weathercode'
+                + '&timezone=auto';
+
+              const r = await fetch(url);
+              if (!r.ok) throw new Error('Open-Meteo HTTP ' + r.status);
+
+              const d = await r.json();
+              const temp = Math.round(d.current?.temperature_2m ?? 20);
+              const code = d.current?.weathercode ?? 0;
+
+              const desc = code === 0 ? 'bezchmurnie'
+                : code <= 3 ? 'częściowe zachmurzenie'
+                  : code <= 49 ? 'mgła lub zamglenie'
+                    : code <= 69 ? 'opady deszczu'
+                      : code <= 79 ? 'opady śniegu'
+                        : code <= 99 ? 'burza'
+                          : 'zmienne warunki';
+
+              this._applyWeather(temp, desc, temp > WATER_HOT_THRESHOLD);
+
+              // Reverse geocoding — pobierz nazwę miasta (Open-Meteo geocoding)
+              try {
+                const geoUrl = 'https://nominatim.openstreetmap.org/reverse'
+                  + '?lat=' + lat + '&lon=' + lon
+                  + '&format=json&zoom=10&accept-language=pl';
+                const gr = await fetch(geoUrl, { headers: { 'Accept-Language': 'pl' } });
+                if (gr.ok) {
+                  const gd = await gr.json();
+                  const city = gd.address?.city || gd.address?.town || gd.address?.village || gd.address?.county || 'Twoja lokalizacja';
+                  this._updateLocationStrip(city, temp);
+                } else {
+                  this._updateLocationStrip('Twoja lokalizacja', temp);
+                }
+              } catch (_) {
+                this._updateLocationStrip('Twoja lokalizacja', temp);
+              }
+            } catch (err) {
+              console.warn('[FitAI Weather] Błąd pobierania pogody:', err.message, '— używam domyślnych 20°C.');
+              this._applyWeather(20, 'błąd pobierania danych', false);
+              this._updateLocationStrip('Błąd pobierania', 20);
+            }
+          },
+          err => {
+            // Użytkownik zablokował lokalizację lub inny błąd geolokalizacji
+            const reasons = { 1: 'brak zgody użytkownika', 2: 'niedostępna pozycja', 3: 'timeout' };
+            console.warn('[FitAI Weather] Geolokalizacja zablokowana:', reasons[err.code] || err.message, '— używam domyślnych 20°C.');
+            this._applyWeather(20, 'lokalizacja niedostępna', false);
+            this._updateLocationStrip('Lokalizacja zablokowana', 20);
+          },
+          { timeout: 8000, maximumAge: 300000 }  // 8s timeout, cache 5min
+        );
+      },
+
+      _updateLocationStrip(cityName, temp) {
+        const locEl = document.getElementById('waterLocationText');
+        const tempEl = document.getElementById('waterTempText');
+        const strip = document.getElementById('waterLocationStrip');
+        if (locEl) {
+          const dot = temp > WATER_HOT_THRESHOLD ? '🔴' : temp < 10 ? '🔵' : '🟢';
+          locEl.innerHTML = `<span style="margin-right:2px;">${dot}</span> 📍 ${cityName}`;
+          locEl.style.color = 'var(--text)';
+        }
+        if (tempEl) {
+          tempEl.textContent = '🌡️ ' + temp + '°C';
+          tempEl.style.opacity = '1';
+          tempEl.style.color = temp > WATER_HOT_THRESHOLD ? '#fb923c' : temp < 10 ? '#93c5fd' : 'var(--cyan)';
+        }
+        if (strip) {
+          strip.style.borderColor = temp > WATER_HOT_THRESHOLD
+            ? 'rgba(251,146,60,0.25)'
+            : temp < 10
+              ? 'rgba(147,197,253,0.2)'
+              : 'rgba(0,229,255,0.2)';
+        }
+      },
+
+      _applyWeather(temp, desc, isHot) {
+        const badge = document.getElementById('weatherBadge');
+        const row = document.getElementById('weatherInfoRow');
+        const icon = document.getElementById('weatherIcon');
+        const descEl = document.getElementById('weatherDesc');
+        const advice = document.getElementById('weatherAdvice');
+
+        if (badge) { badge.textContent = temp + '°C ' + (isHot ? '☀️' : '🌤️'); badge.classList.remove('hidden'); }
+        if (row) row.classList.remove('hidden');
+        if (icon) icon.textContent = isHot ? '☀️' : temp < 10 ? '🥶' : '🌤️';
+        if (descEl) descEl.textContent = temp + '°C · ' + desc;
+
+        if (isHot) {
+          this.setGoal(WATER_GOAL_HOT);
+          if (advice) advice.textContent = 'Gorąco! Cel wody zwiększony do ' + (WATER_GOAL_HOT / 1000).toFixed(1) + ' L — nawadniaj się intensywnie! 🌡️';
+        } else {
+          this.setGoal(WATER_GOAL_DEFAULT);
+          if (advice) advice.textContent = 'Temperatura OK. Standardowy cel: ' + (WATER_GOAL_DEFAULT / 1000).toFixed(1) + ' L dziennie.';
+        }
+      },
+
+      _weatherFallback() {
+        const b = document.getElementById('weatherBadge');
+        if (b) {
+          b.textContent = '📍 brak danych pogody';
+          b.classList.remove('hidden');
+          b.style.background = 'rgba(100,116,139,0.12)';
+          b.style.borderColor = 'rgba(100,116,139,0.3)';
+          b.style.color = '#94a3b8';
+        }
+      },
+
+      _toast(msg) {
+        const t = document.createElement('div');
+        t.textContent = msg + ' 💧';
+        t.style.cssText = 'position:fixed;bottom:90px;right:20px;z-index:9999;padding:8px 16px;border-radius:12px;font-size:13px;font-weight:700;pointer-events:none;animation:slideUp 0.3s ease,fadeIn 0.3s ease;background:rgba(56,189,248,0.15);border:1px solid rgba(56,189,248,0.4);color:#38bdf8;font-family:"Plus Jakarta Sans",sans-serif;';
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 1800);
+      },
     };
 
 

@@ -72,6 +72,33 @@ _DAY_FULL_NAMES_PL = {
     6: "Niedziela",
 }
 
+_SPORT_DRILL_CATALOG: list[dict[str, Any]] = [
+    {"name": "Rzuty za linią 3 pkt — runda 5 pozycji", "sport": "koszykówka", "category": "rzuty", "target_pct": 60, "total_attempts": 50},
+    {"name": "Rzuty wolne — seria 10", "sport": "koszykówka", "category": "rzuty", "target_pct": 80, "total_attempts": 100},
+    {"name": "Mid-range pull-up (step-back)", "sport": "koszykówka", "category": "rzuty", "target_pct": 55, "total_attempts": 40},
+    {"name": "Rzuty po wejściu (lay-up obie ręce)", "sport": "koszykówka", "category": "rzuty", "target_pct": 90, "total_attempts": 60},
+    {"name": "Catch-and-shoot off screen", "sport": "koszykówka", "category": "rzuty", "target_pct": 65, "total_attempts": 40},
+    {"name": "Spider Dribble", "sport": "koszykówka", "category": "drybling", "target_pct": 100, "total_attempts": None},
+    {"name": "Two-ball dribbling", "sport": "koszykówka", "category": "drybling", "target_pct": 100, "total_attempts": None},
+    {"name": "Figure-8 między nogami", "sport": "koszykówka", "category": "drybling", "target_pct": 100, "total_attempts": None},
+    {"name": "Crossover na szybkość (stoper)", "sport": "koszykówka", "category": "drybling", "target_pct": 100, "total_attempts": 60},
+    {"name": "Cone dribble", "sport": "koszykówka", "category": "drybling", "target_pct": 78, "total_attempts": 30},
+    {"name": "Outlet pass", "sport": "koszykówka", "category": "podania", "target_pct": 75, "total_attempts": 32},
+    {"name": "Three-man weave", "sport": "koszykówka", "category": "podania", "target_pct": 78, "total_attempts": 30},
+    {"name": "Shell defense", "sport": "koszykówka", "category": "obrona", "target_pct": 78, "total_attempts": 30},
+    {"name": "Weak-side defense", "sport": "koszykówka", "category": "obrona", "target_pct": 76, "total_attempts": 32},
+    {"name": "Sprint 30 m", "sport": "bieganie", "category": "sprint", "target_pct": None, "total_attempts": None},
+    {"name": "Bieg tempowy 1 km", "sport": "bieganie", "category": "wytrzymałość", "target_pct": None, "total_attempts": None},
+    {"name": "Slalom z piłką", "sport": "piłka nożna", "category": "drybling", "target_pct": 80, "total_attempts": 20},
+    {"name": "Podania po ziemi do celu", "sport": "piłka nożna", "category": "podania", "target_pct": 85, "total_attempts": 40},
+    {"name": "Serwis do stref", "sport": "tenis", "category": "serwis", "target_pct": 65, "total_attempts": 50},
+    {"name": "Forehand cross-court", "sport": "tenis", "category": "uderzenia", "target_pct": 70, "total_attempts": 40},
+    {"name": "Praca nóg na drabince", "sport": "boks", "category": "footwork", "target_pct": None, "total_attempts": None},
+    {"name": "Jab-cross na tarczach", "sport": "boks", "category": "technika", "target_pct": 85, "total_attempts": 60},
+    {"name": "Zagrywka flot", "sport": "siatkówka", "category": "zagrywka", "target_pct": 70, "total_attempts": 30},
+    {"name": "Przyjęcie po skosie", "sport": "siatkówka", "category": "przyjęcie", "target_pct": 75, "total_attempts": 40},
+]
+
 
 def _web_user_key(identity_id: str) -> str:
     return f"web:{identity_id}"
@@ -130,9 +157,24 @@ def _resolve_log_date(log_date: Optional[str]) -> date:
     if not log_date:
         return date.today()
     try:
-        return date.fromisoformat(log_date)
+        target_date = date.fromisoformat(log_date)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail="Nieprawidłowy format log_date") from exc
+    if target_date > date.today():
+        raise HTTPException(status_code=422, detail="log_date nie może być z przyszłości")
+    return target_date
+
+
+def _resolve_session_date(session_date: Optional[str]) -> date:
+    if not session_date:
+        return date.today()
+    try:
+        target_date = date.fromisoformat(str(session_date))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="Nieprawidłowy format session_date") from exc
+    if target_date > date.today():
+        raise HTTPException(status_code=422, detail="session_date nie może być z przyszłości")
+    return target_date
 
 
 def _today_day_labels(target_date: date) -> tuple[str, str]:
@@ -1221,36 +1263,109 @@ def get_xp(user: UserDB = Depends(get_current_user)):
 def log_drill_result(
     req: DrillResultRequest,
     user: UserDB = Depends(get_current_user),
+    session: Session = Depends(get_session),
 ):
     """Zaloguj wynik drilla sportowego — nazwa, sukces/próby, czas, dystans, RPE."""
-    from app.models import DrillResultDB
-
-    session_date = req.session_date or date.today()  # ← Use date object
-
-    drill = DrillResultDB(
-        user_id=user.id,
-        drill_name=req.drill_name,
-        session_date=session_date,  # ← date object
-        success_count=req.success_count,
-        total_attempts=req.total_attempts,
-        rpe=req.rpe,
-        notes=req.notes,
-        time_seconds=req.time_seconds,
-        distance_meters=req.distance_meters,
-        duration_seconds=req.duration_seconds,
-        weight_kg=req.weight_kg,
+    session_date = _resolve_session_date(req.session_date)
+    accuracy_pct = round(req.success_count / req.total_attempts * 100) if req.total_attempts > 0 else None
+    target_reached = bool(
+        accuracy_pct is not None
+        and req.target_pct is not None
+        and accuracy_pct >= req.target_pct
     )
+    xp_earned = 20 + (15 if target_reached else 0)
 
-    with Session(engine) as session:
+    try:
+        db_user = session.get(UserDB, user.id)
+        if not db_user:
+            raise HTTPException(status_code=404, detail="Użytkownik nie znaleziony")
+
+        drill = DrillResultDB(
+            user_id=db_user.id,
+            drill_name=req.drill_name,
+            drill_category=req.drill_category,
+            drill_sport=req.drill_sport,
+            target_pct=req.target_pct,
+            session_date=session_date,
+            success_count=req.success_count,
+            total_attempts=req.total_attempts,
+            rpe=req.rpe,
+            notes=req.notes,
+            time_seconds=req.time_seconds,
+            distance_meters=req.distance_meters,
+            duration_seconds=req.duration_seconds,
+            weight_kg=req.weight_kg,
+        )
         session.add(drill)
+        db_user.total_xp = (db_user.total_xp or 0) + xp_earned
+        db_user.updated_at = datetime.now()
+        session.add(db_user)
         session.commit()
         session.refresh(drill)
+    except SQLAlchemyError as exc:
+        session.rollback()
+        raise HTTPException(status_code=500, detail="Database error — please try again later") from exc
 
     return {
         "status": "ok",
         "drill": drill.to_dict(),
+        "accuracy_pct": accuracy_pct,
+        "target_reached": target_reached,
+        "xp_earned": xp_earned,
         "message": f"Drill '{req.drill_name}' zalogowany",
     }
+
+
+@router.get("/drills/search", tags=["sport"])
+def search_drills(
+    sport: Optional[str] = None,
+    category: Optional[str] = None,
+    q: Optional[str] = None,
+    user: UserDB = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    """Wyszukuje drille z historii użytkownika i statycznego katalogu."""
+    try:
+        q_norm = (q or "").strip().lower()
+        sport_norm = (sport or "").strip().lower()
+        category_norm = (category or "").strip().lower()
+
+        rows = list(
+            session.exec(
+                select(DrillResultDB)
+                .where(DrillResultDB.user_id == user.id)
+                .order_by(DrillResultDB.logged_at.desc())
+            ).all()
+        )
+        user_drills_map: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            name_key = row.drill_name.strip().lower()
+            if q_norm and q_norm not in name_key:
+                continue
+            if name_key not in user_drills_map:
+                user_drills_map[name_key] = {
+                    "name": row.drill_name,
+                    "last_session": row.session_date.isoformat(),
+                    "total_sessions": 0,
+                }
+            user_drills_map[name_key]["total_sessions"] += 1
+
+        catalog_drills = []
+        for item in _SPORT_DRILL_CATALOG:
+            if sport_norm and sport_norm not in str(item["sport"]).lower():
+                continue
+            if category_norm and category_norm not in str(item["category"]).lower():
+                continue
+            if q_norm and q_norm not in str(item["name"]).lower():
+                continue
+            catalog_drills.append(item)
+
+        return {
+            "user_drills": list(user_drills_map.values()),
+            "catalog_drills": catalog_drills,
+        }
+    except SQLAlchemyError as exc:
+        raise HTTPException(status_code=500, detail="Database error — please try again later") from exc
 
 
 @router.get("/drill-history", tags=["sport"])

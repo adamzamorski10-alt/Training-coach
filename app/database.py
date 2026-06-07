@@ -39,6 +39,11 @@ def _ensure_legacy_sqlite_columns():
             "workouts_json": "TEXT DEFAULT '[]'",
             "custom_meals_json": "TEXT DEFAULT '[]'",
         },
+        "drill_results": {
+            "drill_category": "TEXT",
+            "drill_sport": "TEXT",
+            "target_pct": "INTEGER",
+        },
     }
 
     try:

@@ -273,6 +273,9 @@ class DrillResultRequest(BaseModel):
     - Bieg/Sprint: time_seconds + distance_meters
     """
     drill_name: str
+    drill_category: Optional[str] = None
+    drill_sport: Optional[str] = None
+    target_pct: Optional[int] = Field(default=None, ge=0, le=100)
     rpe: int = Field(ge=1, le=10, description="Rate of Perceived Exertion 1-10")
     notes: str = ""
     session_date: Optional[str] = None          # ISO date; jeśli brak → today

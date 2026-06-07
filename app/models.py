@@ -294,6 +294,9 @@ class DrillResultDB(SQLModel, table=True):
     )
     user_id: str = Field(foreign_key="users.id", index=True)
     drill_name: str = Field(index=True)
+    drill_category: Optional[str] = None
+    drill_sport: Optional[str] = None
+    target_pct: Optional[int] = None
     session_date: date = Field(index=True)       # Rzeczywista data
     success_count: int = 0                      # trafienia / powtórzenia (rzuty)
     total_attempts: int = 0                     # łączna liczba prób (rzuty)
@@ -311,6 +314,9 @@ class DrillResultDB(SQLModel, table=True):
         base = {
             "id": self.id,
             "drill_name": self.drill_name,
+            "drill_category": self.drill_category,
+            "drill_sport": self.drill_sport,
+            "target_pct": self.target_pct,
             "session_date": self.session_date.isoformat(),
             "rpe": self.rpe,
             "notes": self.notes,

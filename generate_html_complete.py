@@ -5,10 +5,14 @@ from __future__ import annotations
 
 import os
 import shutil
+import sys
 from pathlib import Path
 
 
 def main() -> int:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
     # Source-of-truth defaults to root index.html, output defaults to app/index.html.
     src = Path(os.getenv("FITAI_HTML_SOURCE", "index.html")).resolve()
     dst = Path(os.getenv("FITAI_HTML_OUTPUT", "app/index.html")).resolve()
@@ -35,6 +39,20 @@ def main() -> int:
     size_kb = dst.stat().st_size // 1024
     print(f"✅ generate_html_complete.py: {dst.name} is up to date ({size_kb}KB)")
     print(f"📄 {dst.name}: {size_kb}KB")
+
+    html = dst.read_text(encoding="utf-8")
+    required_markers = [
+        "todayPrSection",
+        "dayTimelinePanel",
+        "toggleDayTimeline",
+        "openDrillLogWizard",
+        "drillWizardModal",
+    ]
+    missing = [marker for marker in required_markers if marker not in html]
+    if missing:
+        print(f"⚠️ Brak sekcji UI: {', '.join(missing)}")
+    else:
+        print("✅ Sekcje Mój Dzień i Sport: PR + oś czasu + drill modal obecne")
 
     if size_kb < 200:
         print("⚠️ OSTRZEŻENIE: plik jest bardzo mały - sprawdź czy bazy danych są dołączone")
