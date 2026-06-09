@@ -2568,6 +2568,105 @@
           <div id="checkinFeedback" class="hidden text-sm font-semibold text-center py-2 rounded-xl"
             style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.3);color:#34d399;"></div>
         </div>
+
+        <!-- ══════════ WELLBEING DNIA ══════════ -->
+        <div class="glass p-6 rounded-2xl space-y-5" id="wellbeingCard">
+          <div class="flex items-center gap-3 mb-1">
+            <span class="text-xl">💚</span>
+            <h4 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">Wellbeing Dnia</h4>
+            <span class="text-xs px-2 py-0.5 rounded-full font-bold"
+              style="background:rgba(34,197,94,0.1);color:#22c55e;border:1px solid rgba(34,197,94,0.25);">samopoczucie</span>
+          </div>
+
+          <!-- Energia -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">⚡ Energia</label>
+              <span id="energy-value" class="text-lg font-extrabold" style="font-family:'Syne',sans-serif;color:#22c55e;">—</span>
+            </div>
+            <input type="range" id="energy-slider" min="1" max="10" value="8"
+              oninput="updateWellbeingSlider('energy', this.value)" class="w-full" style="accent-color:#22c55e;">
+            <div class="flex justify-between items-center mt-1">
+              <span class="text-xs" style="color:#4b5563;">Wyczerpany</span>
+              <span id="energy-label" class="text-xs font-semibold" style="color:#22c55e;"></span>
+              <span class="text-xs" style="color:#4b5563;">Szczyt formy</span>
+            </div>
+          </div>
+
+          <!-- Zmęczenie -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">😤 Zmęczenie</label>
+              <span id="fatigue-value" class="text-lg font-extrabold" style="font-family:'Syne',sans-serif;color:#f59e0b;">—</span>
+            </div>
+            <input type="range" id="fatigue-slider" min="1" max="10" value="5"
+              oninput="updateWellbeingSlider('fatigue', this.value)" class="w-full" style="accent-color:#f59e0b;">
+            <div class="flex justify-between items-center mt-1">
+              <span class="text-xs" style="color:#4b5563;">Brak</span>
+              <span id="fatigue-label" class="text-xs font-semibold" style="color:#f59e0b;"></span>
+              <span class="text-xs" style="color:#4b5563;">Ekstremalne</span>
+            </div>
+          </div>
+
+          <!-- Stres -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">🧠 Stres</label>
+              <span id="stress-value" class="text-lg font-extrabold" style="font-family:'Syne',sans-serif;color:#22c55e;">—</span>
+            </div>
+            <input type="range" id="stress-slider" min="1" max="10" value="3"
+              oninput="updateWellbeingSlider('stress', this.value)" class="w-full" style="accent-color:#22c55e;">
+            <div class="flex justify-between items-center mt-1">
+              <span class="text-xs" style="color:#4b5563;">Spokój</span>
+              <span id="stress-label" class="text-xs font-semibold" style="color:#22c55e;"></span>
+              <span class="text-xs" style="color:#4b5563;">Alarm</span>
+            </div>
+          </div>
+
+          <!-- Nastrój -->
+          <div style="height:1px;background:var(--border);"></div>
+          <div>
+            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5 mb-3">🎭 Nastrój</label>
+            <div class="flex gap-2 justify-center">
+              <button onclick="window._wellbeingMoodScore=1;document.querySelectorAll('.wb-mood-btn').forEach(b=>b.style.transform='scale(1)');this.style.transform='scale(1.3)';"
+                class="wb-mood-btn flex flex-col items-center gap-1 px-3 py-2.5 rounded-xl transition-all text-2xl"
+                style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">😴<span class="text-xs text-gray-600">Fatalny</span></button>
+              <button onclick="window._wellbeingMoodScore=3;document.querySelectorAll('.wb-mood-btn').forEach(b=>b.style.transform='scale(1)');this.style.transform='scale(1.3)';"
+                class="wb-mood-btn flex flex-col items-center gap-1 px-3 py-2.5 rounded-xl transition-all text-2xl"
+                style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">😐<span class="text-xs text-gray-600">Słaby</span></button>
+              <button onclick="window._wellbeingMoodScore=5;document.querySelectorAll('.wb-mood-btn').forEach(b=>b.style.transform='scale(1)');this.style.transform='scale(1.3)';"
+                class="wb-mood-btn flex flex-col items-center gap-1 px-3 py-2.5 rounded-xl transition-all text-2xl"
+                style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">🙂<span class="text-xs text-gray-600">OK</span></button>
+              <button onclick="window._wellbeingMoodScore=7;document.querySelectorAll('.wb-mood-btn').forEach(b=>b.style.transform='scale(1)');this.style.transform='scale(1.3)';"
+                class="wb-mood-btn flex flex-col items-center gap-1 px-3 py-2.5 rounded-xl transition-all text-2xl"
+                style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">😄<span class="text-xs text-gray-600">Dobry</span></button>
+              <button onclick="window._wellbeingMoodScore=10;document.querySelectorAll('.wb-mood-btn').forEach(b=>b.style.transform='scale(1)');this.style.transform='scale(1.3)';"
+                class="wb-mood-btn flex flex-col items-center gap-1 px-3 py-2.5 rounded-xl transition-all text-2xl"
+                style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">🔥<span class="text-xs text-gray-600">Świetny</span></button>
+            </div>
+          </div>
+
+          <!-- Notatka -->
+          <div style="height:1px;background:var(--border);"></div>
+          <div>
+            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">📝 Notatka (opcjonalna)</label>
+            <textarea id="wellbeing-note" rows="2" placeholder="Jak się dziś czujesz? Co wpływa na Twoje samopoczucie?"
+              class="w-full px-3 py-2.5 rounded-xl text-sm resize-none outline-none"
+              style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e2e8f0;"
+              onfocus="this.style.borderColor='rgba(34,197,94,0.4)'"
+              onblur="this.style.borderColor='rgba(255,255,255,0.1)'"></textarea>
+          </div>
+
+          <!-- Zapisz -->
+          <div class="flex items-center justify-between flex-wrap gap-3">
+            <p class="text-xs" style="color:var(--muted);">Wellbeing zapisuje dane do codziennego check-inu.</p>
+            <button onclick="saveWellbeing()"
+              class="btn-neon px-7 py-3 rounded-2xl font-bold text-sm flex items-center gap-2">
+              <span>💚</span> Zapisz Wellbeing
+            </button>
+          </div>
+        </div>
+
       </section>
 
       <!-- ====== TAB: PLAN ====== -->
@@ -25207,6 +25306,88 @@
     let attempts = 0;
     const iv = setInterval(() => { attempts++; if (updateOnce() || attempts > 12) clearInterval(iv); }, 300);
   })();
+</script>
+
+<script>
+  // ══════════ WELLBEING — updateWellbeingSlider ══════════
+  function updateWellbeingSlider(type, value) {
+    var v = parseInt(value) || 5;
+    var valEl = document.getElementById(type + '-value');
+    var labelEl = document.getElementById(type + '-label');
+    var sliderEl = document.getElementById(type + '-slider');
+    if (valEl) valEl.textContent = v + '/10';
+    var labels = {
+      energy:  {1:'Wyczerpany 😫', 3:'Zmęczony', 5:'Normalnie', 7:'Dobra energia ⚡', 9:'Świetnie', 10:'Szczyt formy 🚀'},
+      fatigue: {1:'Brak zmęczenia ✅', 3:'Lekkie', 5:'Umiarkowane', 7:'Duże 😤', 9:'Bardzo duże 😰', 10:'Ekstremalne 💀'},
+      stress:  {1:'Spokój ✅', 3:'Niski', 5:'Umiarkowany', 7:'Wysoki ⚠️', 9:'Bardzo wysoki 🚨', 10:'Alarm 🔴'}
+    };
+    var map = labels[type] || {};
+    var keys = Object.keys(map).map(Number).sort(function(a,b){return a-b;});
+    var key = keys[0];
+    for (var i = 0; i < keys.length; i++) { if (v >= keys[i]) key = keys[i]; }
+    if (labelEl) labelEl.textContent = map[key] || '';
+    var energyColor = v >= 7 ? '#22c55e' : v >= 4 ? '#f59e0b' : '#ef4444';
+    var fatigueColor = v >= 8 ? '#ef4444' : v >= 5 ? '#f59e0b' : '#22c55e';
+    var stressColor = v >= 7 ? '#ef4444' : v >= 4 ? '#f59e0b' : '#22c55e';
+    var color = type === 'energy' ? energyColor : type === 'fatigue' ? fatigueColor : stressColor;
+    if (sliderEl) sliderEl.style.accentColor = color;
+    if (valEl) valEl.style.color = color;
+    if (labelEl) labelEl.style.color = color;
+  }
+  window.updateWellbeingSlider = updateWellbeingSlider;
+
+  // ══════════ WELLBEING — saveWellbeing ══════════
+  async function saveWellbeing() {
+    var energy  = parseInt(document.getElementById('energy-slider')?.value)  || null;
+    var fatigue = parseInt(document.getElementById('fatigue-slider')?.value) || null;
+    var stress  = parseInt(document.getElementById('stress-slider')?.value)  || null;
+    var mood    = window._wellbeingMoodScore || null;
+    var noteEl  = document.getElementById('wellbeing-note');
+    var note    = noteEl ? noteEl.value.trim() : null;
+    var token = localStorage.getItem('fitai_token');
+    if (!token) {
+      if (typeof showToast === 'function') showToast('Zaloguj się aby zapisać', 'error');
+      else if (typeof showToastMsg === 'function') showToastMsg('Zaloguj się aby zapisać', 'error');
+      return;
+    }
+    var payload = {};
+    if (energy !== null)  payload.energy_level  = energy;
+    if (fatigue !== null) payload.fatigue_score = fatigue;
+    if (stress !== null)  payload.stress_level  = stress;
+    if (mood !== null)    payload.mood_score    = mood;
+    if (note)             payload.notes         = note;
+    try {
+      var res = await fetch((window.API_BASE || '') + '/app/checkin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        var e = await res.json().catch(function() { return {}; });
+        var errMsg = e.detail || 'Błąd zapisu wellbeing';
+        if (typeof showToast === 'function') showToast(errMsg, 'error');
+        else if (typeof showToastMsg === 'function') showToastMsg(errMsg, 'error');
+        return;
+      }
+      var data = await res.json();
+      var msg = '✅ Wellbeing zapisany! +' + (data.xp_earned || 0) + ' XP';
+      if (typeof showToast === 'function') showToast(msg, 'success');
+      else if (typeof showToastMsg === 'function') showToastMsg(msg, 'success');
+    } catch(err) {
+      console.error('[saveWellbeing]', err);
+      var connMsg = 'Błąd połączenia';
+      if (typeof showToast === 'function') showToast(connMsg, 'error');
+      else if (typeof showToastMsg === 'function') showToastMsg(connMsg, 'error');
+    }
+  }
+  window.saveWellbeing = saveWellbeing;
+
+  // ══════════ WELLBEING — inicjalizacja suwaków po DOMContentLoaded ══════════
+  document.addEventListener('DOMContentLoaded', function() {
+    updateWellbeingSlider('energy',  document.getElementById('energy-slider')?.value  || 8);
+    updateWellbeingSlider('fatigue', document.getElementById('fatigue-slider')?.value || 5);
+    updateWellbeingSlider('stress',  document.getElementById('stress-slider')?.value  || 3);
+  });
 </script>
 
 <!-- ═══════════════ PLAN BUILDER MODAL ═══════════════ -->
