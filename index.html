@@ -1906,146 +1906,176 @@
       </section>
 
       <!-- ====== TAB: MY DAY ====== -->
-      <section id="tab-my-day" class="hidden space-y-6">
-        <div class="glass rounded-3xl p-5 md:p-6 space-y-5" id="activeDayHeaderCard">
-          <div class="flex justify-between items-start flex-wrap gap-3">
+      <section id="tab-my-day" class="hidden space-y-5">
+
+        <!-- ══ HERO HEADER ══ -->
+        <div id="activeDayHeaderCard" style="
+          background: linear-gradient(135deg, rgba(0,229,255,0.07) 0%, rgba(124,58,237,0.07) 100%);
+          border: 1px solid rgba(0,229,255,0.15);
+          border-radius: 24px;
+          padding: 24px;
+          position: relative;
+          overflow: hidden;
+        ">
+          <!-- Decorative glow -->
+          <div style="position:absolute;top:-40px;right:-40px;width:160px;height:160px;background:radial-gradient(circle,rgba(0,229,255,0.08),transparent 70%);pointer-events:none;"></div>
+
+          <div class="flex justify-between items-center flex-wrap gap-4">
             <div>
-              <h3 class="text-3xl font-bold" style="font-family:'Syne',sans-serif;">Mój Dzień</h3>
-              <p class="text-sm text-gray-500 mt-1 hidden" id="todayDayLabel"></p>
-              <p class="text-xs text-gray-500 mt-1 hidden" id="todayDateLabel"></p>
+              <p class="text-xs font-bold uppercase tracking-widest mb-1" style="color:rgba(0,229,255,0.6);letter-spacing:0.15em;">Dzisiaj</p>
+              <h3 class="text-4xl font-bold" style="font-family:'Syne',sans-serif;line-height:1.1;">Mój Dzień</h3>
+              <p class="text-sm mt-1 hidden" style="color:#64748b;" id="todayDayLabel"></p>
+              <p class="text-xs hidden" style="color:#475569;" id="todayDateLabel"></p>
             </div>
-            <div class="text-right">
-              <p class="text-xs text-gray-500 mb-1">Dzisiejszy postęp</p>
-              <p class="text-2xl font-bold text-cyan-400" style="font-family:'Syne',sans-serif;" id="activeDayProgress">
-                0%</p>
-              <p class="text-xs text-gray-600 mt-1" id="dayProgressCount">0 / 0 zadań</p>
+
+            <!-- Progress ring -->
+            <div class="flex flex-col items-center gap-1">
+              <div style="position:relative;width:72px;height:72px;">
+                <svg width="72" height="72" viewBox="0 0 72 72">
+                  <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/>
+                  <circle cx="36" cy="36" r="30" fill="none" stroke="url(#progGrad)" stroke-width="6"
+                    stroke-linecap="round" stroke-dasharray="188.5" stroke-dashoffset="188.5"
+                    id="headerProgressRing"
+                    style="transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset 0.8s ease;"/>
+                  <defs>
+                    <linearGradient id="progGrad" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stop-color="#00e5ff"/>
+                      <stop offset="100%" stop-color="#a78bfa"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                  <span class="font-extrabold" style="font-family:'Syne',sans-serif;font-size:15px;color:#00e5ff;" id="activeDayProgress">0%</span>
+                </div>
+              </div>
+              <p class="text-xs" style="color:#475569;" id="dayProgressCount">0 / 0 zadań</p>
             </div>
           </div>
 
+          <!-- Stats row -->
+          <div class="grid grid-cols-3 gap-3 mt-5">
+            <div style="background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.12);border-radius:14px;padding:12px 14px;">
+              <p class="text-xs font-semibold uppercase tracking-wider mb-1" style="color:rgba(0,229,255,0.5);">🔥 Kalorie</p>
+              <p class="font-extrabold" style="font-family:'Syne',sans-serif;font-size:18px;color:#00e5ff;"><span id="daySumKcal">0</span><span class="text-xs font-normal ml-1" style="color:#475569;">kcal</span></p>
+            </div>
+            <div style="background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.15);border-radius:14px;padding:12px 14px;">
+              <p class="text-xs font-semibold uppercase tracking-wider mb-1" style="color:rgba(167,139,250,0.6);">💪 Białko</p>
+              <p class="font-extrabold" style="font-family:'Syne',sans-serif;font-size:18px;color:#a78bfa;"><span id="daySumProt">0</span><span class="text-xs font-normal ml-1" style="color:#475569;">g</span></p>
+            </div>
+            <div style="background:rgba(251,191,36,0.05);border:1px solid rgba(251,191,36,0.12);border-radius:14px;padding:12px 14px;">
+              <p class="text-xs font-semibold uppercase tracking-wider mb-1" style="color:rgba(251,191,36,0.5);">⚡ Aktywności</p>
+              <p class="font-extrabold" style="font-family:'Syne',sans-serif;font-size:18px;color:#fbbf24;" id="dayTrainCount">0</p>
+            </div>
+          </div>
         </div>
+
         <div id="macroAlertBanner" class="hidden alert-warn">
           <p id="macroAlertText" class="text-sm font-medium"></p>
         </div>
-        <div class="grid grid-cols-3 gap-3">
-          <div class="glass p-4 text-center">
-            <p class="text-xs text-gray-500 mb-1">Kalorie</p>
-            <p class="text-lg font-bold text-cyan-400" style="font-family:'Syne',sans-serif;"><span
-                id="daySumKcal">0</span> kcal</p>
-          </div>
-          <div class="glass p-4 text-center">
-            <p class="text-xs text-gray-500 mb-1">Białko</p>
-            <p class="text-lg font-bold text-violet-400" style="font-family:'Syne',sans-serif;"><span
-                id="daySumProt">0</span>g</p>
-          </div>
-          <div class="glass p-4 text-center">
-            <p class="text-xs text-gray-500 mb-1">Aktywności</p>
-            <p class="text-lg font-bold text-yellow-400" style="font-family:'Syne',sans-serif;" id="dayTrainCount">0</p>
-          </div>
-        </div>
 
-        <!-- ══════════ AKTYWNY DZIEŃ ══════════ -->
-        <div class="glass rounded-2xl overflow-hidden" id="activeDayCard">
-
-          <!-- Header z togglem -->
-          <div class="px-5 py-4 flex items-center justify-between"
-            style="background:rgba(0,229,255,0.04);border-bottom:1px solid rgba(255,255,255,0.07);">
-            <div class="flex items-center gap-2">
-              <span class="text-xl">📋</span>
-              <h4 class="text-base font-bold text-white" style="font-family:'Syne',sans-serif;">
-                Plan na dziś
-              </h4>
-              <span id="activeDayDate" class="text-xs text-gray-500"></span>
+        <!-- ══ PLAN NA DZIŚ ══ -->
+        <div id="activeDayCard" style="
+          background: rgba(255,255,255,0.02);
+          border: 1px solid rgba(255,255,255,0.07);
+          border-radius: 20px;
+          overflow: hidden;
+        ">
+          <!-- Header -->
+          <div class="px-5 py-4 flex items-center justify-between" style="
+            background: rgba(0,229,255,0.03);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+          ">
+            <div class="flex items-center gap-2.5">
+              <span style="font-size:1.2rem;">📋</span>
+              <h4 class="font-bold text-white" style="font-family:'Syne',sans-serif;font-size:15px;">Plan na dziś</h4>
+              <span id="activeDayDate" class="text-xs" style="color:#475569;"></span>
             </div>
-            <div class="flex items-center gap-2">
-              <span id="activeDayProgress" class="text-sm font-bold text-cyan-400">0%</span>
+            <div class="flex items-center gap-3">
+              <span id="activeDayProgress" class="text-sm font-bold" style="color:#00e5ff;">0%</span>
               <button onclick="toggleActiveDaySection()" id="activeDayToggle"
-                class="text-gray-500 hover:text-white text-lg transition-colors">▼</button>
+                class="transition-colors" style="color:#475569;font-size:1.1rem;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#475569'">▼</button>
             </div>
           </div>
 
-          <!-- Zawartość (toggle) -->
+          <!-- Content -->
           <div id="activeDayContent" class="p-5 space-y-5">
 
-            <!-- ── Posiłki ───────────────────────────────────── -->
+            <!-- Posiłki -->
             <div>
               <div class="flex items-center justify-between mb-3">
-                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  🍽️ Posiłki
-                </p>
-                <button onclick="openAddMealToDay()" class="text-xs px-3 py-1.5 rounded-lg font-bold transition-all"
-                  style="background:rgba(0,229,255,0.08);
-                   border:1px solid rgba(0,229,255,0.25);color:#00e5ff;">
-                  ➕ Dodaj
+                <div class="flex items-center gap-2">
+                  <span style="font-size:1.1rem;">🍽️</span>
+                  <p class="text-sm font-bold text-white">Posiłki</p>
+                </div>
+                <button onclick="openAddMealToDay()"
+                  class="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl transition-all"
+                  style="background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.2);color:#00e5ff;"
+                  onmouseover="this.style.background='rgba(0,229,255,0.16)'" onmouseout="this.style.background='rgba(0,229,255,0.08)'">
+                  ➕ Dodaj posiłek
                 </button>
               </div>
               <div id="activeDayMealsList" class="space-y-2">
-                <p class="text-sm text-gray-600 italic text-center py-3">
-                  Brak planu diety na dziś — kliknij "Dodaj" aby dodać posiłek
-                </p>
+                <div class="flex flex-col items-center justify-center py-6 rounded-xl" style="background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.07);">
+                  <span style="font-size:1.8rem;opacity:0.4;">🍽️</span>
+                  <p class="text-xs mt-2" style="color:#475569;">Brak posiłków — kliknij "Dodaj posiłek"</p>
+                </div>
               </div>
-              <!-- Podsumowanie kalorii -->
               <div id="activeDayKcalSummary" class="mt-3 rounded-xl px-4 py-2.5 flex items-center justify-between"
-                style="background:rgba(0,229,255,0.05);border:1px solid rgba(0,229,255,0.1);">
-                <span class="text-xs text-gray-400">Łącznie kalorii</span>
-                <span class="text-sm font-bold text-cyan-400">
-                  <span id="activeDayKcalDone">0</span>
-                  / <span id="activeDayKcalTarget">0</span> kcal
+                style="background:rgba(0,229,255,0.04);border:1px solid rgba(0,229,255,0.1);">
+                <span class="text-xs" style="color:#64748b;">Łącznie kalorii</span>
+                <span class="text-sm font-bold" style="color:#00e5ff;">
+                  <span id="activeDayKcalDone">0</span> / <span id="activeDayKcalTarget">0</span> kcal
                 </span>
               </div>
             </div>
 
-            <!-- Separator -->
-            <div style="height:1px;background:rgba(255,255,255,0.07);"></div>
+            <div style="height:1px;background:rgba(255,255,255,0.05);"></div>
 
-            <!-- ── Trening ──────────────────────────────────── -->
+            <!-- Trening -->
             <div>
               <div class="flex items-center justify-between mb-3">
-                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  💪 Trening
-                </p>
-                <button onclick="openAddExerciseToDay()" class="text-xs px-3 py-1.5 rounded-lg font-bold transition-all"
-                  style="background:rgba(124,58,237,0.1);
-                   border:1px solid rgba(124,58,237,0.3);color:#a78bfa;">
-                  ➕ Dodaj
+                <div class="flex items-center gap-2">
+                  <span style="font-size:1.1rem;">💪</span>
+                  <p class="text-sm font-bold text-white">Trening</p>
+                </div>
+                <button onclick="openAddExerciseToDay()"
+                  class="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl transition-all"
+                  style="background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.25);color:#a78bfa;"
+                  onmouseover="this.style.background='rgba(124,58,237,0.2)'" onmouseout="this.style.background='rgba(124,58,237,0.1)'">
+                  ➕ Dodaj ćwiczenie
                 </button>
               </div>
               <div id="activeDayExerciseList" class="space-y-2">
-                <p class="text-sm text-gray-600 italic text-center py-3">
-                  Brak planu treningu na dziś — kliknij "Dodaj" aby dodać ćwiczenie
-                </p>
+                <div class="flex flex-col items-center justify-center py-6 rounded-xl" style="background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.07);">
+                  <span style="font-size:1.8rem;opacity:0.4;">💪</span>
+                  <p class="text-xs mt-2" style="color:#475569;">Brak ćwiczeń — kliknij "Dodaj ćwiczenie"</p>
+                </div>
               </div>
 
-              <!-- RPE treningu (widoczne gdy są ćwiczenia) -->
+              <!-- RPE -->
               <div id="rpeSection" class="hidden mt-4 p-4 rounded-xl"
-                style="background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.15);">
+                style="background:rgba(124,58,237,0.05);border:1px solid rgba(124,58,237,0.15);">
                 <div class="flex items-center justify-between mb-2">
-                  <label class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <label class="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5" style="color:#9ca3af;">
                     🔥 RPE treningu
-                    <span class="text-gray-600 font-normal normal-case">
-                      (Rate of Perceived Exertion)
-                    </span>
+                    <span class="font-normal normal-case" style="color:#4b5563;">(odczuwalny wysiłek)</span>
                   </label>
-                  <span id="rpeValue" class="text-xl font-extrabold text-violet-400"
-                    style="font-family:'Syne',sans-serif;">—</span>
+                  <span id="rpeValue" class="text-xl font-extrabold" style="font-family:'Syne',sans-serif;color:#a78bfa;">—</span>
                 </div>
                 <input type="range" id="rpeSlider" min="1" max="10" value="5" oninput="updateRPE(this.value)"
                   class="w-full" style="accent-color:#a78bfa;">
                 <div class="flex justify-between text-xs mt-1" style="color:#4b5563;">
-                  <span>1 Brak wysiłku</span>
-                  <span class="text-center">5-6 Umiarkowany</span>
-                  <span>10 Maksymalny</span>
+                  <span>1 Brak</span><span>5-6 Umiarkowany</span><span>10 Maksymalny</span>
                 </div>
-                <p id="activeDayRpeDesc" class="text-xs mt-2 text-center text-violet-300"></p>
+                <p id="activeDayRpeDesc" class="text-xs mt-2 text-center" style="color:#a78bfa;"></p>
               </div>
             </div>
 
-            <!-- Separator -->
-            <div style="height:1px;background:rgba(255,255,255,0.07);"></div>
+            <div style="height:1px;background:rgba(255,255,255,0.05);"></div>
 
-            <!-- ── Podsumowanie dnia / inteligentne sugestie ───────────────── -->
-            <div id="activeDayInsightCard" class="rounded-xl p-4"
-              style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
-              <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">🧠 Podsumowanie dnia</p>
+            <!-- AI Insight -->
+            <div id="activeDayInsightCard" class="rounded-xl p-4" style="background:rgba(0,229,255,0.03);border:1px solid rgba(0,229,255,0.08);">
+              <p class="text-xs font-bold uppercase tracking-wider mb-2" style="color:rgba(0,229,255,0.5);">🧠 Podsumowanie dnia</p>
               <p id="activeDaySummaryText" class="text-sm text-white">Rozpocznij dzień od pierwszego zadania.</p>
               <div id="activeDaySuggestions" class="mt-2 space-y-1"></div>
             </div>
@@ -14278,6 +14308,9 @@
       if (labelEl) labelEl.textContent = pct + '%';
       if (barEl) barEl.style.width = pct + '%';
       if (countEl) countEl.textContent = done + ' / ' + total + ' zadań';
+      // Update SVG ring in header
+      var ring = document.getElementById('headerProgressRing');
+      if (ring) { var offset = 188.5 * (1 - pct / 100); ring.style.strokeDashoffset = offset; }
       if (trainCountEl) trainCountEl.textContent = String(doneEx);
 
       updateActiveDayInsights();
