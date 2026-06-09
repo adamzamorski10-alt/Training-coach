@@ -6,11 +6,13 @@ import re
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from slowapi import Limiter
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlmodel import Session, select
 
 from app.auth import (
+    _rate_limit_key,
     create_access_token,
     get_current_user,
     hash_password,
@@ -28,10 +30,12 @@ from app.schemas import (
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+limiter = Limiter(key_func=_rate_limit_key)
 
 
 @router.post("/register", response_model=TokenResponse)
-def register(payload: RegisterRequest):
+@limiter.limit("5/hour")
+def register(request: Request, payload: RegisterRequest):
     """
     Rejestracja nowego użytkownika z hasłem.
     Zwraca JWT gotowy do użycia w nagłówku Authorization: Bearer <token>.
@@ -104,7 +108,8 @@ def register(payload: RegisterRequest):
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(payload: LoginRequest):
+@limiter.limit("10/minute;50/hour")
+def login(request: Request, payload: LoginRequest):
     """
     Logowanie email + hasło. Zwraca JWT.
     Endpoint publiczny — nie wymaga tokena.
