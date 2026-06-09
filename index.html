@@ -1911,8 +1911,8 @@
           <div class="flex justify-between items-start flex-wrap gap-3">
             <div>
               <h3 class="text-3xl font-bold" style="font-family:'Syne',sans-serif;">Mój Dzień</h3>
-              <p class="text-sm text-gray-500 mt-1" id="todayDayLabel">—</p>
-              <p class="text-xs text-gray-500 mt-1" id="todayDateLabel">—</p>
+              <p class="text-sm text-gray-500 mt-1 hidden" id="todayDayLabel"></p>
+              <p class="text-xs text-gray-500 mt-1 hidden" id="todayDateLabel"></p>
             </div>
             <div class="text-right">
               <p class="text-xs text-gray-500 mb-1">Dzisiejszy postęp</p>
@@ -1922,29 +1922,6 @@
             </div>
           </div>
 
-          <div class="grid gap-3 md:grid-cols-2">
-            <div class="rounded-2xl p-4" style="background:rgba(0,229,255,0.05);border:1px solid rgba(0,229,255,0.14);">
-              <div class="flex items-center justify-between gap-3 mb-2">
-                <p class="text-xs font-bold uppercase tracking-wider text-cyan-200">Kalorie</p>
-                <p class="text-sm font-semibold text-cyan-100" id="dayKcalSummary">0 / 0 kcal</p>
-              </div>
-              <div class="progress-bar">
-                <div id="dayKcalProgressBar" class="progress-fill bg-gradient-to-r from-cyan-400 to-sky-500"
-                  style="width:0%"></div>
-              </div>
-            </div>
-            <div class="rounded-2xl p-4"
-              style="background:rgba(124,58,237,0.05);border:1px solid rgba(124,58,237,0.14);">
-              <div class="flex items-center justify-between gap-3 mb-2">
-                <p class="text-xs font-bold uppercase tracking-wider text-violet-200">Białko</p>
-                <p class="text-sm font-semibold text-violet-100" id="dayProteinSummary">0 / 0 g białka</p>
-              </div>
-              <div class="progress-bar">
-                <div id="dayProteinProgressBar" class="progress-fill bg-gradient-to-r from-violet-500 to-fuchsia-500"
-                  style="width:0%"></div>
-              </div>
-            </div>
-          </div>
         </div>
         <div id="macroAlertBanner" class="hidden alert-warn">
           <p id="macroAlertText" class="text-sm font-medium"></p>
