@@ -2217,269 +2217,244 @@
         </div>
 
         <!-- ══════ SMART WATER TRACKER ══════ -->
-        <div class="glass p-5 rounded-2xl" id="waterTrackerCard">
-          <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-            <div class="flex items-center gap-2">
-              <span class="text-xl">💧</span>
-              <h4 class="text-base font-bold text-white" style="font-family:'Syne',sans-serif;">Smart Water Tracker</h4>
-              <span id="weatherBadge" class="hidden text-xs px-2 py-0.5 rounded-full font-bold"
+        <div id="waterTrackerCard" style="background:linear-gradient(135deg,rgba(56,189,248,0.06) 0%,rgba(14,165,233,0.03) 100%);border:1px solid rgba(56,189,248,0.15);border-radius:20px;padding:20px;">
+          <!-- Header -->
+          <div class="flex items-center justify-between mb-5 flex-wrap gap-2">
+            <div class="flex items-center gap-2.5">
+              <div style="width:36px;height:36px;border-radius:10px;background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.2);display:flex;align-items:center;justify-content:center;font-size:1.1rem;">💧</div>
+              <div>
+                <h4 class="font-bold text-white" style="font-family:'Syne',sans-serif;font-size:15px;line-height:1.2;">Nawodnienie</h4>
+                <span id="waterGoalLabel" class="text-xs" style="color:#475569;">Cel: 2500 ml</span>
+              </div>
+              <span id="weatherBadge" class="hidden text-xs px-2 py-0.5 rounded-full font-bold ml-1"
                 style="background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.4);color:#fbbf24;"></span>
             </div>
             <div class="flex items-center gap-2">
-              <span id="waterGoalLabel" class="text-xs font-bold" style="color:var(--muted);">Cel: 2500 ml</span>
-              <button onclick="water.fetchWeather()" class="btn-ghost px-3 py-1.5 rounded-xl text-xs">📍 Pogoda</button>
-              <button onclick="water.reset()" class="btn-ghost px-3 py-1.5 rounded-xl text-xs"
-                title="Resetuj dzienny licznik wody">Reset</button>
+              <button onclick="water.fetchWeather()" class="text-xs px-3 py-1.5 rounded-xl font-semibold transition-all"
+                style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.15);color:#7dd3fc;"
+                onmouseover="this.style.background='rgba(56,189,248,0.14)'" onmouseout="this.style.background='rgba(56,189,248,0.06)'">📍 Pogoda</button>
+              <button onclick="water.reset()" class="text-xs px-3 py-1.5 rounded-xl font-semibold transition-all"
+                style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#64748b;"
+                onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#64748b'">↺ Reset</button>
             </div>
           </div>
-          <!-- Ring + current ml -->
-          <div class="flex items-center gap-5 mb-4">
-            <div style="position:relative;flex-shrink:0;width:80px;height:80px;">
-              <svg width="80" height="80" viewBox="0 0 80 80">
-                <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(56,189,248,0.1)" stroke-width="8" />
-                <circle id="waterRing" cx="40" cy="40" r="34" fill="none" stroke="url(#wg)" stroke-width="8"
-                  stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6"
-                  style="transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset 0.7s cubic-bezier(0.4,0,0.2,1);" />
+
+          <!-- Ring + licznik + cups -->
+          <div class="flex items-center gap-6 mb-5">
+            <div style="position:relative;flex-shrink:0;width:90px;height:90px;">
+              <svg width="90" height="90" viewBox="0 0 90 90">
+                <circle cx="45" cy="45" r="38" fill="none" stroke="rgba(56,189,248,0.08)" stroke-width="7"/>
+                <circle id="waterRing" cx="45" cy="45" r="38" fill="none" stroke="url(#wg2)" stroke-width="7"
+                  stroke-linecap="round" stroke-dasharray="238.8" stroke-dashoffset="238.8"
+                  style="transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset 0.7s cubic-bezier(0.4,0,0.2,1);"/>
                 <defs>
-                  <linearGradient id="wg" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stop-color="#38bdf8" />
-                    <stop offset="100%" stop-color="#0ea5e9" />
+                  <linearGradient id="wg2" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#38bdf8"/>
+                    <stop offset="100%" stop-color="#0ea5e9"/>
                   </linearGradient>
                 </defs>
               </svg>
-              <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
-                <span id="waterPct" class="text-xs font-extrabold"
-                  style="color:#38bdf8;font-family:'Syne',sans-serif;">0%</span>
+              <!-- keep old ring id too for JS compat -->
+              <svg id="wg" style="display:none"><defs><linearGradient id="wg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#38bdf8"/><stop offset="100%" stop-color="#0ea5e9"/></linearGradient></defs></svg>
+              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;">
+                <span id="waterPct" class="font-extrabold" style="font-family:'Syne',sans-serif;font-size:14px;color:#38bdf8;line-height:1;">0%</span>
+                <span class="text-xs" style="color:#475569;">dziś</span>
               </div>
             </div>
             <div class="flex-1">
-              <div class="flex items-end gap-1 mb-1">
-                <span id="waterCurrentMl" class="text-3xl font-extrabold"
-                  style="font-family:'Syne',sans-serif;color:#38bdf8;">0</span>
-                <span class="text-sm mb-0.5" style="color:var(--muted);">/ <span id="waterGoalMl">2500</span> ml</span>
+              <div class="flex items-end gap-1.5 mb-2">
+                <span id="waterCurrentMl" class="font-extrabold" style="font-family:'Syne',sans-serif;font-size:2.2rem;color:#38bdf8;line-height:1;">0</span>
+                <span class="text-sm pb-1" style="color:#475569;">/ <span id="waterGoalMl">2500</span> ml</span>
               </div>
-              <div id="waterCupsRow" class="flex gap-1 flex-wrap mt-1"></div>
-              <p id="waterMotivation" class="text-xs mt-2" style="color:var(--muted);">Zacznij dzień od szklanki wody!
-              </p>
+              <div id="waterCupsRow" class="flex gap-1 flex-wrap mb-1.5"></div>
+              <p id="waterMotivation" class="text-xs" style="color:#64748b;">Zacznij dzień od szklanki wody!</p>
             </div>
           </div>
-          <!-- Quick add buttons -->
+
+          <!-- Quick-add buttons -->
           <div class="grid grid-cols-5 gap-2 mb-3">
-            <button onclick="water.add(150)"
-              class="btn-ghost py-2 rounded-xl text-xs font-bold flex flex-col items-center gap-0.5"><span
-                style="font-size:1.1rem;">🥤</span><span>150ml</span></button>
-            <button onclick="water.add(200)"
-              class="btn-ghost py-2 rounded-xl text-xs font-bold flex flex-col items-center gap-0.5"><span
-                style="font-size:1.1rem;">🫙</span><span>200ml</span></button>
-            <button onclick="water.add(250)"
-              class="btn-ghost py-2 rounded-xl text-xs font-bold flex flex-col items-center gap-0.5"><span
-                style="font-size:1.1rem;">🥛</span><span>250ml</span></button>
-            <button onclick="water.add(330)"
-              class="btn-ghost py-2 rounded-xl text-xs font-bold flex flex-col items-center gap-0.5"><span
-                style="font-size:1.1rem;">🍺</span><span>330ml</span></button>
-            <button onclick="water.add(500)"
-              class="btn-ghost py-2 rounded-xl text-xs font-bold flex flex-col items-center gap-0.5"><span
-                style="font-size:1.1rem;">🍶</span><span>500ml</span></button>
+            <button onclick="water.add(150)" class="flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-bold transition-all"
+              style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.12);color:#7dd3fc;"
+              onmouseover="this.style.background='rgba(56,189,248,0.14)'" onmouseout="this.style.background='rgba(56,189,248,0.06)'"><span style="font-size:1.2rem;">🥤</span>150ml</button>
+            <button onclick="water.add(200)" class="flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-bold transition-all"
+              style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.12);color:#7dd3fc;"
+              onmouseover="this.style.background='rgba(56,189,248,0.14)'" onmouseout="this.style.background='rgba(56,189,248,0.06)'"><span style="font-size:1.2rem;">🫙</span>200ml</button>
+            <button onclick="water.add(250)" class="flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-bold transition-all"
+              style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.12);color:#7dd3fc;"
+              onmouseover="this.style.background='rgba(56,189,248,0.14)'" onmouseout="this.style.background='rgba(56,189,248,0.06)'"><span style="font-size:1.2rem;">🥛</span>250ml</button>
+            <button onclick="water.add(330)" class="flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-bold transition-all"
+              style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.12);color:#7dd3fc;"
+              onmouseover="this.style.background='rgba(56,189,248,0.14)'" onmouseout="this.style.background='rgba(56,189,248,0.06)'"><span style="font-size:1.2rem;">🍺</span>330ml</button>
+            <button onclick="water.add(500)" class="flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-bold transition-all"
+              style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.12);color:#7dd3fc;"
+              onmouseover="this.style.background='rgba(56,189,248,0.14)'" onmouseout="this.style.background='rgba(56,189,248,0.06)'"><span style="font-size:1.2rem;">🍶</span>500ml</button>
           </div>
-          <!-- Custom + undo -->
+
+          <!-- Custom input -->
           <div class="flex gap-2">
-            <input type="number" id="waterCustomMl" placeholder="Własna ilość ml" min="1" max="2000"
-              class="flex-1 text-sm" style="color:#38bdf8;">
-            <button onclick="water.addCustom()" class="btn-outline-cyan px-4 py-2 rounded-xl text-xs font-bold">+
-              Dodaj</button>
-            <button onclick="water.undo()" class="btn-ghost px-3 py-2 rounded-xl text-xs font-bold"
-              title="Cofnij ostatni wpis">↩</button>
+            <input type="number" id="waterCustomMl" placeholder="Własna ilość (ml)" min="1" max="2000"
+              class="flex-1 px-3 py-2 rounded-xl text-sm outline-none"
+              style="background:rgba(56,189,248,0.05);border:1px solid rgba(56,189,248,0.15);color:#38bdf8;"
+              onfocus="this.style.borderColor='rgba(56,189,248,0.4)'" onblur="this.style.borderColor='rgba(56,189,248,0.15)'">
+            <button onclick="water.addCustom()" class="px-4 py-2 rounded-xl text-xs font-bold transition-all"
+              style="background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;"
+              onmouseover="this.style.background='rgba(56,189,248,0.22)'" onmouseout="this.style.background='rgba(56,189,248,0.12)'">+ Dodaj</button>
+            <button onclick="water.undo()" title="Cofnij ostatni wpis" class="px-3 py-2 rounded-xl text-sm transition-all"
+              style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#64748b;"
+              onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#64748b'">↩</button>
           </div>
-          <!-- Weather info row -->
+
+          <!-- Weather info -->
           <div id="weatherInfoRow" class="hidden mt-3 rounded-xl px-4 py-3 flex items-center gap-3"
-            style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.2);">
+            style="background:rgba(251,191,36,0.05);border:1px solid rgba(251,191,36,0.15);">
             <span id="weatherIcon" class="text-2xl">☀️</span>
             <div class="flex-1">
               <p id="weatherDesc" class="text-xs font-bold text-yellow-300"></p>
-              <p id="weatherAdvice" class="text-xs mt-0.5" style="color:var(--muted);"></p>
+              <p id="weatherAdvice" class="text-xs mt-0.5" style="color:#64748b;"></p>
             </div>
           </div>
-          <!-- Location + Temperature info strip -->
+
+          <!-- Location strip -->
           <div id="waterLocationStrip" class="mt-3 rounded-xl px-4 py-2.5 flex items-center justify-between gap-2"
-            style="background:rgba(0,229,255,0.04);border:1px solid rgba(0,229,255,0.12);">
-            <span id="waterLocationText" class="text-xs font-semibold flex items-center gap-1.5"
-              style="color:var(--muted);">
-              <span class="animate-pulse"
-                style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--cyan);opacity:0.5;"></span>
+            style="background:rgba(0,229,255,0.03);border:1px solid rgba(0,229,255,0.1);">
+            <span id="waterLocationText" class="text-xs font-semibold flex items-center gap-1.5" style="color:#64748b;">
+              <span class="animate-pulse" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#00e5ff;opacity:0.5;"></span>
               Pobieranie lokalizacji…
             </span>
-            <span id="waterTempText" class="text-xs font-extrabold"
-              style="color:var(--cyan);font-family:'Syne',sans-serif;letter-spacing:0.03em;opacity:0.5;">—°C</span>
+            <span id="waterTempText" class="text-xs font-extrabold" style="color:#00e5ff;font-family:'Syne',sans-serif;opacity:0.5;">—°C</span>
           </div>
         </div>
 
         <!-- ══════════ CHECK-IN v2 ══════════ -->
-        <div class="glass p-6 rounded-2xl space-y-6">
-          <div class="flex items-center gap-3 mb-1">
-            <span class="text-xl">📊</span>
-            <h4 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">Dzienny Check-in</h4>
-            <span class="text-xs px-2 py-0.5 rounded-full font-bold"
-              style="background:rgba(0,229,255,0.1);color:var(--cyan);border:1px solid rgba(0,229,255,0.25);">v2</span>
+        <div style="background:linear-gradient(135deg,rgba(0,229,255,0.05) 0%,rgba(56,189,248,0.02) 100%);border:1px solid rgba(0,229,255,0.12);border-radius:20px;padding:24px;" class="space-y-5">
+
+          <!-- Header -->
+          <div class="flex items-center gap-3">
+            <div style="width:36px;height:36px;border-radius:10px;background:rgba(0,229,255,0.1);border:1px solid rgba(0,229,255,0.2);display:flex;align-items:center;justify-content:center;font-size:1.1rem;">📊</div>
+            <div>
+              <h4 class="font-bold text-white" style="font-family:'Syne',sans-serif;font-size:15px;line-height:1.2;">Dzienny Check-in</h4>
+              <span class="text-xs" style="color:#475569;">Śledź sen i pomiary ciała</span>
+            </div>
+            <span class="text-xs px-2 py-0.5 rounded-full font-bold ml-auto"
+              style="background:rgba(0,229,255,0.08);color:#00e5ff;border:1px solid rgba(0,229,255,0.2);">v2</span>
           </div>
+
+          <div style="height:1px;background:rgba(255,255,255,0.05);"></div>
 
           <!-- Jakość Snu -->
-          <div>
-              <div class="flex items-center justify-between mb-2">
-                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">😴
-                  Jakość snu</label>
-                <span id="sleepVal" class="text-lg font-extrabold"
-                  style="font-family:'Syne',sans-serif;color:var(--cyan);">—</span>
+          <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:16px;">
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <span style="font-size:1.1rem;">😴</span>
+                <span class="text-sm font-bold text-white">Jakość snu</span>
               </div>
-              <!-- Czas snu -->
-              <div class="grid grid-cols-2 gap-2 mb-3">
-                <div>
-                  <label class="text-xs text-gray-500 block mb-1">🌙 Położyłem się</label>
-                  <input type="time" id="sleepStart" value="23:00"
-                    class="w-full px-2 py-1.5 rounded-lg text-sm font-bold text-center" style="background:rgba(255,255,255,0.06);
-               border:1px solid rgba(255,255,255,0.1);color:#00e5ff;" oninput="updateSleepDuration()">
-                </div>
-                <div>
-                  <label class="text-xs text-gray-500 block mb-1">☀️ Wstałem</label>
-                  <input type="time" id="sleepEnd" value="07:00"
-                    class="w-full px-2 py-1.5 rounded-lg text-sm font-bold text-center" style="background:rgba(255,255,255,0.06);
-               border:1px solid rgba(255,255,255,0.1);color:#00e5ff;" oninput="updateSleepDuration()">
-                </div>
+              <span id="sleepVal" class="font-extrabold" style="font-family:'Syne',sans-serif;font-size:1.2rem;color:#00e5ff;">—</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <label class="text-xs block mb-1.5" style="color:#64748b;">🌙 Położyłem się</label>
+                <input type="time" id="sleepStart" value="23:00"
+                  class="w-full px-3 py-2 rounded-xl text-sm font-bold text-center outline-none"
+                  style="background:rgba(0,229,255,0.05);border:1px solid rgba(0,229,255,0.15);color:#00e5ff;"
+                  onfocus="this.style.borderColor='rgba(0,229,255,0.4)'" onblur="this.style.borderColor='rgba(0,229,255,0.15)'"
+                  oninput="updateSleepDuration()">
               </div>
-              <div id="sleepDurationBadge" class="text-center text-sm font-bold mb-3 py-1.5 rounded-xl hidden"
-                style="background:rgba(0,229,255,0.08);color:#00e5ff;">
-                Czas snu: <span id="sleepHours">0h 0min</span>
+              <div>
+                <label class="text-xs block mb-1.5" style="color:#64748b;">☀️ Wstałem</label>
+                <input type="time" id="sleepEnd" value="07:00"
+                  class="w-full px-3 py-2 rounded-xl text-sm font-bold text-center outline-none"
+                  style="background:rgba(0,229,255,0.05);border:1px solid rgba(0,229,255,0.15);color:#00e5ff;"
+                  onfocus="this.style.borderColor='rgba(0,229,255,0.4)'" onblur="this.style.borderColor='rgba(0,229,255,0.15)'"
+                  oninput="updateSleepDuration()">
               </div>
-              <input type="range" id="checkinSleep" min="1" max="10" value="7"
-                oninput="updateCheckinSlider('sleep',this.value)" class="w-full" style="accent-color:var(--cyan);">
-              <div class="flex justify-between text-xs mt-1" style="color:var(--muted);">
-                <span>Fatalne</span><span>Świetnie</span>
-              </div>
-              <p id="sleepDesc" class="text-xs mt-1 text-center" style="color:var(--muted);">Przesuń, aby ocenić</p>
+            </div>
+            <div id="sleepDurationBadge" class="text-center text-sm font-bold mb-3 py-1.5 rounded-xl hidden"
+              style="background:rgba(0,229,255,0.08);color:#00e5ff;border:1px solid rgba(0,229,255,0.15);">
+              ⏱ Czas snu: <span id="sleepHours">0h 0min</span>
+            </div>
+            <input type="range" id="checkinSleep" min="1" max="10" value="7"
+              oninput="updateCheckinSlider('sleep',this.value)" class="w-full" style="accent-color:#00e5ff;">
+            <div class="flex justify-between text-xs mt-1.5" style="color:#475569;">
+              <span>😫 Fatalne</span><span>✨ Świetnie</span>
+            </div>
+            <p id="sleepDesc" class="text-xs mt-1.5 text-center font-medium" style="color:#64748b;">Przesuń, aby ocenić</p>
           </div>
 
-          <!-- Row 2: Weight + Measurements (woda obsługiwana przez Smart Water Tracker) -->
-          <div class="grid grid-cols-1 gap-5">
-
-            <!-- Waga + Pomiary -->
-            <div class="space-y-3">
-              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">⚖️
-                Pomiary (opcjonalne)</label>
-              <div class="grid grid-cols-3 gap-2">
-                <div>
-                  <label class="text-xs text-gray-500 mb-1 block">Waga (kg)</label>
-                  <input type="number" id="checkinWeight" placeholder="75.0" step="0.1" min="30" max="250"
-                    class="w-full text-sm text-center font-bold" style="color:var(--cyan);"
-                    oninput="updateCheckinWeight(this.value)">
-                </div>
-                <div>
-                  <label class="text-xs text-gray-500 mb-1 block">Pas (cm)</label>
-                  <input type="number" id="checkinWaist" placeholder="80" step="0.5" min="40" max="200"
-                    class="w-full text-sm text-center">
-                </div>
-                <div>
-                  <label class="text-xs text-gray-500 mb-1 block">Klatka (cm)</label>
-                  <input type="number" id="checkinChest" placeholder="100" step="0.5" min="50" max="200"
-                    class="w-full text-sm text-center">
-                </div>
+          <!-- Pomiary -->
+          <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:16px;">
+            <div class="flex items-center gap-2 mb-3">
+              <span style="font-size:1.1rem;">⚖️</span>
+              <span class="text-sm font-bold text-white">Pomiary</span>
+              <span class="text-xs ml-auto" style="color:#475569;">opcjonalne</span>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+              <div>
+                <label class="text-xs block mb-1.5" style="color:#64748b;">Waga (kg)</label>
+                <input type="number" id="checkinWeight" placeholder="75.0" step="0.1" min="30" max="250"
+                  class="w-full text-sm text-center font-bold px-2 py-2 rounded-xl outline-none"
+                  style="background:rgba(0,229,255,0.05);border:1px solid rgba(0,229,255,0.12);color:#00e5ff;"
+                  onfocus="this.style.borderColor='rgba(0,229,255,0.35)'" onblur="this.style.borderColor='rgba(0,229,255,0.12)'"
+                  oninput="updateCheckinWeight(this.value)">
               </div>
-
+              <div>
+                <label class="text-xs block mb-1.5" style="color:#64748b;">Pas (cm)</label>
+                <input type="number" id="checkinWaist" placeholder="80" step="0.5" min="40" max="200"
+                  class="w-full text-sm text-center px-2 py-2 rounded-xl outline-none"
+                  style="background:rgba(167,139,250,0.05);border:1px solid rgba(167,139,250,0.12);color:#a78bfa;"
+                  onfocus="this.style.borderColor='rgba(167,139,250,0.35)'" onblur="this.style.borderColor='rgba(167,139,250,0.12)'">
+              </div>
+              <div>
+                <label class="text-xs block mb-1.5" style="color:#64748b;">Klatka (cm)</label>
+                <input type="number" id="checkinChest" placeholder="100" step="0.5" min="50" max="200"
+                  class="w-full text-sm text-center px-2 py-2 rounded-xl outline-none"
+                  style="background:rgba(251,191,36,0.05);border:1px solid rgba(251,191,36,0.12);color:#fbbf24;"
+                  onfocus="this.style.borderColor='rgba(251,191,36,0.35)'" onblur="this.style.borderColor='rgba(251,191,36,0.12)'">
+              </div>
             </div>
           </div>
 
-          <!-- Divider -->
-          <div style="height:1px;background:var(--border);"></div>
-
-          <!-- Autoregulacja hint -->
+          <!-- Hint -->
           <div id="checkinHint" class="hidden rounded-xl p-3 text-sm font-medium"
-            style="background:rgba(251,146,60,0.08);border:1px solid rgba(251,146,60,0.25);color:#fb923c;">
-          </div>
+            style="background:rgba(251,146,60,0.07);border:1px solid rgba(251,146,60,0.2);color:#fb923c;"></div>
 
-          <!-- Save button -->
-          <div class="flex items-center justify-between flex-wrap gap-3">
-            <p class="text-xs" style="color:var(--muted);">Check-in zapisuje się raz dziennie — kolejne wpisy nadpisują
-              dzisiejsze dane.</p>
+          <!-- Save -->
+          <div class="flex items-center justify-between flex-wrap gap-3 pt-1">
+            <p class="text-xs" style="color:#475569;">Zapisuje się raz dziennie — kolejne wpisy nadpisują dane.</p>
             <button onclick="submitCheckin()"
-              class="btn-neon px-7 py-3 rounded-2xl font-bold text-sm flex items-center gap-2">
-              <span>✅</span> Zapisz Check-in
+              class="btn-neon px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2">
+              ✅ Zapisz Check-in
             </button>
           </div>
+
+          <!-- Confirm Modal (untouched) -->
           <div id="checkinConfirmModal" class="hidden fixed inset-0 items-center justify-center p-4"
             style="z-index:10000;min-height:100dvh;background:rgba(0,0,0,0.86);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);">
             <div class="glass rounded-2xl w-full max-w-3xl max-h-[88vh] overflow-y-auto p-6 shadow-2xl"
               style="margin:auto;border:1px solid rgba(0,229,255,0.28);box-shadow:0 32px 90px rgba(0,0,0,0.78),0 0 80px rgba(0,229,255,0.08);">
               <div class="flex items-start justify-between gap-4 mb-5">
                 <div>
-                  <h4 class="text-2xl font-bold text-white" style="font-family:'Syne',sans-serif;">Podsumowanie
-                    check-in</h4>
+                  <h4 class="text-2xl font-bold text-white" style="font-family:'Syne',sans-serif;">Podsumowanie check-in</h4>
                   <p class="text-sm mt-1" style="color:var(--muted);">Sprawdź dane przed zapisaniem raportu.</p>
                 </div>
-                <button id="checkinSummaryCancelTop" type="button"
-                  class="btn-ghost px-4 py-2 rounded-xl text-sm font-bold">Anuluj</button>
+                <button id="checkinSummaryCancelTop" type="button" class="btn-ghost px-4 py-2 rounded-xl text-sm font-bold">Anuluj</button>
               </div>
-
               <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-                <div class="rounded-xl p-3"
-                  style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
-                  <div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Posiłki</div>
-                  <div id="checkinSummaryMealsCount" class="text-2xl font-extrabold text-white mt-1">0</div>
-                </div>
-                <div class="rounded-xl p-3"
-                  style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
-                  <div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Kcal</div>
-                  <div id="checkinSummaryKcal" class="text-2xl font-extrabold text-white mt-1">0</div>
-                </div>
-                <div class="rounded-xl p-3"
-                  style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
-                  <div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Białko</div>
-                  <div id="checkinSummaryProtein" class="text-2xl font-extrabold text-white mt-1">0 g</div>
-                </div>
-                <div class="rounded-xl p-3"
-                  style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
-                  <div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Woda</div>
-                  <div id="checkinSummaryWater" class="text-2xl font-extrabold text-white mt-1">0.0 L</div>
-                </div>
-                <div class="rounded-xl p-3"
-                  style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
-                  <div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Sen</div>
-                  <div id="checkinSummarySleep" class="text-xl font-extrabold text-white mt-1">—</div>
-                </div>
-                <div class="rounded-xl p-3"
-                  style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
-                  <div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Nastrój</div>
-                  <div id="checkinSummaryMood" class="text-xl font-extrabold text-white mt-1">—</div>
-                </div>
-                <div class="rounded-xl p-3"
-                  style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
-                  <div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Energia</div>
-                  <div id="checkinSummaryEnergy" class="text-xl font-extrabold text-white mt-1">—</div>
-                </div>
-                <div class="rounded-xl p-3"
-                  style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
-                  <div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Stres</div>
-                  <div id="checkinSummaryStress" class="text-xl font-extrabold text-white mt-1">—</div>
-                </div>
+                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);"><div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Posiłki</div><div id="checkinSummaryMealsCount" class="text-2xl font-extrabold text-white mt-1">0</div></div>
+                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);"><div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Kcal</div><div id="checkinSummaryKcal" class="text-2xl font-extrabold text-white mt-1">0</div></div>
+                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);"><div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Białko</div><div id="checkinSummaryProtein" class="text-2xl font-extrabold text-white mt-1">0 g</div></div>
+                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);"><div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Woda</div><div id="checkinSummaryWater" class="text-2xl font-extrabold text-white mt-1">0.0 L</div></div>
+                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);"><div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Sen</div><div id="checkinSummarySleep" class="text-xl font-extrabold text-white mt-1">—</div></div>
+                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);"><div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Nastrój</div><div id="checkinSummaryMood" class="text-xl font-extrabold text-white mt-1">—</div></div>
+                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);"><div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Energia</div><div id="checkinSummaryEnergy" class="text-xl font-extrabold text-white mt-1">—</div></div>
+                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);"><div class="text-xs uppercase tracking-wider" style="color:var(--muted);">Stres</div><div id="checkinSummaryStress" class="text-xl font-extrabold text-white mt-1">—</div></div>
               </div>
-
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="rounded-2xl p-4"
-                  style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
-                  <h5 class="text-sm font-bold text-white mb-3">Lista posiłków</h5>
-                  <div id="checkinSummaryMealsList" class="space-y-2 text-sm" style="color:var(--muted);"></div>
-                </div>
-                <div class="rounded-2xl p-4"
-                  style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
-                  <h5 class="text-sm font-bold text-white mb-3">Lista treningów</h5>
-                  <div id="checkinSummaryWorkoutsList" class="space-y-2 text-sm" style="color:var(--muted);"></div>
-                </div>
+                <div class="rounded-2xl p-4" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);"><h5 class="text-sm font-bold text-white mb-3">Lista posiłków</h5><div id="checkinSummaryMealsList" class="space-y-2 text-sm" style="color:var(--muted);"></div></div>
+                <div class="rounded-2xl p-4" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);"><h5 class="text-sm font-bold text-white mb-3">Lista treningów</h5><div id="checkinSummaryWorkoutsList" class="space-y-2 text-sm" style="color:var(--muted);"></div></div>
               </div>
-
               <div class="flex items-center justify-end gap-3 mt-6 flex-wrap">
-                <button id="checkinSummaryCancel" type="button"
-                  class="btn-ghost px-5 py-2.5 rounded-xl text-sm font-bold">Anuluj</button>
-                <button id="checkinSummaryConfirm" type="button"
-                  class="btn-neon px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2">
-                  <span>✅</span> Potwierdź i zapisz
-                </button>
+                <button id="checkinSummaryCancel" type="button" class="btn-ghost px-5 py-2.5 rounded-xl text-sm font-bold">Anuluj</button>
+                <button id="checkinSummaryConfirm" type="button" class="btn-neon px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2"><span>✅</span> Potwierdź i zapisz</button>
               </div>
             </div>
           </div>
@@ -2487,104 +2462,137 @@
             style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.3);color:#34d399;"></div>
         </div>
 
-        <!-- ══════════ WELLBEING DNIA ══════════ -->
-        <div class="glass p-6 rounded-2xl space-y-5" id="wellbeingCard">
-          <div class="flex items-center gap-3 mb-1">
-            <span class="text-xl">💚</span>
-            <h4 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">Wellbeing Dnia</h4>
-            <span class="text-xs px-2 py-0.5 rounded-full font-bold"
-              style="background:rgba(34,197,94,0.1);color:#22c55e;border:1px solid rgba(34,197,94,0.25);">samopoczucie</span>
+                <!-- ══════════ WELLBEING DNIA ══════════ -->
+        <div id="wellbeingCard" style="background:linear-gradient(135deg,rgba(34,197,94,0.06) 0%,rgba(16,185,129,0.03) 100%);border:1px solid rgba(34,197,94,0.14);border-radius:20px;padding:24px;" class="space-y-5">
+
+          <!-- Header -->
+          <div class="flex items-center gap-3">
+            <div style="width:36px;height:36px;border-radius:10px;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.25);display:flex;align-items:center;justify-content:center;font-size:1.1rem;">💚</div>
+            <div>
+              <h4 class="font-bold text-white" style="font-family:'Syne',sans-serif;font-size:15px;line-height:1.2;">Wellbeing Dnia</h4>
+              <span class="text-xs" style="color:#475569;">Energia, zmęczenie i nastrój</span>
+            </div>
+            <span class="text-xs px-2 py-0.5 rounded-full font-bold ml-auto"
+              style="background:rgba(34,197,94,0.08);color:#22c55e;border:1px solid rgba(34,197,94,0.2);">samopoczucie</span>
           </div>
 
-          <!-- Energia -->
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">⚡ Energia</label>
-              <span id="energy-value" class="text-lg font-extrabold" style="font-family:'Syne',sans-serif;color:#22c55e;">—</span>
-            </div>
-            <input type="range" id="energy-slider" min="1" max="10" value="8"
-              oninput="updateWellbeingSlider('energy', this.value)" class="w-full" style="accent-color:#22c55e;">
-            <div class="flex justify-between items-center mt-1">
-              <span class="text-xs" style="color:#4b5563;">Wyczerpany</span>
-              <span id="energy-label" class="text-xs font-semibold" style="color:#22c55e;"></span>
-              <span class="text-xs" style="color:#4b5563;">Szczyt formy</span>
-            </div>
-          </div>
+          <div style="height:1px;background:rgba(255,255,255,0.05);"></div>
 
-          <!-- Zmęczenie -->
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">😤 Zmęczenie</label>
-              <span id="fatigue-value" class="text-lg font-extrabold" style="font-family:'Syne',sans-serif;color:#f59e0b;">—</span>
-            </div>
-            <input type="range" id="fatigue-slider" min="1" max="10" value="5"
-              oninput="updateWellbeingSlider('fatigue', this.value)" class="w-full" style="accent-color:#f59e0b;">
-            <div class="flex justify-between items-center mt-1">
-              <span class="text-xs" style="color:#4b5563;">Brak</span>
-              <span id="fatigue-label" class="text-xs font-semibold" style="color:#f59e0b;"></span>
-              <span class="text-xs" style="color:#4b5563;">Ekstremalne</span>
-            </div>
-          </div>
+          <!-- Suwaki w kartach -->
+          <div class="space-y-3">
 
-          <!-- Stres -->
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">🧠 Stres</label>
-              <span id="stress-value" class="text-lg font-extrabold" style="font-family:'Syne',sans-serif;color:#22c55e;">—</span>
+            <!-- Energia -->
+            <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:14px 16px;">
+              <div class="flex items-center justify-between mb-2.5">
+                <div class="flex items-center gap-2">
+                  <span style="font-size:1rem;">⚡</span>
+                  <span class="text-sm font-semibold text-white">Energia</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span id="energy-label" class="text-xs font-semibold" style="color:#22c55e;"></span>
+                  <span id="energy-value" class="font-extrabold" style="font-family:'Syne',sans-serif;font-size:1.1rem;color:#22c55e;">—</span>
+                </div>
+              </div>
+              <input type="range" id="energy-slider" min="1" max="10" value="8"
+                oninput="updateWellbeingSlider('energy', this.value)" class="w-full" style="accent-color:#22c55e;">
+              <div class="flex justify-between text-xs mt-1.5" style="color:#475569;">
+                <span>Wyczerpany</span><span>Szczyt formy 🚀</span>
+              </div>
             </div>
-            <input type="range" id="stress-slider" min="1" max="10" value="3"
-              oninput="updateWellbeingSlider('stress', this.value)" class="w-full" style="accent-color:#22c55e;">
-            <div class="flex justify-between items-center mt-1">
-              <span class="text-xs" style="color:#4b5563;">Spokój</span>
-              <span id="stress-label" class="text-xs font-semibold" style="color:#22c55e;"></span>
-              <span class="text-xs" style="color:#4b5563;">Alarm</span>
+
+            <!-- Zmęczenie -->
+            <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:14px 16px;">
+              <div class="flex items-center justify-between mb-2.5">
+                <div class="flex items-center gap-2">
+                  <span style="font-size:1rem;">😤</span>
+                  <span class="text-sm font-semibold text-white">Zmęczenie</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span id="fatigue-label" class="text-xs font-semibold" style="color:#f59e0b;"></span>
+                  <span id="fatigue-value" class="font-extrabold" style="font-family:'Syne',sans-serif;font-size:1.1rem;color:#f59e0b;">—</span>
+                </div>
+              </div>
+              <input type="range" id="fatigue-slider" min="1" max="10" value="5"
+                oninput="updateWellbeingSlider('fatigue', this.value)" class="w-full" style="accent-color:#f59e0b;">
+              <div class="flex justify-between text-xs mt-1.5" style="color:#475569;">
+                <span>Brak ✅</span><span>Ekstremalne 💀</span>
+              </div>
+            </div>
+
+            <!-- Stres -->
+            <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:14px 16px;">
+              <div class="flex items-center justify-between mb-2.5">
+                <div class="flex items-center gap-2">
+                  <span style="font-size:1rem;">🧠</span>
+                  <span class="text-sm font-semibold text-white">Stres</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span id="stress-label" class="text-xs font-semibold" style="color:#22c55e;"></span>
+                  <span id="stress-value" class="font-extrabold" style="font-family:'Syne',sans-serif;font-size:1.1rem;color:#22c55e;">—</span>
+                </div>
+              </div>
+              <input type="range" id="stress-slider" min="1" max="10" value="3"
+                oninput="updateWellbeingSlider('stress', this.value)" class="w-full" style="accent-color:#22c55e;">
+              <div class="flex justify-between text-xs mt-1.5" style="color:#475569;">
+                <span>Spokój ✅</span><span>Alarm 🔴</span>
+              </div>
             </div>
           </div>
 
           <!-- Nastrój -->
-          <div style="height:1px;background:var(--border);"></div>
-          <div>
-            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5 mb-3">🎭 Nastrój</label>
-            <div class="flex gap-2 justify-center">
-              <button onclick="window._wellbeingMoodScore=1;document.querySelectorAll('.wb-mood-btn').forEach(b=>b.style.transform='scale(1)');this.style.transform='scale(1.3)';"
-                class="wb-mood-btn flex flex-col items-center gap-1 px-3 py-2.5 rounded-xl transition-all text-2xl"
-                style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">😴<span class="text-xs text-gray-600">Fatalny</span></button>
-              <button onclick="window._wellbeingMoodScore=3;document.querySelectorAll('.wb-mood-btn').forEach(b=>b.style.transform='scale(1)');this.style.transform='scale(1.3)';"
-                class="wb-mood-btn flex flex-col items-center gap-1 px-3 py-2.5 rounded-xl transition-all text-2xl"
-                style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">😐<span class="text-xs text-gray-600">Słaby</span></button>
-              <button onclick="window._wellbeingMoodScore=5;document.querySelectorAll('.wb-mood-btn').forEach(b=>b.style.transform='scale(1)');this.style.transform='scale(1.3)';"
-                class="wb-mood-btn flex flex-col items-center gap-1 px-3 py-2.5 rounded-xl transition-all text-2xl"
-                style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">🙂<span class="text-xs text-gray-600">OK</span></button>
-              <button onclick="window._wellbeingMoodScore=7;document.querySelectorAll('.wb-mood-btn').forEach(b=>b.style.transform='scale(1)');this.style.transform='scale(1.3)';"
-                class="wb-mood-btn flex flex-col items-center gap-1 px-3 py-2.5 rounded-xl transition-all text-2xl"
-                style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">😄<span class="text-xs text-gray-600">Dobry</span></button>
-              <button onclick="window._wellbeingMoodScore=10;document.querySelectorAll('.wb-mood-btn').forEach(b=>b.style.transform='scale(1)');this.style.transform='scale(1.3)';"
-                class="wb-mood-btn flex flex-col items-center gap-1 px-3 py-2.5 rounded-xl transition-all text-2xl"
-                style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">🔥<span class="text-xs text-gray-600">Świetny</span></button>
+          <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:16px;">
+            <div class="flex items-center gap-2 mb-4">
+              <span style="font-size:1rem;">🎭</span>
+              <span class="text-sm font-semibold text-white">Nastrój</span>
+            </div>
+            <div class="grid grid-cols-5 gap-2">
+              <button onclick="window._wellbeingMoodScore=1;document.querySelectorAll('.wb-mood-btn').forEach(b=>{b.style.transform='scale(1)';b.style.background='rgba(255,255,255,0.03)';b.style.borderColor='rgba(255,255,255,0.07)'});this.style.transform='scale(1.08)';this.style.background='rgba(239,68,68,0.12)';this.style.borderColor='rgba(239,68,68,0.35)';"
+                class="wb-mood-btn flex flex-col items-center gap-1.5 py-3 rounded-xl transition-all text-2xl"
+                style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">😴
+                <span class="text-xs font-medium" style="color:#64748b;">Fatalny</span>
+              </button>
+              <button onclick="window._wellbeingMoodScore=3;document.querySelectorAll('.wb-mood-btn').forEach(b=>{b.style.transform='scale(1)';b.style.background='rgba(255,255,255,0.03)';b.style.borderColor='rgba(255,255,255,0.07)'});this.style.transform='scale(1.08)';this.style.background='rgba(251,191,36,0.1)';this.style.borderColor='rgba(251,191,36,0.3)';"
+                class="wb-mood-btn flex flex-col items-center gap-1.5 py-3 rounded-xl transition-all text-2xl"
+                style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">😐
+                <span class="text-xs font-medium" style="color:#64748b;">Słaby</span>
+              </button>
+              <button onclick="window._wellbeingMoodScore=5;document.querySelectorAll('.wb-mood-btn').forEach(b=>{b.style.transform='scale(1)';b.style.background='rgba(255,255,255,0.03)';b.style.borderColor='rgba(255,255,255,0.07)'});this.style.transform='scale(1.08)';this.style.background='rgba(56,189,248,0.1)';this.style.borderColor='rgba(56,189,248,0.3)';"
+                class="wb-mood-btn flex flex-col items-center gap-1.5 py-3 rounded-xl transition-all text-2xl"
+                style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">🙂
+                <span class="text-xs font-medium" style="color:#64748b;">OK</span>
+              </button>
+              <button onclick="window._wellbeingMoodScore=7;document.querySelectorAll('.wb-mood-btn').forEach(b=>{b.style.transform='scale(1)';b.style.background='rgba(255,255,255,0.03)';b.style.borderColor='rgba(255,255,255,0.07)'});this.style.transform='scale(1.08)';this.style.background='rgba(34,197,94,0.1)';this.style.borderColor='rgba(34,197,94,0.3)';"
+                class="wb-mood-btn flex flex-col items-center gap-1.5 py-3 rounded-xl transition-all text-2xl"
+                style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">😄
+                <span class="text-xs font-medium" style="color:#64748b;">Dobry</span>
+              </button>
+              <button onclick="window._wellbeingMoodScore=10;document.querySelectorAll('.wb-mood-btn').forEach(b=>{b.style.transform='scale(1)';b.style.background='rgba(255,255,255,0.03)';b.style.borderColor='rgba(255,255,255,0.07)'});this.style.transform='scale(1.08)';this.style.background='rgba(251,146,60,0.1)';this.style.borderColor='rgba(251,146,60,0.35)';"
+                class="wb-mood-btn flex flex-col items-center gap-1.5 py-3 rounded-xl transition-all text-2xl"
+                style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">🔥
+                <span class="text-xs font-medium" style="color:#64748b;">Świetny</span>
+              </button>
             </div>
           </div>
 
           <!-- Notatka -->
-          <div style="height:1px;background:var(--border);"></div>
           <div>
-            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">📝 Notatka (opcjonalna)</label>
-            <textarea id="wellbeing-note" rows="2" placeholder="Jak się dziś czujesz? Co wpływa na Twoje samopoczucie?"
-              class="w-full px-3 py-2.5 rounded-xl text-sm resize-none outline-none"
-              style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e2e8f0;"
-              onfocus="this.style.borderColor='rgba(34,197,94,0.4)'"
-              onblur="this.style.borderColor='rgba(255,255,255,0.1)'"></textarea>
+            <label class="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 mb-2" style="color:#475569;">📝 Notatka <span class="font-normal normal-case" style="color:#334155;">(opcjonalna)</span></label>
+            <textarea id="wellbeing-note" rows="2"
+              placeholder="Jak się dziś czujesz? Co wpływa na Twoje samopoczucie?"
+              class="w-full px-4 py-3 rounded-xl text-sm resize-none outline-none"
+              style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);color:#e2e8f0;line-height:1.5;"
+              onfocus="this.style.borderColor='rgba(34,197,94,0.35)'" onblur="this.style.borderColor='rgba(255,255,255,0.07)'"></textarea>
           </div>
 
-          <!-- Zapisz -->
-          <div class="flex items-center justify-between flex-wrap gap-3">
-            <p class="text-xs" style="color:var(--muted);">Wellbeing zapisuje dane do codziennego check-inu.</p>
+          <!-- Save -->
+          <div class="flex items-center justify-between flex-wrap gap-3 pt-1">
+            <p class="text-xs" style="color:#475569;">Wellbeing zapisuje dane do codziennego check-inu.</p>
             <button onclick="saveWellbeing()"
-              class="btn-neon px-7 py-3 rounded-2xl font-bold text-sm flex items-center gap-2">
-              <span>💚</span> Zapisz Wellbeing
+              class="btn-neon px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2">
+              💚 Zapisz Wellbeing
             </button>
           </div>
         </div>
-
       </section>
 
       <!-- ====== TAB: PLAN ====== -->
