@@ -1788,123 +1788,204 @@
       </header>
 
       <!-- ====== TAB: HOME ====== -->
-      <section id="tab-home" class="space-y-6">
-        <!-- KPI ROW -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div class="glass p-5 border-l-4" style="border-left-color:var(--cyan)!important;">
-            <p class="text-xs font-bold text-gray-500 uppercase mb-2">🔥 Spójność</p>
-            <p class="text-3xl font-bold text-cyan-400 mb-2" style="font-family:'Syne',sans-serif;" id="kpiConsistency">
-              0%</p>
-            <div class="progress-bar">
-              <div id="consistencyBar" class="progress-fill bg-gradient-to-r from-cyan-500 to-violet-500 w-0"></div>
+      <section id="tab-home" class="space-y-5">
+
+        <!-- ══════════════════════════════════════════
+             HERO GREETING BANNER
+        ══════════════════════════════════════════ -->
+        <div style="
+          position:relative;overflow:hidden;
+          background:linear-gradient(135deg,rgba(0,229,255,0.09) 0%,rgba(124,58,237,0.09) 50%,rgba(251,191,36,0.05) 100%);
+          border:1px solid rgba(0,229,255,0.18);border-radius:28px;padding:28px 28px 22px;">
+          <!-- bg glows -->
+          <div style="pointer-events:none;position:absolute;top:-50px;right:-30px;width:240px;height:240px;background:radial-gradient(circle,rgba(124,58,237,0.08),transparent 65%);"></div>
+          <div style="pointer-events:none;position:absolute;bottom:-60px;left:10px;width:200px;height:200px;background:radial-gradient(circle,rgba(0,229,255,0.06),transparent 65%);"></div>
+
+          <div style="position:relative;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+            <div>
+              <p style="font-size:11px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:rgba(0,229,255,0.55);margin-bottom:6px;">Dashboard</p>
+              <h2 id="homeGreeting" style="font-family:'Syne',sans-serif;font-size:2.2rem;font-weight:800;color:#fff;line-height:1.1;margin-bottom:6px;">Cześć! 👋</h2>
+              <p id="homeDateLine" style="font-size:13px;color:#64748b;"></p>
+            </div>
+            <!-- XP badge -->
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;">
+              <div style="position:relative;width:74px;height:74px;">
+                <svg width="74" height="74" viewBox="0 0 74 74">
+                  <circle cx="37" cy="37" r="31" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="6"/>
+                  <circle cx="37" cy="37" r="31" fill="none" stroke="url(#xpGrad)" stroke-width="6"
+                    stroke-linecap="round" stroke-dasharray="194.8" stroke-dashoffset="194.8"
+                    id="homeXpRing" style="transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset 1s ease;"/>
+                  <defs>
+                    <linearGradient id="xpGrad" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#f59e0b"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0px;">
+                  <span style="font-size:9px;font-weight:700;color:rgba(251,191,36,0.6);text-transform:uppercase;letter-spacing:0.05em;line-height:1;">XP</span>
+                  <span id="homeXpVal" style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#fbbf24;line-height:1.1;">0</span>
+                </div>
+              </div>
+              <p id="homeXpLevel" style="font-size:10px;color:#64748b;">Poziom 1</p>
             </div>
           </div>
-          <div class="glass p-5">
-            <p class="text-xs font-bold text-gray-500 uppercase mb-2">⚖️ Waga</p>
-            <p class="text-3xl font-bold text-white" style="font-family:'Syne',sans-serif;" id="kpiWeight">—</p>
-            <p class="text-xs text-gray-600 mt-1" id="weightDiff">Brak danych</p>
-          </div>
-          <div class="glass p-5">
-            <p class="text-xs font-bold text-gray-500 uppercase mb-2">🎯 Cele</p>
-            <p class="text-3xl font-bold text-violet-400" style="font-family:'Syne',sans-serif;" id="kpiGoal">—</p>
-            <p class="text-xs text-gray-600 mt-1" id="kpiGoalLabel">Brak celu</p>
-          </div>
-          <div class="glass p-5">
-            <p class="text-xs font-bold text-gray-500 uppercase mb-2">📊 Plan</p>
-            <p class="text-3xl font-bold text-gradient" style="font-family:'Syne',sans-serif;">Free</p>
-            <button onclick="showTab('profile');switchProfileTab('payments');"
-              class="text-xs text-cyan-400 hover:text-cyan-300 mt-1">Ulepsz →</button>
+
+          <!-- KPI strip -->
+          <div style="position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:20px;">
+            <!-- Spójność -->
+            <div style="background:rgba(0,229,255,0.07);border:1px solid rgba(0,229,255,0.14);border-radius:16px;padding:12px 14px;">
+              <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(0,229,255,0.5);margin-bottom:6px;">🔥 Spójność</p>
+              <p id="kpiConsistency" style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#00e5ff;line-height:1;margin-bottom:6px;">0%</p>
+              <div style="height:4px;border-radius:4px;background:rgba(255,255,255,0.06);overflow:hidden;">
+                <div id="consistencyBar" style="height:100%;border-radius:4px;background:linear-gradient(90deg,#00e5ff,#a78bfa);width:0%;transition:width 1s ease;"></div>
+              </div>
+            </div>
+            <!-- Waga -->
+            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:12px 14px;">
+              <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#64748b;margin-bottom:6px;">⚖️ Waga</p>
+              <p id="kpiWeight" style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#fff;line-height:1;margin-bottom:4px;">—</p>
+              <p id="weightDiff" style="font-size:11px;color:#64748b;">Brak danych</p>
+            </div>
+            <!-- Cel -->
+            <div style="background:rgba(124,58,237,0.07);border:1px solid rgba(124,58,237,0.16);border-radius:16px;padding:12px 14px;">
+              <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(167,139,250,0.6);margin-bottom:6px;">🎯 Cel</p>
+              <p id="kpiGoal" style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#a78bfa;line-height:1;margin-bottom:4px;">—</p>
+              <p id="kpiGoalLabel" style="font-size:11px;color:#64748b;">Brak celu</p>
+            </div>
+            <!-- Plan -->
+            <div style="background:rgba(251,191,36,0.05);border:1px solid rgba(251,191,36,0.12);border-radius:16px;padding:12px 14px;">
+              <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(251,191,36,0.5);margin-bottom:6px;">📊 Plan</p>
+              <p style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;background:linear-gradient(135deg,#00e5ff,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;margin-bottom:4px;">Free</p>
+              <button onclick="showTab('profile');switchProfileTab('payments');" style="font-size:11px;color:#00e5ff;background:none;border:none;cursor:pointer;padding:0;">Ulepsz →</button>
+            </div>
           </div>
         </div>
 
-        <!-- Progress Rings + Chart -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div class="glass p-6">
-            <h4 class="text-lg font-bold text-white mb-5" style="font-family:'Syne',sans-serif;">Postęp Dnia</h4>
-            <div class="grid grid-cols-3 gap-3">
-              <div class="flex flex-col items-center gap-2">
-                <div class="relative w-20 h-20">
-                  <svg class="w-20 h-20" viewBox="0 0 90 90">
-                    <circle cx="45" cy="45" r="36" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="8" />
-                    <circle id="ringCalories" class="progress-ring-circle" cx="45" cy="45" r="36" fill="none"
-                      stroke="#00e5ff" stroke-width="8" stroke-linecap="round" stroke-dasharray="226"
-                      stroke-dashoffset="226" />
+        <!-- ══════════════════════════════════════════
+             ROW 2: Postęp dnia  +  Spójność 7 dni
+        ══════════════════════════════════════════ -->
+        <div style="display:grid;grid-template-columns:1fr 2fr;gap:16px;" class="md:grid-cols-3">
+
+          <!-- Postęp dnia — 3 ringi -->
+          <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:22px;padding:20px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;">
+              <div style="width:30px;height:30px;border-radius:9px;background:rgba(0,229,255,0.1);border:1px solid rgba(0,229,255,0.18);display:flex;align-items:center;justify-content:center;font-size:.9rem;">📈</div>
+              <p style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#fff;">Postęp Dnia</p>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:14px;">
+
+              <!-- Kalorie -->
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div style="position:relative;width:52px;height:52px;flex-shrink:0;">
+                  <svg width="52" height="52" viewBox="0 0 52 52">
+                    <circle cx="26" cy="26" r="21" fill="none" stroke="rgba(0,229,255,0.08)" stroke-width="5"/>
+                    <circle id="ringCalories" cx="26" cy="26" r="21" fill="none" stroke="#00e5ff" stroke-width="5"
+                      stroke-linecap="round" stroke-dasharray="131.9" stroke-dashoffset="131.9"
+                      style="transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset .8s ease;"/>
                   </svg>
-                  <div class="absolute inset-0 flex items-center justify-center"><span
-                      class="text-xs font-bold text-cyan-400" id="ringCalPct">0%</span></div>
+                  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+                    <span id="ringCalPct" style="font-size:10px;font-weight:800;color:#00e5ff;font-family:'Syne',sans-serif;">0%</span>
+                  </div>
                 </div>
-                <p class="text-xs text-gray-500 text-center">Kalorie</p>
-                <p class="text-xs font-bold text-white text-center"><span id="ringCalVal">0</span>/<span
-                    id="ringCalMax">2500</span></p>
+                <div style="flex:1;min-width:0;">
+                  <p style="font-size:11px;color:#64748b;margin-bottom:2px;">Kalorie</p>
+                  <p style="font-size:13px;font-weight:700;color:#fff;font-family:'Syne',sans-serif;"><span id="ringCalVal">0</span><span style="font-weight:400;color:#475569;font-size:11px;">/<span id="ringCalMax">2500</span></span></p>
+                </div>
               </div>
-              <div class="flex flex-col items-center gap-2">
-                <div class="relative w-20 h-20">
-                  <svg class="w-20 h-20" viewBox="0 0 90 90">
-                    <circle cx="45" cy="45" r="36" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="8" />
-                    <circle id="ringProtein" class="progress-ring-circle" cx="45" cy="45" r="36" fill="none"
-                      stroke="#7c3aed" stroke-width="8" stroke-linecap="round" stroke-dasharray="226"
-                      stroke-dashoffset="226" />
+
+              <div style="height:1px;background:rgba(255,255,255,0.04);"></div>
+
+              <!-- Białko -->
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div style="position:relative;width:52px;height:52px;flex-shrink:0;">
+                  <svg width="52" height="52" viewBox="0 0 52 52">
+                    <circle cx="26" cy="26" r="21" fill="none" stroke="rgba(124,58,237,0.1)" stroke-width="5"/>
+                    <circle id="ringProtein" cx="26" cy="26" r="21" fill="none" stroke="#a78bfa" stroke-width="5"
+                      stroke-linecap="round" stroke-dasharray="131.9" stroke-dashoffset="131.9"
+                      style="transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset .8s ease;"/>
                   </svg>
-                  <div class="absolute inset-0 flex items-center justify-center"><span
-                      class="text-xs font-bold text-violet-400" id="ringProtPct">0%</span></div>
+                  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+                    <span id="ringProtPct" style="font-size:10px;font-weight:800;color:#a78bfa;font-family:'Syne',sans-serif;">0%</span>
+                  </div>
                 </div>
-                <p class="text-xs text-gray-500 text-center">Białko</p>
-                <p class="text-xs font-bold text-white text-center"><span id="ringProtVal">0</span>g/<span
-                    id="ringProtMax">150</span>g</p>
+                <div style="flex:1;min-width:0;">
+                  <p style="font-size:11px;color:#64748b;margin-bottom:2px;">Białko</p>
+                  <p style="font-size:13px;font-weight:700;color:#fff;font-family:'Syne',sans-serif;"><span id="ringProtVal">0</span>g<span style="font-weight:400;color:#475569;font-size:11px;">/<span id="ringProtMax">150</span>g</span></p>
+                </div>
               </div>
-              <div class="flex flex-col items-center gap-2">
-                <div class="relative w-20 h-20">
-                  <svg class="w-20 h-20" viewBox="0 0 90 90">
-                    <circle cx="45" cy="45" r="36" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="8" />
-                    <circle id="ringMacro" class="progress-ring-circle" cx="45" cy="45" r="36" fill="none"
-                      stroke="#f59e0b" stroke-width="8" stroke-linecap="round" stroke-dasharray="226"
-                      stroke-dashoffset="226" />
+
+              <div style="height:1px;background:rgba(255,255,255,0.04);"></div>
+
+              <!-- Makro -->
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div style="position:relative;width:52px;height:52px;flex-shrink:0;">
+                  <svg width="52" height="52" viewBox="0 0 52 52">
+                    <circle cx="26" cy="26" r="21" fill="none" stroke="rgba(245,158,11,0.1)" stroke-width="5"/>
+                    <circle id="ringMacro" cx="26" cy="26" r="21" fill="none" stroke="#f59e0b" stroke-width="5"
+                      stroke-linecap="round" stroke-dasharray="131.9" stroke-dashoffset="131.9"
+                      style="transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset .8s ease;"/>
                   </svg>
-                  <div class="absolute inset-0 flex items-center justify-center"><span
-                      class="text-xs font-bold text-yellow-400" id="ringMacroPct">0%</span></div>
+                  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+                    <span id="ringMacroPct" style="font-size:10px;font-weight:800;color:#f59e0b;font-family:'Syne',sans-serif;">0%</span>
+                  </div>
                 </div>
-                <p class="text-xs text-gray-500 text-center">Makro</p>
-                <p class="text-xs font-bold text-white text-center" id="ringMacroDetail">—</p>
+                <div style="flex:1;min-width:0;">
+                  <p style="font-size:11px;color:#64748b;margin-bottom:2px;">Makro</p>
+                  <p id="ringMacroDetail" style="font-size:13px;font-weight:700;color:#fff;font-family:'Syne',sans-serif;">—</p>
+                </div>
               </div>
+
             </div>
           </div>
-          <div class="glass p-6 lg:col-span-2">
-            <h4 class="text-lg font-bold text-white mb-4" style="font-family:'Syne',sans-serif;">Spójność 7 dni</h4>
-            <div class="h-48"><canvas id="consistencyChart"></canvas></div>
+
+          <!-- Spójność 7 dni — chart -->
+          <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:22px;padding:20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="width:30px;height:30px;border-radius:9px;background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.18);display:flex;align-items:center;justify-content:center;font-size:.9rem;">📊</div>
+                <p style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#fff;">Spójność 7 dni</p>
+              </div>
+              <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(0,229,255,0.07);border:1px solid rgba(0,229,255,0.15);color:#00e5ff;" id="kpiConsistency2">0%</span>
+            </div>
+            <div style="height:180px;"><canvas id="consistencyChart"></canvas></div>
           </div>
         </div>
 
-        <!-- Group Widget + Next Steps -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div class="glass p-6">
-            <h4 class="text-lg font-bold text-white mb-4" style="font-family:'Syne',sans-serif;">Twoja Grupa</h4>
-            <div id="groupWidget" class="space-y-3">
-              <p class="text-sm text-gray-500 italic">Brak innych profili</p>
+        <!-- ══════════════════════════════════════════
+             ROW 3: Co teraz?
+        ══════════════════════════════════════════ -->
+        <!-- hidden groupWidget for JS compat -->
+        <div id="groupWidget" class="hidden"></div>
+        <div style="display:grid;grid-template-columns:1fr;gap:16px;">
+
+          <!-- Co teraz? -->
+          <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:22px;padding:20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="width:30px;height:30px;border-radius:9px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.18);display:flex;align-items:center;justify-content:center;font-size:.9rem;">🎯</div>
+                <div>
+                  <p style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#fff;line-height:1.2;">Co teraz?</p>
+                  <p id="nextStepsSubtitle" style="font-size:11px;color:#64748b;">Twój plan na dziś</p>
+                </div>
+              </div>
+              <div id="nextStepsDayProgress" class="hidden" style="text-align:right;">
+                <p id="nextStepsDoneFrac" style="font-size:12px;font-weight:700;color:#00e5ff;">0/0</p>
+                <p style="font-size:11px;color:#64748b;">ukończono</p>
+              </div>
+            </div>
+
+            <div id="nextStepsPrimary" class="hidden" style="margin-bottom:12px;"></div>
+
+            <div id="nextSteps" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;"></div>
+
+            <div id="nextStepsAllDone" class="hidden" style="text-align:center;padding:32px 20px;">
+              <div style="font-size:3rem;margin-bottom:10px;" class="float-anim">🏆</div>
+              <p style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#fff;margin-bottom:6px;">Plan dnia zrealizowany!</p>
+              <p style="font-size:12px;color:#64748b;">Świetna robota. Jutro nowe wyzwanie czeka.</p>
             </div>
           </div>
-          <div class="glass p-6 lg:col-span-2">
-            <div class="flex items-center justify-between mb-4">
-              <div>
-                <h4 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">🎯 Co teraz?</h4>
-                <p class="text-xs mt-0.5" style="color:var(--muted);" id="nextStepsSubtitle">Twój plan na dziś</p>
-              </div>
-              <div id="nextStepsDayProgress" class="text-right hidden">
-                <p class="text-xs font-bold" style="color:var(--cyan);" id="nextStepsDoneFrac">0/0</p>
-                <p class="text-xs" style="color:var(--muted);">ukończono</p>
-              </div>
-            </div>
-            <div id="nextStepsPrimary" class="hidden mb-3"></div>
-            <div id="nextSteps" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
-            <div id="nextStepsAllDone" class="hidden text-center py-6">
-              <div style="font-size:3rem;margin-bottom:8px;" class="float-anim">🏆</div>
-              <p class="font-extrabold text-white text-base" style="font-family:'Syne',sans-serif;">Plan dnia
-                zrealizowany!</p>
-              <p class="text-xs mt-2" style="color:var(--muted);">Świetna robota. Jutro nowe wyzwanie czeka.</p>
-            </div>
-          </div>
-        </div>
+
       </section>
-
       <!-- ====== TAB: MY DAY ====== -->
       <section id="tab-my-day" class="hidden space-y-5">
 
@@ -8360,6 +8441,8 @@
       document.getElementById('currentUserAvatar').textContent = p.name[0].toUpperCase();
       document.getElementById('currentUserName').textContent = p.name;
       document.getElementById('greetingName').textContent = p.name;
+      const _greetEl = document.getElementById('homeGreeting'); if (_greetEl) { const _hr = new Date().getHours(); _greetEl.textContent = (_hr < 12 ? 'Dzień dobry' : _hr < 18 ? 'Cześć' : 'Dobry wieczór') + ', ' + (p.name || '') + '! ' + (_hr < 12 ? '🌅' : _hr < 18 ? '👋' : '🌙'); }
+      const _dateEl = document.getElementById('homeDateLine'); if (_dateEl) { const _d = new Date(); _dateEl.textContent = _d.toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }
       document.getElementById('headerUserBadge').textContent = p.name + (p.completed ? ' ✅' : ' ⚠️');
 
       const list = document.getElementById('userDropdownList');
@@ -8478,13 +8561,15 @@
     // ========== RING HELPER ==========
     function setRing(circleId, val, max, pctId, valId, maxId) {
       const pct = max > 0 ? Math.min(Math.round(val / max * 100), 100) : 0;
-      const offset = 226 - (226 * (pct / 100));
+      const CIRC = document.getElementById(circleId)?.getAttribute('stroke-dasharray') ? parseFloat(document.getElementById(circleId).getAttribute('stroke-dasharray')) : 131.9;
+      const offset = CIRC - (CIRC * (pct / 100));
       const el = document.getElementById(circleId);
       if (el) el.style.strokeDashoffset = offset;
       if (pctId) document.getElementById(pctId).textContent = pct + '%';
       if (valId) document.getElementById(valId).textContent = val;
       if (maxId) document.getElementById(maxId).textContent = max;
     }
+
 
     function renderPlanTraining() {
       const container = document.getElementById('planTrainingContainer');
@@ -8804,7 +8889,12 @@
       const consistency = totalItems > 0 ? Math.round(doneItems / totalItems * 100) : 0;
 
       document.getElementById('kpiConsistency').textContent = consistency + '%';
+      if (document.getElementById('kpiConsistency2')) document.getElementById('kpiConsistency2').textContent = consistency + '%';
       document.getElementById('consistencyBar').style.width = consistency + '%';
+      // Update home XP ring if present
+      const xpRing = document.getElementById('homeXpRing'); if (xpRing) { const xpPct = Math.min((p.xp || 0) % 1000 / 1000, 1); xpRing.style.strokeDashoffset = 194.8 * (1 - xpPct); }
+      const xpValEl = document.getElementById('homeXpVal'); if (xpValEl) xpValEl.textContent = (p.xp || 0);
+      const xpLvlEl = document.getElementById('homeXpLevel'); if (xpLvlEl) xpLvlEl.textContent = 'Poziom ' + (Math.floor((p.xp || 0) / 1000) + 1);
       document.getElementById('kpiWeight').textContent = (p.weight || '—') + ' kg';
       const diff = p.weight && p.targetWeight ? (p.weight - p.targetWeight).toFixed(1) : null;
       document.getElementById('weightDiff').textContent = diff ? (diff > 0 ? `${diff} kg do celu` : '🎉 Cel osiągnięty!') : 'Brak danych';
@@ -8819,7 +8909,8 @@
       setRing('ringCalories', calEaten, tdee, 'ringCalPct', 'ringCalVal', 'ringCalMax');
       setRing('ringProtein', protEaten, protein, 'ringProtPct', 'ringProtVal', 'ringProtMax');
       const macroTot = tdee > 0 ? Math.round(calEaten / tdee * 100) : 0;
-      const macroOffset = 226 - (226 * (Math.min(macroTot, 100) / 100));
+      const _macrocirc = document.getElementById('ringMacro')?.getAttribute('stroke-dasharray') ? parseFloat(document.getElementById('ringMacro').getAttribute('stroke-dasharray')) : 131.9;
+      const macroOffset = _macrocirc - (_macrocirc * (Math.min(macroTot, 100) / 100));
       document.getElementById('ringMacro').style.strokeDashoffset = macroOffset;
       document.getElementById('ringMacroPct').textContent = macroTot + '%';
       document.getElementById('ringMacroDetail').textContent = 'Łącznie';
