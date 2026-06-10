@@ -1956,11 +1956,11 @@
           <div class="grid grid-cols-3 gap-3 mt-5">
             <div style="background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.12);border-radius:14px;padding:12px 14px;">
               <p class="text-xs font-semibold uppercase tracking-wider mb-1" style="color:rgba(0,229,255,0.5);">🔥 Kalorie</p>
-              <p class="font-extrabold" style="font-family:'Syne',sans-serif;font-size:18px;color:#00e5ff;"><span id="daySumKcal">0</span><span class="text-xs font-normal ml-1" style="color:#475569;">kcal</span></p>
+              <p class="font-extrabold" style="font-family:'Syne',sans-serif;font-size:18px;color:#00e5ff;"><span id="daySumKcal" id="day-kcal-text">0</span><span class="text-xs font-normal ml-1" style="color:#475569;">kcal</span></p>
             </div>
             <div style="background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.15);border-radius:14px;padding:12px 14px;">
               <p class="text-xs font-semibold uppercase tracking-wider mb-1" style="color:rgba(167,139,250,0.6);">💪 Białko</p>
-              <p class="font-extrabold" style="font-family:'Syne',sans-serif;font-size:18px;color:#a78bfa;"><span id="daySumProt">0</span><span class="text-xs font-normal ml-1" style="color:#475569;">g</span></p>
+              <p class="font-extrabold" style="font-family:'Syne',sans-serif;font-size:18px;color:#a78bfa;"><span id="daySumProt" id="day-protein-text">0</span><span class="text-xs font-normal ml-1" style="color:#475569;">g</span></p>
             </div>
             <div style="background:rgba(251,191,36,0.05);border:1px solid rgba(251,191,36,0.12);border-radius:14px;padding:12px 14px;">
               <p class="text-xs font-semibold uppercase tracking-wider mb-1" style="color:rgba(251,191,36,0.5);">⚡ Aktywności</p>
@@ -2014,7 +2014,7 @@
                   ➕ Dodaj posiłek
                 </button>
               </div>
-              <div id="activeDayMealsList" class="space-y-2">
+              <div id="activeDayMealsList" data-meals-container="true" class="space-y-2">
                 <div class="flex flex-col items-center justify-center py-6 rounded-xl" style="background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.07);">
                   <span style="font-size:1.8rem;opacity:0.4;">🍽️</span>
                   <p class="text-xs mt-2" style="color:#475569;">Brak posiłków — kliknij "Dodaj posiłek"</p>
@@ -2045,7 +2045,7 @@
                   ➕ Dodaj ćwiczenie
                 </button>
               </div>
-              <div id="activeDayExerciseList" class="space-y-2">
+              <div id="activeDayExerciseList" data-workouts-container="true" class="space-y-2">
                 <div class="flex flex-col items-center justify-center py-6 rounded-xl" style="background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.07);">
                   <span style="font-size:1.8rem;opacity:0.4;">💪</span>
                   <p class="text-xs mt-2" style="color:#475569;">Brak ćwiczeń — kliknij "Dodaj ćwiczenie"</p>
@@ -2586,11 +2586,13 @@
 
           <!-- Save -->
           <div class="flex items-center justify-between flex-wrap gap-3 pt-1">
-            <p class="text-xs" style="color:#475569;">Wellbeing zapisuje dane do codziennego check-inu.</p>
             <button onclick="saveWellbeing()"
               class="btn-neon px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2" style="display:none;">
               💚 Zapisz Wellbeing
             </button>
+            <p style="font-size:11px;color:#4b5563;text-align:center;margin-top:8px;width:100%;">
+              ↓ Dane zostaną zapisane przyciskiem "Zapisz dzień" na dole strony
+            </p>
           </div>
 
           <!-- ═══ PRZYCISK ZAPISZ DZIEŃ ═══ -->
@@ -4432,6 +4434,23 @@
         <button onclick="closeAddProfileModal()" class="text-gray-500 hover:text-white">✕</button>
       </div>
       <div class="space-y-3">
+        <div style="margin-bottom:4px;">
+          <label style="display:block;font-size:12px;color:#9ca3af;margin-bottom:6px;letter-spacing:0.05em;">
+            NICK <span style="color:#ef4444;">*</span>
+          </label>
+          <div style="position:relative;">
+            <input
+              type="text" id="reg-nickname" maxlength="30" autocapitalize="off" autocomplete="off"
+              placeholder="np. fitjakub2026"
+              style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:11px 40px 11px 14px;color:white;font-size:14px;transition:border-color .2s;"
+              onfocus="this.style.borderColor='rgba(0,229,255,0.5)'"
+              onblur="this.style.borderColor='rgba(255,255,255,0.1)'"
+              oninput="checkRegNickname(this.value)"
+            />
+            <div id="reg-nickname-status" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:14px;"></div>
+          </div>
+          <p id="reg-nickname-msg" style="font-size:11px;color:#6b7280;margin:4px 0 0;">Min. 3 znaki · tylko a-z, 0-9, _ - .</p>
+        </div>
         <div><label class="block text-xs text-gray-400 mb-1">Imię *</label><input type="text" id="newProfileName"
             placeholder="Twoje imię" class="w-full"></div>
         <div class="grid grid-cols-2 gap-3">
@@ -8381,6 +8400,15 @@
     });
 
     function createNewProfile() {
+      var regNick = (document.getElementById('reg-nickname')?.value || '').trim().toLowerCase();
+      if (!regNick || regNick.length < 3) {
+        if (typeof showToast === 'function') showToast('Podaj nick (min. 3 znaki)', 'error');
+        return;
+      }
+      if (!window._regNickValid) {
+        if (typeof showToast === 'function') showToast('Nick niedostępny lub nieprawidłowy', 'error');
+        return;
+      }
       const name = document.getElementById('newProfileName').value.trim();
       const age = parseInt(document.getElementById('newProfileAge').value) || 25;
       const gender = document.getElementById('newProfileGender').value;
@@ -8391,6 +8419,8 @@
       const profile = createDefaultProfile(id, name, age, height, weight, gender);
       const { tdee, protein } = calculateNutrition(profile);
       profile.caloriesTarget = tdee; profile.proteinTarget = protein;
+      profile.nickname = regNick;
+      localStorage.setItem('fitai_nickname', regNick);
       state.profiles.push(profile);
       state.currentProfile = id;
       saveState();
@@ -9098,6 +9128,7 @@
       if (tabId === 'my-day') {
         initActiveDayFromPlan();
         updateSleepDuration(true);
+        if (typeof loadTodayData === 'function') loadTodayData();
       }
       document.getElementById('mainContent').scrollTop = 0;
     }
@@ -9733,6 +9764,10 @@
         nicknameEl.textContent = p?.nickname || 'brak nicku';
         if (p?.nickname) localStorage.setItem('fitai_nickname', p.nickname);
       }
+      if (p?.calories_target || p?.caloriesTarget)
+        localStorage.setItem('fitai_kcal_target', String(p.calories_target || p.caloriesTarget));
+      if (p?.protein_target || p?.proteinTarget)
+        localStorage.setItem('fitai_protein_target', String(p.protein_target || p.proteinTarget));
 
       const welcomeSub = document.getElementById('profileWelcomeSub');
       if (welcomeSub) {
@@ -25287,27 +25322,28 @@
   // ══════════ WELLBEING — updateWellbeingSlider ══════════
   function updateWellbeingSlider(type, value) {
     var v = parseInt(value) || 5;
-    var valEl = document.getElementById(type + '-value');
-    var labelEl = document.getElementById(type + '-label');
-    var sliderEl = document.getElementById(type + '-slider');
-    if (valEl) valEl.textContent = v + '/10';
+    var ve = document.getElementById(type + '-value');
+    var le = document.getElementById(type + '-label');
+    var se = document.getElementById(type + '-slider');
+    if (ve) ve.textContent = v + '/10';
     var labels = {
-      energy:  {1:'Wyczerpany 😫', 3:'Zmęczony', 5:'Normalnie', 7:'Dobra energia ⚡', 9:'Świetnie', 10:'Szczyt formy 🚀'},
-      fatigue: {1:'Brak zmęczenia ✅', 3:'Lekkie', 5:'Umiarkowane', 7:'Duże 😤', 9:'Bardzo duże 😰', 10:'Ekstremalne 💀'},
-      stress:  {1:'Spokój ✅', 3:'Niski', 5:'Umiarkowany', 7:'Wysoki ⚠️', 9:'Bardzo wysoki 🚨', 10:'Alarm 🔴'}
+      energy:  {1:'Wyczerpany 😫',3:'Zmęczony',5:'Normalnie',7:'Dobra energia ⚡',9:'Świetnie',10:'Szczyt 🚀'},
+      fatigue: {1:'Brak zmęczenia ✅',3:'Lekkie',5:'Umiarkowane',7:'Duże 😤',9:'Bardzo duże 😰',10:'Max 💀'},
+      stress:  {1:'Spokój ✅',3:'Niski',5:'Umiarkowany',7:'Wysoki ⚠️',9:'Bardzo wysoki 🚨',10:'Alarm 🔴'}
     };
     var map = labels[type] || {};
     var keys = Object.keys(map).map(Number).sort(function(a,b){return a-b;});
     var key = keys[0];
     for (var i = 0; i < keys.length; i++) { if (v >= keys[i]) key = keys[i]; }
-    if (labelEl) labelEl.textContent = map[key] || '';
-    var energyColor = v >= 7 ? '#22c55e' : v >= 4 ? '#f59e0b' : '#ef4444';
-    var fatigueColor = v >= 8 ? '#ef4444' : v >= 5 ? '#f59e0b' : '#22c55e';
-    var stressColor = v >= 7 ? '#ef4444' : v >= 4 ? '#f59e0b' : '#22c55e';
-    var color = type === 'energy' ? energyColor : type === 'fatigue' ? fatigueColor : stressColor;
-    if (sliderEl) sliderEl.style.accentColor = color;
-    if (valEl) valEl.style.color = color;
-    if (labelEl) labelEl.style.color = color;
+    if (le) le.textContent = map[key] || '';
+    if (se) {
+      var col = type === 'energy' ? (v>=7?'#22c55e':v>=4?'#f59e0b':'#ef4444')
+              : type === 'fatigue' ? (v>=8?'#ef4444':v>=5?'#f59e0b':'#22c55e')
+              : (v>=7?'#ef4444':v>=4?'#f59e0b':'#22c55e');
+      se.style.accentColor = col;
+      if (ve) ve.style.color = col;
+      if (le) le.style.color = col;
+    }
   }
   window.updateWellbeingSlider = updateWellbeingSlider;
 
@@ -25506,6 +25542,299 @@
     updateWellbeingSlider('fatigue', document.getElementById('fatigue-slider')?.value || 5);
     updateWellbeingSlider('stress',  document.getElementById('stress-slider')?.value  || 3);
   });
+</script>
+
+<script>
+// ═══ MÓJ DZIEŃ — Listy posiłków i ćwiczeń ═══
+async function loadTodayData() {
+  var token = localStorage.getItem('fitai_token');
+  if (!token || !window.API_BASE) return;
+  try {
+    var res = await fetch(window.API_BASE + '/app/day/today', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!res.ok) return;
+    var data = await res.json();
+    window._todayLog = data.log;
+    window._todayKcalTarget = parseInt(localStorage.getItem('fitai_kcal_target') || '2000');
+    window._todayProteinTarget = parseInt(localStorage.getItem('fitai_protein_target') || '150');
+    var log = data.log || {};
+    var meals = Array.isArray(log.meals) ? log.meals : [];
+    var workouts = Array.isArray(log.workouts) ? log.workouts : [];
+    if (!meals.length && typeof log.meals_json === 'string') {
+      try { meals = JSON.parse(log.meals_json); } catch(e) { meals = []; }
+    }
+    if (!workouts.length && typeof log.workouts_json === 'string') {
+      try { workouts = JSON.parse(log.workouts_json); } catch(e) { workouts = []; }
+    }
+    renderMealsList(meals);
+    renderWorkoutsList(workouts);
+    recalcBars(data.kcal_consumed || 0, data.protein_consumed || 0);
+  } catch (err) { console.error('[loadTodayData]', err); }
+}
+
+function renderMealsList(meals) {
+  var c = document.getElementById('day-meals-list')
+       || document.getElementById('activeDayMealsList')
+       || document.querySelector('[data-meals-container]');
+  if (!c) { console.warn('[renderMealsList] Brak kontenera. Dodaj id="day-meals-list".'); return; }
+  if (!meals || !meals.length) {
+    c.innerHTML = '<div style="padding:20px 0;color:#6b7280;font-size:13px;text-align:center;font-style:italic;">Brak planu diety na dziś — kliknij &quot;+ Dodaj&quot;.</div>';
+    return;
+  }
+  c.innerHTML = meals.map(function(m) {
+    var chk = Boolean(m.checked);
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;transition:background 0.15s;' + (chk ? 'opacity:.55;' : '') + '" onmouseover="this.style.background=\'rgba(255,255,255,0.04)\'" onmouseout="this.style.background=\'transparent\'">'
+      + '<button onclick="toggleItem(\'' + m.item_id + '\',\'meal\',' + !chk + ')" style="width:20px;height:20px;border-radius:5px;border:2px solid ' + (chk ? '#22c55e' : 'rgba(255,255,255,0.18)') + ';background:' + (chk ? '#22c55e' : 'transparent') + ';color:#fff;font-size:11px;cursor:pointer;flex-shrink:0;transition:all .2s;display:flex;align-items:center;justify-content:center;">' + (chk ? '✓' : '') + '</button>'
+      + '<div style="flex:1;min-width:0;">'
+        + '<div style="font-size:13px;font-weight:500;' + (chk ? 'text-decoration:line-through;color:#6b7280;' : 'color:#f3f4f6;') + '">' + (m.name || 'Posiłek') + (m.meal_type && m.meal_type !== 'inne' ? ' <span style="font-size:10px;padding:1px 5px;border-radius:4px;background:rgba(255,255,255,0.07);color:#9ca3af;">' + m.meal_type + '</span>' : '') + '</div>'
+        + '<div style="font-size:11px;color:#6b7280;margin-top:1px;">' + (m.kcal ? m.kcal + ' kcal' : '') + (m.protein ? ' · ' + m.protein + 'g białka' : '') + '</div>'
+      + '</div>'
+      + '<button onclick="openDayItemSwap(\'' + m.item_id + '\',\'meal\')" style="color:#374151;font-size:13px;background:none;border:none;cursor:pointer;padding:3px;border-radius:4px;transition:color .15s;" onmouseover="this.style.color=\'#00e5ff\'" onmouseout="this.style.color=\'#374151\'" title="Zamień">🔄</button>'
+    + '</div>';
+  }).join('');
+}
+
+function renderWorkoutsList(workouts) {
+  var c = document.getElementById('day-workouts-list')
+       || document.getElementById('activeDayExerciseList')
+       || document.querySelector('[data-workouts-container]');
+  if (!c) { console.warn('[renderWorkoutsList] Brak kontenera. Dodaj id="day-workouts-list".'); return; }
+  if (!workouts || !workouts.length) {
+    c.innerHTML = '<div style="padding:20px 0;color:#6b7280;font-size:13px;text-align:center;font-style:italic;">Brak planu treningu na dziś — kliknij &quot;+ Dodaj&quot;.</div>';
+    return;
+  }
+  c.innerHTML = workouts.map(function(w) {
+    var chk = Boolean(w.checked);
+    var parts = [];
+    if (w.sets && w.reps) parts.push(w.sets + '×' + w.reps);
+    if (w.weight_kg) parts.push(w.weight_kg + ' kg');
+    if (w.rpe) parts.push('RPE ' + w.rpe);
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;transition:background 0.15s;' + (chk ? 'opacity:.55;' : '') + '" onmouseover="this.style.background=\'rgba(255,255,255,0.04)\'" onmouseout="this.style.background=\'transparent\'">'
+      + '<button onclick="toggleItem(\'' + w.item_id + '\',\'workout\',' + !chk + ')" style="width:20px;height:20px;border-radius:5px;border:2px solid ' + (chk ? '#22c55e' : 'rgba(255,255,255,0.18)') + ';background:' + (chk ? '#22c55e' : 'transparent') + ';color:#fff;font-size:11px;cursor:pointer;flex-shrink:0;transition:all .2s;display:flex;align-items:center;justify-content:center;">' + (chk ? '✓' : '') + '</button>'
+      + '<div style="flex:1;min-width:0;">'
+        + '<div style="font-size:13px;font-weight:500;' + (chk ? 'text-decoration:line-through;color:#6b7280;' : 'color:#f3f4f6;') + '">' + (w.name || 'Ćwiczenie') + '</div>'
+        + (parts.length ? '<div style="font-size:11px;color:#6b7280;margin-top:1px;">' + parts.join(' · ') + '</div>' : '')
+      + '</div>'
+      + '<button onclick="openDayItemSwap(\'' + w.item_id + '\',\'workout\')" style="color:#374151;font-size:13px;background:none;border:none;cursor:pointer;padding:3px;border-radius:4px;transition:color .15s;" onmouseover="this.style.color=\'#7c3aed\'" onmouseout="this.style.color=\'#374151\'" title="Zamień">🔄</button>'
+    + '</div>';
+  }).join('');
+}
+
+async function toggleItem(itemId, itemType, checked) {
+  var token = localStorage.getItem('fitai_token');
+  if (!token) return;
+  try {
+    var res = await fetch(window.API_BASE + '/app/day/item/toggle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ item_id: itemId, item_type: itemType, checked: checked })
+    });
+    if (!res.ok) { var e = await res.json().catch(function(){return{};}); if(typeof showToast==='function') showToast(e.detail||'Błąd','error'); return; }
+    var data = await res.json();
+    var log = data.log || {};
+    renderMealsList(Array.isArray(log.meals) ? log.meals : []);
+    renderWorkoutsList(Array.isArray(log.workouts) ? log.workouts : []);
+    recalcBars(data.kcal_consumed || 0, data.protein_consumed || 0);
+    if (data.xp_earned > 0 && typeof showToast === 'function') showToast('+' + data.xp_earned + ' XP 🔥', 'success');
+  } catch (err) { console.error('[toggleItem]', err); }
+}
+
+function recalcBars(kcalConsumed, proteinConsumed) {
+  var kT = window._todayKcalTarget || parseInt(localStorage.getItem('fitai_kcal_target') || '2000');
+  var pT = window._todayProteinTarget || parseInt(localStorage.getItem('fitai_protein_target') || '150');
+  var kPct = Math.min(100, Math.round((kcalConsumed / kT) * 100)) || 0;
+  var pPct = Math.min(100, Math.round((proteinConsumed / pT) * 100)) || 0;
+  var kBar = document.getElementById('day-kcal-bar') || document.getElementById('kcal-progress-bar');
+  var pBar = document.getElementById('day-protein-bar') || document.getElementById('protein-progress-bar');
+  var kTxt = document.getElementById('day-kcal-text') || document.getElementById('daySumKcal');
+  var pTxt = document.getElementById('day-protein-text') || document.getElementById('daySumProt');
+  var kTxtAlt = document.getElementById('activeDayKcalDone');
+  var kTargAlt = document.getElementById('activeDayKcalTarget');
+  if (kBar) kBar.style.width = kPct + '%';
+  if (pBar) pBar.style.width = pPct + '%';
+  if (kTxt) kTxt.textContent = kcalConsumed;
+  if (pTxt) pTxt.textContent = Math.round(proteinConsumed);
+  if (kTxtAlt) kTxtAlt.textContent = kcalConsumed;
+  if (kTargAlt) kTargAlt.textContent = kT;
+}
+
+async function openDayItemSwap(itemId, itemType) {
+  var label = itemType === 'meal' ? 'posiłku' : 'ćwiczenia';
+  var newName = prompt('Podaj nową nazwę ' + label + ':');
+  if (!newName || !newName.trim()) return;
+  var token = localStorage.getItem('fitai_token');
+  if (!token) return;
+  try {
+    var res = await fetch(window.API_BASE + '/app/day/item/swap', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ item_id: itemId, item_type: itemType, new_name: newName.trim() })
+    });
+    if (!res.ok) return;
+    var data = await res.json();
+    var log = data.log || {};
+    renderMealsList(Array.isArray(log.meals) ? log.meals : []);
+    renderWorkoutsList(Array.isArray(log.workouts) ? log.workouts : []);
+    if (typeof showToast === 'function') showToast('✅ Zamieniono', 'success');
+  } catch (err) { console.error('[openDayItemSwap]', err); }
+}
+
+window.loadTodayData = loadTodayData;
+window.toggleItem = toggleItem;
+window.recalcBars = recalcBars;
+window.renderMealsList = renderMealsList;
+window.renderWorkoutsList = renderWorkoutsList;
+window.openDayItemSwap = openDayItemSwap;
+</script>
+
+<script>
+// ═══ NICK — sprawdzanie, modal, edycja ═══
+(function() {
+  var _nTimer = null;
+  var _nValid = false;
+  var _rTimer = null;
+  window._regNickValid = false;
+
+  // Live-check w rejestracji
+  async function checkRegNickname(value) {
+    var st = document.getElementById('reg-nickname-status');
+    var ms = document.getElementById('reg-nickname-msg');
+    var tr = (value || '').trim().toLowerCase();
+    window._regNickValid = false;
+    if (tr.length < 3) {
+      if (st) st.textContent = '';
+      if (ms) { ms.textContent = 'Min. 3 znaki · tylko a-z, 0-9, _ - .'; ms.style.color = '#6b7280'; }
+      return;
+    }
+    if (!/^[a-z0-9_\-.]+$/.test(tr)) {
+      if (st) st.textContent = '❌';
+      if (ms) { ms.textContent = 'Tylko litery a-z, cyfry, _ - .'; ms.style.color = '#ef4444'; }
+      return;
+    }
+    clearTimeout(_rTimer);
+    if (st) st.textContent = '⏳';
+    _rTimer = setTimeout(async function() {
+      try {
+        var r = await fetch((window.API_BASE || '') + '/auth/check-nickname?nickname=' + encodeURIComponent(tr));
+        var d = await r.json();
+        if (d.available) {
+          if (st) st.textContent = '✅';
+          if (ms) { ms.textContent = '@' + tr + ' jest dostępny!'; ms.style.color = '#22c55e'; }
+          window._regNickValid = true;
+        } else {
+          if (st) st.textContent = '❌';
+          if (ms) { ms.textContent = d.reason || 'Nick zajęty'; ms.style.color = '#ef4444'; }
+          window._regNickValid = false;
+        }
+      } catch(e) { if (st) st.textContent = ''; }
+    }, 500);
+  }
+
+  // Live-check w modalu edycji
+  async function checkNicknameAvailabilityEnhanced(value) {
+    var st = document.getElementById('nickname-status');
+    var ms = document.getElementById('nickname-message');
+    var tr = (value || '').trim().toLowerCase();
+    _nValid = false;
+    if (tr.length < 3) {
+      if (st) st.textContent = '';
+      if (ms) { ms.textContent = 'Min. 3 znaki'; ms.style.color = '#6b7280'; }
+      return;
+    }
+    var cur = (localStorage.getItem('fitai_nickname') || '').trim().toLowerCase();
+    if (tr === cur) {
+      if (st) st.textContent = '✅';
+      if (ms) { ms.textContent = '@' + tr + ' — aktualny nick'; ms.style.color = '#00e5ff'; }
+      _nValid = true;
+      return;
+    }
+    clearTimeout(_nTimer);
+    if (st) st.textContent = '⏳';
+    _nTimer = setTimeout(async function() {
+      try {
+        var r = await fetch((window.API_BASE || '') + '/auth/check-nickname?nickname=' + encodeURIComponent(tr));
+        var d = await r.json();
+        if (d.available) {
+          if (st) st.textContent = '✅';
+          if (ms) { ms.textContent = '@' + tr + ' jest dostępny!'; ms.style.color = '#22c55e'; }
+          _nValid = true;
+        } else {
+          if (st) st.textContent = '❌';
+          if (ms) { ms.textContent = d.reason || 'Nick zajęty'; ms.style.color = '#ef4444'; }
+          _nValid = false;
+        }
+      } catch(e) { if (st) st.textContent = ''; }
+    }, 500);
+  }
+
+  function openNickModal() {
+    var cur = localStorage.getItem('fitai_nickname') || '';
+    var old = document.getElementById('change-nickname-modal');
+    if (old) old.remove();
+    var m = document.createElement('div');
+    m.id = 'change-nickname-modal';
+    m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px;backdrop-filter:blur(10px);';
+    m.innerHTML =
+      '<div style="background:#13141a;border:1px solid rgba(0,229,255,0.2);border-radius:20px;padding:24px;width:100%;max-width:380px;">'
+      + '<h3 style="font-size:18px;font-weight:700;margin:0 0 20px;color:#f9fafb;">✏️ Zmień Nick</h3>'
+      + '<div style="position:relative;margin-bottom:4px;">'
+        + '<input type="text" id="new-nickname-input" value="' + cur + '" maxlength="30" placeholder="Nowy nick" autocapitalize="off"'
+        + ' style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:11px 40px 11px 14px;color:white;font-size:14px;"'
+        + ' oninput="window._fitaiNickCheck(this.value)" />'
+        + '<div id="nickname-status" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:14px;"></div>'
+      + '</div>'
+      + '<p id="nickname-message" style="font-size:11px;color:#6b7280;margin:4px 0 20px;">Min. 3 znaki · tylko a-z, 0-9, _ - .</p>'
+      + '<div style="display:flex;gap:10px;">'
+        + '<button onclick="document.getElementById(\'change-nickname-modal\').remove()" style="flex:1;padding:11px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#9ca3af;cursor:pointer;font-size:13px;">Anuluj</button>'
+        + '<button onclick="window._fitaiNickSubmit()" style="flex:1;padding:11px;border-radius:12px;background:linear-gradient(135deg,rgba(0,229,255,0.15),rgba(124,58,237,0.12));border:1px solid rgba(0,229,255,0.35);color:#00e5ff;cursor:pointer;font-size:13px;font-weight:700;">Zapisz</button>'
+      + '</div>'
+      + '</div>';
+    document.body.appendChild(m);
+    m.addEventListener('click', function(e) { if (e.target === m) m.remove(); });
+    document.addEventListener('keydown', function esc(e) {
+      if (e.key === 'Escape') { m.remove(); document.removeEventListener('keydown', esc); }
+    });
+    setTimeout(function() { checkNicknameAvailabilityEnhanced(cur); }, 80);
+  }
+
+  async function submitNickChange() {
+    var inp = document.getElementById('new-nickname-input');
+    var nn = (inp ? inp.value : '').trim().toLowerCase();
+    if (!nn || nn.length < 3) { if (typeof showToast === 'function') showToast('Min. 3 znaki', 'error'); return; }
+    var cur = (localStorage.getItem('fitai_nickname') || '').trim().toLowerCase();
+    if (!_nValid && nn !== cur) { if (typeof showToast === 'function') showToast('Nick niedostępny', 'error'); return; }
+    var token = localStorage.getItem('fitai_token');
+    if (!token) return;
+    try {
+      var r = await fetch((window.API_BASE || '') + '/app/profile/nickname', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ new_nickname: nn })
+      });
+      if (!r.ok) { var e = await r.json().catch(function(){return{};}); if (typeof showToast === 'function') showToast(e.detail || 'Błąd', 'error'); return; }
+      var d = await r.json();
+      localStorage.setItem('fitai_nickname', d.new_nickname);
+      var el = document.getElementById('profile-nickname');
+      if (el) el.textContent = d.new_nickname;
+      var modal = document.getElementById('change-nickname-modal');
+      if (modal) modal.remove();
+      if (typeof showToast === 'function') showToast('✅ Nick: @' + d.new_nickname, 'success');
+    } catch(e) { console.error('[submitNickChange]', e); if (typeof showToast === 'function') showToast('Błąd połączenia', 'error'); }
+  }
+
+  // Prefill z cache przy starcie
+  document.addEventListener('DOMContentLoaded', function() {
+    var c = localStorage.getItem('fitai_nickname');
+    var e = document.getElementById('profile-nickname');
+    if (c && e) e.textContent = c;
+  });
+
+  window.checkRegNickname = checkRegNickname;
+  window._fitaiNickCheck = checkNicknameAvailabilityEnhanced;
+  window._fitaiNickSubmit = submitNickChange;
+  window.openNickModal = openNickModal;
+})();
 </script>
 
 <!-- ═══════════════ PLAN BUILDER MODAL ═══════════════ -->
