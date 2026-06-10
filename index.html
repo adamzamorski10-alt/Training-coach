@@ -1161,29 +1161,27 @@
 
     /* ─── Plan Hybrid Layout ─── */
     #planHybridLayout {
-      display: block;
-      min-height: 600px;
-      border-radius: 20px;
-      overflow: hidden;
-      border: 1px solid var(--border);
-      background: rgba(10, 11, 16, 0.6);
-      backdrop-filter: blur(16px);
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 16px;
+      align-items: start;
     }
 
-    /* Left sub-sidebar - HIDDEN */
+    /* Left sub-sidebar */
     #planSubSidebar {
-      display: none !important;
-      position: relative;
+      display: flex !important;
+      flex-direction: column;
+      gap: 6px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 18px;
+      padding: 10px 8px;
+      position: sticky;
+      top: 80px;
     }
 
     #planSubSidebar::after {
-      content: '';
-      position: absolute;
-      right: 0;
-      top: 20%;
-      height: 60%;
-      width: 1px;
-      background: linear-gradient(to bottom, transparent, rgba(0, 229, 255, 0.15), transparent);
+      display: none;
     }
 
     .plan-cat-btn {
@@ -1229,14 +1227,17 @@
     }
 
     .plan-cat-btn.active {
-      background: rgba(0, 229, 255, 0.1);
-      border-color: rgba(0, 229, 255, 0.3);
-      color: var(--cyan);
-      box-shadow: 0 0 20px rgba(0, 229, 255, 0.08), inset 0 0 12px rgba(0, 229, 255, 0.05);
+      background: rgba(124,58,237,0.15);
+      border-color: rgba(124,58,237,0.4) !important;
+      box-shadow: 0 0 16px rgba(124,58,237,0.1);
     }
 
     .plan-cat-btn.active .cat-label {
-      color: var(--cyan);
+      color: #a78bfa;
+    }
+
+    .plan-cat-btn.active .cat-icon {
+      filter: drop-shadow(0 0 6px rgba(124,58,237,0.5));
     }
 
     .plan-cat-btn.active::before {
@@ -1246,8 +1247,8 @@
       top: 50%;
       transform: translateY(-50%);
       width: 3px;
-      height: 32px;
-      background: linear-gradient(to bottom, var(--cyan), var(--violet));
+      height: 28px;
+      background: linear-gradient(to bottom, #a78bfa, #7c3aed);
       border-radius: 0 3px 3px 0;
     }
 
@@ -1270,14 +1271,15 @@
     #planTopTabBar {
       display: flex;
       align-items: center;
-      gap: 2px;
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--border);
-      background: rgba(0, 0, 0, 0.2);
+      gap: 8px;
+      padding: 6px 8px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px;
       overflow-x: auto;
       scrollbar-width: none;
       flex-shrink: 0;
-      position: relative;
+      margin-bottom: 16px;
     }
 
     #planTopTabBar::-webkit-scrollbar {
@@ -1321,10 +1323,8 @@
     /* Inner scroll area */
     #planInnerScroll {
       flex: 1;
-      overflow-y: auto;
-      padding: 20px;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(0, 229, 255, 0.15) transparent;
+      overflow-y: visible;
+      padding: 0;
     }
 
     #planInnerScroll::-webkit-scrollbar {
@@ -1366,11 +1366,17 @@
 
     @media(max-width: 640px) {
       #planHybridLayout {
-        min-height: auto;
+        grid-template-columns: 1fr;
+        gap: 12px;
       }
 
       #planSubSidebar {
-        display: none !important;
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: center;
+        border-radius: 16px;
+        padding: 8px;
+        position: static;
       }
 
       .plan-cat-btn {
@@ -2725,67 +2731,96 @@
       </section>
 
       <!-- ====== TAB: PLAN ====== -->
-      <section id="tab-plan" class="hidden space-y-6">
-        <!-- Plan Header -->
-        <div class="flex justify-between items-center flex-wrap gap-4">
-          <h3 class="text-3xl font-bold" style="font-family:'Syne',sans-serif;">Plan Tygodniowy</h3>
-          <div class="flex items-center gap-3">
-            <button onclick="generateShoppingList()" class="btn-outline-cyan px-4 py-2 rounded-xl text-xs font-bold">🛒
-              Lista Zakupów</button>
-            <div class="flex items-center gap-2">
-              <button onclick="prevDay()"
-                class="btn-ghost p-2 rounded-xl text-lg w-10 h-10 flex items-center justify-center">←</button>
-              <span id="currentDayLabel" class="text-sm font-bold text-cyan-400 w-12 text-center">Pon</span>
-              <button onclick="nextDay()"
-                class="btn-ghost p-2 rounded-xl text-lg w-10 h-10 flex items-center justify-center">→</button>
+      <section id="tab-plan" class="hidden" style="flex-direction:column;gap:20px;">
+
+        <!-- ════════ HERO HEADER ════════ -->
+        <div style="
+          position:relative;overflow:hidden;
+          background:linear-gradient(135deg,rgba(124,58,237,0.08) 0%,rgba(0,229,255,0.06) 60%,rgba(251,191,36,0.04) 100%);
+          border:1px solid rgba(124,58,237,0.2);border-radius:28px;padding:22px 24px;">
+          <div style="pointer-events:none;position:absolute;top:-50px;right:-30px;width:200px;height:200px;background:radial-gradient(circle,rgba(124,58,237,0.08),transparent 65%);"></div>
+          <div style="pointer-events:none;position:absolute;bottom:-40px;left:20px;width:160px;height:160px;background:radial-gradient(circle,rgba(0,229,255,0.05),transparent 65%);"></div>
+
+          <div style="position:relative;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
+            <div>
+              <p style="font-size:10px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:rgba(167,139,250,0.6);margin-bottom:4px;">Tygodniowy</p>
+              <h3 style="font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:#fff;line-height:1;margin:0;">Plan</h3>
             </div>
+
+            <!-- Nawigacja dzienna -->
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <button onclick="generateShoppingList()" style="
+                display:flex;align-items:center;gap:6px;
+                font-size:12px;font-weight:700;padding:8px 16px;border-radius:12px;
+                background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.2);color:#00e5ff;cursor:pointer;transition:background .2s;"
+                onmouseover="this.style.background='rgba(0,229,255,0.16)'" onmouseout="this.style.background='rgba(0,229,255,0.08)'">
+                🛒 Lista Zakupów
+              </button>
+              <div style="display:flex;align-items:center;gap:4px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:4px;">
+                <button onclick="prevDay()" style="width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1rem;color:#64748b;cursor:pointer;background:transparent;border:none;transition:all .2s;"
+                  onmouseover="this.style.background='rgba(255,255,255,0.08)';this.style.color='#fff'" onmouseout="this.style.background='transparent';this.style.color='#64748b'">←</button>
+                <span id="currentDayLabel" style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#a78bfa;min-width:40px;text-align:center;">Pon</span>
+                <button onclick="nextDay()" style="width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1rem;color:#64748b;cursor:pointer;background:transparent;border:none;transition:all .2s;"
+                  onmouseover="this.style.background='rgba(255,255,255,0.08)';this.style.color='#fff'" onmouseout="this.style.background='transparent';this.style.color='#64748b'">→</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Karuzela dni -->
+          <div style="position:relative;margin-top:18px;overflow-x:auto;padding-bottom:2px;">
+            <div id="dayCarousel" style="display:flex;gap:8px;min-width:max-content;"></div>
           </div>
         </div>
 
-        <!-- Day Carousel -->
-        <div class="glass p-4 overflow-x-auto">
-          <div class="flex gap-2 min-w-max" id="dayCarousel"></div>
-        </div>
-
-        <!-- ═══ HYBRID LAYOUT: Sub-Sidebar + Content Area ═══ -->
-        <div id="planHybridLayout">
+        <!-- ════════ HYBRID LAYOUT ════════ -->
+        <div id="planHybridLayout" style="display:grid;grid-template-columns:72px 1fr;gap:16px;align-items:start;">
 
           <!-- LEFT: Category Sub-Sidebar -->
-          <nav id="planSubSidebar" aria-label="Kategorie planu">
-            <button class="plan-cat-btn active" id="plancat-dieta" onclick="switchPlanCategory('dieta')" title="Dieta">
-              <span class="cat-icon">🍽️</span>
-              <span class="cat-label">Dieta</span>
+          <nav id="planSubSidebar" aria-label="Kategorie planu" style="
+            display:flex;flex-direction:column;gap:6px;
+            background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);
+            border-radius:18px;padding:10px 8px;position:sticky;top:80px;">
+            <button class="plan-cat-btn active" id="plancat-dieta" onclick="switchPlanCategory('dieta')" title="Dieta"
+              style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border-radius:12px;cursor:pointer;transition:all .2s;border:1px solid transparent;">
+              <span class="cat-icon" style="font-size:1.3rem;">🍽️</span>
+              <span class="cat-label" style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;">Dieta</span>
             </button>
-            <div class="plan-cat-divider"></div>
-            <button class="plan-cat-btn" id="plancat-trening" onclick="switchPlanCategory('trening')" title="Trening">
-              <span class="cat-icon">💪</span>
-              <span class="cat-label">Trening</span>
+            <div style="height:1px;background:rgba(255,255,255,0.05);margin:2px 0;"></div>
+            <button class="plan-cat-btn" id="plancat-trening" onclick="switchPlanCategory('trening')" title="Trening"
+              style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border-radius:12px;cursor:pointer;transition:all .2s;border:1px solid transparent;">
+              <span class="cat-icon" style="font-size:1.3rem;">💪</span>
+              <span class="cat-label" style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;">Trening</span>
             </button>
-            <div class="plan-cat-divider"></div>
-            <button class="plan-cat-btn" id="plancat-sport" onclick="switchPlanCategory('sport')" title="Sport">
-              <span class="cat-icon">🏀</span>
-              <span class="cat-label">Sport</span>
+            <div style="height:1px;background:rgba(255,255,255,0.05);margin:2px 0;"></div>
+            <button class="plan-cat-btn" id="plancat-sport" onclick="switchPlanCategory('sport')" title="Sport"
+              style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border-radius:12px;cursor:pointer;transition:all .2s;border:1px solid transparent;">
+              <span class="cat-icon" style="font-size:1.3rem;">🏀</span>
+              <span class="cat-label" style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;">Sport</span>
             </button>
           </nav>
 
-          <!-- RIGHT: Content Area with Top Tab Bar -->
-          <div id="planContentArea">
+          <!-- RIGHT: Content Area -->
+          <div id="planContentArea" style="min-width:0;">
 
-            <!-- Top Tab Bar (changes by category) -->
-            <div id="planTopTabBar">
-              <!-- Tabs injected by switchPlanCategory() -->
-              <span id="planCatHeaderChip">Dieta</span>
+            <!-- Top Tab Bar -->
+            <div id="planTopTabBar" style="
+              display:flex;align-items:center;gap:8px;margin-bottom:16px;
+              background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);
+              border-radius:16px;padding:6px 8px;overflow-x:auto;">
+              <span id="planCatHeaderChip" style="
+                font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;
+                color:rgba(167,139,250,0.6);padding:0 6px;white-space:nowrap;">Dieta</span>
             </div>
 
             <!-- Inner scrollable content -->
             <div id="planInnerScroll">
 
-              <!-- ══════════ DIETA CATEGORY ══════════ -->
+            <!-- ══════════ DIETA CATEGORY ══════════ -->
 
               <!-- Dieta > Dzienny Plan -->
               <div class="plan-tab-panel active" id="panel-dieta-plan">
                 <!-- Meal Count Slider -->
-                <div id="mealSliderRow" class="glass p-5 mb-5" style="display:none;" hidden>
+                <div id="mealSliderRow" style="background:rgba(0,229,255,0.04);border:1px solid rgba(0,229,255,0.12);border-radius:16px;padding:16px 18px;margin-bottom:14px;display:none;" hidden>
                   <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-2">
                       <span class="text-base">🍽️</span>
@@ -2816,11 +2851,16 @@
                 </div>
                 <!-- Diet plan content -->
                 <div id="planDietPanel" class="space-y-4">
-                  <div class="glass p-6">
-                    <div class="flex items-center justify-between mb-4">
-                      <h4 class="text-xl font-bold text-white" style="font-family:'Syne',sans-serif;">🍽️ Zaplanowana
-                        Dieta</h4>
-                      <div class="flex gap-2">
+                  <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:20px;padding:22px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;">
+                      <div style="display:flex;align-items:center;gap:10px;">
+                        <div style="width:36px;height:36px;border-radius:10px;background:rgba(0,229,255,0.1);border:1px solid rgba(0,229,255,0.18);display:flex;align-items:center;justify-content:center;font-size:1.1rem;">🍽️</div>
+                        <div>
+                          <h4 style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:#fff;line-height:1.2;margin:0;">Zaplanowana Dieta</h4>
+                          <p style="font-size:11px;color:#475569;margin:0;">dzienny jadłospis</p>
+                        </div>
+                      </div>
+                      <div style="display:flex;gap:8px;flex-wrap:wrap;">
                         <span id="carbCyclingBadge" class="hidden text-xs px-3 py-1 rounded-full font-bold"
                           style="background:rgba(251,191,36,0.15);color:#fbbf24;border:1px solid rgba(251,191,36,0.3);">⚡
                           Carb Cycling</span>
@@ -3100,7 +3140,7 @@
               <!-- Trening > Dzienny Plan -->
               <div class="plan-tab-panel" id="panel-trening-plan">
                 <!-- Exercise Slider -->
-                <div id="exerciseSliderRow" class="glass p-5 mb-5" style="display:none;" hidden>
+                <div id="exerciseSliderRow" style="background:rgba(124,58,237,0.05);border:1px solid rgba(124,58,237,0.14);border-radius:16px;padding:16px 18px;margin-bottom:14px;display:none;" hidden>
                   <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-2">
                       <span class="text-base">💪</span>
@@ -3133,11 +3173,16 @@
                 </div>
                 <!-- Training plan content -->
                 <div id="planTrainingPanel" class="space-y-4">
-                  <div class="glass p-6">
-                    <div class="flex items-center justify-between mb-4">
-                      <h4 class="text-xl font-bold text-white" style="font-family:'Syne',sans-serif;">💪 Zaplanowany
-                        Trening</h4>
-                      <div class="flex items-center gap-2">
+                  <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:20px;padding:22px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;">
+                      <div style="display:flex;align-items:center;gap:10px;">
+                        <div style="width:36px;height:36px;border-radius:10px;background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.22);display:flex;align-items:center;justify-content:center;font-size:1.1rem;">💪</div>
+                        <div>
+                          <h4 style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:#fff;line-height:1.2;margin:0;">Zaplanowany Trening</h4>
+                          <p style="font-size:11px;color:#475569;margin:0;">sesja treningowa</p>
+                        </div>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                         <button id="createPlanBtn" onclick="handleCreatePlanClick()"
                           class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all" style="background:linear-gradient(135deg,rgba(0,229,255,0.2),rgba(124,58,237,0.2));
              border:1px solid rgba(0,229,255,0.5);color:#00e5ff;
@@ -3160,8 +3205,7 @@
                   </div>
 
                   <!-- Karta analizy tygodnia -->
-                  <div id="weeklyAnalysisCard" class="glass rounded-2xl overflow-hidden hidden"
-                    style="border:1px solid rgba(124,58,237,0.15);">
+                  <div id="weeklyAnalysisCard" class="hidden" style="background:rgba(124,58,237,0.04);border:1px solid rgba(124,58,237,0.18);border-radius:18px;overflow:hidden;margin-top:14px;">
                     <div class="px-5 py-4 flex items-center justify-between"
                       style="background:rgba(124,58,237,0.04);border-bottom:1px solid rgba(255,255,255,0.07);">
                       <div>
@@ -3347,6 +3391,8 @@
                 </div>
               </div>
 
+
+
             </div><!-- end planInnerScroll -->
           </div><!-- end planContentArea -->
         </div><!-- end planHybridLayout -->
@@ -3520,7 +3566,6 @@
         </div>
 
       </section>
-
       <section id="tab-profile" class="hidden space-y-6">
         <h3 class="text-3xl font-bold" style="font-family:'Syne',sans-serif;">Profil</h3>
         <div class="glass p-2 flex gap-2 overflow-x-auto">
@@ -9183,9 +9228,9 @@
         if (expModal && !expModal.classList.contains('hidden')) expModal.classList.add('hidden');
       } catch (e) { }
 
-      document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'));
+      document.querySelectorAll('[id^="tab-"]').forEach(t => { t.classList.add('hidden'); if (t.style.flexDirection) t.style.display = 'none'; });
       const el = document.getElementById('tab-' + tabId);
-      if (el) { el.classList.remove('hidden'); el.classList.add('tab-anim'); setTimeout(() => el.classList.remove('tab-anim'), 400); }
+      if (el) { el.classList.remove('hidden'); if (el.style.flexDirection) el.style.display = 'flex'; el.classList.add('tab-anim'); setTimeout(() => el.classList.remove('tab-anim'), 400); }
       document.querySelectorAll('.nav-item').forEach(n => { n.classList.remove('active', 'text-cyan-400'); n.classList.add('text-gray-400'); });
       const active = document.querySelector(`.nav-item[data-tab="${tabId}"]`);
       if (active) { active.classList.add('active', 'text-cyan-400'); active.classList.remove('text-gray-400'); }
