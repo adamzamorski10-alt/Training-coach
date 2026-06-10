@@ -56,7 +56,7 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     expires_in: int = JWT_EXPIRE_MINUTES * 60   # sekundy
     user_id: str
-    nickname: str
+    nickname: Optional[str] = None
     name: str
     role: str
     plan: str

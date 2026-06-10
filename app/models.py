@@ -172,6 +172,7 @@ class DailyLogDB(SQLModel, table=True):
     sleep_end: Optional[str] = None          # godzina wstania "07:00"
     energy_level: Optional[int] = None       # poziom energii 1-10
     stress_level: Optional[int] = None       # poziom stresu 1-10
+    fatigue_score: Optional[int] = None      # zmęczenie 1-10
     mood_score: Optional[int] = None         # nastrój 1-5 (emoji scale)
     rpe: Optional[int] = None                # RPE treningu 1-10
     meals_eaten: Optional[int] = None        # liczba zjedzonych posiłków
@@ -207,6 +208,7 @@ class DailyLogDB(SQLModel, table=True):
             "sleep_end": self.sleep_end,
             "energy_level": self.energy_level,
             "stress_level": self.stress_level,
+            "fatigue_score": self.fatigue_score,
             "mood_score": self.mood_score,
             "rpe": self.rpe,
             "meals_eaten": self.meals_eaten,
