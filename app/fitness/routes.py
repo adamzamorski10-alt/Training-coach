@@ -57,10 +57,6 @@ from app.fitness.utils import upsert_user_from_profile
 router = APIRouter(prefix="/app", tags=["fitness"])
 
 
-class NicknameChangeRequest(BaseModel):
-    new_nickname: str
-
-
 _DAY_LABELS_PL = {0: "Pon", 1: "Wt", 2: "Śr", 3: "Czw", 4: "Pt", 5: "Sob", 6: "Niedz"}
 _DAY_FULL_NAMES_PL = {
     0: "Poniedziałek",
@@ -131,6 +127,7 @@ def _daily_log_has_data(log: DailyLogDB) -> bool:
         log.energy_level is not None,
         log.stress_level is not None,
         log.mood_score is not None,
+        log.fatigue_score is not None,
         log.rpe is not None,
         log.meals_eaten is not None,
         log.workouts_done is not None,
@@ -911,6 +908,8 @@ def daily_checkin(
                 existing.energy_level = log.energy_score
             if log.stress_level is not None:
                 existing.stress_level = log.stress_level
+            if log.fatigue_score is not None:
+                existing.fatigue_score = log.fatigue_score
             if log.mood_score is not None:
                 existing.mood_score = log.mood_score
             if log.rpe is not None:
@@ -943,6 +942,7 @@ def daily_checkin(
                 sleep_end=log.sleep_end,
                 energy_level=log.energy_level or log.energy_score,
                 stress_level=log.stress_level,
+                fatigue_score=log.fatigue_score,
                 mood_score=log.mood_score,
                 rpe=log.rpe,
                 meals_eaten=log.meals_eaten,
@@ -1015,24 +1015,6 @@ def daily_checkin(
         }
 
 
-@router.get("/debug/today-log")
-def debug_today_log(
-    user: UserDB = Depends(get_current_user),
-    session: Session = Depends(get_session),
-):
-    today = date.today()
-    log = session.exec(
-        select(DailyLogDB)
-        .where(DailyLogDB.user_id == user.id)
-        .where(DailyLogDB.log_date == today)
-    ).first()
-    return {
-        "has_log": log is not None,
-        "log": log.to_dict() if log else None,
-        "user_id": user.id,
-        "today": today.isoformat(),
-    }
-
 
 @router.get("/checkin-history")
 def get_checkin_history(
@@ -1054,7 +1036,7 @@ def get_checkin_history(
 
     logs_with_data = [l for l in logs if any([
         l.sleep_hours, l.energy_level, l.stress_level,
-        l.weight, l.mood_score, l.rpe
+        l.weight, l.mood_score, l.fatigue_score, l.rpe
     ])]
 
     avg_sleep = None
