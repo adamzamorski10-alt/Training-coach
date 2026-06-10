@@ -2421,7 +2421,7 @@
           <div class="flex items-center justify-between flex-wrap gap-3 pt-1">
             <p class="text-xs" style="color:#475569;">Zapisuje się raz dziennie — kolejne wpisy nadpisują dane.</p>
             <button onclick="submitCheckin()"
-              class="btn-neon px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2">
+              class="btn-neon px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2" style="display:none;">
               ✅ Zapisz Check-in
             </button>
           </div>
@@ -2588,9 +2588,55 @@
           <div class="flex items-center justify-between flex-wrap gap-3 pt-1">
             <p class="text-xs" style="color:#475569;">Wellbeing zapisuje dane do codziennego check-inu.</p>
             <button onclick="saveWellbeing()"
-              class="btn-neon px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2">
+              class="btn-neon px-6 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2" style="display:none;">
               💚 Zapisz Wellbeing
             </button>
+          </div>
+
+          <!-- ═══ PRZYCISK ZAPISZ DZIEŃ ═══ -->
+          <div id="save-day-container" style="
+            position: sticky;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 16px 0 24px;
+            background: linear-gradient(to top, rgba(10,11,16,1) 60%, rgba(10,11,16,0) 100%);
+            z-index: 50;
+            margin-top: 24px;
+          ">
+            <button
+              id="save-day-btn"
+              onclick="saveDayData()"
+              style="
+                width: 100%;
+                padding: 16px 24px;
+                border-radius: 16px;
+                background: linear-gradient(135deg, rgba(0,229,255,0.2) 0%, rgba(124,58,237,0.15) 100%);
+                border: 1px solid rgba(0,229,255,0.4);
+                color: #00e5ff;
+                font-size: 15px;
+                font-weight: 700;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                letter-spacing: 0.02em;
+              "
+              onmouseover="this.style.background='linear-gradient(135deg,rgba(0,229,255,0.3) 0%,rgba(124,58,237,0.25) 100%)';this.style.transform='translateY(-1px)';this.style.boxShadow='0 8px 30px rgba(0,229,255,0.2)'"
+              onmouseout="this.style.background='linear-gradient(135deg,rgba(0,229,255,0.2) 0%,rgba(124,58,237,0.15) 100%)';this.style.transform='translateY(0)';this.style.boxShadow='none'"
+            >
+              <span id="save-day-icon">💾</span>
+              <span id="save-day-label">Zapisz dzień</span>
+            </button>
+            <p id="save-day-status" style="
+              text-align: center;
+              font-size: 12px;
+              color: #4b5563;
+              margin-top: 8px;
+              min-height: 16px;
+            "></p>
           </div>
         </div>
       </section>
@@ -25310,6 +25356,149 @@
     }
   }
   window.saveWellbeing = saveWellbeing;
+
+  // ══════════ ZAPISZ DZIEŃ — saveDayData ══════════
+  async function saveDayData() {
+    var token = localStorage.getItem('fitai_token');
+    if (!token) {
+      if (typeof showToast === 'function') showToast('Zaloguj się aby zapisać', 'error');
+      return;
+    }
+
+    var btn = document.getElementById('save-day-btn');
+    var label = document.getElementById('save-day-label');
+    var icon = document.getElementById('save-day-icon');
+    var statusEl = document.getElementById('save-day-status');
+    if (btn) btn.disabled = true;
+    if (label) label.textContent = 'Zapisuję...';
+    if (icon) icon.textContent = '⏳';
+
+    var payload = {};
+
+    // ── Wellbeing ──────────────────────────────────────────
+    var energy = parseInt(
+      (document.getElementById('energy-slider') || document.getElementById('wellbeingEnergy'))?.value
+    );
+    var fatigue = parseInt(
+      (document.getElementById('fatigue-slider') || document.getElementById('wellbeingFatigue'))?.value
+    );
+    var stress = parseInt(
+      (document.getElementById('stress-slider') || document.getElementById('wellbeingStress'))?.value
+    );
+    if (!isNaN(energy) && energy >= 1 && energy <= 10)   payload.energy_level  = energy;
+    if (!isNaN(fatigue) && fatigue >= 1 && fatigue <= 10) payload.fatigue_score = fatigue;
+    if (!isNaN(stress)  && stress >= 1 && stress <= 10)   payload.stress_level  = stress;
+
+    var moodScore = window._wellbeingMoodScore || window.selectedMoodScore || null;
+    if (moodScore) payload.mood_score = moodScore;
+
+    var wellbeingNote = (document.getElementById('wellbeing-note') || document.getElementById('wellbeingNote'))?.value?.trim();
+    if (wellbeingNote) payload.notes = wellbeingNote;
+
+    // ── Sen ────────────────────────────────────────────────
+    var sleepHours = parseFloat(
+      (document.getElementById('sleep-hours-input') ||
+       document.getElementById('sleepHours') ||
+       document.getElementById('checkinSleep'))?.value
+    );
+    var sleepQuality = parseInt(
+      (document.getElementById('sleep-quality-input') ||
+       document.getElementById('sleepQuality'))?.value
+    );
+    var sleepStart = (document.getElementById('sleep-start-input') ||
+                     document.getElementById('sleepStart') ||
+                     document.getElementById('bedtime'))?.value;
+    var sleepEnd   = (document.getElementById('sleep-end-input') ||
+                     document.getElementById('sleepEnd') ||
+                     document.getElementById('waketime'))?.value;
+    if (!isNaN(sleepHours) && sleepHours > 0)           payload.sleep_hours   = sleepHours;
+    if (!isNaN(sleepQuality) && sleepQuality >= 1)       payload.sleep_quality = sleepQuality;
+    if (sleepStart && sleepStart.trim())                 payload.sleep_start   = sleepStart.trim();
+    if (sleepEnd   && sleepEnd.trim())                   payload.sleep_end     = sleepEnd.trim();
+
+    // ── Waga ───────────────────────────────────────────────
+    var weight = parseFloat(
+      (document.getElementById('weight-input') ||
+       document.getElementById('checkinWeight') ||
+       document.getElementById('weightInput'))?.value
+    );
+    if (!isNaN(weight) && weight > 0) payload.weight = weight;
+
+    // ── Posiłki i trening ──────────────────────────────────
+    var food = (document.getElementById('checkin-food') ||
+                document.getElementById('checkinFood'))?.value?.trim();
+    var workout = (document.getElementById('checkin-workout') ||
+                   document.getElementById('checkinWorkout'))?.value?.trim();
+    var rpe = parseInt(
+      (document.getElementById('checkin-rpe') ||
+       document.getElementById('checkinRpe') ||
+       document.getElementById('rpeInput'))?.value
+    );
+    if (food)                              payload.food    = food;
+    if (workout)                           payload.workout = workout;
+    if (!isNaN(rpe) && rpe >= 1 && rpe <= 10) payload.rpe = rpe;
+
+    if (Object.keys(payload).length === 0) {
+      if (btn) btn.disabled = false;
+      if (label) label.textContent = 'Zapisz dzień';
+      if (icon) icon.textContent = '💾';
+      if (typeof showToast === 'function') showToast('Uzupełnij przynajmniej jedno pole', 'error');
+      return;
+    }
+
+    try {
+      var BASE = window.API_BASE || '';
+      var res = await fetch(BASE + '/app/checkin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        var e = await res.json().catch(function() { return {}; });
+        throw new Error(e.detail || 'Błąd zapisu');
+      }
+
+      var data = await res.json();
+      var xp = data.xp_earned || 0;
+      var streak = data.streak_days || 0;
+
+      if (btn) btn.style.borderColor = 'rgba(34,197,94,0.6)';
+      if (btn) btn.style.background = 'linear-gradient(135deg,rgba(34,197,94,0.2),rgba(34,197,94,0.1))';
+      if (icon) icon.textContent = '✅';
+      if (label) label.textContent = 'Zapisano!';
+      if (statusEl) statusEl.textContent = '+' + xp + ' XP · streak: ' + streak + ' dni 🔥';
+      if (statusEl) statusEl.style.color = '#22c55e';
+
+      if (typeof showToast === 'function')
+        showToast('✅ Dzień zapisany! +' + xp + ' XP 🔥', 'success');
+
+      setTimeout(function() {
+        if (btn) {
+          btn.disabled = false;
+          btn.style.borderColor = 'rgba(0,229,255,0.4)';
+          btn.style.background = 'linear-gradient(135deg,rgba(0,229,255,0.2),rgba(124,58,237,0.15))';
+        }
+        if (icon) icon.textContent = '💾';
+        if (label) label.textContent = 'Zapisz dzień';
+        if (statusEl) statusEl.textContent = 'Ostatnio zapisano: przed chwilą';
+        if (statusEl) statusEl.style.color = '#4b5563';
+      }, 3000);
+
+    } catch (err) {
+      console.error('[saveDayData]', err);
+      if (btn) btn.disabled = false;
+      if (label) label.textContent = 'Zapisz dzień';
+      if (icon) icon.textContent = '💾';
+      if (statusEl) statusEl.textContent = '';
+      if (typeof showToast === 'function') showToast('Błąd zapisu: ' + err.message, 'error');
+    }
+  }
+
+  window.saveDayData = saveDayData;
 
   // ══════════ WELLBEING — inicjalizacja suwaków po DOMContentLoaded ══════════
   document.addEventListener('DOMContentLoaded', function() {
