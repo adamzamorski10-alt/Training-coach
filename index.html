@@ -3596,11 +3596,21 @@
                 style="font-family:'Syne',sans-serif;">
                 Cześć, Użytkowniku!
               </h4>
-              <div class="flex items-center gap-2 mt-0.5">
-                <span class="text-xs text-gray-500">@</span>
-                <span id="profile-nickname" class="text-sm font-mono text-cyan-400 tracking-wide"></span>
-                <button onclick="openChangeNicknameModal()"
-                  class="ml-1 text-xs text-gray-600 hover:text-gray-400 transition-colors"
+              <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+                <span style="font-size:11px;color:rgba(0,229,255,0.45);">@</span>
+                <span id="profile-nickname"
+                      style="font-size:13px;font-family:monospace;color:#00e5ff;
+                             letter-spacing:.05em;min-width:80px;">
+                  ładowanie...
+                </span>
+                <button onclick="openNickModal()"
+                  style="font-size:11px;color:rgba(255,255,255,0.25);background:none;
+                         border:none;cursor:pointer;padding:2px 5px;border-radius:4px;
+                         transition:all .15s;"
+                  onmouseover="this.style.color='rgba(255,255,255,0.65)';
+                               this.style.background='rgba(255,255,255,0.06)'"
+                  onmouseout="this.style.color='rgba(255,255,255,0.25)';
+                              this.style.background='none'"
                   title="Zmień nick">✏️</button>
               </div>
               <p id="profileWelcomeSub" class="text-sm text-gray-400 mt-0.5"></p>
@@ -9895,15 +9905,20 @@
       const welcomeName = document.getElementById('profileWelcomeName');
       if (welcomeName && p?.name) welcomeName.textContent = 'Cześć, ' + p.name + '!';
 
-      const nicknameEl = document.getElementById('profile-nickname');
-      if (nicknameEl) {
-        nicknameEl.textContent = p?.nickname || 'brak nicku';
-        if (p?.nickname) localStorage.setItem('fitai_nickname', p.nickname);
+      var nickEl = document.getElementById('profile-nickname');
+      if (nickEl) {
+        nickEl.textContent = (p && p.nickname) ? p.nickname : (localStorage.getItem('fitai_nickname') || 'brak nicku');
       }
-      if (p?.calories_target || p?.caloriesTarget)
-        localStorage.setItem('fitai_kcal_target', String(p.calories_target || p.caloriesTarget));
-      if (p?.protein_target || p?.proteinTarget)
-        localStorage.setItem('fitai_protein_target', String(p.protein_target || p.proteinTarget));
+      var nick = p?.nickname;
+      if (nick) localStorage.setItem('fitai_nickname', nick);
+      if (p?.calories_target || p?.caloriesTarget) {
+        localStorage.setItem('fitai_kcal_target',
+          String(p.calories_target || p.caloriesTarget));
+      }
+      if (p?.protein_target || p?.proteinTarget) {
+        localStorage.setItem('fitai_protein_target',
+          String(p.protein_target || p.proteinTarget));
+      }
 
       const welcomeSub = document.getElementById('profileWelcomeSub');
       if (welcomeSub) {
@@ -12600,6 +12615,7 @@
     window.loadProfileFormData = loadProfileFormData;
     window.prefillNicknameFromCache = prefillNicknameFromCache;
     window.openChangeNicknameModal = openChangeNicknameModal;
+    window.openNickModal = openChangeNicknameModal;   // alias — wywoływany z przycisku ✏️
     window.submitNicknameChange = submitNicknameChange;
     window.checkNicknameAvailability = checkNicknameAvailability;
 
