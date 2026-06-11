@@ -3614,6 +3614,18 @@
                   title="Zmień nick">✏️</button>
               </div>
               <p id="profileWelcomeSub" class="text-sm text-gray-400 mt-0.5"></p>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+                <span id="profile-user-display"
+                      style="font-size:15px;font-weight:700;font-family:monospace;
+                             color:#00e5ff;letter-spacing:.03em;">
+                  Użytkownik#0001
+                </span>
+                <span style="font-size:11px;color:#374151;background:rgba(255,255,255,0.05);
+                             border:1px solid rgba(255,255,255,0.08);border-radius:6px;
+                             padding:2px 8px;">
+                  ID unikalny
+                </span>
+              </div>
             </div>
             <div class="flex-shrink-0 text-right">
               <p class="text-xs text-gray-500 uppercase tracking-wider">Poziom</p>
@@ -7440,6 +7452,11 @@
       // Ustaw identityId z persystentnego ID urządzenia
       state.identityId = window.FITAI_USER_ID || window._fitaiDeviceId || 'user_fallback';
 
+      // Prefill display_name z localStorage (natychmiast, przed API)
+      var _dn = localStorage.getItem('fitai_display_name') || '';
+      var _dnEl = document.getElementById('profile-user-display');
+      if (_dnEl && _dn) _dnEl.textContent = _dn;
+
       const saved = localStorage.getItem('fitai_profiles_v3');
       const savedLogs = localStorage.getItem('fitai_logs_v3');
       const savedChecked = localStorage.getItem('fitai_checked_v3');
@@ -9911,6 +9928,12 @@
       }
       var nick = p?.nickname;
       if (nick) localStorage.setItem('fitai_nickname', nick);
+      // Aktualizuj display_name (Użytkownik#XXXX)
+      if (p?.display_name) {
+        var _dispEl = document.getElementById('profile-user-display');
+        if (_dispEl) _dispEl.textContent = p.display_name;
+        localStorage.setItem('fitai_display_name', p.display_name);
+      }
       if (p?.calories_target || p?.caloriesTarget) {
         localStorage.setItem('fitai_kcal_target',
           String(p.calories_target || p.caloriesTarget));
