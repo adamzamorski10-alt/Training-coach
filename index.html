@@ -7453,9 +7453,15 @@
       state.identityId = window.FITAI_USER_ID || window._fitaiDeviceId || 'user_fallback';
 
       // Prefill display_name z localStorage (natychmiast, przed API)
-      var _dn = localStorage.getItem('fitai_display_name') || '';
-      var _dnEl = document.getElementById('profile-user-display');
-      if (_dnEl && _dn) _dnEl.textContent = _dn;
+      (function prefillDisplayName() {
+        var dn = localStorage.getItem('fitai_display_name') || '';
+        var el = document.getElementById('profile-user-display');
+        if (el && dn) el.textContent = dn;
+        // Powitalny napis w nawigacji jeśli istnieje
+        var navName = document.getElementById('nav-user-name')
+          || document.getElementById('headerUserName');
+        if (navName && dn) navName.textContent = dn;
+      })();
 
       const saved = localStorage.getItem('fitai_profiles_v3');
       const savedLogs = localStorage.getItem('fitai_logs_v3');
@@ -9928,12 +9934,21 @@
       }
       var nick = p?.nickname;
       if (nick) localStorage.setItem('fitai_nickname', nick);
-      // Aktualizuj display_name (Użytkownik#XXXX)
-      if (p?.display_name) {
-        var _dispEl = document.getElementById('profile-user-display');
-        if (_dispEl) _dispEl.textContent = p.display_name;
-        localStorage.setItem('fitai_display_name', p.display_name);
-      }
+      // Aktualizuj display_name (Użytkownik#XXXX) — z fallbackiem na user_number
+      var _dn = p?.display_name
+        || (p?.user_number ? ('Użytkownik#' + String(p.user_number).padStart(4, '0')) : null)
+        || p?.name
+        || 'Użytkownik';
+      var _dispEl = document.getElementById('profile-user-display');
+      if (_dispEl) _dispEl.textContent = _dn;
+      localStorage.setItem('fitai_display_name', _dn);
+
+      // Aktualizuj imię w UI
+      var nameEl = document.getElementById('profileName')
+        || document.getElementById('profile-name')
+        || document.getElementById('userName');
+      if (nameEl && p?.name) nameEl.textContent = p.name;
+
       if (p?.calories_target || p?.caloriesTarget) {
         localStorage.setItem('fitai_kcal_target',
           String(p.calories_target || p.caloriesTarget));
@@ -25717,38 +25732,62 @@
       var data = await res.json();
 
       if (!res.ok) {
-        showAuthError(data.detail || 'Błąd logowania');
+        // FastAPI może zwrócić detail jako string LUB tablicę obiektów (błędy Pydantic)
+        var errMsg = 'Wystąpił błąd. Spróbuj ponownie.';
+        if (data && data.detail) {
+          if (typeof data.detail === 'string') {
+            errMsg = data.detail;
+          } else if (Array.isArray(data.detail)) {
+            var msgs = data.detail.map(function(e) {
+              return e.msg ? e.msg.replace(/^Value error,?\s*/i, '') : 'Błąd walidacji';
+            });
+            errMsg = msgs.join(' · ');
+          }
+        }
+        showAuthError(errMsg);
         setAuthLoading(false);
         return;
       }
 
-      // Sukces — zapisz dane sesji
-      localStorage.setItem('fitai_token', data.access_token);
-      localStorage.setItem('fitai_user_id', data.user_id);
-      localStorage.setItem('fitai_user_number', String(data.user_number || ''));
-      localStorage.setItem('fitai_display_name', data.display_name || 'Użytkownik');
-      localStorage.setItem('fitai_name', data.name || '');
+      // ─── ZAPISZ SESJĘ ───────────────────────────────────────────────────────
+      localStorage.setItem('fitai_token',        data.access_token);
+      localStorage.setItem('fitai_user_id',      data.user_id        || '');
+      localStorage.setItem('fitai_user_number',  String(data.user_number || ''));
+      localStorage.setItem('fitai_display_name', data.display_name   || 'Użytkownik');
+      localStorage.setItem('fitai_name',         data.name           || '');
+      localStorage.setItem('fitai_role',         data.role           || 'free_user');
+      localStorage.setItem('fitai_plan',         data.plan           || 'free');
       if (data.kcal_target) localStorage.setItem('fitai_kcal_target', String(data.kcal_target));
       if (data.protein_target) localStorage.setItem('fitai_protein_target', String(data.protein_target));
 
+      // ─── ZAMKNIJ MODAL ──────────────────────────────────────────────────────
       closeAuthModal();
       setAuthLoading(false);
 
-      // Toast powitalny
-      if (_currentTab === 'register') {
-        if (typeof showToast === 'function')
-          showToast('🎉 Witaj ' + data.display_name + '! Konto utworzone.', 'success');
-      } else {
-        if (typeof showToast === 'function')
-          showToast('✅ Witaj z powrotem, ' + data.display_name + '!', 'success');
+      // ─── TOAST POWITALNY ─────────────────────────────────────────────────────
+      if (typeof showToast === 'function') {
+        var isReg = (_currentTab === 'register');
+        showToast(
+          isReg
+            ? '🎉 Witaj ' + data.display_name + '! Konto zostało utworzone.'
+            : '✅ Witaj z powrotem, ' + data.display_name + '!',
+          'success'
+        );
       }
 
-      // Pokaż panel — wykryj dostępną funkcję
-      if (typeof initApp === 'function') initApp();
-      else if (typeof enterDashboard === 'function') enterDashboard();
-      else if (typeof showPanel === 'function') showPanel();
-      else if (typeof showTab === 'function') showTab('home');
-      else window.location.reload();
+      // ─── POKAŻ PANEL ─────────────────────────────────────────────────────────
+      if (typeof enterDashboard === 'function') {
+        enterDashboard();
+      } else if (typeof showPanel === 'function') {
+        showPanel();
+      } else if (typeof showTab === 'function') {
+        showTab('home');
+      } else if (typeof initApp === 'function') {
+        initApp();
+      } else {
+        window.location.hash = '#panel';
+        window.location.reload();
+      }
 
     } catch (err) {
       console.error('[authModal]', err);
@@ -25765,11 +25804,14 @@
 
   function openPanelOrAuth() {
     var token = localStorage.getItem('fitai_token');
-    if (token) {
+    if (token && token.length > 20) {
+      // Mamy token — pokaż panel bezpośrednio
       if (typeof enterDashboard === 'function') enterDashboard();
       else if (typeof showPanel === 'function') showPanel();
       else if (typeof showTab === 'function') showTab('home');
+      else if (typeof initApp === 'function') initApp();
     } else {
+      // Brak tokenu — pokaż modal auth
       openAuthModal('login');
     }
   }
@@ -26542,4 +26584,4 @@ window.openDayItemSwap = openDayItemSwap;
   </div>
 </div>
 
-</html>
+</html>git checkout -b main-temp

@@ -16,28 +16,49 @@ engine = create_engine(
 
 
 def _backfill_user_numbers():
-    """Uzupełnia brakujące numery dla starych kont."""
+    """Uzupełnia brakujące numery dla starych kont (jednorazowo przy starcie)."""
     if not DATABASE_URL.startswith("sqlite"):
         return
     try:
         with engine.connect() as conn:
+            # Sprawdź czy kolumna istnieje
+            cols = {r[1] for r in conn.execute(
+                _text("PRAGMA table_info(users)")
+            ).fetchall()}
+            if "user_number" not in cols:
+                return  # Kolumna jeszcze nie istnieje — _ensure_legacy... to naprawi
+
+            # Pobierz konta bez numeru posortowane chronologicznie
             rows = conn.execute(
-                _text("SELECT id FROM users WHERE user_number IS NULL ORDER BY created_at")
+                _text("SELECT id FROM users WHERE user_number IS NULL ORDER BY created_at ASC")
             ).fetchall()
-            for i, (uid,) in enumerate(rows, start=1):
-                # Sprawdź max istniejący numer
-                max_n = conn.execute(
-                    _text("SELECT MAX(user_number) FROM users WHERE user_number IS NOT NULL")
-                ).scalar() or 0
+
+            if not rows:
+                return  # Nic do uzupełnienia
+
+            # Pobierz aktualny MAX — użyj jako punkt startowy
+            current_max = conn.execute(
+                _text("SELECT COALESCE(MAX(user_number), 0) FROM users WHERE user_number IS NOT NULL")
+            ).scalar()
+
+            # Przypisz kolejne numery
+            for i, (uid,) in enumerate(rows):
+                current_max += 1
                 conn.execute(
-                    _text("UPDATE users SET user_number = :n WHERE id = :id"),
-                    {"n": max_n + 1, "id": uid}
+                    _text("UPDATE users SET user_number = :n, user_key = :k WHERE id = :id"),
+                    {
+                        "n": current_max,
+                        "k": f"native:user:{current_max}",
+                        "id": uid,
+                    },
                 )
+
             conn.commit()
-            if rows:
-                print(f"[FitAI] Uzupełniono user_number dla {len(rows)} kont")
+            print(f"[FitAI] Uzupełniono user_number dla {len(rows)} kont "
+                  f"(numery {current_max - len(rows) + 1}–{current_max})")
+
     except Exception as exc:
-        print(f"[FitAI] Nie udało się uzupełnić user_number: {exc}")
+        print(f"[FitAI] Ostrzeżenie — backfill user_number: {exc}")
 
 
 def create_db_and_tables():
