@@ -1471,7 +1471,7 @@
             </div>
           </div>
         </div>
-        <button id="panelBtn" onclick="enterDashboard()"
+        <button id="panelBtn" onclick="openPanelOrAuth()"
           class="btn-neon pulse-neon px-5 py-2 rounded-xl text-sm">PANEL</button>
         <button id="mobileMenuBtn" class="md:hidden p-2 btn-ghost rounded-xl">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1503,7 +1503,7 @@
           <p class="text-gray-400 text-lg md:text-xl leading-relaxed mb-8">FitAI to zaawansowana platforma zarządzania
             dietą i treningiem z silnikiem AI, multi-profilami i planem dopasowanym do Ciebie.</p>
           <div class="flex flex-wrap gap-4">
-            <button onclick="enterDashboard()" class="btn-neon px-8 py-4 rounded-2xl text-base font-bold">Zacznij Teraz
+            <button onclick="openAuthModal('register')" class="btn-neon px-8 py-4 rounded-2xl text-base font-bold">Zacznij Teraz
               →</button>
             <a href="#funkcje" class="btn-ghost px-8 py-4 rounded-2xl text-base font-medium">Poznaj funkcje</a>
           </div>
@@ -1654,7 +1654,7 @@
               <li class="flex items-center gap-2"><span class="text-cyan-400">✓</span> AI Coach (5/dzień)</li>
               <li class="flex items-center gap-2"><span class="text-cyan-400">✓</span> Tracking makro</li>
             </ul>
-            <button onclick="enterDashboard()" class="w-full py-3 rounded-xl btn-ghost font-bold text-sm">Zacznij za
+            <button onclick="openAuthModal('register')" class="w-full py-3 rounded-xl btn-ghost font-bold text-sm">Zacznij za
               darmo</button>
           </div>
           <div class="glass rounded-3xl p-8 plan-card featured flex flex-col"
@@ -1670,7 +1670,7 @@
               <li class="flex items-center gap-2"><span class="text-cyan-400">✓</span> Lista zakupów PDF</li>
               <li class="flex items-center gap-2"><span class="text-cyan-400">✓</span> Zaawansowane statystyki</li>
             </ul>
-            <button onclick="enterDashboard()" class="w-full py-3 rounded-xl btn-neon font-bold text-sm">Wybierz
+            <button onclick="openAuthModal('register')" class="w-full py-3 rounded-xl btn-neon font-bold text-sm">Wybierz
               Pro</button>
           </div>
           <div class="glass rounded-3xl p-8 plan-card flex flex-col">
@@ -1685,7 +1685,7 @@
               <li class="flex items-center gap-2"><span class="text-violet-400">✓</span> Integracje Discord/API</li>
               <li class="flex items-center gap-2"><span class="text-violet-400">✓</span> Wsparcie priorytetowe</li>
             </ul>
-            <button onclick="enterDashboard()" class="w-full py-3 rounded-xl btn-outline-cyan font-bold text-sm">Wybierz
+            <button onclick="openAuthModal('register')" class="w-full py-3 rounded-xl btn-outline-cyan font-bold text-sm">Wybierz
               Elite</button>
           </div>
         </div>
@@ -25447,6 +25447,332 @@
 
     </div>
   </div>
+
+<!-- ═══ AUTH MODAL — logowanie i rejestracja ═══ -->
+<div id="auth-modal" style="
+  display:none;
+  position:fixed;inset:0;z-index:10000;
+  background:rgba(0,0,0,0.85);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  align-items:center;justify-content:center;
+  padding:16px;">
+  <div style="
+    background:#13141a;
+    border:1px solid rgba(0,229,255,0.2);
+    border-radius:24px;
+    width:100%;max-width:420px;
+    padding:32px;
+    position:relative;
+    box-shadow:0 0 60px rgba(0,229,255,0.08);">
+
+    <!-- Zamknij -->
+    <button onclick="closeAuthModal()" style="
+      position:absolute;top:16px;right:20px;
+      background:none;border:none;cursor:pointer;
+      color:#6b7280;font-size:22px;line-height:1;
+      transition:color .15s;"
+      onmouseover="this.style.color='#f3f4f6'"
+      onmouseout="this.style.color='#6b7280'">×</button>
+
+    <!-- Logo -->
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="font-size:28px;font-weight:900;letter-spacing:-0.03em;color:#f3f4f6;
+                  font-family:'Syne',sans-serif;">
+        F<span style="color:#00e5ff;">it</span>AI
+      </div>
+      <p id="auth-modal-subtitle" style="font-size:13px;color:#6b7280;margin-top:4px;">
+        Zaloguj się do swojego konta
+      </p>
+    </div>
+
+    <!-- Przełącznik logowanie/rejestracja -->
+    <div style="
+      display:flex;gap:4px;
+      background:rgba(255,255,255,0.04);
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:12px;padding:4px;
+      margin-bottom:24px;">
+      <button id="auth-tab-login" onclick="switchAuthTab('login')" style="
+        flex:1;padding:8px;border-radius:8px;border:none;cursor:pointer;
+        font-size:13px;font-weight:600;transition:all .2s;
+        background:linear-gradient(135deg,rgba(0,229,255,0.2),rgba(124,58,237,0.15));
+        border:1px solid rgba(0,229,255,0.3);color:#00e5ff;">
+        Zaloguj się
+      </button>
+      <button id="auth-tab-register" onclick="switchAuthTab('register')" style="
+        flex:1;padding:8px;border-radius:8px;border:none;cursor:pointer;
+        font-size:13px;font-weight:500;transition:all .2s;
+        background:transparent;border:1px solid transparent;color:#6b7280;">
+        Zarejestruj się
+      </button>
+    </div>
+
+    <!-- Formularz -->
+    <div style="display:flex;flex-direction:column;gap:14px;">
+
+      <!-- Email -->
+      <div>
+        <label style="display:block;font-size:11px;color:#9ca3af;
+                      margin-bottom:6px;letter-spacing:.06em;text-transform:uppercase;">
+          E-mail
+        </label>
+        <input type="email" id="auth-email"
+          placeholder="twoj@email.pl"
+          autocomplete="email"
+          style="width:100%;box-sizing:border-box;
+                 background:rgba(255,255,255,0.05);
+                 border:1px solid rgba(255,255,255,0.1);
+                 border-radius:12px;padding:12px 14px;
+                 color:#f3f4f6;font-size:14px;
+                 transition:border-color .2s;outline:none;"
+          onfocus="this.style.borderColor='rgba(0,229,255,0.5)'"
+          onblur="this.style.borderColor='rgba(255,255,255,0.1)'" />
+      </div>
+
+      <!-- Hasło -->
+      <div>
+        <label style="display:block;font-size:11px;color:#9ca3af;
+                      margin-bottom:6px;letter-spacing:.06em;text-transform:uppercase;">
+          Hasło
+        </label>
+        <div style="position:relative;">
+          <input type="password" id="auth-password"
+            placeholder="min. 8 znaków"
+            autocomplete="current-password"
+            style="width:100%;box-sizing:border-box;
+                   background:rgba(255,255,255,0.05);
+                   border:1px solid rgba(255,255,255,0.1);
+                   border-radius:12px;padding:12px 44px 12px 14px;
+                   color:#f3f4f6;font-size:14px;
+                   transition:border-color .2s;outline:none;"
+            onfocus="this.style.borderColor='rgba(0,229,255,0.5)'"
+            onblur="this.style.borderColor='rgba(255,255,255,0.1)'"
+            onkeydown="if(event.key==='Enter') submitAuthForm()" />
+          <button onclick="toggleAuthPasswordVisibility()" style="
+            position:absolute;right:12px;top:50%;transform:translateY(-50%);
+            background:none;border:none;cursor:pointer;
+            color:#6b7280;font-size:16px;"
+            title="Pokaż/ukryj hasło">👁</button>
+        </div>
+      </div>
+
+      <!-- Błąd -->
+      <div id="auth-error" style="
+        display:none;
+        background:rgba(239,68,68,0.1);
+        border:1px solid rgba(239,68,68,0.3);
+        border-radius:8px;padding:10px 12px;
+        font-size:13px;color:#f87171;"></div>
+
+      <!-- Przycisk submit -->
+      <button id="auth-submit-btn" onclick="submitAuthForm()" style="
+        width:100%;padding:14px;border-radius:14px;border:none;cursor:pointer;
+        background:linear-gradient(135deg,rgba(0,229,255,0.25),rgba(124,58,237,0.2));
+        border:1px solid rgba(0,229,255,0.4);
+        color:#00e5ff;font-size:15px;font-weight:700;
+        transition:all .2s;margin-top:4px;"
+        onmouseover="this.style.background='linear-gradient(135deg,rgba(0,229,255,0.35),rgba(124,58,237,0.3))';this.style.transform='translateY(-1px)'"
+        onmouseout="this.style.background='linear-gradient(135deg,rgba(0,229,255,0.25),rgba(124,58,237,0.2))';this.style.transform='none'">
+        <span id="auth-submit-text">Zaloguj się</span>
+      </button>
+
+      <!-- Info dla rejestracji -->
+      <p id="auth-register-info" style="
+        display:none;
+        text-align:center;font-size:12px;color:#4b5563;line-height:1.6;">
+        Twój identyfikator zostanie wygenerowany automatycznie.<br>
+        Możesz uzupełnić dane profilu po zalogowaniu.
+      </p>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══ AUTH MODAL — logowanie i rejestracja ═══
+(function() {
+  var _currentTab = 'login';
+
+  function openAuthModal(tab) {
+    tab = tab || 'login';
+    var m = document.getElementById('auth-modal');
+    if (!m) return;
+    m.style.display = 'flex';
+    switchAuthTab(tab);
+    setTimeout(function() {
+      document.getElementById('auth-email')?.focus();
+    }, 100);
+  }
+
+  function closeAuthModal() {
+    var m = document.getElementById('auth-modal');
+    if (m) m.style.display = 'none';
+    var err = document.getElementById('auth-error');
+    if (err) { err.style.display = 'none'; err.textContent = ''; }
+    var pwd = document.getElementById('auth-password');
+    if (pwd) pwd.value = '';
+  }
+
+  function switchAuthTab(tab) {
+    _currentTab = tab;
+    var isLogin = tab === 'login';
+
+    var tl = document.getElementById('auth-tab-login');
+    var tr = document.getElementById('auth-tab-register');
+    if (tl) {
+      tl.style.background = isLogin
+        ? 'linear-gradient(135deg,rgba(0,229,255,0.2),rgba(124,58,237,0.15))'
+        : 'transparent';
+      tl.style.borderColor = isLogin ? 'rgba(0,229,255,0.3)' : 'transparent';
+      tl.style.color = isLogin ? '#00e5ff' : '#6b7280';
+    }
+    if (tr) {
+      tr.style.background = !isLogin
+        ? 'linear-gradient(135deg,rgba(0,229,255,0.2),rgba(124,58,237,0.15))'
+        : 'transparent';
+      tr.style.borderColor = !isLogin ? 'rgba(0,229,255,0.3)' : 'transparent';
+      tr.style.color = !isLogin ? '#00e5ff' : '#6b7280';
+    }
+
+    var sub = document.getElementById('auth-modal-subtitle');
+    var btn = document.getElementById('auth-submit-text');
+    var info = document.getElementById('auth-register-info');
+    var pwd = document.getElementById('auth-password');
+    if (sub) sub.textContent = isLogin ? 'Zaloguj się do swojego konta' : 'Utwórz nowe konto';
+    if (btn) btn.textContent = isLogin ? 'Zaloguj się' : 'Utwórz konto';
+    if (info) info.style.display = isLogin ? 'none' : 'block';
+    if (pwd) pwd.placeholder = isLogin ? 'min. 8 znaków' : 'min. 8 znaków (twoje nowe hasło)';
+
+    var err = document.getElementById('auth-error');
+    if (err) { err.style.display = 'none'; err.textContent = ''; }
+  }
+
+  function showAuthError(msg) {
+    var err = document.getElementById('auth-error');
+    if (err) { err.textContent = msg; err.style.display = 'block'; }
+  }
+
+  function setAuthLoading(loading) {
+    var btn = document.getElementById('auth-submit-btn');
+    var txt = document.getElementById('auth-submit-text');
+    if (!btn) return;
+    btn.disabled = loading;
+    if (loading) {
+      btn.style.opacity = '0.7';
+      if (txt) txt.textContent = _currentTab === 'login' ? 'Logowanie...' : 'Tworzenie konta...';
+    } else {
+      btn.style.opacity = '1';
+      if (txt) txt.textContent = _currentTab === 'login' ? 'Zaloguj się' : 'Utwórz konto';
+    }
+  }
+
+  async function submitAuthForm() {
+    var email = (document.getElementById('auth-email')?.value || '').trim().toLowerCase();
+    var password = document.getElementById('auth-password')?.value || '';
+
+    if (!email || !email.includes('@')) {
+      showAuthError('Podaj poprawny adres e-mail');
+      return;
+    }
+    if (password.length < 8) {
+      showAuthError('Hasło musi mieć co najmniej 8 znaków');
+      return;
+    }
+
+    setAuthLoading(true);
+    var endpoint = _currentTab === 'login' ? '/auth/login' : '/auth/register';
+
+    try {
+      var BASE = window.API_BASE || '';
+      var res = await fetch(BASE + endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, password: password })
+      });
+
+      var data = await res.json();
+
+      if (!res.ok) {
+        showAuthError(data.detail || 'Błąd logowania');
+        setAuthLoading(false);
+        return;
+      }
+
+      // Sukces — zapisz dane sesji
+      localStorage.setItem('fitai_token', data.access_token);
+      localStorage.setItem('fitai_user_id', data.user_id);
+      localStorage.setItem('fitai_user_number', String(data.user_number || ''));
+      localStorage.setItem('fitai_display_name', data.display_name || 'Użytkownik');
+      localStorage.setItem('fitai_name', data.name || '');
+      if (data.kcal_target) localStorage.setItem('fitai_kcal_target', String(data.kcal_target));
+      if (data.protein_target) localStorage.setItem('fitai_protein_target', String(data.protein_target));
+
+      closeAuthModal();
+      setAuthLoading(false);
+
+      // Toast powitalny
+      if (_currentTab === 'register') {
+        if (typeof showToast === 'function')
+          showToast('🎉 Witaj ' + data.display_name + '! Konto utworzone.', 'success');
+      } else {
+        if (typeof showToast === 'function')
+          showToast('✅ Witaj z powrotem, ' + data.display_name + '!', 'success');
+      }
+
+      // Pokaż panel — wykryj dostępną funkcję
+      if (typeof initApp === 'function') initApp();
+      else if (typeof enterDashboard === 'function') enterDashboard();
+      else if (typeof showPanel === 'function') showPanel();
+      else if (typeof showTab === 'function') showTab('home');
+      else window.location.reload();
+
+    } catch (err) {
+      console.error('[authModal]', err);
+      showAuthError('Błąd połączenia z serwerem. Spróbuj ponownie.');
+      setAuthLoading(false);
+    }
+  }
+
+  function toggleAuthPasswordVisibility() {
+    var inp = document.getElementById('auth-password');
+    if (!inp) return;
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+  }
+
+  function openPanelOrAuth() {
+    var token = localStorage.getItem('fitai_token');
+    if (token) {
+      if (typeof enterDashboard === 'function') enterDashboard();
+      else if (typeof showPanel === 'function') showPanel();
+      else if (typeof showTab === 'function') showTab('home');
+    } else {
+      openAuthModal('login');
+    }
+  }
+
+  // Zamknij po kliknięciu tła
+  document.addEventListener('click', function(e) {
+    var modal = document.getElementById('auth-modal');
+    if (modal && e.target === modal) closeAuthModal();
+  });
+
+  // Escape zamyka modal
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      var modal = document.getElementById('auth-modal');
+      if (modal && modal.style.display !== 'none') closeAuthModal();
+    }
+  });
+
+  window.openAuthModal = openAuthModal;
+  window.closeAuthModal = closeAuthModal;
+  window.switchAuthTab = switchAuthTab;
+  window.submitAuthForm = submitAuthForm;
+  window.toggleAuthPasswordVisibility = toggleAuthPasswordVisibility;
+  window.openPanelOrAuth = openPanelOrAuth;
+})();
+</script>
 
 </body>
 
