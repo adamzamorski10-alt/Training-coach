@@ -25,6 +25,7 @@ class UserDB(SQLModel, table=True):
     identity_id: Optional[str] = Field(default=None, index=True)
     email: Optional[str] = Field(default=None, index=True)
     nickname: Optional[str] = Field(default=None, unique=True, index=True)
+    user_number: Optional[int] = Field(default=None, unique=True, index=True)
     name: str
     age: int
     height: float
@@ -98,8 +99,14 @@ class UserDB(SQLModel, table=True):
     def set_dict(self, field: str, value: dict):
         setattr(self, field, json.dumps(value, ensure_ascii=False))
 
+    @property
+    def display_name(self) -> str:
+        """Zwraca wyświetlaną nazwę: Użytkownik#0047 lub imię jeśli ustawione."""
+        if self.user_number:
+            return f"Użytkownik#{self.user_number:04d}"
+        return self.name or "Użytkownik"
+
     def to_profile_dict(self) -> dict:
-        """Serializes user row to the legacy profile dict format for backward compat."""
         from app.fitness.calculations import _xp_to_level
         
         return {
@@ -107,6 +114,8 @@ class UserDB(SQLModel, table=True):
             "identity_id": self.identity_id,
             "email": self.email,
             "nickname": self.nickname,
+            "user_number": self.user_number,
+            "display_name": self.display_name,
             "name": self.name,
             "age": self.age,
             "height": self.height,

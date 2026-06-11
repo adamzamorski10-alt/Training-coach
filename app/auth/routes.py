@@ -37,11 +37,10 @@ limiter = Limiter(key_func=_rate_limit_key)
 @limiter.limit("5/hour")
 def register(request: Request, payload: RegisterRequest):
     """
-    Rejestracja nowego użytkownika z hasłem.
-    Zwraca JWT gotowy do użycia w nagłówku Authorization: Bearer <token>.
+    Rejestracja nowego użytkownika — tylko email i hasło.
+    Numer użytkownika generowany automatycznie.
     """
     with Session(engine) as session:
-        normalized_nickname = payload.nickname.strip().lower()
         # Sprawdź unikalność e-maila
         existing = session.exec(
             select(UserDB).where(UserDB.email == payload.email.lower().strip())
@@ -52,25 +51,26 @@ def register(request: Request, payload: RegisterRequest):
                 detail="Konto z tym e-mailem już istnieje",
             )
 
-        existing_nickname = session.exec(
-            select(UserDB).where(UserDB.nickname == normalized_nickname)
+        # Generuj unikalny numer użytkownika (atomowo w tej samej sesji)
+        max_number_row = session.exec(
+            select(UserDB.user_number)
+            .where(UserDB.user_number.is_not(None))
+            .order_by(UserDB.user_number.desc())
         ).first()
-        if existing_nickname:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Ten nick jest już zajęty",
-            )
+        next_number = (max_number_row or 0) + 1
+
         user = UserDB(
-            user_key=f"native:nick:{normalized_nickname}",
+            user_key=f"native:user:{next_number}",
             email=payload.email.lower().strip(),
-            nickname=normalized_nickname,
+            nickname=None,                          # Nick nie jest wymagany
+            user_number=next_number,
             hashed_password=hash_password(payload.password),
-            name=payload.name,
-            age=payload.age,
-            height=payload.height,
-            weight=payload.weight,
-            start_weight=payload.weight,
-            target_weight=payload.target_weight,
+            name=payload.name or f"Użytkownik#{next_number:04d}",
+            age=payload.age or 25,
+            height=payload.height or 170.0,
+            weight=payload.weight or 70.0,
+            start_weight=payload.weight or 70.0,
+            target_weight=payload.target_weight or 70.0,
             gender=payload.gender,
             goal=payload.goal,
             frequency=payload.frequency,
@@ -87,20 +87,21 @@ def register(request: Request, payload: RegisterRequest):
             session.rollback()
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Konto z tym e-mailem już istnieje (race condition)",
+                detail="Konto z tym e-mailem już istnieje",
             )
         except SQLAlchemyError as exc:
             session.rollback()
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Błąd bazy danych podczas rejestracji: {exc}",
+                detail=f"Błąd bazy danych: {exc}",
             )
 
         token = create_access_token(user.id, user.email, user.role)
         return TokenResponse(
             access_token=token,
             user_id=user.id,
-            nickname=user.nickname,
+            user_number=user.user_number,
+            display_name=user.display_name,
             name=user.name,
             role=user.role,
             plan=user.plan,
@@ -145,11 +146,13 @@ def login(request: Request, payload: LoginRequest):
         return TokenResponse(
             access_token=token,
             user_id=user.id,
-            nickname=user.nickname,
+            user_number=user.user_number,
+            display_name=user.display_name,
             name=user.name,
             role=user.role,
             plan=user.plan,
         )
+
 
 @router.get("/me")
 def me(user: UserDB = Depends(get_current_user)):
@@ -198,11 +201,13 @@ def refresh(user: UserDB = Depends(get_current_user)):
     return TokenResponse(
         access_token=token,
         user_id=user.id,
-        nickname=user.nickname,
+        user_number=user.user_number,
+        display_name=user.display_name,
         name=user.name,
         role=user.role,
         plan=user.plan,
     )
+
 
 @router.get("/check-nickname")
 def check_nickname(nickname: str, session: Session = Depends(get_session)):
