@@ -36,6 +36,7 @@ from slowapi.util import get_remote_address
 from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
 from sqlalchemy.orm import relationship
 from sqlalchemy import text as _text
+from sqlalchemy import func as _sa_func
 from sqlmodel import Field, Relationship, Session, SQLModel, create_engine, select
 
 # ─── External prompt templates ────────────────────────────────────────────────
@@ -302,6 +303,7 @@ class UserDB(SQLModel, table=True):
     # ─── Auth (dodane w v2.1) ───────────────────────────────────────────────
     hashed_password: Optional[str] = None             # None = konto Netlify Identity (stare)
     is_active: bool = True                             # możliwość blokowania konta
+    user_number: Optional[int] = Field(default=None)  # kolejny numer użytkownika (1, 2, 3…)
     # ─── Gamification & safety ───────────────────────────────────────────────
     total_xp: int = 0                                  # łączne punkty XP
     injuries: str = ""                                 # przecinkowy string: "kolano lewe,bark"
@@ -340,11 +342,18 @@ class UserDB(SQLModel, table=True):
 
     def to_profile_dict(self) -> dict:
         """Serializes user row to the legacy profile dict format for backward compat."""
+        _display_name = (
+            f"Użytkownik#{str(self.user_number).zfill(4)}"
+            if self.user_number is not None
+            else "Użytkownik"
+        )
         return {
             "user_key": self.user_key,
             "identity_id": self.identity_id,
             "email": self.email,
             "name": self.name,
+            "display_name": _display_name,
+            "user_number": self.user_number,
             "age": self.age,
             "height": self.height,
             "weight": self.weight,
@@ -544,9 +553,31 @@ class DrillResultDB(SQLModel, table=True):
         return base
 
 
+def _ensure_users_columns():
+    """Adds new columns to existing local SQLite users table."""
+    if engine.url.get_backend_name() != "sqlite":
+        return
+    user_col_defs = {
+        "user_number": "INTEGER",
+    }
+    try:
+        with engine.connect() as conn:
+            existing = {
+                row[1]
+                for row in conn.execute(_text("PRAGMA table_info(users)")).fetchall()
+            }
+            for name, ddl_type in user_col_defs.items():
+                if name not in existing:
+                    conn.execute(_text(f"ALTER TABLE users ADD COLUMN {name} {ddl_type}"))
+            conn.commit()
+    except OperationalError as exc:
+        print(f"[FitAI] Ostrzeżenie: nie udało się zaktualizować users: {exc}")
+
+
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
     _ensure_daily_log_columns()
+    _ensure_users_columns()
     _create_composite_indexes()
 
 
@@ -2512,6 +2543,10 @@ def auth_register(payload: RegisterRequest):
                 detail="Konto z tym e-mailem już istnieje",
             )
 
+        # Policz istniejących użytkowników i przypisz numer sekwencyjny
+        user_count = session.exec(select(_sa_func.count(UserDB.id))).one()
+        next_user_number = user_count + 1
+
         user = UserDB(
             user_key=f"native:{payload.email.lower().strip()}",
             email=payload.email.lower().strip(),
@@ -2527,6 +2562,7 @@ def auth_register(payload: RegisterRequest):
             frequency=payload.frequency,
             diet=payload.diet,
             is_active=True,
+            user_number=next_user_number,
         )
         user.calories_target = calc_calories(user)
         user.protein_target  = calc_protein(user)

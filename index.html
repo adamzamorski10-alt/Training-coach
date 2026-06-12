@@ -3596,34 +3596,12 @@
                 style="font-family:'Syne',sans-serif;">
                 Cześć, Użytkowniku!
               </h4>
-              <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
-                <span style="font-size:11px;color:rgba(0,229,255,0.45);">@</span>
-                <span id="profile-nickname"
-                      style="font-size:13px;font-family:monospace;color:#00e5ff;
-                             letter-spacing:.05em;min-width:80px;">
-                  ładowanie...
-                </span>
-                <button onclick="openNickModal()"
-                  style="font-size:11px;color:rgba(255,255,255,0.25);background:none;
-                         border:none;cursor:pointer;padding:2px 5px;border-radius:4px;
-                         transition:all .15s;"
-                  onmouseover="this.style.color='rgba(255,255,255,0.65)';
-                               this.style.background='rgba(255,255,255,0.06)'"
-                  onmouseout="this.style.color='rgba(255,255,255,0.25)';
-                              this.style.background='none'"
-                  title="Zmień nick">✏️</button>
-              </div>
               <p id="profileWelcomeSub" class="text-sm text-gray-400 mt-0.5"></p>
               <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
-                <span id="profile-user-display"
+                <span id="profile-display-name"
                       style="font-size:15px;font-weight:700;font-family:monospace;
                              color:#00e5ff;letter-spacing:.03em;">
-                  Użytkownik#0001
-                </span>
-                <span style="font-size:11px;color:#374151;background:rgba(255,255,255,0.05);
-                             border:1px solid rgba(255,255,255,0.08);border-radius:6px;
-                             padding:2px 8px;">
-                  ID unikalny
+                  ładowanie...
                 </span>
               </div>
             </div>
@@ -7455,7 +7433,7 @@
       // Prefill display_name z localStorage (natychmiast, przed API)
       (function prefillDisplayName() {
         var dn = localStorage.getItem('fitai_display_name') || '';
-        var el = document.getElementById('profile-user-display');
+        var el = document.getElementById('profile-display-name');
         if (el && dn) el.textContent = dn;
         // Powitalny napis w nawigacji jeśli istnieje
         var navName = document.getElementById('nav-user-name')
@@ -9939,18 +9917,12 @@
       const welcomeName = document.getElementById('profileWelcomeName');
       if (welcomeName && p?.name) welcomeName.textContent = 'Cześć, ' + p.name + '!';
 
-      var nickEl = document.getElementById('profile-nickname');
-      if (nickEl) {
-        nickEl.textContent = (p && p.nickname) ? p.nickname : (localStorage.getItem('fitai_nickname') || 'brak nicku');
-      }
-      var nick = p?.nickname;
-      if (nick) localStorage.setItem('fitai_nickname', nick);
-      // Aktualizuj display_name (Użytkownik#XXXX) — z fallbackiem na user_number
+      // Aktualizuj display_name (Użytkownik#XXXX) — zawsze z backendu
       var _dn = p?.display_name
         || (p?.user_number ? ('Użytkownik#' + String(p.user_number).padStart(4, '0')) : null)
         || p?.name
         || 'Użytkownik';
-      var _dispEl = document.getElementById('profile-user-display');
+      var _dispEl = document.getElementById('profile-display-name');
       if (_dispEl) _dispEl.textContent = _dn;
       localStorage.setItem('fitai_display_name', _dn);
 
@@ -25872,7 +25844,7 @@ async function syncProfileFromBackend() {
     if (api.name)            localStorage.setItem('fitai_name',            api.name);
 
     // ── Zaktualizuj display_name w UI ────────────────────────────────────
-    var dispEl = document.getElementById('profile-user-display');
+    var dispEl = document.getElementById('profile-display-name');
     if (dispEl && api.display_name) dispEl.textContent = api.display_name;
     var welcomeEl = document.getElementById('profileWelcomeName');
     if (welcomeEl && api.name) welcomeEl.textContent = 'Cześć, ' + api.name + '!';
@@ -25922,6 +25894,10 @@ async function syncProfileFromBackend() {
       p.exclusions = api.avoid_exercises;
 
     // ── Jeśli backend ma zapisany weekly_plan → użyj go ─────────────────
+    // Zapisz weekly_plan do localStorage dla fallbacku w loadTodayData()
+    if (api.weekly_plan && typeof api.weekly_plan === 'object') {
+      try { localStorage.setItem('fitai_weekly_plan', JSON.stringify(api.weekly_plan)); } catch(e) {}
+    }
     var planLoaded = false;
     if (api.weekly_plan && typeof api.weekly_plan === 'object') {
       var wp = api.weekly_plan;
@@ -26230,24 +26206,128 @@ async function loadTodayData() {
     var res = await fetch(window.API_BASE + '/app/day/today', {
       headers: { 'Authorization': 'Bearer ' + token }
     });
-    if (!res.ok) return;
+
+    // Obsługa 404 — endpoint może nie istnieć na starszych backendie
+    if (res.status === 404) {
+      console.warn('[loadTodayData] /app/day/today zwrócił 404 — próbuję fallback z weekly_plan_json');
+      _loadTodayFromWeeklyPlan();
+      return;
+    }
+
+    if (!res.ok) {
+      console.warn('[loadTodayData] Błąd HTTP ' + res.status + ' — próbuję fallback z weekly_plan_json');
+      _loadTodayFromWeeklyPlan();
+      return;
+    }
+
     var data = await res.json();
     window._todayLog = data.log;
     window._todayKcalTarget = parseInt(localStorage.getItem('fitai_kcal_target') || '2000');
     window._todayProteinTarget = parseInt(localStorage.getItem('fitai_protein_target') || '150');
+
     var log = data.log || {};
-    var meals = Array.isArray(log.meals) ? log.meals : [];
-    var workouts = Array.isArray(log.workouts) ? log.workouts : [];
+    var meals = Array.isArray(log.meals) ? log.meals
+              : Array.isArray(data.plan_meals) ? data.plan_meals : [];
+    var workouts = Array.isArray(log.workouts) ? log.workouts
+                 : Array.isArray(data.plan_workouts) ? data.plan_workouts : [];
+
+    // Dodatkowe próby wyciągnięcia z JSON-pól
     if (!meals.length && typeof log.meals_json === 'string') {
       try { meals = JSON.parse(log.meals_json); } catch(e) { meals = []; }
     }
     if (!workouts.length && typeof log.workouts_json === 'string') {
       try { workouts = JSON.parse(log.workouts_json); } catch(e) { workouts = []; }
     }
+
+    // Jeśli backend nie zwrócił posiłków — wczytaj z weekly_plan_json z profilu
+    if (!meals.length && !workouts.length) {
+      _loadTodayFromWeeklyPlan();
+      return;
+    }
+
     renderMealsList(meals);
     renderWorkoutsList(workouts);
     recalcBars(data.kcal_consumed || 0, data.protein_consumed || 0);
-  } catch (err) { console.error('[loadTodayData]', err); }
+  } catch (err) {
+    console.error('[loadTodayData]', err);
+    _loadTodayFromWeeklyPlan();
+  }
+}
+
+// Fallback: wczytaj posiłki i ćwiczenia z weekly_plan_json w profilu użytkownika
+function _loadTodayFromWeeklyPlan() {
+  try {
+    var rawPlan = localStorage.getItem('fitai_weekly_plan');
+    if (!rawPlan) { rawPlan = null; }
+    // Spróbuj też z zagnieżdżonego fitai_user
+    if (!rawPlan) {
+      var rawUser = localStorage.getItem('fitai_user');
+      if (rawUser) {
+        try {
+          var uObj = JSON.parse(rawUser);
+          if (uObj && uObj.weekly_plan) {
+            rawPlan = JSON.stringify(uObj.weekly_plan);
+          }
+        } catch(e) {}
+      }
+    }
+    if (!rawPlan) {
+      console.info('[loadTodayData] Brak weekly_plan_json w localStorage — brak danych fallback');
+      renderMealsList([]);
+      renderWorkoutsList([]);
+      return;
+    }
+
+    var plan = JSON.parse(rawPlan);
+    var days = plan.days || [];
+
+    // Wyznacz dzień tygodnia PL
+    var PL_DAYS = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
+    var todayPL = PL_DAYS[new Date().getDay()];
+
+    var todayPlan = days.find(function(d) {
+      return (d.day || '').trim().toLowerCase() === todayPL.toLowerCase();
+    });
+
+    if (!todayPlan) {
+      console.info('[loadTodayData] Brak dnia ' + todayPL + ' w planie tygodniowym');
+      renderMealsList([]);
+      renderWorkoutsList([]);
+      return;
+    }
+
+    // Posiłki: konwertuj format planu na format renderMealsList
+    var meals = (todayPlan.meals || []).map(function(m, idx) {
+      return {
+        item_id: 'plan_meal_' + idx,
+        name: m.name || m.slot || 'Posiłek',
+        kcal: m.kcal || 0,
+        meal_type: m.slot || '',
+        checked: false
+      };
+    });
+
+    // Ćwiczenia: konwertuj format planu na format renderWorkoutsList
+    var exercises = ((todayPlan.workout && todayPlan.workout.exercises) || []).map(function(e, idx) {
+      return {
+        item_id: 'plan_ex_' + idx,
+        name: e.name || 'Ćwiczenie',
+        sets: e.sets || '',
+        reps: e.reps || '',
+        weight_kg: null,
+        rpe: null,
+        checked: false
+      };
+    });
+
+    renderMealsList(meals);
+    renderWorkoutsList(exercises);
+    console.info('[loadTodayData] Fallback z weekly_plan_json: ' + meals.length + ' posiłków, ' + exercises.length + ' ćwiczeń na ' + todayPL);
+  } catch (err) {
+    console.error('[_loadTodayFromWeeklyPlan]', err);
+    renderMealsList([]);
+    renderWorkoutsList([]);
+  }
 }
 
 function renderMealsList(meals) {
