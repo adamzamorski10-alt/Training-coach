@@ -8431,6 +8431,10 @@
       document.getElementById('aiFloatBtn')?.classList.remove('hidden');
       showTab('home');
       updateDashboard();
+      // Pobierz profil z backendu i załaduj plan do Mój Dzień
+      if (typeof syncProfileFromBackend === 'function') {
+        syncProfileFromBackend();
+      }
     }
 
     // ========== LOGOUT ==========
@@ -9295,7 +9299,14 @@
       if (tabId === 'postepy') initCharts();
       if (tabId === 'kuchnia') { kitchenInit(); }
       if (tabId === 'my-day') {
-        initActiveDayFromPlan();
+        // Jeśli profil nie ma planu — najpierw zsynchronizuj z backendu
+        var _p = (typeof getCurrentProfile === 'function') ? getCurrentProfile() : null;
+        var _hasPlan = _p && _p.dietPlan && Object.keys(_p.dietPlan).some(function(k) { return (_p.dietPlan[k] || []).length > 0; });
+        if (!_hasPlan && typeof syncProfileFromBackend === 'function') {
+          syncProfileFromBackend();
+        } else {
+          initActiveDayFromPlan();
+        }
         updateSleepDuration(true);
         if (typeof loadTodayData === 'function') loadTodayData();
       }
@@ -25837,6 +25848,129 @@
   window.toggleAuthPasswordVisibility = toggleAuthPasswordVisibility;
   window.openPanelOrAuth = openPanelOrAuth;
 })();
+</script>
+
+<script>
+// ═══ SYNC PROFILU Z BACKENDU → state.profiles ═══
+// Pobiera dane użytkownika z /app/profile i wstrzykuje je do state.profiles[0],
+// dzięki czemu initActiveDayFromPlan() ma realne posiłki i ćwiczenia.
+async function syncProfileFromBackend() {
+  var token = localStorage.getItem('fitai_token');
+  if (!token || !window.API_BASE) return;
+
+  try {
+    var res = await fetch(window.API_BASE + '/app/profile', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!res.ok) { console.warn('[syncProfile] HTTP', res.status); return; }
+    var api = await res.json();
+
+    // ── Zapisz cele do localStorage ──────────────────────────────────────
+    if (api.calories_target) localStorage.setItem('fitai_kcal_target',   String(api.calories_target));
+    if (api.protein_target)  localStorage.setItem('fitai_protein_target', String(api.protein_target));
+    if (api.display_name)    localStorage.setItem('fitai_display_name',   api.display_name);
+    if (api.name)            localStorage.setItem('fitai_name',            api.name);
+
+    // ── Zaktualizuj display_name w UI ────────────────────────────────────
+    var dispEl = document.getElementById('profile-user-display');
+    if (dispEl && api.display_name) dispEl.textContent = api.display_name;
+    var welcomeEl = document.getElementById('profileWelcomeName');
+    if (welcomeEl && api.name) welcomeEl.textContent = 'Cześć, ' + api.name + '!';
+
+    // ── Zbuduj obiekt profilu kompatybilny z state.profiles ──────────────
+    // Mapuje pola z backendu (snake_case) → profil lokalny (camelCase)
+    if (typeof state === 'undefined' || !state) return;
+    var p = state.profiles && state.profiles[0];
+    if (!p) {
+      // Brak profilu — utwórz domyślny i dodaj do state
+      if (typeof createDefaultProfile === 'function') {
+        p = createDefaultProfile(
+          localStorage.getItem('fitai_user_id') || 'user_api',
+          api.name || 'Użytkownik'
+        );
+        state.profiles = [p];
+        state.currentProfile = p.id;
+      } else return;
+    }
+
+    // Nadpisz pola z backendu
+    p.name          = api.name          || p.name;
+    p.age           = api.age           || p.age;
+    p.height        = api.height        || p.height;
+    p.weight        = api.weight        || p.weight;
+    p.targetWeight  = api.target_weight || p.targetWeight;
+    p.gender        = api.gender        || p.gender;
+    p.goal          = api.goal          || p.goal;
+    p.frequency     = api.frequency     || p.frequency;
+    p.mealsPerDay   = api.meals_per_day || p.mealsPerDay || 4;
+    p.diet          = api.diet          || p.diet        || 'Brak preferencji';
+    p.allergies     = api.allergies     || p.allergies   || '';
+    p.caloriesTarget = api.calories_target || p.caloriesTarget;
+    p.proteinTarget  = api.protein_target  || p.proteinTarget;
+    p.streak_days    = api.streak_days     || 0;
+    p.total_xp       = api.total_xp        || 0;
+    p.completed      = true;
+
+    // Preferencje (tablice)
+    if (Array.isArray(api.sports)             && api.sports.length)
+      p.sports = api.sports;
+    if (Array.isArray(api.training_focus)     && api.training_focus.length)
+      p.goals = api.training_focus;
+    if (Array.isArray(api.available_equipment) && api.available_equipment.length)
+      p.equipment = api.available_equipment;
+    if (Array.isArray(api.avoid_exercises)    && api.avoid_exercises.length)
+      p.exclusions = api.avoid_exercises;
+
+    // ── Jeśli backend ma zapisany weekly_plan → użyj go ─────────────────
+    var planLoaded = false;
+    if (api.weekly_plan && typeof api.weekly_plan === 'object') {
+      var wp = api.weekly_plan;
+      // Format backendu: {diet: {Pon:[...], Wt:[...]}, training: {Pon:[...], ...}}
+      if (wp.diet || wp.dieta) {
+        p.dietPlan     = wp.diet     || wp.dieta     || {};
+        p.trainingPlan = wp.training || wp.trening   || {};
+        planLoaded = true;
+      }
+      // Format alternatywny: klucze bezpośrednio jak {Pon:{meals:[],exercises:[]}}
+      else if (wp['Pon'] || wp['Wt']) {
+        var dietPlan = {}, trainingPlan = {};
+        ['Pon','Wt','Śr','Czw','Pt','Sob','Niedz'].forEach(function(day) {
+          var d = wp[day] || {};
+          dietPlan[day]     = Array.isArray(d.meals)     ? d.meals     : (Array.isArray(d) ? d : []);
+          trainingPlan[day] = Array.isArray(d.exercises) ? d.exercises : [];
+        });
+        p.dietPlan     = dietPlan;
+        p.trainingPlan = trainingPlan;
+        planLoaded = true;
+      }
+    }
+
+    // ── Jeśli backend nie ma planu → wygeneruj lokalnie z danych profilu ─
+    if (!planLoaded || !Object.keys(p.dietPlan || {}).length) {
+      if (typeof generateFullPlanForProfile === 'function') {
+        var generated = generateFullPlanForProfile(p);
+        p.dietPlan     = generated.dietPlan;
+        p.trainingPlan = generated.trainingPlan;
+        console.log('[syncProfile] Plan wygenerowany lokalnie z profilu backendu');
+      }
+    } else {
+      console.log('[syncProfile] Plan załadowany z backendu');
+    }
+
+    // ── Zapisz zaktualizowany state ──────────────────────────────────────
+    if (typeof saveState === 'function') saveState();
+
+    // ── Przeładuj widok Mój Dzień jeśli jest aktywny ─────────────────────
+    if (typeof initActiveDayFromPlan === 'function') initActiveDayFromPlan();
+    if (typeof updateDashboard === 'function') updateDashboard();
+
+    console.log('[syncProfile] ✅ Profil zsynchronizowany:', p.name, '| plan dni:', Object.keys(p.dietPlan || {}).join(', '));
+
+  } catch (err) {
+    console.error('[syncProfile] Błąd:', err);
+  }
+}
+window.syncProfileFromBackend = syncProfileFromBackend;
 </script>
 
 </body>
