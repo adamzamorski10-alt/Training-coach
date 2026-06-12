@@ -14,6 +14,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import logging
 import os
 import random
 import secrets
@@ -49,13 +50,13 @@ try:
         WEEKLY_PLAN_PROMPT,
         RECOVERY_PROMPT,
     )
-    print("[FitAI] prompts.py imported OK — AI prompt templates active.")
+    logger.info("[FitAI] prompts.py imported OK — AI prompt templates active.")
 except ImportError:
     # Graceful fallback so the API still starts if prompts.py is absent.
     # All prompt variables are set to None; every call site has an
     # inline fallback string that mirrors the prompts.py content.
     KITCHEN_PROMPT = PROGRESSION_PROMPT = WEEKLY_PLAN_PROMPT = RECOVERY_PROMPT = None
-    print("[FitAI] WARN: prompts.py not found — inline fallback prompts will be used.")
+    logger.warning("[FitAI] WARN: prompts.py not found — inline fallback prompts will be used.")
 
 # ── Inline fallback definitions (mirror prompts.py, used when import fails) ──
 # These are only active when KITCHEN_PROMPT etc. are None after the import.
@@ -101,7 +102,7 @@ def _get_prompt(template, fallback: str, **kwargs) -> str:
         return source.format(**safe_kwargs)
     except KeyError as exc:
         # Brakująca zmienna w szablonie — loguj i zwróć fallback
-        print(f"[FitAI] WARN: prompt KeyError {exc} — using raw fallback")
+        logger.error(f"[FitAI] WARN: prompt KeyError {exc} — using raw fallback")
         try:
             return fallback.format(**safe_kwargs)
         except KeyError:
@@ -139,11 +140,42 @@ AI_RATE_PER_HOUR:   str = os.getenv("AI_RATE_PER_HOUR",   "50/hour")
 
 load_dotenv()
 
+# ─── Logging configuration ────────────────────────────────────────────────────
+# Logi trafiają do pliku (fitai.log) oraz na stdout, dzięki czemu są widoczne
+# w logach platformy hostingowej (Render/Railway) i można je przeglądać lokalnie.
+ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[
+        logging.FileHandler("fitai.log", encoding="utf-8"),
+        logging.StreamHandler(),
+    ],
+)
+logger = logging.getLogger("fitai")
+
 # ─── JWT / Auth configuration ─────────────────────────────────────────────────
 
-# Klucz tajny — w produkcji ustaw w zmiennej środowiskowej JWT_SECRET_KEY
+# Klucz tajny — w produkcji USTAW w zmiennej środowiskowej JWT_SECRET_KEY.
 # Generuj: python -c "import secrets; print(secrets.token_hex(32))"
-JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", secrets.token_hex(32))
+# W trybie produkcyjnym brak JWT_SECRET_KEY jest błędem krytycznym (tokeny
+# wygenerowane przed restartem przestałyby działać po regeneracji klucza).
+# W trybie deweloperskim używamy bezpiecznego losowego fallbacku.
+_jwt_secret_env = os.getenv("JWT_SECRET_KEY", "")
+if not _jwt_secret_env:
+    if ENVIRONMENT == "production":
+        raise RuntimeError(
+            "JWT_SECRET_KEY nie jest ustawiony w zmiennych środowiskowych! "
+            "Wymagany w trybie produkcyjnym (ENVIRONMENT=production)."
+        )
+    logger.warning(
+        "JWT_SECRET_KEY nie ustawiony — używam losowego klucza tymczasowego "
+        "(tylko dla dewelopmentu, tokeny wygasną po restarcie serwera)."
+    )
+    _jwt_secret_env = secrets.token_hex(32)
+
+JWT_SECRET_KEY: str = _jwt_secret_env
 JWT_ALGORITHM  = "HS256"
 JWT_EXPIRE_MIN = int(os.getenv("JWT_EXPIRE_MIN", "10080"))   # 7 dni domyślnie
 
@@ -171,13 +203,15 @@ def _verify_password(plain: str, stored: str) -> bool:
 
 # ─── JWT helpers ──────────────────────────────────────────────────────────────
 
-def _create_access_token(user_id: str, email: str, role: str) -> str:
+def _create_access_token(user_id: str, email: str, role: str, user_number: Optional[int] = None, name: Optional[str] = None) -> str:
     """Tworzy podpisany token JWT z payloadem użytkownika."""
     exp = datetime.utcnow() + timedelta(minutes=JWT_EXPIRE_MIN)
     payload = {
         "sub": str(user_id),      # subject = primary key w DB (UUID)
         "email": email,
         "role": role,
+        "user_number": user_number,
+        "name": name,
         "exp": exp,
         "iat": datetime.utcnow(),
         "jti": secrets.token_hex(8),   # unikalny ID tokena (do blacklistowania)
@@ -571,7 +605,7 @@ def _ensure_users_columns():
                     conn.execute(_text(f"ALTER TABLE users ADD COLUMN {name} {ddl_type}"))
             conn.commit()
     except OperationalError as exc:
-        print(f"[FitAI] Ostrzeżenie: nie udało się zaktualizować users: {exc}")
+        logger.warning(f"[FitAI] Ostrzeżenie: nie udało się zaktualizować users: {exc}")
 
 
 def create_db_and_tables():
@@ -612,7 +646,7 @@ def _ensure_daily_log_columns():
                     conn.execute(_text(f"ALTER TABLE daily_logs ADD COLUMN {name} {ddl_type}"))
             conn.commit()
     except OperationalError as exc:
-        print(f"[FitAI] Ostrzeżenie: nie udało się zaktualizować daily_logs: {exc}")
+        logger.warning(f"[FitAI] Ostrzeżenie: nie udało się zaktualizować daily_logs: {exc}")
 
 
 def _create_composite_indexes():
@@ -646,7 +680,7 @@ def _create_composite_indexes():
             conn.commit()
     except OperationalError as exc:
         # Non-fatal: indexes are a performance hint, not a correctness requirement
-        print(f"[FitAI] Ostrzeżenie: nie udało się utworzyć indeksu kompozytowego: {exc}")
+        logger.warning(f"[FitAI] Ostrzeżenie: nie udało się utworzyć indeksu kompozytowego: {exc}")
 
 
 # ─── App setup ────────────────────────────────────────────────────────────────
@@ -675,7 +709,7 @@ async def sqlalchemy_error_handler(request: Request, exc: SQLAlchemyError) -> JS
     exc_msg  = str(exc).split("\n")[0]          # pierwsza linia — bez traceback SQL
     endpoint = request.url.path
 
-    print(
+    logger.error(
         f"[FitAI][SQLAlchemyError] {exc_type} @ {request.method} {endpoint} — {exc_msg}"
     )
 
@@ -715,7 +749,7 @@ async def generic_error_handler(request: Request, exc: Exception) -> JSONRespons
     if isinstance(exc, HTTPException):
         raise exc
 
-    print(
+    logger.info(
         f"[FitAI][UnhandledException] {exc_type} @ {request.method} {endpoint} — {exc}"
     )
 
@@ -733,6 +767,7 @@ _groq_client:  Optional[_groq_module.Groq]  = None
 _gemini_ready: bool = False
 
 CORS_ORIGINS = [
+    "https://adamzamorski10-alt.github.io",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:8000",
@@ -740,7 +775,6 @@ CORS_ORIGINS = [
     "http://localhost:5500",   # VS Code Live Server
     "http://127.0.0.1:5500",
     "null",                    # file:// origin (lokalne otwarcie index.html)
-    "https://adamzamorski10-alt.github.io",
     "https://training-coach-app.netlify.app",
     "https://fitai-api-v83w.onrender.com",
     "https://training-coach-api.onrender.com",
@@ -766,9 +800,9 @@ def on_startup():
     _groq_key = os.getenv("GROQ_API_KEY", "").strip()
     if _groq_key:
         _groq_client = _groq_module.Groq(api_key=_groq_key)
-        print("[FitAI] OK Groq: klient zainicjalizowany (primary AI).")
+        logger.info("[FitAI] OK Groq: klient zainicjalizowany (primary AI).")
     else:
-        print(
+        logger.warning(
             "[FitAI] WARN GROQ_API_KEY nie jest ustawiony. "
             "Endpointy AI będą używać wyłącznie Gemini (fallback). "
             "Dodaj GROQ_API_KEY do pliku .env, aby włączyć primary AI."
@@ -779,16 +813,16 @@ def on_startup():
     if _gemini_key:
         genai.configure(api_key=_gemini_key)
         _gemini_ready = True
-        print("[FitAI] OK Gemini: klient zainicjalizowany (fallback AI).")
+        logger.info("[FitAI] OK Gemini: klient zainicjalizowany (fallback AI).")
     else:
-        print(
+        logger.warning(
             "[FitAI] WARN GEMINI_API_KEY nie jest ustawiony. "
             "Fallback AI jest wyłączony. "
             "Dodaj GEMINI_API_KEY do pliku .env, aby aktywować fallback."
         )
 
     if not _groq_key and not _gemini_key:
-        print(
+        logger.error(
             "[FitAI] ERROR ŻADEN klucz AI nie jest ustawiony (GROQ_API_KEY, GEMINI_API_KEY). "
             "Endpointy /ai/* i /app/plan/generate zwrócą komunikaty zastępcze."
         )
@@ -869,7 +903,7 @@ def _migrate_json_to_sqlite():
                 ))
         session.commit()
     done_flag.touch()
-    print("[FitAI] Migration from JSON completed.")
+    logger.info("[FitAI] Migration from JSON completed.")
 
 
 # ─── Health check endpoint ───────────────────────────────────────────────────
@@ -895,7 +929,7 @@ def health_check():
             "ai_gemini": "ok" if _gemini_ready else "disabled",
         }
     except Exception as e:
-        print(f"[Health] Database check failed: {e}")
+        logger.error(f"[Health] Database check failed: {e}")
         return {
             "status": "degraded",
             "version": "2.0",
@@ -939,6 +973,7 @@ class TokenResponse(BaseModel):
     name: str
     role: str
     plan: str
+    user_number: Optional[int] = None
 
 
 class ChangePasswordRequest(BaseModel):
@@ -2385,31 +2420,31 @@ def ask_ai(system: str, user_msg: str, max_tokens: int = 800) -> str:
     if _groq_client is not None:
         try:
             text = _call_groq(system, user_msg, max_tokens)
-            print("[FitAI] AI: odpowiedź z Groq OK")
+            logger.info("[FitAI] AI: odpowiedź z Groq OK")
             return text
         except _groq_module.RateLimitError as e:
-            print(f"[FitAI] Groq: limit zapytań — przełączam na Gemini. ({e})")
+            logger.info(f"[FitAI] Groq: limit zapytań — przełączam na Gemini. ({e})")
         except _groq_module.AuthenticationError as e:
-            print(f"[FitAI] Groq: błąd autoryzacji (GROQ_API_KEY?) — przełączam na Gemini. ({e})")
+            logger.error(f"[FitAI] Groq: błąd autoryzacji (GROQ_API_KEY?) — przełączam na Gemini. ({e})")
         except _groq_module.APIConnectionError as e:
-            print(f"[FitAI] Groq: brak połączenia — przełączam na Gemini. ({e})")
+            logger.info(f"[FitAI] Groq: brak połączenia — przełączam na Gemini. ({e})")
         except _groq_module.APIStatusError as e:
-            print(f"[FitAI] Groq: HTTP {e.status_code} — przełączam na Gemini. ({e})")
+            logger.info(f"[FitAI] Groq: HTTP {e.status_code} — przełączam na Gemini. ({e})")
         except Exception as e:
-            print(f"[FitAI] Groq: nieoczekiwany błąd ({type(e).__name__}: {e}) — przełączam na Gemini.")
+            logger.error(f"[FitAI] Groq: nieoczekiwany błąd ({type(e).__name__}: {e}) — przełączam na Gemini.")
     else:
-        print("[FitAI] AI: Groq niedostępny (brak klucza) — próbuję Gemini.")
+        logger.info("[FitAI] AI: Groq niedostępny (brak klucza) — próbuję Gemini.")
 
     # ── Krok 2: Gemini (fallback) ─────────────────────────────────────────────
     if _gemini_ready:
         try:
             text = _call_gemini(system, user_msg, max_tokens)
-            print("[FitAI] AI: odpowiedź z Gemini (fallback) OK")
+            logger.info("[FitAI] AI: odpowiedź z Gemini (fallback) OK")
             return text
         except Exception as e:
-            print(f"[FitAI] Gemini: błąd ({type(e).__name__}: {e}) — serwuję odpowiedź lokalną.")
+            logger.error(f"[FitAI] Gemini: błąd ({type(e).__name__}: {e}) — serwuję odpowiedź lokalną.")
     else:
-        print("[FitAI] AI: Gemini niedostępny (brak klucza) — serwuję odpowiedź lokalną.")
+        logger.info("[FitAI] AI: Gemini niedostępny (brak klucza) — serwuję odpowiedź lokalną.")
 
     # ── Krok 3: Lokalny fallback ──────────────────────────────────────────────
     return _AIError(_fallback_response("oba dostawcy AI niedostępni", system_hint))
@@ -2583,13 +2618,20 @@ def auth_register(payload: RegisterRequest):
                 detail=f"Błąd bazy danych podczas rejestracji: {exc}",
             )
 
-        token = _create_access_token(user.id, user.email, user.role)
+        token = _create_access_token(
+            user.id, 
+            user.email, 
+            user.role, 
+            user_number=user.user_number, 
+            name=user.name
+        )
         return TokenResponse(
             access_token=token,
             user_id=user.id,
             name=user.name,
             role=user.role,
             plan=user.plan,
+            user_number=user.user_number
         )
 
 
@@ -2626,13 +2668,20 @@ def auth_login(payload: LoginRequest):
         if not _verify_password(payload.password, user.hashed_password):
             raise _INVALID
 
-        token = _create_access_token(user.id, user.email, user.role)
+        token = _create_access_token(
+            user.id, 
+            user.email, 
+            user.role, 
+            user_number=user.user_number, 
+            name=user.name
+        )
         return TokenResponse(
             access_token=token,
             user_id=user.id,
             name=user.name,
             role=user.role,
             plan=user.plan,
+            user_number=user.user_number
         )
 
 
@@ -2678,13 +2727,20 @@ def auth_refresh(user: UserDB = Depends(get_current_user)):
     dostaje nowy z przesuniętym `exp`. Bezpieczne zastępstwo refresh tokenów
     dla aplikacji SPA bez backendu sesji.
     """
-    token = _create_access_token(user.id, user.email, user.role)
+    token = _create_access_token(
+        user.id, 
+        user.email, 
+        user.role, 
+        user_number=user.user_number, 
+        name=user.name
+    )
     return TokenResponse(
         access_token=token,
         user_id=user.id,
         name=user.name,
         role=user.role,
         plan=user.plan,
+        user_number=user.user_number
     )
 
 
@@ -2692,6 +2748,50 @@ def auth_refresh(user: UserDB = Depends(get_current_user)):
 
 @app.post("/users/{user_id}")
 def create_or_update_user(user_id: str, profile: UserProfile):
+
+@app.get("/app/day/today", tags=["checkin"])
+def get_today_data(user: UserDB = Depends(get_current_user)):
+    """
+    Zwraca dzisiejszy log oraz zaplanowane posiłki/ćwiczenia z weekly_plan_json.
+    To serce synchronizacji 'Mój Dzień'.
+    """
+    with Session(engine) as session:
+        today_str = date.today().isoformat()
+        log = session.exec(
+            select(DailyLogDB)
+            .where(DailyLogDB.user_id == user.id)
+            .where(DailyLogDB.log_date == today_str)
+        ).first()
+
+        plan = user.get_dict("weekly_plan_json")
+        plan_meals = []
+        plan_workouts = []
+        
+        if plan and "days" in plan:
+            pl_days = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"]
+            today_pl = pl_days[date.today().weekday()]
+            day_entry = next((d for d in plan["days"] if d.get("day") == today_pl), None)
+            if day_entry:
+                plan_meals = day_entry.get("meals", [])
+                plan_workouts = day_entry.get("workout", {}).get("exercises", [])
+
+        kcal_consumed = 0
+        protein_consumed = 0
+        if log:
+            eaten_names = log.get_eaten_meals()
+            for m in plan_meals:
+                if m.get("name") in eaten_names:
+                    kcal_consumed += m.get("kcal", 0)
+                    protein_consumed += m.get("protein", 0)
+
+        return {
+            "log": log.to_dict() if log else None,
+            "plan_meals": plan_meals,
+            "plan_workouts": plan_workouts,
+            "kcal_consumed": kcal_consumed,
+            "protein_consumed": protein_consumed,
+            "date": today_str
+        }
     with Session(engine) as session:
         user = _upsert_user_from_profile(user_id, profile.model_dump(), session)
         return {"status": "ok", "user_id": user_id, "calories_target": user.calories_target}
@@ -3095,11 +3195,11 @@ def app_daily_checkin(log: AppDailyCheckinRequest, user: UserDB = Depends(get_cu
                     ai_recovery_tip = _recovery_raw.strip()
                 else:
                     # Non-fatal: AI niedostępne, zwróć komunikat zastępczy
-                    print(f"[AI ERROR] {datetime.now()}: Błąd w module [Checkin/RecoveryTip]: {_recovery_raw}")
+                    logger.error(f"[AI ERROR] {datetime.now()}: Błąd w module [Checkin/RecoveryTip]: {_recovery_raw}")
                     ai_recovery_tip = _fallback_recovery_tip(_mood_num, _energy_num)
             except Exception as _exc:
                 # Non-fatal — checkin zawsze wraca z wynikiem nawet bez porady AI
-                print(f"[AI ERROR] {datetime.now()}: Błąd w module [Checkin/RecoveryTip]: {type(_exc).__name__}: {_exc}")
+                logger.error(f"[AI ERROR] {datetime.now()}: Błąd w module [Checkin/RecoveryTip]: {type(_exc).__name__}: {_exc}")
                 ai_recovery_tip = _fallback_recovery_tip(_mood_num, _energy_num)
 
         return {
@@ -3259,13 +3359,13 @@ def app_get_plan(user: UserDB = Depends(get_current_user)):
 
     try:
         if not user.weekly_plan_json:
-            print(f"[FitAI][app_get_plan] user_id={user.id} — brak weekly_plan_json, zwracam pustą strukturę")
+            logger.info(f"[FitAI][app_get_plan] user_id={user.id} — brak weekly_plan_json, zwracam pustą strukturę")
             return _EMPTY
 
         # Bezpieczny odczyt JSON — get_dict może zwrócić None gdy pole jest "null"
         raw = user.get_dict("weekly_plan_json")
         if not raw or not isinstance(raw, dict):
-            print(f"[FitAI][app_get_plan] user_id={user.id} — weekly_plan_json jest null/pusty po deserializacji")
+            logger.info(f"[FitAI][app_get_plan] user_id={user.id} — weekly_plan_json jest null/pusty po deserializacji")
             return _EMPTY
 
         # ── Buduj klucze diet i training z listy days ────────────────────────
@@ -3300,17 +3400,17 @@ def app_get_plan(user: UserDB = Depends(get_current_user)):
         result.setdefault("generated_at", None)
         result.setdefault("weekly_goal", None)
 
-        print(f"[FitAI][app_get_plan] user_id={user.id} — OK, dni={len(raw.get('days', []))}")
+        logger.info(f"[FitAI][app_get_plan] user_id={user.id} — OK, dni={len(raw.get('days', []))}")
         return result
 
     except json.JSONDecodeError as exc:
-        print(f"[FitAI][app_get_plan] ERROR user_id={user.id} — Uszkodzony JSON: {exc}")
+        logger.error(f"[FitAI][app_get_plan] ERROR user_id={user.id} — Uszkodzony JSON: {exc}")
         return {**_EMPTY, "error_hint": "corrupted_plan_json", "source": "error"}
     except SQLAlchemyError as exc:
-        print(f"[FitAI][app_get_plan] DB ERROR user_id={user.id} — {type(exc).__name__}: {exc}")
+        logger.error(f"[FitAI][app_get_plan] DB ERROR user_id={user.id} — {type(exc).__name__}: {exc}")
         return {**_EMPTY, "error_hint": "database_error", "source": "error"}
     except Exception as exc:
-        print(f"[FitAI][app_get_plan] ERROR user_id={user.id} — {type(exc).__name__}: {exc}")
+        logger.error(f"[FitAI][app_get_plan] ERROR user_id={user.id} — {type(exc).__name__}: {exc}")
         return {**_EMPTY, "source": "error"}
 
 
@@ -3334,17 +3434,17 @@ def app_generate_plan(payload: PlanGenerateRequest, user: UserDB = Depends(get_c
                     session.commit()
                 except IntegrityError as exc:
                     session.rollback()
-                    print(f"[FitAI][app_generate_plan] IntegrityError user_id={user.id}: {exc}")
+                    logger.error(f"[FitAI][app_generate_plan] IntegrityError user_id={user.id}: {exc}")
                     raise HTTPException(status_code=409, detail="Konflikt zapisu planu — spróbuj ponownie.")
                 except SQLAlchemyError as exc:
                     session.rollback()
-                    print(f"[FitAI][app_generate_plan] SQLAlchemyError user_id={user.id}: {exc}")
+                    logger.error(f"[FitAI][app_generate_plan] SQLAlchemyError user_id={user.id}: {exc}")
                     raise HTTPException(status_code=503, detail="Błąd bazy danych podczas zapisu planu.")
             return {"status": "ok", "plan": user.get_dict("weekly_plan_json")}
     except HTTPException:
         raise   # przekaż HTTPException bez zmian
     except Exception as exc:
-        print(f"[FitAI][app_generate_plan] ERROR user_id={user.id} — {type(exc).__name__}: {exc}")
+        logger.error(f"[FitAI][app_generate_plan] ERROR user_id={user.id} — {type(exc).__name__}: {exc}")
         raise HTTPException(status_code=500, detail="Błąd generowania planu. Spróbuj ponownie.")
 
 
@@ -3717,10 +3817,10 @@ Odpowiedź MUSI być w tym dokładnym formacie JSON (bez żadnego tekstu poza JS
 
     except (json.JSONDecodeError, KeyError, ValueError) as exc:
         # Wymagane przez prompt: log [JSON ERROR] jako pierwsza linia
-        print(f"[JSON ERROR] Nie udało się sparsować planu: {exc}")
+        logger.error(f"[JSON ERROR] Nie udało się sparsować planu: {exc}")
         # Szczegółowy log dla dewelopera: typ wyjątku + surowa odpowiedź AI
-        print(f"[AI ERROR] {datetime.now()}: Błąd w module [regenerate-ai/JSON-parse]: {type(exc).__name__}: {exc}")
-        print(f"[AI ERROR] Raw (200 chars): {raw_content[:200]!r}")
+        logger.error(f"[AI ERROR] {datetime.now()}: Błąd w module [regenerate-ai/JSON-parse]: {type(exc).__name__}: {exc}")
+        logger.error(f"[AI ERROR] Raw (200 chars): {raw_content[:200]!r}")
 
         fallback_payload = json.dumps(
             {
@@ -3768,7 +3868,7 @@ Odpowiedź MUSI być w tym dokładnym formacie JSON (bez żadnego tekstu poza JS
         plan["days"] = new_days
     else:
         # Fallback: brak harmonogramu — zachowaj oryginalne dni bez zmian
-        print(f"[regenerate-ai] Brak 'schedule' w odpowiedzi AI — dni pozostają bez zmian.")
+        logger.info(f"[regenerate-ai] Brak 'schedule' w odpowiedzi AI — dni pozostają bez zmian.")
 
     # ── 5. Zapisz zaktualizowany plan ─────────────────────────────────────────
     plan["ai_regenerated_at"] = datetime.now().isoformat()
@@ -3811,7 +3911,7 @@ def list_sport_drills(sport: str = "", specialization: str = ""):
     # ── Brak sportu lub pusty string ─────────────────────────────────────────
     if not sport or not sport.strip():
         available = sorted(SPORT_DRILLS_DB.keys())
-        print(f"[FitAI][list_sport_drills] Brak parametru sport — dostępne: {available}")
+        logger.info(f"[FitAI][list_sport_drills] Brak parametru sport — dostępne: {available}")
         return {
             "sport":              "",
             "specialization":     specialization,
@@ -3830,7 +3930,7 @@ def list_sport_drills(sport: str = "", specialization: str = ""):
 
         # ── Sport nieobsługiwany w bazie ─────────────────────────────────────
         if sport_lower not in SPORT_DRILLS_DB:
-            print(f"[FitAI][list_sport_drills] Sport '{sport_lower}' nieznany. Dostępne: {available_sports}")
+            logger.info(f"[FitAI][list_sport_drills] Sport '{sport_lower}' nieznany. Dostępne: {available_sports}")
             return {
                 "sport":            sport,
                 "specialization":   specialization,
@@ -3852,7 +3952,7 @@ def list_sport_drills(sport: str = "", specialization: str = ""):
             drills = spec_map.get(spec_lower)
 
             if drills is None:
-                print(f"[FitAI][list_sport_drills] Specjalizacja '{spec_lower}' nieznana dla sportu '{sport_lower}'. Dostępne: {available_specs}")
+                logger.info(f"[FitAI][list_sport_drills] Specjalizacja '{spec_lower}' nieznana dla sportu '{sport_lower}'. Dostępne: {available_specs}")
                 return {
                     "sport":                     sport,
                     "specialization":            specialization,
@@ -3866,7 +3966,7 @@ def list_sport_drills(sport: str = "", specialization: str = ""):
                     ),
                 }
 
-            print(f"[FitAI][list_sport_drills] OK sport='{sport_lower}' spec='{spec_lower}' drills={len(drills)}")
+            logger.info(f"[FitAI][list_sport_drills] OK sport='{sport_lower}' spec='{spec_lower}' drills={len(drills)}")
             return {
                 "sport":            sport,
                 "specialization":   specialization,
@@ -3878,7 +3978,7 @@ def list_sport_drills(sport: str = "", specialization: str = ""):
 
         # ── Wszystkie specjalizacje dla sportu ───────────────────────────────
         all_drills_flat = [d for drills in spec_map.values() for d in drills]
-        print(f"[FitAI][list_sport_drills] OK sport='{sport_lower}' specs={available_specs} total_drills={len(all_drills_flat)}")
+        logger.info(f"[FitAI][list_sport_drills] OK sport='{sport_lower}' specs={available_specs} total_drills={len(all_drills_flat)}")
         return {
             "sport":            sport,
             "specialization":   "",
@@ -3890,7 +3990,7 @@ def list_sport_drills(sport: str = "", specialization: str = ""):
         }
 
     except Exception as exc:
-        print(f"[FitAI][list_sport_drills] ERROR sport='{sport}' spec='{specialization}' — {type(exc).__name__}: {exc}")
+        logger.error(f"[FitAI][list_sport_drills] ERROR sport='{sport}' spec='{specialization}' — {type(exc).__name__}: {exc}")
         # Nigdy nie zwracaj 500 — frontend czeka na [] nie na crash
         return {
             "sport":            sport,
@@ -3992,12 +4092,12 @@ def log_drill_result(payload: DrillResultRequest, user: UserDB = Depends(get_cur
                         ai_coaching_tip = _tip_raw.strip()
                     else:
                         # Fallback algorytmiczny gdy AI niedostępne
-                        print(f"[AI ERROR] {datetime.now()}: Błąd w module [DrillResult/CoachingTip]: {_tip_raw}")
+                        logger.error(f"[AI ERROR] {datetime.now()}: Błąd w module [DrillResult/CoachingTip]: {_tip_raw}")
                         _eff = round((_successes / _total_atts) * 100) if _total_atts > 0 else 0
                         ai_coaching_tip = _fallback_drill_tip(_eff, int(_rpe_val))
                 except Exception as _exc:
                     # Non-fatal — progression algorytmiczny zawsze zwracany
-                    print(f"[AI ERROR] {datetime.now()}: Błąd w module [DrillResult/CoachingTip]: {type(_exc).__name__}: {_exc}")
+                    logger.error(f"[AI ERROR] {datetime.now()}: Błąd w module [DrillResult/CoachingTip]: {type(_exc).__name__}: {_exc}")
                     _eff = round((_successes / _total_atts) * 100) if _total_atts > 0 else 0
                     ai_coaching_tip = _fallback_drill_tip(_eff, int(payload.rpe or 5))
 
@@ -4012,13 +4112,13 @@ def log_drill_result(payload: DrillResultRequest, user: UserDB = Depends(get_cur
     except HTTPException:
         raise
     except SQLAlchemyError as exc:
-        print(f"[FitAI][log_drill_result] SQLAlchemyError user_id={user.id} drill='{payload.drill_name}': {type(exc).__name__}: {exc}")
+        logger.error(f"[FitAI][log_drill_result] SQLAlchemyError user_id={user.id} drill='{payload.drill_name}': {type(exc).__name__}: {exc}")
         raise HTTPException(
             status_code=503,
             detail="Błąd bazy danych podczas zapisu wyniku drilla. Spróbuj ponownie.",
         )
     except Exception as exc:
-        print(f"[FitAI][log_drill_result] ERROR user_id={user.id} — {type(exc).__name__}: {exc}")
+        logger.error(f"[FitAI][log_drill_result] ERROR user_id={user.id} — {type(exc).__name__}: {exc}")
         raise HTTPException(status_code=500, detail="Nieoczekiwany błąd podczas zapisu drilla.")
 
 
@@ -4052,7 +4152,7 @@ def get_drill_history(
             results = list(session.exec(query).all())[:limit]
 
             if not results:
-                print(
+                logger.info(
                     f"[FitAI][get_drill_history] user_id={user.id} drill='{drill_name}' "
                     f"— brak wyników w bazie, zwracam []"
                 )
@@ -4068,13 +4168,13 @@ def get_drill_history(
                 try:
                     progressions[name] = _suggest_drill_progression(name, hist)
                 except Exception as prog_exc:
-                    print(
+                    logger.warning(
                         f"[FitAI][get_drill_history] WARN progresja drill='{name}' "
                         f"— {type(prog_exc).__name__}: {prog_exc}"
                     )
                     progressions[name] = {"tip": "Brak danych do analizy progresji."}
 
-            print(
+            logger.info(
                 f"[FitAI][get_drill_history] user_id={user.id} drill='{drill_name}' "
                 f"— wyniki={len(results)} unique_drills={len(by_name)}"
             )
@@ -4084,7 +4184,7 @@ def get_drill_history(
             }
 
     except Exception as exc:
-        print(
+        logger.error(
             f"[FitAI][get_drill_history] ERROR user_id={user.id} drill='{drill_name}' "
             f"— {type(exc).__name__}: {exc}"
         )
@@ -4170,7 +4270,7 @@ def ai_diet_plan(request: Request, req: AIRequest, user: UserDB = Depends(get_cu
         except HTTPException:
             raise
         except Exception as _exc:
-            print(f"[AI ERROR] {datetime.now()}: Błąd w module [ai/diet]: {type(_exc).__name__}: {_exc}")
+            logger.error(f"[AI ERROR] {datetime.now()}: Błąd w module [ai/diet]: {type(_exc).__name__}: {_exc}")
             # Fallback: zwróć makro bez planu tekstowego
             return {
                 "plan": (
@@ -4237,7 +4337,7 @@ def ai_workout_plan(request: Request, req: AIRequest, user: UserDB = Depends(get
         except HTTPException:
             raise
         except Exception as _exc:
-            print(f"[AI ERROR] {datetime.now()}: Błąd w module [ai/workout]: {type(_exc).__name__}: {_exc}")
+            logger.error(f"[AI ERROR] {datetime.now()}: Błąd w module [ai/workout]: {type(_exc).__name__}: {_exc}")
             return {
                 "plan": (
                     "AI tymczasowo niedostępne. Wykonaj trening według ostatniego "
@@ -4289,7 +4389,7 @@ def ai_analyze_log(request: Request, req: AIRequest, user: UserDB = Depends(get_
         except HTTPException:
             raise
         except Exception as _exc:
-            print(f"[AI ERROR] {datetime.now()}: Błąd w module [ai/analyze-log]: {type(_exc).__name__}: {_exc}")
+            logger.error(f"[AI ERROR] {datetime.now()}: Błąd w module [ai/analyze-log]: {type(_exc).__name__}: {_exc}")
             return {
                 "analysis": (
                     "AI tymczasowo niedostępne. Twój wpis z dziś został zapisany. "
@@ -4334,7 +4434,7 @@ def ai_weekly_summary(request: Request, req: AIRequest, user: UserDB = Depends(g
                 day_type=_day_type_label(_day_type_now),
             )
         except Exception as _fmt_exc:
-            print(f"[AI ERROR] {datetime.now()}: Błąd w module [WeeklySummary/PromptFormat]: {_fmt_exc}")
+            logger.error(f"[AI ERROR] {datetime.now()}: Błąd w module [WeeklySummary/PromptFormat]: {_fmt_exc}")
             _user_msg = f"Profil: {json.dumps(user.to_profile_dict(), ensure_ascii=False)}"
 
         # Dołącz logi tygodniowe — AI ma konkretne dane, nie tylko profil
@@ -4350,13 +4450,13 @@ def ai_weekly_summary(request: Request, req: AIRequest, user: UserDB = Depends(g
         try:
             _weekly_result = ask_claude(_weekly_system, _user_msg, 800)
             if isinstance(_weekly_result, _AIError):
-                print(f"[WeeklySummary] AI error: {_weekly_result}")
+                logger.error(f"[WeeklySummary] AI error: {_weekly_result}")
                 raise HTTPException(status_code=503, detail=str(_weekly_result))
             return {"summary": _weekly_result}
         except HTTPException:
             raise
         except Exception as _exc:
-            print(f"[AI ERROR] {datetime.now()}: Błąd w module [ai/weekly]: {type(_exc).__name__}: {_exc}")
+            logger.error(f"[AI ERROR] {datetime.now()}: Błąd w module [ai/weekly]: {type(_exc).__name__}: {_exc}")
             # Fallback: statyczne podsumowanie z danych logów
             _n_logs = len(logs)
             _workouts_done = sum(1 for l in logs if l.workout)
@@ -4497,13 +4597,13 @@ def app_fridge_chef(request: Request, req: FridgeChefRequest, user: UserDB = Dep
     Na podstawie listy składników z lodówki generuje 1 optymalny przepis
     dopasowany do celu i limitu kalorycznego użytkownika.
     """
-    print(f"[FridgeChef] Incoming request: {len(req.ingredients)} ingredients, strict_mode={req.strict_mode}")
+    logger.info(f"[FridgeChef] Incoming request: {len(req.ingredients)} ingredients, strict_mode={req.strict_mode}")
     
     if not req.ingredients:
-        print("[FridgeChef] ERROR: Empty ingredients list")
+        logger.error("[FridgeChef] ERROR: Empty ingredients list")
         raise HTTPException(status_code=422, detail="Lista składników nie może być pusta.")
     if len(req.ingredients) > 30:
-        print(f"[FridgeChef] ERROR: Too many ingredients ({len(req.ingredients)} > 30)")
+        logger.error(f"[FridgeChef] ERROR: Too many ingredients ({len(req.ingredients)} > 30)")
         raise HTTPException(status_code=422, detail="Maksymalnie 30 składników naraz.")
 
     try:
@@ -4522,7 +4622,7 @@ def app_fridge_chef(request: Request, req: FridgeChefRequest, user: UserDB = Dep
             avoid_str       = ", ".join(avoid_foods) if avoid_foods else "brak"
             preferred_str   = ", ".join(preferred)   if preferred   else "brak"
 
-            print(f"[FridgeChef] User: {user.name}, kcal_target: {kcal_target}, meal_kcal: {meal_kcal}")
+            logger.info(f"[FridgeChef] User: {user.name}, kcal_target: {kcal_target}, meal_kcal: {meal_kcal}")
 
             # Select system prompt based on strict_mode
             system_prompt = _FRIDGE_SYSTEM_STRICT if req.strict_mode else _FRIDGE_SYSTEM_BASE
@@ -4563,7 +4663,7 @@ def app_fridge_chef(request: Request, req: FridgeChefRequest, user: UserDB = Dep
                     "\n\nWygeneruj 4 przepisy zgodnie z instrukcjami systemowymi."
                 )
             except Exception as _fmt_exc:
-                print(f"[AI ERROR] {datetime.now()}: Błąd w module [FridgeChef/PromptFormat]: {_fmt_exc}")
+                logger.error(f"[AI ERROR] {datetime.now()}: Błąd w module [FridgeChef/PromptFormat]: {_fmt_exc}")
                 user_msg = (
                     f"Składniki: {ingredients_str}. Cel: {user.goal or 'brak'}. "
                     f"Alergie: {user.allergies or 'brak'}. Kcal/posiłek: ~{meal_kcal}. "
@@ -4571,18 +4671,18 @@ def app_fridge_chef(request: Request, req: FridgeChefRequest, user: UserDB = Dep
                     "Wygeneruj 4 przepisy zgodnie z instrukcjami systemowymi."
                 )
 
-            print("[FridgeChef] Calling ask_claude()...")
+            logger.info("[FridgeChef] Calling ask_claude()...")
             recipe_text = ask_claude(system_prompt, user_msg, max_tokens=2400)
 
             # Check if ask_claude returned _AIError (fallback response)
             if isinstance(recipe_text, _AIError):
-                print(f"[AI ERROR] {datetime.now()}: Błąd w module [FridgeChef/AskClaude]: {recipe_text}")
+                logger.error(f"[AI ERROR] {datetime.now()}: Błąd w module [FridgeChef/AskClaude]: {recipe_text}")
                 raise HTTPException(
                     status_code=503,
                     detail=f"Błąd serwisu AI: {str(recipe_text)}"
                 )
 
-            print("[FridgeChef] Recipe generated successfully OK")
+            logger.info("[FridgeChef] Recipe generated successfully OK")
             return {
                 "recipe": recipe_text,
                 "meta": {
@@ -4595,10 +4695,10 @@ def app_fridge_chef(request: Request, req: FridgeChefRequest, user: UserDB = Dep
             }
 
     except HTTPException as http_err:
-        print(f"[FridgeChef] HTTP Exception: {http_err.detail}")
+        logger.info(f"[FridgeChef] HTTP Exception: {http_err.detail}")
         raise
     except Exception as err:
-        print(f"[FridgeChef] Unexpected Error: {type(err).__name__}: {err}")
+        logger.error(f"[FridgeChef] Unexpected Error: {type(err).__name__}: {err}")
         raise HTTPException(
             status_code=500,
             detail="Nieoczekiwany błąd podczas generowania przepisu. Spróbuj ponownie."
@@ -4617,13 +4717,13 @@ def app_kitchen_generate(request: Request, req: FridgeChefRequest):
     
     Uwaga: Zamiast JWT, używa identity_id z payloadu do identyfikacji użytkownika.
     """
-    print(f"[KitchenGenerate] Incoming request: identity_id={req.identity_id}, {len(req.ingredients)} ingredients, strict_mode={req.strict_mode}")
+    logger.info(f"[KitchenGenerate] Incoming request: identity_id={req.identity_id}, {len(req.ingredients)} ingredients, strict_mode={req.strict_mode}")
     
     if not req.ingredients:
-        print("[KitchenGenerate] ERROR: Empty ingredients list")
+        logger.error("[KitchenGenerate] ERROR: Empty ingredients list")
         raise HTTPException(status_code=422, detail="Lista składników nie może być pusta.")
     if len(req.ingredients) > 30:
-        print(f"[KitchenGenerate] ERROR: Too many ingredients ({len(req.ingredients)} > 30)")
+        logger.error(f"[KitchenGenerate] ERROR: Too many ingredients ({len(req.ingredients)} > 30)")
         raise HTTPException(status_code=422, detail="Maksymalnie 30 składników naraz.")
 
     try:
@@ -4634,7 +4734,7 @@ def app_kitchen_generate(request: Request, req: FridgeChefRequest):
             ).first()
             
             if not user:
-                print(f"[KitchenGenerate] ERROR: User not found for identity_id={req.identity_id}")
+                logger.error(f"[KitchenGenerate] ERROR: User not found for identity_id={req.identity_id}")
                 raise HTTPException(
                     status_code=404,
                     detail=f"Użytkownik z identity_id='{req.identity_id}' nie znaleziony. Proszę się zalogować."
@@ -4652,9 +4752,9 @@ def app_kitchen_generate(request: Request, req: FridgeChefRequest):
             avoid_str       = ", ".join(avoid_foods) if avoid_foods else "brak"
             preferred_str   = ", ".join(preferred)   if preferred   else "brak"
 
-            print(f"[KitchenGenerate] User: {user.name}, kcal_target: {kcal_target}, meal_kcal: {meal_kcal}")
-            print(f"[KitchenGenerate] Ingredients: {ingredients_str}")
-            print(f"[KitchenGenerate] Avoid foods: {avoid_str}")
+            logger.info(f"[KitchenGenerate] User: {user.name}, kcal_target: {kcal_target}, meal_kcal: {meal_kcal}")
+            logger.info(f"[KitchenGenerate] Ingredients: {ingredients_str}")
+            logger.info(f"[KitchenGenerate] Avoid foods: {avoid_str}")
 
             mode_instruction = (
                 "Używaj WYŁĄCZNIE podanych składników — żadnych dodatków spoza listy. "
@@ -4702,7 +4802,7 @@ def app_kitchen_generate(request: Request, req: FridgeChefRequest):
                 )
                 system_prompt = _kitchen_system
             except Exception as _fmt_exc:
-                print(f"[AI ERROR] {datetime.now()}: Błąd w module [KitchenGenerate/PromptFormat]: {_fmt_exc}")
+                logger.error(f"[AI ERROR] {datetime.now()}: Błąd w module [KitchenGenerate/PromptFormat]: {_fmt_exc}")
                 system_prompt = _kitchen_system
                 user_msg = (
                     f"Cel: {user.goal or 'brak'}. Dieta: {user.diet or 'brak'}. "
@@ -4711,19 +4811,19 @@ def app_kitchen_generate(request: Request, req: FridgeChefRequest):
                     f"Tryb: {mode_instruction}.\nWygeneruj 4 przepisy w formacie JSON. TYLKO JSON."
                 )
 
-            print("[KitchenGenerate] Calling ask_claude()...")
+            logger.info("[KitchenGenerate] Calling ask_claude()...")
             try:
                 response_text = ask_claude(system_prompt, user_msg, max_tokens=4096)
                 
                 # Check if ask_claude returned _AIError
                 if isinstance(response_text, _AIError):
-                    print(f"[AI ERROR] {datetime.now()}: Błąd w module [KitchenGenerate/AskClaude]: {response_text}")
+                    logger.error(f"[AI ERROR] {datetime.now()}: Błąd w module [KitchenGenerate/AskClaude]: {response_text}")
                     raise HTTPException(
                         status_code=503,
                         detail=f"Błąd serwisu AI: {str(response_text)}"
                     )
                 
-                print(f"[KitchenGenerate] Raw AI response (first 200 chars): {response_text[:200]}")
+                logger.info(f"[KitchenGenerate] Raw AI response (first 200 chars): {response_text[:200]}")
                 
                 # Try to parse JSON
                 try:
@@ -4738,33 +4838,33 @@ def app_kitchen_generate(request: Request, req: FridgeChefRequest):
                     json_str = json_str.strip()
                     
                     recipes = json.loads(json_str)
-                    print(f"[KitchenGenerate] Parsed {len(recipes)} recipes successfully OK")
+                    logger.info(f"[KitchenGenerate] Parsed {len(recipes)} recipes successfully OK")
                     
                     # Validate structure
                     if not isinstance(recipes, list):
-                        print("[KitchenGenerate] ERROR: Response is not a list")
+                        logger.error("[KitchenGenerate] ERROR: Response is not a list")
                         raise ValueError("Response must be a list of recipes")
                     
                     if len(recipes) == 0:
-                        print("[KitchenGenerate] WARNING: Empty recipes list")
+                        logger.warning("[KitchenGenerate] WARNING: Empty recipes list")
                     
                     # Validate each recipe
                     for i, recipe in enumerate(recipes):
                         if not isinstance(recipe, dict):
-                            print(f"[KitchenGenerate] ERROR: Recipe {i} is not a dict")
+                            logger.error(f"[KitchenGenerate] ERROR: Recipe {i} is not a dict")
                             raise ValueError(f"Recipe {i} must be a dict")
                         required = ["nazwa", "składniki", "opis", "kalorie"]
                         for req_field in required:
                             if req_field not in recipe:
-                                print(f"[KitchenGenerate] WARNING: Recipe {i} missing field '{req_field}'")
+                                logger.warning(f"[KitchenGenerate] WARNING: Recipe {i} missing field '{req_field}'")
                                 recipe[req_field] = "" if req_field != "kalorie" else 0
                     
-                    print("[KitchenGenerate] Recipes validated successfully OK")
+                    logger.info("[KitchenGenerate] Recipes validated successfully OK")
                     return {"recipes": recipes}
                     
                 except json.JSONDecodeError as json_err:
-                    print(f"[KitchenGenerate] JSON Parse Error: {json_err}")
-                    print(f"[KitchenGenerate] Raw response was: {response_text[:500]}")
+                    logger.error(f"[KitchenGenerate] JSON Parse Error: {json_err}")
+                    logger.info(f"[KitchenGenerate] Raw response was: {response_text[:500]}")
                     raise HTTPException(
                         status_code=502,
                         detail=f"AI zwróciło nieprawidłowy format JSON. Spróbuj ponownie."
@@ -4772,17 +4872,17 @@ def app_kitchen_generate(request: Request, req: FridgeChefRequest):
             except HTTPException:
                 raise
             except Exception as ai_err:
-                print(f"[KitchenGenerate] AI call error: {type(ai_err).__name__}: {ai_err}")
+                logger.error(f"[KitchenGenerate] AI call error: {type(ai_err).__name__}: {ai_err}")
                 raise HTTPException(
                     status_code=503,
                     detail=f"Błąd połączenia z AI: {str(ai_err)}"
                 )
     
     except HTTPException as http_err:
-        print(f"[KitchenGenerate] HTTP Exception: {http_err.detail}")
+        logger.info(f"[KitchenGenerate] HTTP Exception: {http_err.detail}")
         raise
     except Exception as err:
-        print(f"[KitchenGenerate] Unexpected Error: {type(err).__name__}: {err}")
+        logger.error(f"[KitchenGenerate] Unexpected Error: {type(err).__name__}: {err}")
         import traceback
         traceback.print_exc()
         raise HTTPException(
@@ -4799,10 +4899,10 @@ def app_meal_prep_plan(request: Request, days: int = 3, extra_context: Optional[
     Analizuje wygenerowany plan posiłków użytkownika na N dni
     i zwraca zbiorczą listę zakupów + harmonogram batch-cooking.
     """
-    print(f"[MealPrepPlan] Incoming request: days={days}, user={user.name}")
+    logger.info(f"[MealPrepPlan] Incoming request: days={days}, user={user.name}")
     
     if not 1 <= days <= 7:
-        print(f"[MealPrepPlan] ERROR: Invalid days parameter ({days})")
+        logger.error(f"[MealPrepPlan] ERROR: Invalid days parameter ({days})")
         raise HTTPException(status_code=422, detail="Parametr days musi być między 1 a 7.")
 
     try:
@@ -4813,7 +4913,7 @@ def app_meal_prep_plan(request: Request, days: int = 3, extra_context: Optional[
             kcal_target    = user.calories_target or calc_calories(user)
             protein_target = user.protein_target  or calc_protein(user)
 
-            print(f"[MealPrepPlan] User targets: {kcal_target} kcal, {protein_target}g protein")
+            logger.info(f"[MealPrepPlan] User targets: {kcal_target} kcal, {protein_target}g protein")
 
             # ── Pobierz wygenerowany plan tygodniowy użytkownika ────────────────
             weekly_plan: dict = {}
@@ -4880,18 +4980,18 @@ def app_meal_prep_plan(request: Request, days: int = 3, extra_context: Optional[
                 f"Wygeneruj kompletny plan meal-prep na {days} dni zgodnie z instrukcjami systemowymi."
             )
 
-            print("[MealPrepPlan] Calling ask_claude()...")
+            logger.info("[MealPrepPlan] Calling ask_claude()...")
             meal_prep_text = ask_claude(_MEAL_PREP_SYSTEM, user_msg, max_tokens=1400)
 
             # Check if ask_claude returned _AIError
             if isinstance(meal_prep_text, _AIError):
-                print(f"[MealPrepPlan] AI Error: {meal_prep_text}")
+                logger.error(f"[MealPrepPlan] AI Error: {meal_prep_text}")
                 raise HTTPException(
                     status_code=503,
                     detail=f"Błąd serwisu AI: {str(meal_prep_text)}"
                 )
 
-            print("[MealPrepPlan] Plan generated successfully OK")
+            logger.info("[MealPrepPlan] Plan generated successfully OK")
             return {
                 "meal_prep_plan": meal_prep_text,
                 "meta": {
@@ -4904,10 +5004,10 @@ def app_meal_prep_plan(request: Request, days: int = 3, extra_context: Optional[
             }
 
     except HTTPException as http_err:
-        print(f"[MealPrepPlan] HTTP Exception: {http_err.detail}")
+        logger.info(f"[MealPrepPlan] HTTP Exception: {http_err.detail}")
         raise
     except Exception as err:
-        print(f"[MealPrepPlan] Unexpected Error: {type(err).__name__}: {err}")
+        logger.error(f"[MealPrepPlan] Unexpected Error: {type(err).__name__}: {err}")
         raise HTTPException(
             status_code=500,
             detail="Nieoczekiwany błąd podczas generowania meal-prep. Spróbuj ponownie."

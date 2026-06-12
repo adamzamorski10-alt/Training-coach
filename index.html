@@ -1441,35 +1441,23 @@
         <a href="#cennik" class="hover:text-white transition-colors">Cennik</a>
       </div>
       <div class="flex items-center gap-3">
-        <div id="userSwitcher" class="hidden relative">
-          <button id="userMenuBtn" class="flex items-center gap-2 px-3 py-2 btn-ghost rounded-xl text-sm font-medium">
+        <div id="userSwitcher" class="hidden flex items-center gap-2">
+          <button onclick="showTab('profile')" class="flex items-center gap-2 px-3 py-2 btn-ghost rounded-xl text-sm font-medium" title="Mój profil">
             <span id="currentUserAvatar"
-              class="w-6 h-6 rounded-full bg-gradient-to-br from-[#00e5ff] to-[#7c3aed] flex items-center justify-center text-black text-xs font-bold">M</span>
-            <span id="currentUserName">Marek</span>
-            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
+              class="w-7 h-7 rounded-full bg-gradient-to-br from-[#00e5ff] to-[#7c3aed] flex items-center justify-center text-black text-xs font-bold">M</span>
+            <span id="currentUserName" class="hidden sm:inline">Marek</span>
           </button>
-          <div id="userDropdown"
-            class="absolute right-0 mt-2 w-56 glass rounded-2xl shadow-2xl opacity-0 pointer-events-none transition-all duration-200 p-2 z-50"
-            style="border-color:rgba(0,229,255,0.2)!important;">
-            <div id="userDropdownList" class="space-y-1 mb-2"></div>
-            <div class="border-t pt-2" style="border-color:var(--border);">
-              <button id="addUserBtn"
-                class="w-full text-left px-3 py-2 text-sm text-cyan-400 hover:bg-white/5 rounded-xl transition-colors font-medium">+
-                Dodaj profil</button>
-            </div>
-            <div class="border-t pt-2 mt-1" style="border-color:var(--border);">
-              <button onclick="logoutUser()"
-                class="w-full flex items-center gap-2 text-left px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/5 rounded-xl transition-colors font-medium">
-                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-                Wyloguj
-              </button>
-            </div>
-          </div>
+          <button onclick="logoutUser()"
+            class="flex items-center gap-1.5 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-colors font-medium btn-ghost"
+            title="Wyloguj">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <span class="hidden sm:inline">Wyloguj</span>
+          </button>
+          <!-- kept for JS compatibility, unused in single-profile mode -->
+          <div id="userDropdownList" class="hidden"></div>
         </div>
         <button id="panelBtn" onclick="openPanelOrAuth()"
           class="btn-neon pulse-neon px-5 py-2 rounded-xl text-sm">PANEL</button>
@@ -4552,103 +4540,8 @@
     </div>
   </div>
 
-  <!-- Add Profile Modal -->
-  <div id="addProfileModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 modal-backdrop">
-    <div class="glass rounded-3xl w-full max-w-sm p-6" style="border-color:var(--border-cyan)!important;">
-      <div class="flex justify-between items-center mb-5">
-        <h5 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;">Nowy profil</h5>
-        <button onclick="closeAddProfileModal()" class="text-gray-500 hover:text-white">✕</button>
-      </div>
-      <div class="space-y-3">
-        <div style="margin-bottom:4px;">
-          <label style="display:block;font-size:12px;color:#9ca3af;margin-bottom:6px;letter-spacing:0.05em;">
-            NICK <span style="color:#ef4444;">*</span>
-          </label>
-          <div style="position:relative;">
-            <input
-              type="text" id="reg-nickname" maxlength="30" autocapitalize="off" autocomplete="off"
-              placeholder="np. fitjakub2026"
-              style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:11px 40px 11px 14px;color:white;font-size:14px;transition:border-color .2s;"
-              onfocus="this.style.borderColor='rgba(0,229,255,0.5)'"
-              onblur="this.style.borderColor='rgba(255,255,255,0.1)'"
-              oninput="checkRegNickname(this.value)"
-            />
-            <div id="reg-nickname-status" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:14px;"></div>
-          </div>
-          <p id="reg-nickname-msg" style="font-size:11px;color:#6b7280;margin:4px 0 0;">Min. 3 znaki · tylko a-z, 0-9, _ - .</p>
-        </div>
-        <div><label class="block text-xs text-gray-400 mb-1">Imię *</label><input type="text" id="newProfileName"
-            placeholder="Twoje imię" class="w-full"></div>
-        <div class="grid grid-cols-2 gap-3">
-          <div><label class="block text-xs text-gray-400 mb-1">Wiek *</label><input type="number" id="newProfileAge"
-              placeholder="25" class="w-full"></div>
-          <div><label class="block text-xs text-gray-400 mb-1">Płeć</label><select id="newProfileGender" class="w-full">
-              <option value="mężczyzna">Mężczyzna</option>
-              <option value="kobieta">Kobieta</option>
-            </select></div>
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div><label class="block text-xs text-gray-400 mb-1">Wzrost (cm)</label><input type="number"
-              id="newProfileHeight" placeholder="170" class="w-full"></div>
-          <div><label class="block text-xs text-gray-400 mb-1">Waga (kg)</label><input type="number"
-              id="newProfileWeight" placeholder="65" class="w-full"></div>
-        </div>
-      </div>
 
-      <!-- Exercise Info Modal -->
-      <div id="exerciseInfoModal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4"
-        style="background:rgba(0,0,0,0.85);backdrop-filter:blur(12px);">
-        <div class="glass rounded-3xl w-full max-w-md p-6 space-y-5 max-h-[80vh] overflow-y-auto"
-          style="position:relative;">
-          <div style="position:absolute;right:14px;top:12px;z-index:10;">
-            <button onclick="closeExerciseInfoModal()" class="text-gray-400 hover:text-white text-2xl leading-none"
-              aria-label="Zamknij">×</button>
-          </div>
-
-          <div style="padding-bottom:6px;">
-            <h5 class="text-lg font-bold text-white" style="font-family:'Syne',sans-serif;margin:0;">Szczegóły Ćwiczenia
-            </h5>
-            <div id="exerciseInfoName" class="font-extrabold text-2xl"
-              style="color:var(--cyan);margin-top:8px;line-height:1.15;word-break:break-word;"> </div>
-            <div id="exerciseInfoBadges" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;"> </div>
-          </div>
-
-          <section>
-            <h6 class="text-xs font-semibold" style="color:var(--muted);margin:0 0 6px 0;">Opis / Instrukcje</h6>
-            <div id="exerciseInfoExecution" class="text-sm"
-              style="color:#111827;line-height:1.6;padding:12px;background:rgba(255,255,255,0.96);border-radius:10px;border:1px solid rgba(255,255,255,0.28);box-shadow:inset 0 1px 0 rgba(255,255,255,0.25);">
-            </div>
-          </section>
-
-          <section style="display:grid;grid-template-columns:1fr;gap:8px;">
-            <div>
-              <h6 class="text-xs font-semibold" style="color:var(--muted);margin:0 0 6px 0;">Korzyści</h6>
-              <div id="exerciseInfoBenefits" class="text-sm" style="color:rgba(255,255,255,0.85);"></div>
-            </div>
-            <div>
-              <h6 class="text-xs font-semibold" style="color:var(--muted);margin:0 0 6px 0;">Szczegóły</h6>
-              <div id="exerciseInfoExtras" class="text-sm" style="color:rgba(255,255,255,0.75);"></div>
-            </div>
-          </section>
-
-          <div style="display:flex;gap:10px;">
-            <button onclick="openTrainingExerciseAddModalForExercise()"
-              class="flex-1 py-3 rounded-xl font-extrabold text-sm"
-              style="background:linear-gradient(135deg,var(--cyan),var(--violet));color:#000;">✅ Dodaj do planu</button>
-            <button onclick="closeExerciseInfoModal()" class="flex-0 py-3 rounded-xl font-bold text-sm"
-              style="background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted);">Zamknij</button>
-          </div>
-        </div>
-      </div>
-      <div class="flex gap-3 mt-5">
-        <button onclick="createNewProfile()" class="flex-1 btn-neon py-2 rounded-xl font-bold text-sm">Utwórz
-          Profil</button>
-        <button onclick="closeAddProfileModal()" class="flex-1 btn-ghost py-2 rounded-xl text-sm">Anuluj</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Shopping List Modal -->
+<!-- Shopping List Modal -->
   <div id="shoppingModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 modal-backdrop">
     <div class="glass rounded-3xl w-full max-w-xl p-6 max-h-[90vh] overflow-y-auto"
       style="border-color:var(--border-cyan)!important;">
@@ -4710,7 +4603,6 @@
         // Generuj: "user_" + timestamp + losowe 4 znaki → unikalny, czytelny ID
         id = 'user_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
         localStorage.setItem(STORAGE_KEY, id);
-        console.log('[FitAI] Nowe ID urządzenia wygenerowane:', id);
       }
       // Udostępnij globalnie — używane przez water tracker, API calls, itp.
       window.FITAI_USER_ID = id;
@@ -4725,8 +4617,12 @@
 
     const state = {
       view: 'landing',
-      currentProfile: null,
-      profiles: [],
+      profile: null,
+      // Legacy aliases — keep single-profile compatibility
+      get currentProfile() { return this.profile?.id || null; },
+      set currentProfile(v) { /* no-op in single-profile mode */ },
+      get profiles() { return this.profile ? [this.profile] : []; },
+      set profiles(arr) { if (Array.isArray(arr) && arr.length) this.profile = arr[0]; },
       currentDay: 0,
       days: ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'],
       expandedItem: null,
@@ -7435,26 +7331,36 @@
         var dn = localStorage.getItem('fitai_display_name') || '';
         var el = document.getElementById('profile-display-name');
         if (el && dn) el.textContent = dn;
-        // Powitalny napis w nawigacji jeśli istnieje
         var navName = document.getElementById('nav-user-name')
           || document.getElementById('headerUserName');
         if (navName && dn) navName.textContent = dn;
       })();
 
-      const saved = localStorage.getItem('fitai_profiles_v3');
+      // ── Jedno konto = jeden profil ────────────────────────────────────────
+      const saved = localStorage.getItem('fitai_user_data')
+                 || localStorage.getItem('fitai_profiles_v3'); // migracja ze starego klucza
       const savedLogs = localStorage.getItem('fitai_logs_v3');
       const savedChecked = localStorage.getItem('fitai_checked_v3');
+
       if (saved) {
-        state.profiles = JSON.parse(saved);
-        state.currentProfile = state.profiles[0]?.id || null;
-      } else {
-        const p1 = createDefaultProfile('user1', 'Marek');
+        try {
+          const parsed = JSON.parse(saved);
+          // Obsłuż zarówno pojedynczy obiekt (nowy format) jak i tablicę (migracja)
+          state.profile = Array.isArray(parsed) ? parsed[0] : parsed;
+        } catch(e) {
+          console.warn('[initApp] Błąd parsowania profilu:', e);
+        }
+      }
+
+      if (!state.profile) {
+        // Brak zapisanego profilu — utwórz domyślny
+        const p1 = createDefaultProfile('user1', 'Użytkownik');
         const { tdee, protein } = calculateNutrition(p1);
         p1.caloriesTarget = tdee; p1.proteinTarget = protein;
-        state.profiles = [p1];
-        state.currentProfile = 'user1';
+        state.profile = p1;
         saveState();
       }
+
       if (savedLogs) state.dayLogs = JSON.parse(savedLogs);
       if (savedChecked) state.dayChecked = JSON.parse(savedChecked);
       const savedExtras = localStorage.getItem('fitai_extras_v3');
@@ -7492,7 +7398,10 @@
     }
 
     function saveState() {
-      localStorage.setItem('fitai_profiles_v3', JSON.stringify(state.profiles));
+      // Zapisz pojedynczy profil pod nowym kluczem 'fitai_user_data'
+      localStorage.setItem('fitai_user_data', JSON.stringify(state.profile));
+      // Utrzymuj też stary klucz dla kompatybilności
+      localStorage.setItem('fitai_profiles_v3', JSON.stringify(state.profile ? [state.profile] : []));
     }
     function saveLogs() {
       localStorage.setItem('fitai_logs_v3', JSON.stringify(state.dayLogs));
@@ -7577,7 +7486,8 @@
     }
 
     function getCurrentProfile() {
-      return state.profiles.find(p => p.id === state.currentProfile) || state.profiles[0];
+      // Single-profile mode — directly return state.profile
+      return state.profile || null;
     }
 
     function getCurrentDayKey() {
@@ -8498,86 +8408,42 @@
     function renderUserSwitcher() {
       const p = getCurrentProfile();
       if (!p) return;
-      document.getElementById('currentUserAvatar').textContent = p.name[0].toUpperCase();
+      document.getElementById('currentUserAvatar').textContent = (p.name || 'U')[0].toUpperCase();
       document.getElementById('currentUserName').textContent = p.name;
-      document.getElementById('greetingName').textContent = p.name;
+      const greetingEl = document.getElementById('greetingName');
+      if (greetingEl) greetingEl.textContent = p.name;
       const _greetEl = document.getElementById('homeGreeting'); if (_greetEl) { const _hr = new Date().getHours(); _greetEl.textContent = (_hr < 12 ? 'Dzień dobry' : _hr < 18 ? 'Cześć' : 'Dobry wieczór') + ', ' + (p.name || '') + '! ' + (_hr < 12 ? '🌅' : _hr < 18 ? '👋' : '🌙'); }
       const _dateEl = document.getElementById('homeDateLine'); if (_dateEl) { const _d = new Date(); _dateEl.textContent = _d.toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }
-      document.getElementById('headerUserBadge').textContent = p.name + (p.completed ? ' ✅' : ' ⚠️');
-
-      const list = document.getElementById('userDropdownList');
-      list.innerHTML = state.profiles.map(pr => `
-    <button onclick="switchProfile('${pr.id}')" class="w-full flex items-center gap-2 text-left px-3 py-2 text-sm rounded-xl transition-colors ${pr.id === state.currentProfile ? 'bg-white/10 text-cyan-400' : 'text-gray-400 hover:bg-white/5'}">
-      <span class="w-6 h-6 rounded-full bg-gradient-to-br from-[#00e5ff] to-[#7c3aed] flex items-center justify-center text-black text-xs font-bold">${pr.name[0]}</span>
-      <span>${pr.name}</span>
-      ${!pr.completed ? '<span class="ml-auto text-yellow-400 text-xs">W konfiguracji...</span>' : ''}
-      ${pr.id === state.currentProfile ? '<span class="ml-auto text-cyan-400">✓</span>' : ''}
-    </button>
-  `).join('');
-
-      const addBtn = document.getElementById('addUserBtn');
-      addBtn.disabled = state.profiles.length >= 3;
-      addBtn.classList.toggle('opacity-30', state.profiles.length >= 3);
+      const badgeEl = document.getElementById('headerUserBadge');
+      if (badgeEl) badgeEl.textContent = p.name + (p.completed ? ' ✅' : ' ⚠️');
+      // Single-profile mode — no dropdown list needed
     }
 
-    document.getElementById('userMenuBtn').addEventListener('click', () => {
-      const dd = document.getElementById('userDropdown');
-      dd.classList.toggle('opacity-0');
-      dd.classList.toggle('pointer-events-none');
-    });
-    document.addEventListener('click', (e) => {
-      if (!document.getElementById('userMenuBtn').contains(e.target)) {
-        document.getElementById('userDropdown').classList.add('opacity-0', 'pointer-events-none');
-      }
-    });
+    // switchProfile is a no-op in single-profile mode (kept for API compatibility)
+    function switchProfile(id) { /* no-op — single profile */ }
 
-    function switchProfile(id) {
-      state.currentProfile = id;
-      renderUserSwitcher();
-      updateDashboard();
-      document.getElementById('userDropdown').classList.add('opacity-0', 'pointer-events-none');
-    }
-
-    document.getElementById('addUserBtn').addEventListener('click', () => {
-      if (state.profiles.length < 3) document.getElementById('addProfileModal').classList.remove('hidden');
-    });
-
+    // createNewProfile — zachowana dla kompatybilności, w trybie jedno-profilowym
+    // nadpisuje istniejący profil zamiast dodawać nowy
     function createNewProfile() {
-      var regNick = (document.getElementById('reg-nickname')?.value || '').trim().toLowerCase();
-      if (!regNick || regNick.length < 3) {
-        if (typeof showToast === 'function') showToast('Podaj nick (min. 3 znaki)', 'error');
-        return;
-      }
-      if (!window._regNickValid) {
-        if (typeof showToast === 'function') showToast('Nick niedostępny lub nieprawidłowy', 'error');
-        return;
-      }
-      const name = document.getElementById('newProfileName').value.trim();
-      const age = parseInt(document.getElementById('newProfileAge').value) || 25;
-      const gender = document.getElementById('newProfileGender').value;
-      const height = parseInt(document.getElementById('newProfileHeight').value) || 170;
-      const weight = parseFloat(document.getElementById('newProfileWeight').value) || 70;
-      if (!name) { alert('Podaj imię!'); return; }
-      const id = 'user_' + Date.now();
+      const name = document.getElementById('newProfileName')?.value.trim();
+      if (!name) { if (typeof showToast === 'function') showToast('Podaj imię!', 'error'); return; }
+      const age = parseInt(document.getElementById('newProfileAge')?.value) || 25;
+      const gender = document.getElementById('newProfileGender')?.value || 'mężczyzna';
+      const height = parseInt(document.getElementById('newProfileHeight')?.value) || 170;
+      const weight = parseFloat(document.getElementById('newProfileWeight')?.value) || 70;
+      const id = (state.profile?.id) || 'user1';
       const profile = createDefaultProfile(id, name, age, height, weight, gender);
       const { tdee, protein } = calculateNutrition(profile);
       profile.caloriesTarget = tdee; profile.proteinTarget = protein;
-      profile.nickname = regNick;
-      localStorage.setItem('fitai_nickname', regNick);
-      state.profiles.push(profile);
-      state.currentProfile = id;
+      state.profile = profile;
       saveState();
       renderUserSwitcher();
-      closeAddProfileModal();
       showTab('profile');
       updateDashboard();
     }
 
     function closeAddProfileModal() {
-      document.getElementById('addProfileModal').classList.add('hidden');
-      ['newProfileName', 'newProfileAge', 'newProfileHeight', 'newProfileWeight'].forEach(id => {
-        const el = document.getElementById(id); if (el) el.value = '';
-      });
+      // Modal usunięty (tryb jedno-profilowy) — no-op dla kompatybilności
     }
 
     // ========== NUTRITION CALCULATOR ==========
@@ -8978,7 +8844,7 @@
       // Group widget
       const groupEl = document.getElementById('groupWidget');
       if (state.profiles.length <= 1) {
-        groupEl.innerHTML = '<p class="text-sm text-gray-500 italic">Dodaj kolejne profile aby zobaczyć porównanie</p>';
+        groupEl.innerHTML = '<p class="text-sm text-gray-500 italic">Twój postęp dnia jest widoczny powyżej.</p>';
       } else {
         groupEl.innerHTML = state.profiles.map(pr => {
           const prCheckedKey = _checkedKey(pr.id, state.currentDay);
@@ -9693,9 +9559,6 @@
       const trainingContainerForFinally = document.getElementById('planTrainingContainer');
       try {
         const p = getCurrentProfile();
-        console.log('[renderTraining] EXERCISE_DB:', typeof window.EXERCISE_DB);
-        console.log('[renderTraining] profile:', p || state?.profile || null);
-        console.log('[renderTraining] trainingPlan:', p?.trainingPlan || state?.weeklyPlan || null);
         if (!p) {
           throw new Error('Brak aktywnego profilu użytkownika.');
         }
@@ -14194,7 +14057,6 @@
     // ── Inicjalizacja ────────────────────────────────────────────────────────
 
     function initActiveDayFromPlan() {
-      console.log('[FitAI] initActiveDayFromPlan()');
       const dateStr = new Date().toDateString();
       const p = typeof getCurrentProfile === 'function' ? getCurrentProfile() : null;
       const dayKey = _extractTodayDayKey();
@@ -15470,7 +15332,6 @@
         ? ['', 'Fatalny', 'Słaby', 'OK', 'Dobry', 'Świetny'][moodScore] || ''
         : '';
 
-      console.log('[saveCheckin] Payload:', JSON.stringify(payload, null, 2));
 
       // ── Wyślij do API ─────────────────────────────────────────────────────
 
@@ -15499,7 +15360,6 @@
           return { error: errDetail, status: res.status };
         }
 
-        console.log('[saveCheckin] ✅ Zapisano w bazie:', data);
         showToast(`✅ Check-in zapisany! +${data?.xp_earned ?? 0} XP 🔥`);
 
         if (typeof updateDashboard === 'function') {
@@ -15545,7 +15405,6 @@
         );
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
-        console.log('[loadCheckinHistory] Załadowano:', data.stats);
         return data;
       } catch (e) {
         console.warn('[loadCheckinHistory] Błąd:', e.message);
@@ -15561,9 +15420,7 @@
       _saveCheckinToAPI()
         .then(apiResult => {
           if (apiResult && !apiResult.error && !apiResult.saved_locally_only) {
-            console.log('[saveCheckin] Dane zapisane w bazie danych');
           } else if (apiResult?.saved_locally_only) {
-            console.log('[saveCheckin] Brak połączenia — dane tylko lokalnie');
           } else if (apiResult?.error) {
             console.error('[saveCheckin] Błąd zapisu do bazy:', apiResult.error);
           }
@@ -16741,7 +16598,6 @@
         genCounter += 1;
         if (genCounter > 20000) break; // safety
       }
-      console.log(`[FitAI] EXERCISE_DB expanded to ${total} exercises across ${Object.keys(EX).length} categories`);
     })();
 
     // Normalize again after dynamic expansion so every newly injected entry has full schema.
@@ -17133,7 +16989,6 @@
           }
         });
         if (typeof window.normalizeSportDrillsPart1 === 'function') window.normalizeSportDrillsPart1();
-        console.log('[FitAI] SPORT_DRILLS ensured min drills per sport');
       } catch (e) { console.warn('[FitAI] ensureMinDrillsPerSport failed', e); }
     })();
 
@@ -17148,7 +17003,7 @@
         }
         const categories = Object.keys(window.MEAL_DB);
         let currentTotal = categories.reduce((s, k) => s + (window.MEAL_DB[k] || []).length, 0);
-        if (currentTotal >= totalMeals) { console.log('[FitAI] MEAL_DB already >=', totalMeals); return; }
+        if (currentTotal >= totalMeals) { return; }
 
         const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
         let genIdx = 1;
@@ -17203,7 +17058,6 @@
           currentTotal += 1; genIdx += 1; catIdx += 1;
           if (genIdx > 5000) break; // safety
         }
-        console.log('[FitAI] ensureMinMeals: MEAL_DB now has', currentTotal, 'meals');
       } catch (e) { console.warn('[FitAI] ensureMinMeals failed', e); }
     })();
 
@@ -17270,7 +17124,6 @@
         });
       });
 
-      console.log('[FitAI] prunePlaceholderContent:', stats);
       return stats;
     };
 
@@ -17287,7 +17140,6 @@
         Object.assign(typeof SPORT_DRILLS !== 'undefined' ? SPORT_DRILLS : {}, window.SPORT_DRILLS || {});
       }
       const _effectiveSD = window.SPORT_DRILLS || (typeof SPORT_DRILLS !== 'undefined' ? SPORT_DRILLS : {});
-      console.log('[FitAI] renderSportDrills: SPORT_DRILLS =', Object.keys(_effectiveSD).length, 'sportów');
       const countDrillsForSport = (sportKey) => {
         const sportData = _effectiveSD[sportKey] || {};
         return Object.values(sportData).reduce((total, cat) => {
@@ -18384,9 +18236,7 @@
     document.getElementById('expandModal').addEventListener('click', function (e) {
       if (e.target === this) closeExpandModal();
     });
-    document.getElementById('addProfileModal').addEventListener('click', function (e) {
-      if (e.target === this) closeAddProfileModal();
-    });
+    // addProfileModal usunięty — listener nie jest potrzebny
     document.getElementById('shoppingModal').addEventListener('click', function (e) {
       if (e.target === this) this.classList.add('hidden');
     });
@@ -20538,7 +20388,6 @@
 
         const addedMeals = _countMeals() - inlineMeals;
         const addedExercises = _countExercises() - inlineExercises;
-        console.log(`[FitAI] loadInitialData: seed załadowany ✅ +${addedMeals} posiłków, +${addedExercises} ćwiczeń`);
         fetchedSeedOk = true;
 
       } catch (fetchErr) {
@@ -20582,7 +20431,6 @@
       try {
         if (typeof window.ensureTotalExercises === 'function') {
           const newTotal = window.ensureTotalExercises(500);
-          console.log('[FitAI] Post-seed ensureTotalExercises result:', newTotal);
         }
       } catch (e) { console.warn('[FitAI] ensureTotalExercises call failed', e); }
 
@@ -20614,9 +20462,6 @@
     function bibliotekaMealFilter() {
       // Użyj window.MEAL_DB jeśli lokalna const jest niedostępna
       const _MEAL_DB = (typeof MEAL_DB !== 'undefined' ? MEAL_DB : null) || window.MEAL_DB || {};
-      console.log('[FitAI] bibliotekaMealFilter: MEAL_DB =',
-        Object.keys(_MEAL_DB).length, 'kategorii,',
-        Object.values(_MEAL_DB).reduce((s, a) => s + (a || []).length, 0), 'posiłków');
       const grid = document.getElementById('bibliotekaMealGrid');
       const countEl = document.getElementById('bibliotekaMealCount');
       const query = (document.getElementById('bibliotekaMealSearch')?.value || '').toLowerCase().trim();
@@ -20782,11 +20627,7 @@
     function renderAtlas() {
       // Użyj window.EXERCISE_DB jeśli lokalna stała nie jest zdefiniowana (shadow fix)
       if (typeof EXERCISE_DB === 'undefined' && window.EXERCISE_DB) {
-        console.log('[FitAI] renderAtlas: używam window.EXERCISE_DB jako fallback');
       }
-      console.log('[FitAI] renderAtlas: EXERCISE_DB =',
-        Object.keys(window.EXERCISE_DB || EXERCISE_DB || {}).length, 'kategorii,',
-        Object.values(window.EXERCISE_DB || EXERCISE_DB || {}).reduce((s, a) => s + (a || []).length, 0), 'ćwiczeń');
       atlasExerciseFilter();
     }
 
@@ -21377,7 +21218,6 @@
 
     // ═══ Global accessibility for HTML onclick handlers ═══
     window.dietDbConfirmAdd = dietDbConfirmAdd;
-    console.log('[FitAI] window.dietDbConfirmAdd assigned:', typeof window.dietDbConfirmAdd);
 
 
     // ====== KUCHNIA AI ======
@@ -21507,13 +21347,6 @@
       const identityId = state.identityId || state.profiles[0]?.id || '';
       const token = state.token || localStorage.getItem('fitai_token') || '';
 
-      // Debug logging
-      console.log('🔍 Składniki:', _kitchen.fridgeTags);
-      console.log('📝 Identity ID:', identityId);
-      console.log('🔐 Token present:', !!token);
-      console.log('[KitchenGenerate] State token:', state.token);
-      console.log('[KitchenGenerate] LocalStorage token:', localStorage.getItem('fitai_token'));
-
       // ─ Walidacja: musi być identity_id ─
       if (!identityId || identityId === '') {
         showToast('⚠️ Nie udało się zidentyfikować użytkownika. Odśwież stronę.');
@@ -21534,7 +21367,6 @@
       try {
         // Test API connectivity
         const _apiBase = window.API_BASE || "http://localhost:8000";
-        console.log('🌐 API Base:', _apiBase);
 
         const pingRes = await fetch(`${_apiBase}/health`, { method: 'GET', signal: AbortSignal.timeout(5000) }).catch(() => null);
         if (!pingRes) {
@@ -21542,7 +21374,6 @@
           console.error('[KitchenGenerate] Health check failed');
           return;
         }
-        console.log('✅ Health check passed');
       } catch (e) {
         showToast('❌ Serwer niedostępny. Spróbuj ponownie za chwilę.');
         console.error('[KitchenGenerate] Health check error:', e);
@@ -21572,9 +21403,7 @@
         const headers = { 'Content-Type': 'application/json' };
         if (token) {
           headers['Authorization'] = `Bearer ${token}`;
-          console.log('[KitchenGenerate] Authorization header added');
         } else {
-          console.log('[KitchenGenerate] Note: No JWT token, using identity_id authentication');
 
         }
 
@@ -21585,8 +21414,6 @@
           strict_mode: _kitchen.strictMode,
         };
 
-        console.log('[KitchenGenerate] Sending request to /app/kitchen/generate');
-        console.log('[KitchenGenerate] Payload:', payload);
 
         const res = await fetch(`${_apiBase}/app/kitchen/generate`, {
           method: 'POST',
@@ -21597,7 +21424,6 @@
         clearInterval(msgInterval);
         clearTimeout(timeoutId);
 
-        console.log('[KitchenGenerate] Response status:', res.status);
 
         // ── Detailed error handling ──
         if (!res.ok) {
@@ -21623,7 +21449,6 @@
         }
 
         const data = await res.json();
-        console.log('[KitchenGenerate] Response data:', data);
 
         if (!data.recipes || !Array.isArray(data.recipes)) {
           throw new Error('Nieprawidłowy format odpowiedzi - brak tablicy przepisów');
@@ -21690,7 +21515,6 @@
         fridgeRenderHistory();
 
         showToast('✅ Przepisy wygenerowane!');
-        console.log('[KitchenGenerate] SUCCESS ✓');
 
       } catch (err) {
         clearInterval(msgInterval);
@@ -22737,7 +22561,6 @@
     // ETAP 5: Ensure all critical functions are globally accessible
     // Override the stub versions from script tag 2 with full implementations
     // ══════════════════════════════════════════════════════════════════════════════
-    console.log('[FitAI ETAP 5] Registering full function implementations...');
 
     window.normalizeCategory = normalizeCategory;
     window.bibliotekaMealFilter = bibliotekaMealFilter;
@@ -22752,14 +22575,6 @@
     // window.dietDbConfirmAdd = dietDbConfirmAdd;
     // window.closeDietDbModal = closeDietDbModal;
 
-    console.log('[FitAI ETAP 5] ✅ All functions registered to window object');
-    console.log('[FitAI ETAP 5] Available functions:', {
-      normalizeCategory: typeof window.normalizeCategory,
-      bibliotekaMealFilter: typeof window.bibliotekaMealFilter,
-      renderAtlas: typeof window.renderAtlas,
-      renderSportDrills: typeof window.renderSportDrills,
-      atlasSetCategory: typeof window.atlasSetCategory,
-    });
 
   </script>
 
@@ -22772,7 +22587,6 @@
       // Rejestracja z ścieżką względną (działa zarówno z serwera jak i file://)
       navigator.serviceWorker.register('./sw.js', { scope: './' })
         .then(registration => {
-          console.log('[PWA] SW zarejestrowany:', registration.scope);
 
           // Nasłuchuj na nową wersję SW czekającą na instalację
           registration.addEventListener('updatefound', () => {
@@ -22797,7 +22611,6 @@
 
         // SW_UPDATED — SW właśnie się zaktualizował (activate wysłał powiadomienie)
         if (type === 'SW_UPDATED') {
-          console.log('[PWA] Nowa wersja SW aktywna:', version);
           showPWAUpdateToast(version);
         }
 
@@ -22813,7 +22626,6 @@
 
         // SW_VERSION — odpowiedź na GET_VERSION
         if (type === 'SW_VERSION') {
-          console.log('[PWA] Wersja SW cache:', version);
         }
       });
 
@@ -22822,7 +22634,6 @@
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (refreshing) return;
         refreshing = true;
-        console.log('[PWA] Nowy SW przejął kontrolę — przeładowuję stronę...');
         window.location.reload();
       });
     }
@@ -24195,7 +24006,6 @@
       // Diagnostic: jeśli boczny przycisk 'profile' jest aktywny, upewnij się, że
       // zawartość Profilu została wyrenderowana (przydatne przy debugowaniu).
       try {
-        console.log('[FitAI] DOMContentLoaded diagnostics — showTab:', typeof window.showTab, 'initApp:', typeof window.initApp);
         const activeNav = document.querySelector('.nav-item.active');
         if (activeNav && activeNav.dataset && activeNav.dataset.tab === 'profile') {
           try {
@@ -24203,7 +24013,6 @@
             // ale w razie błędu wypiszemy go do konsoli.
             if (typeof renderProfileTabs === 'function') {
               renderProfileTabs();
-              console.log('[FitAI] renderProfileTabs() executed by diagnostic hook');
             }
           } catch (e) { console.error('[FitAI] renderProfileTabs() failed in diagnostic hook:', e); }
         }
@@ -25743,6 +25552,24 @@
       if (data.kcal_target) localStorage.setItem('fitai_kcal_target', String(data.kcal_target));
       if (data.protein_target) localStorage.setItem('fitai_protein_target', String(data.protein_target));
 
+      // ─── ZAPISZ DANE DO state.profile (jedno konto = jeden profil) ────────
+      if (typeof state !== 'undefined' && typeof createDefaultProfile === 'function') {
+        var p = state.profile;
+        if (!p) {
+          p = createDefaultProfile(
+            data.user_id || 'user1',
+            data.name || data.display_name || 'Użytkownik'
+          );
+        }
+        p.name           = data.name            || p.name;
+        p.displayName    = data.display_name    || p.displayName;
+        p.caloriesTarget = data.kcal_target     || p.caloriesTarget;
+        p.proteinTarget  = data.protein_target  || p.proteinTarget;
+        p.completed      = true;
+        state.profile = p;
+        if (typeof saveState === 'function') saveState();
+      }
+
       // ─── ZAMKNIJ MODAL ──────────────────────────────────────────────────────
       closeAuthModal();
       setAuthLoading(false);
@@ -25852,16 +25679,15 @@ async function syncProfileFromBackend() {
     // ── Zbuduj obiekt profilu kompatybilny z state.profiles ──────────────
     // Mapuje pola z backendu (snake_case) → profil lokalny (camelCase)
     if (typeof state === 'undefined' || !state) return;
-    var p = state.profiles && state.profiles[0];
+    // Single-profile mode — always use state.profile
+    var p = state.profile;
     if (!p) {
-      // Brak profilu — utwórz domyślny i dodaj do state
       if (typeof createDefaultProfile === 'function') {
         p = createDefaultProfile(
           localStorage.getItem('fitai_user_id') || 'user_api',
           api.name || 'Użytkownik'
         );
-        state.profiles = [p];
-        state.currentProfile = p.id;
+        state.profile = p;
       } else return;
     }
 
@@ -25927,10 +25753,8 @@ async function syncProfileFromBackend() {
         var generated = generateFullPlanForProfile(p);
         p.dietPlan     = generated.dietPlan;
         p.trainingPlan = generated.trainingPlan;
-        console.log('[syncProfile] Plan wygenerowany lokalnie z profilu backendu');
       }
     } else {
-      console.log('[syncProfile] Plan załadowany z backendu');
     }
 
     // ── Zapisz zaktualizowany state ──────────────────────────────────────
@@ -25940,7 +25764,6 @@ async function syncProfileFromBackend() {
     if (typeof initActiveDayFromPlan === 'function') initActiveDayFromPlan();
     if (typeof updateDashboard === 'function') updateDashboard();
 
-    console.log('[syncProfile] ✅ Profil zsynchronizowany:', p.name, '| plan dni:', Object.keys(p.dietPlan || {}).join(', '));
 
   } catch (err) {
     console.error('[syncProfile] Błąd:', err);
