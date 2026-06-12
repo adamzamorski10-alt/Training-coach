@@ -23,6 +23,9 @@
         ? 'http://localhost:8000'
         : 'https://fitai-backend-l918.onrender.com'
     );
+    // Logowanie/rejestracja dostępne tylko na docelowej domenie GitHub Pages.
+    // Otwierając plik lokalnie (file://) lub z innej domeny widoczny jest tylko podgląd.
+    window.IS_LIVE_SITE = (location.hostname === 'adamzamorski10-alt.github.io');
   </script>
   <style>
     * {
@@ -25424,7 +25427,31 @@
 (function() {
   var _currentTab = 'login';
 
+  function showPreviewNotice() {
+    var existing = document.getElementById('preview-notice-toast');
+    if (existing) existing.remove();
+    var t = document.createElement('div');
+    t.id = 'preview-notice-toast';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);'
+      + 'background:rgba(10,11,16,0.95);border:1px solid rgba(0,229,255,0.25);'
+      + 'color:#e2e8f0;padding:14px 20px;border-radius:14px;font-family:\'Plus Jakarta Sans\',sans-serif;'
+      + 'font-size:14px;line-height:1.5;max-width:90vw;text-align:center;z-index:99999;'
+      + 'box-shadow:0 0 30px rgba(0,229,255,0.15);backdrop-filter:blur(12px);';
+    t.innerHTML = 'To jest podgląd lokalny. Logowanie i rejestracja są dostępne tylko na '
+      + '<a href="https://adamzamorski10-alt.github.io/Training-coach/" target="_blank" style="color:#00e5ff;text-decoration:underline;">'
+      + 'stronie live</a>.';
+    document.body.appendChild(t);
+    setTimeout(function() {
+      if (t && t.parentNode) t.remove();
+    }, 5000);
+  }
+
   function openAuthModal(tab) {
+    if (!window.IS_LIVE_SITE) {
+      showPreviewNotice();
+      if (typeof enterDashboard === 'function') enterDashboard();
+      return;
+    }
     tab = tab || 'login';
     var m = document.getElementById('auth-modal');
     if (!m) return;
