@@ -13048,6 +13048,8 @@
           if (typeof renderCurrentDay === 'function') renderCurrentDay();
           if (typeof renderPlanWeekView === 'function') renderPlanWeekView();
           if (typeof loadPlanForDay === 'function') loadPlanForDay();
+          // Przeładuj "Mój Dzień" — bez tego checkboxy posiłków i ćwiczeń nie pojawiają się
+          if (typeof initActiveDayFromPlan === 'function') initActiveDayFromPlan();
           showToastMsg('✅ Plan wygenerowany!', 'success');
           return;
         }
@@ -13055,6 +13057,8 @@
         // Integracja z istniejącym adapterem API
         if (typeof fetchAndRenderPlan === 'function' && token) {
           await fetchAndRenderPlan(true);
+          // Przeładuj "Mój Dzień" po pobraniu planu z API
+          if (typeof initActiveDayFromPlan === 'function') initActiveDayFromPlan();
           showToastMsg('✅ Plan wygenerowany!', 'success');
           return;
         }
@@ -13111,6 +13115,8 @@
         }
 
         renderAIPlan(dietText, trainingText);
+        // Przeładuj "Mój Dzień" — bez tego checkboxy nie pojawiają się po generowaniu
+        if (typeof initActiveDayFromPlan === 'function') initActiveDayFromPlan();
         showToastMsg('✅ Plan wygenerowany!', 'success');
       } catch (e) {
         console.error('[generatePlanAI]', e);
