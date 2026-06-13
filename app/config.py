@@ -14,7 +14,16 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///fitai.db")
 
 # ─── JWT / Auth ────────────────────────────────────────────────────────────────
-JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", secrets.token_hex(32))
+_jwt_secret = os.getenv("JWT_SECRET_KEY", "")
+if not _jwt_secret:
+    import sys
+    if os.getenv("ENV", "development") == "production":
+        print("KRYTYCZNY BŁĄD: JWT_SECRET_KEY nie jest ustawiony w produkcji!", file=sys.stderr)
+        sys.exit(1)
+    else:
+        _jwt_secret = secrets.token_hex(32)
+        print("OSTRZEŻENIE: JWT_SECRET_KEY nie ustawiony — używam losowego klucza (tylko dev!).")
+JWT_SECRET_KEY: str = _jwt_secret
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MIN", "10080"))   # 7 dni domyślnie
 

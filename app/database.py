@@ -14,6 +14,16 @@ engine = create_engine(
     echo=False,
 )
 
+from sqlalchemy import event
+if DATABASE_URL.startswith("sqlite"):
+    @event.listens_for(engine, "connect")
+    def _set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.execute("PRAGMA busy_timeout=5000")
+        cursor.close()
+
 
 def _backfill_user_numbers():
     """Uzupełnia brakujące numery dla starych kont (jednorazowo przy starcie)."""
