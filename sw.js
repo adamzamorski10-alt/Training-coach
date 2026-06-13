@@ -26,7 +26,8 @@
  */
 
 // ── Wersja — zmień przy każdym deploymencie ───────────────────────────────────
-const CACHE_VERSION = 'fitai-v3.2.1';
+const CACHE_VERSION = 'fitai-v3.3.0';
+const API_BASE = 'https://fitai-backend-l918.onrender.com';
 
 // ── Nazwy bucketów cache ───────────────────────────────────────────────────────
 const CACHE = {
@@ -504,6 +505,21 @@ self.addEventListener('sync', event => {
   }
 });
 
+async function getTokenFromClients() {
+  try {
+    const clients = await self.clients.matchAll({ type: 'window' });
+    for (const client of clients) {
+      return new Promise(resolve => {
+        const channel = new MessageChannel();
+        channel.port1.onmessage = e => resolve(e.data?.token || null);
+        client.postMessage({ type: 'GET_TOKEN' }, [channel.port2]);
+        setTimeout(() => resolve(null), 500);
+      });
+    }
+  } catch { return null; }
+  return null;
+}
+
 async function syncPendingLogs() {
   let pendingCache;
   try { pendingCache = await caches.open('fitai-pending-logs'); }
@@ -517,9 +533,13 @@ async function syncPendingLogs() {
     if (!resp) continue;
     try {
       const body   = await resp.json();
-      const result = await fetch('/app/log/daily', {
+      const token  = await getTokenFromClients();
+      const result = await fetch(req.url || (API_BASE + '/app/checkin'), {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': 'Bearer ' + token } : {}),
+        },
         body:    JSON.stringify(body),
       });
       if (result.ok) { await pendingCache.delete(req); synced++; }
@@ -705,6 +725,17 @@ self.addEventListener('message', event => {
         timestamp:      Date.now(),
       });
     })());
+    return;
+  }
+
+  // ── GET_TOKEN ──────────────────────────────────────────────────────────────
+  // Odpowiedź SW na żądanie tokenu z getTokenFromClients().
+  // Klient może nadpisać to zachowanie, wysyłając faktyczny token przez port.
+  if (type === 'GET_TOKEN') {
+    const port = event.ports[0];
+    if (port) {
+      port.postMessage({ token: null });
+    }
     return;
   }
 });

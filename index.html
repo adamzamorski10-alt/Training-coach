@@ -22815,6 +22815,16 @@
         // SW_VERSION — odpowiedź na GET_VERSION
         if (type === 'SW_VERSION') {
         }
+
+        // GET_TOKEN — SW prosi o token JWT do autoryzacji synchronizacji offline
+        if (type === 'GET_TOKEN') {
+          const port = event.ports?.[0];
+          if (port) {
+            const token = localStorage.getItem('fitai_token') || null;
+            port.postMessage({ token });
+          }
+          return;
+        }
       });
 
       // Jeśli kontroler zmienił się (nowy SW przejął kartę) → przeładuj stronę
