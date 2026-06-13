@@ -47,6 +47,10 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class RefreshAccessRequest(BaseModel):
+    refresh_token: str
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
@@ -57,6 +61,7 @@ class TokenResponse(BaseModel):
     name: str
     role: str
     plan: str
+    refresh_token: Optional[str] = None
 
 
 class ChangePasswordRequest(BaseModel):

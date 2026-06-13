@@ -25,7 +25,8 @@ if not _jwt_secret:
         print("OSTRZEŻENIE: JWT_SECRET_KEY nie ustawiony — używam losowego klucza (tylko dev!).")
 JWT_SECRET_KEY: str = _jwt_secret
 JWT_ALGORITHM = "HS256"
-JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MIN", "10080"))   # 7 dni domyślnie
+JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MIN", "30"))          # access token: 30 min
+JWT_REFRESH_EXPIRE_DAYS = int(os.getenv("JWT_REFRESH_EXPIRE_DAYS", "60"))  # refresh token: 60 dni
 
 # ─── Rate Limiting ─────────────────────────────────────────────────────────────
 AI_RATE_PER_MINUTE: str = os.getenv("AI_RATE_PER_MINUTE", "10/minute")

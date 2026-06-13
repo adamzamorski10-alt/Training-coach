@@ -10,7 +10,7 @@ from typing import Optional
 import jwt
 from fastapi import HTTPException, status
 
-from app.config import JWT_ALGORITHM, JWT_EXPIRE_MINUTES, JWT_SECRET_KEY
+from app.config import JWT_ALGORITHM, JWT_EXPIRE_MINUTES, JWT_REFRESH_EXPIRE_DAYS, JWT_SECRET_KEY
 
 
 def create_access_token(user_id: str, email: str, role: str) -> str:
@@ -20,9 +20,23 @@ def create_access_token(user_id: str, email: str, role: str) -> str:
         "sub": str(user_id),      # subject = primary key w DB (UUID)
         "email": email,
         "role": role,
+        "type": "access",
         "exp": exp,
         "iat": datetime.utcnow(),
         "jti": secrets.token_hex(8),   # unikalny ID tokena (do blacklistowania)
+    }
+    return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+
+
+def create_refresh_token(user_id: str) -> str:
+    """Token długotrwały — wyłącznie do wymiany na nowy access token."""
+    exp = datetime.utcnow() + timedelta(days=JWT_REFRESH_EXPIRE_DAYS)
+    payload = {
+        "sub": str(user_id),
+        "type": "refresh",
+        "exp": exp,
+        "iat": datetime.utcnow(),
+        "jti": secrets.token_hex(16),
     }
     return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 

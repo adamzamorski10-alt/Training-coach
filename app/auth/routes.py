@@ -18,12 +18,15 @@ from app.auth import (
     hash_password,
     verify_password,
 )
+from app.auth.jwt_utils import create_refresh_token, decode_token
+from app.config import JWT_EXPIRE_MINUTES
 from app.database import engine, get_session
 from app.fitness.calculations import calc_calories, calc_protein
-from app.models import UserDB
+from app.models import UserDB, UserNumberSequenceDB
 from app.schemas import (
     ChangePasswordRequest,
     LoginRequest,
+    RefreshAccessRequest,
     RegisterRequest,
     TokenResponse,
     UserProfile,
@@ -51,21 +54,14 @@ def register(request: Request, payload: RegisterRequest):
                 detail="Konto z tym e-mailem już istnieje",
             )
 
-        # Generuj unikalny numer użytkownika (atomowo w tej samej sesji)
-        max_number_row = session.exec(
-            select(UserDB.user_number)
-            .where(UserDB.user_number.is_not(None))
-            .order_by(UserDB.user_number.desc())
-        ).first()
-        next_number = (max_number_row or 0) + 1
-
+        # Utwórz użytkownika BEZ user_number na razie — zostanie nadany atomowo poniżej
         user = UserDB(
-            user_key=f"native:user:{next_number}",
+            user_key="native:user:pending",        # tymczasowy — nadpisany po flush()
             email=payload.email.lower().strip(),
             nickname=None,                          # Nick nie jest wymagany
-            user_number=next_number,
+            user_number=None,                       # nadany atomowo przez sekwencję
             hashed_password=hash_password(payload.password),
-            name=payload.name or f"Użytkownik#{next_number:04d}",
+            name=payload.name or "",                # tymczasowe — nadpisane po flush()
             age=payload.age or 25,
             height=payload.height or 170.0,
             weight=payload.weight or 70.0,
@@ -80,14 +76,34 @@ def register(request: Request, payload: RegisterRequest):
         user.calories_target = calc_calories(user)
         user.protein_target = calc_protein(user)
         session.add(user)
+        session.flush()  # user.id jest teraz dostępne, transakcja jeszcze otwarta
+
+        # Atomowe przydzielenie numeru przez AUTOINCREMENT SQLite
+        seq_row = UserNumberSequenceDB(user_id=user.id)
+        session.add(seq_row)
+        session.flush()  # seq_row.id zostaje nadany atomowo przez SQLite
+
+        user.user_number = seq_row.id
+        user.user_key = f"native:user:{seq_row.id}"
+        user.name = payload.name or f"Użytkownik#{seq_row.id:04d}"
+
         try:
             session.commit()
             session.refresh(user)
         except IntegrityError:
             session.rollback()
+            # Sprawdź PRAWDZIWĄ przyczynę konfliktu
+            existing_email = session.exec(
+                select(UserDB).where(UserDB.email == payload.email.lower().strip())
+            ).first()
+            if existing_email:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Konto z tym e-mailem już istnieje",
+                )
             raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Konto z tym e-mailem już istnieje",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Nie udało się utworzyć konta — spróbuj ponownie",
             )
         except SQLAlchemyError as exc:
             session.rollback()
@@ -97,8 +113,10 @@ def register(request: Request, payload: RegisterRequest):
             )
 
         token = create_access_token(user.id, user.email, user.role)
+        refresh_tok = create_refresh_token(user.id)
         return TokenResponse(
             access_token=token,
+            refresh_token=refresh_tok,
             user_id=user.id,
             user_number=user.user_number,
             display_name=user.display_name,
@@ -143,8 +161,10 @@ def login(request: Request, payload: LoginRequest):
             raise _INVALID
 
         token = create_access_token(user.id, user.email, user.role)
+        refresh_tok = create_refresh_token(user.id)
         return TokenResponse(
             access_token=token,
+            refresh_token=refresh_tok,
             user_id=user.id,
             user_number=user.user_number,
             display_name=user.display_name,
@@ -198,8 +218,10 @@ def refresh(user: UserDB = Depends(get_current_user)):
     dla aplikacji SPA bez backendu sesji.
     """
     token = create_access_token(user.id, user.email, user.role)
+    refresh_tok = create_refresh_token(user.id)
     return TokenResponse(
         access_token=token,
+        refresh_token=refresh_tok,
         user_id=user.id,
         user_number=user.user_number,
         display_name=user.display_name,
@@ -226,6 +248,37 @@ def check_nickname(nickname: str, session: Session = Depends(get_session)):
         "nickname": normalized,
         "reason": None if existing is None else "Ten nick jest już zajęty",
     }
+
+
+@router.post("/refresh-access", response_model=dict)
+def refresh_access_token(payload: RefreshAccessRequest, session: Session = Depends(get_session)):
+    """
+    Wymienia długotrwały refresh token na nowy, krótkotrwały access token.
+    Używane automatycznie przez frontend w tle — realizuje "Zapamiętaj urządzenie".
+    """
+    try:
+        decoded = decode_token(payload.refresh_token)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Sesja wygasła — zaloguj się ponownie",
+        )
+
+    if decoded.get("type") != "refresh":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Nieprawidłowy typ tokenu",
+        )
+
+    user = session.get(UserDB, decoded["sub"])
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Konto nieaktywne",
+        )
+
+    new_access = create_access_token(user.id, user.email, user.role)
+    return {"access_token": new_access, "expires_in": JWT_EXPIRE_MINUTES * 60}
 
 
 @router.post("/users/{user_id}", deprecated=True)

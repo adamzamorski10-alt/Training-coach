@@ -157,6 +157,18 @@ class UserDB(SQLModel, table=True):
         }
 
 
+class UserNumberSequenceDB(SQLModel, table=True):
+    """Tabela-sekwencja do atomowego przydzielania user_number.
+
+    INTEGER PRIMARY KEY w SQLite = AUTOINCREMENT — gwarantuje unikalność
+    nawet przy równoczesnych requestach (race condition safe).
+    """
+    __tablename__ = "user_number_sequence"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: str = Field(foreign_key="users.id", unique=True)
+
+
 class DailyLogDB(SQLModel, table=True):
     __tablename__ = "daily_logs"
 

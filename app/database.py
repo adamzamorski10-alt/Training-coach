@@ -6,6 +6,7 @@ from sqlalchemy import text as _text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import Session, SQLModel, create_engine
 from app.config import DATABASE_URL
+from app.models import UserDB, UserNumberSequenceDB  # noqa: F401 — rejestruje tabele w metadata
 
 # Create database engine
 engine = create_engine(
@@ -76,6 +77,28 @@ def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
     _ensure_legacy_sqlite_columns()
     _backfill_user_numbers()    # ← uzupełnia user_number dla istniejących kont
+
+    # Backfill tabeli sekwencji dla kont które już mają user_number,
+    # ale nie mają wpisu w user_number_sequence (stare konta)
+    try:
+        with engine.connect() as conn:
+            rows = conn.execute(
+                _text("""
+                    SELECT id, user_number FROM users
+                    WHERE user_number IS NOT NULL
+                    AND id NOT IN (SELECT user_id FROM user_number_sequence)
+                """)
+            ).fetchall()
+            for uid, unum in rows:
+                conn.execute(
+                    _text("INSERT INTO user_number_sequence (id, user_id) VALUES (:id, :uid)"),
+                    {"id": unum, "uid": uid},
+                )
+            if rows:
+                conn.commit()
+                print(f"[FitAI] Zsynchronizowano user_number_sequence dla {len(rows)} kont")
+    except Exception as exc:
+        print(f"[FitAI] Ostrzeżenie — sync user_number_sequence: {exc}")
 
 
 def _ensure_legacy_sqlite_columns():
