@@ -1506,11 +1506,24 @@
       </div>
       <div class="flex items-center gap-3">
         <div id="userSwitcher" class="hidden flex items-center gap-2">
-          <button onclick="showTab('profile')" class="flex items-center gap-2 px-3 py-2 btn-ghost rounded-xl text-sm font-medium" title="Mój profil">
-            <span id="currentUserAvatar"
-              class="w-7 h-7 rounded-full bg-gradient-to-br from-[#00e5ff] to-[#7c3aed] flex items-center justify-center text-black text-xs font-bold">M</span>
-            <span id="currentUserName" class="hidden sm:inline">Marek</span>
-          </button>
+          <div style="
+            display:flex;align-items:center;gap:8px;
+            padding:6px 12px;
+            background:var(--bg-surface);
+            border:1px solid var(--border-default);
+            border-radius:10px;
+          ">
+            <div id="nav-avatar" style="
+              width:28px;height:28px;border-radius:8px;
+              background:linear-gradient(135deg,var(--cyan-dim),var(--violet-dim));
+              border:1px solid var(--cyan-border);
+              display:flex;align-items:center;justify-content:center;
+              font-size:12px;font-weight:700;color:var(--cyan);
+            ">U</div>
+            <span id="nav-display-name"
+                  style="font:600 13px 'Plus Jakarta Sans',sans-serif;color:var(--text-primary);"
+                  class="hidden sm:inline">Użytkownik</span>
+          </div>
           <button onclick="logoutUser()"
             class="flex items-center gap-1.5 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-colors font-medium btn-ghost"
             title="Wyloguj">
@@ -1520,8 +1533,6 @@
             </svg>
             <span class="hidden sm:inline">Wyloguj</span>
           </button>
-          <!-- kept for JS compatibility, unused in single-profile mode -->
-          <div id="userDropdownList" class="hidden"></div>
         </div>
         <button id="panelBtn" onclick="openPanelOrAuth()"
           class="btn-neon pulse-neon px-5 py-2 rounded-xl text-sm">PANEL</button>
@@ -3749,11 +3760,20 @@
               </h4>
               <p id="profileWelcomeSub" class="text-sm text-gray-400 mt-1"></p>
               <div class="flex items-center gap-2 mt-3">
-                <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">@</span>
-                <span id="profile-display-name"
-                  style="font-size:14px;font-weight:700;font-family:monospace;color:#00e5ff;letter-spacing:.05em;">
-                  ładowanie...
+                <span id="profile-user-display"
+                  style="font:700 16px 'Plus Jakarta Sans',monospace;color:var(--cyan);letter-spacing:0.03em;">
+                  Użytkownik#0001
                 </span>
+                <span style="
+                  font-size:11px;
+                  padding:2px 8px;
+                  border-radius:6px;
+                  background:var(--bg-surface-2);
+                  border:1px solid var(--border-subtle);
+                  color:var(--text-tertiary);
+                ">ID stały</span>
+                <!-- zachowany dla kompatybilności JS — ukryty -->
+                <span id="profile-display-name" style="display:none;">ładowanie...</span>
               </div>
             </div>
 
@@ -7516,12 +7536,26 @@
 
       // Prefill display_name z localStorage (natychmiast, przed API)
       (function prefillDisplayName() {
-        var dn = localStorage.getItem('fitai_display_name') || '';
+        var dn  = localStorage.getItem('fitai_display_name') || '';
+        var num = localStorage.getItem('fitai_user_number')  || '';
+        if (!dn) return;
+
+        // Profil (nowy + legacy)
+        var pd = document.getElementById('profile-user-display');
+        if (pd) pd.textContent = dn;
         var el = document.getElementById('profile-display-name');
-        if (el && dn) el.textContent = dn;
-        var navName = document.getElementById('nav-user-name')
-          || document.getElementById('headerUserName');
-        if (navName && dn) navName.textContent = dn;
+        if (el) el.textContent = dn;
+
+        // Navbar
+        var navName   = document.getElementById('nav-display-name');
+        if (navName) navName.textContent = dn;
+        var navAvatar = document.getElementById('nav-avatar');
+        if (navAvatar && num) navAvatar.textContent = '#' + String(num).padStart(2, '0');
+
+        // Legacy fallbacks
+        var oldNav = document.getElementById('nav-user-name')
+                  || document.getElementById('headerUserName');
+        if (oldNav) oldNav.textContent = dn;
       })();
 
       // ── Jedno konto = jeden profil ────────────────────────────────────────
@@ -8596,8 +8630,31 @@
     function renderUserSwitcher() {
       const p = getCurrentProfile();
       if (!p) return;
-      document.getElementById('currentUserAvatar').textContent = (p.name || 'U')[0].toUpperCase();
-      document.getElementById('currentUserName').textContent = p.name;
+
+      // Stare elementy (kompatybilność wstecz)
+      const oldAvatar = document.getElementById('currentUserAvatar');
+      const oldName   = document.getElementById('currentUserName');
+      if (oldAvatar) oldAvatar.textContent = (p.name || 'U')[0].toUpperCase();
+      if (oldName)   oldName.textContent   = p.name;
+
+      // Nowe elementy navbaru
+      const dn  = p.display_name
+        || (p.user_number ? ('Użytkownik#' + String(p.user_number).padStart(4, '0')) : null)
+        || p.name
+        || 'Użytkownik';
+      const num = p.user_number || localStorage.getItem('fitai_user_number');
+
+      const navName   = document.getElementById('nav-display-name');
+      const navAvatar = document.getElementById('nav-avatar');
+      if (navName)   navName.textContent   = dn;
+      if (navAvatar && num) navAvatar.textContent = '#' + String(num).padStart(2, '0');
+
+      // Profil
+      const profDisplay = document.getElementById('profile-user-display');
+      if (profDisplay) profDisplay.textContent = dn;
+      const profLegacy  = document.getElementById('profile-display-name');
+      if (profLegacy)  profLegacy.textContent  = dn;
+
       const greetingEl = document.getElementById('greetingName');
       if (greetingEl) greetingEl.textContent = p.name;
       const _greetEl = document.getElementById('homeGreeting'); if (_greetEl) { const _hr = new Date().getHours(); _greetEl.textContent = (_hr < 12 ? 'Dzień dobry' : _hr < 18 ? 'Cześć' : 'Dobry wieczór') + ', ' + (p.name || '') + '! ' + (_hr < 12 ? '🌅' : _hr < 18 ? '👋' : '🌙'); }
@@ -9975,6 +10032,14 @@
         || 'Użytkownik';
       var _dispEl = document.getElementById('profile-display-name');
       if (_dispEl) _dispEl.textContent = _dn;
+      var _newDisp = document.getElementById('profile-user-display');
+      if (_newDisp) _newDisp.textContent = _dn;
+      // Navbar
+      var _navName   = document.getElementById('nav-display-name');
+      if (_navName) _navName.textContent = _dn;
+      var _navAvatar = document.getElementById('nav-avatar');
+      var _num = p?.user_number || localStorage.getItem('fitai_user_number');
+      if (_navAvatar && _num) _navAvatar.textContent = '#' + String(_num).padStart(2, '0');
       localStorage.setItem('fitai_display_name', _dn);
 
       // Aktualizuj imię w UI
@@ -22815,16 +22880,6 @@
         // SW_VERSION — odpowiedź na GET_VERSION
         if (type === 'SW_VERSION') {
         }
-
-        // GET_TOKEN — SW prosi o token JWT do autoryzacji synchronizacji offline
-        if (type === 'GET_TOKEN') {
-          const port = event.ports?.[0];
-          if (port) {
-            const token = localStorage.getItem('fitai_token') || null;
-            port.postMessage({ token });
-          }
-          return;
-        }
       });
 
       // Jeśli kontroler zmienił się (nowy SW przejął kartę) → przeładuj stronę
@@ -25773,6 +25828,20 @@
       localStorage.setItem('fitai_plan',         data.plan           || 'free');
       if (data.kcal_target) localStorage.setItem('fitai_kcal_target', String(data.kcal_target));
       if (data.protein_target) localStorage.setItem('fitai_protein_target', String(data.protein_target));
+
+      // ─── AKTUALIZUJ UI (navbar + profil) od razu po zalogowaniu ────────────
+      (function updateNavAfterAuth() {
+        const dn  = data.display_name || 'Użytkownik';
+        const num = data.user_number;
+        const navName   = document.getElementById('nav-display-name');
+        if (navName) navName.textContent = dn;
+        const navAvatar = document.getElementById('nav-avatar');
+        if (navAvatar && num) navAvatar.textContent = '#' + String(num).padStart(2, '0');
+        const profDisplay = document.getElementById('profile-user-display');
+        if (profDisplay) profDisplay.textContent = dn;
+        const profLegacy  = document.getElementById('profile-display-name');
+        if (profLegacy)   profLegacy.textContent  = dn;
+      })();
 
       // ─── ZAPISZ DANE DO state.profile (jedno konto = jeden profil) ────────
       if (typeof state !== 'undefined' && typeof createDefaultProfile === 'function') {
