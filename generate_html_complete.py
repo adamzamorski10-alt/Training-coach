@@ -48,6 +48,8 @@ def main() -> int:
         "openDrillLogWizard",
         "drillWizardModal",
         "exerciseHowToPanel",
+        "exerciseDetailModal",
+        "openExerciseDetailModal",
     ]
     missing = [marker for marker in required_markers if marker not in html]
     if missing:
