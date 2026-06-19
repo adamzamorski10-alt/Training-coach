@@ -9028,6 +9028,20 @@
         const badgeLabel = isDrill ? (category || 'Drill') : (muscle || 'Ćwiczenie');
         const icon = isDrill ? '🏀' : '💪';
 
+        // ── Pobierz how_to: z obiektu lub (dla drilli) z atlasu SPORT_DRILLS ─
+        let howToText = (ex.how_to || '').trim();
+        if (!howToText && isDrill && typeof window.findDrillDescriptionByName === 'function') {
+          const _fd = window.findDrillDescriptionByName(ex.name);
+          if (_fd) {
+            const _parts = [];
+            if (_fd.description)     _parts.push(_fd.description);
+            if (_fd.execution)       _parts.push(_fd.execution);
+            if (_fd.progression_tip) _parts.push('💡 ' + _fd.progression_tip);
+            howToText = _parts.join('\n\n');
+          }
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         return `
               <div class="ex-row-wrap" onclick="toggleExHowTo(this)" id="ex-wrap-${i}">
                 <div class="flex items-center gap-3 p-3.5 rounded-xl transition-all"
@@ -9052,7 +9066,7 @@
                     class="ex-detail-btn"
                     onclick="event.stopPropagation(); openExerciseDetailModal(this)"
                     data-name="${(ex.name || '').replace(/"/g, '&quot;')}"
-                    data-how-to="${((ex.how_to || '').trim()).replace(/"/g, '&quot;')}"
+                    data-how-to="${howToText.replace(/"/g, '&quot;')}"
                     data-notes="${((ex.notes || ex.description || '').trim()).replace(/"/g, '&quot;')}"
                     data-is-drill="${isDrill ? '1' : '0'}"
                     title="Szczegóły ćwiczenia"
@@ -9061,7 +9075,7 @@
                   <span class="ex-chevron">▾</span>
                 </div>
                 <div class="ex-how-to-panel exerciseHowToPanel" id="ex-howto-${i}">
-                  🎯 ${(ex.how_to && ex.how_to.trim()) ? ex.how_to.trim() : 'Brak opisu dla tego ćwiczenia.'}
+                  🎯 ${howToText || 'Brak opisu dla tego ćwiczenia.'}
                 </div>
               </div>`;
       }).join('')}
@@ -9197,9 +9211,23 @@
 
     // ── Exercise Detail Modal ─────────────────────────────────────────────────
     function openExerciseDetailModal(btn) {
-      const name   = btn.getAttribute('data-name')   || '';
-      const howTo  = btn.getAttribute('data-how-to') || '';
-      const notes  = btn.getAttribute('data-notes')  || '';
+      const name    = btn.getAttribute('data-name')     || '';
+      const isDrill = btn.getAttribute('data-is-drill') === '1';
+      let   howTo   = btn.getAttribute('data-how-to')   || '';
+      const notes   = btn.getAttribute('data-notes')    || '';
+
+      // ── Uzupełnij how_to z atlasu drilli gdy brakuje opisu ────────────────
+      if (!howTo.trim() && isDrill && typeof window.findDrillDescriptionByName === 'function') {
+        const found = window.findDrillDescriptionByName(name);
+        if (found) {
+          const parts = [];
+          if (found.description)     parts.push(found.description);
+          if (found.execution)       parts.push(found.execution);
+          if (found.progression_tip) parts.push('💡 ' + found.progression_tip);
+          howTo = parts.join('\n\n');
+        }
+      }
+      // ─────────────────────────────────────────────────────────────────────
 
       // Wypełnij treść
       const title      = document.getElementById('exDetailTitle');
@@ -16202,6 +16230,83 @@
         || (SPORT_DRILLS[sLow] ? sLow : null)       // 4. toLowerCase jako klucz SPORT_DRILLS
         || null;
     }
+
+    // ── findDrillDescriptionByName ───────────────────────────────────────────
+    // Przeszukuje window.SPORT_DRILLS i zwraca pola opisu drilla pasującego
+    // do podanej nazwy (exact match → substring fallback w obie strony).
+    // Przy pierwszym wywołaniu buduje płaski cache window._flatDrillsCache,
+    // kolejne wywołania korzystają z cache'u bez ponownego przeszukiwania.
+    //
+    // @param  {string} name  – nazwa drilla (dowolna wielkość liter, trim OK)
+    // @returns {{ description, execution, benefits, progression_tip,
+    //             category, sport }|null}
+    window.findDrillDescriptionByName = function findDrillDescriptionByName(name) {
+      if (!name || typeof window.SPORT_DRILLS === 'undefined' || !window.SPORT_DRILLS) {
+        return null;
+      }
+
+      // ── Zbuduj cache przy pierwszym wywołaniu ──────────────────────────────
+      if (!window._flatDrillsCache) {
+        const cache = [];
+        for (const [sportKey, sportObj] of Object.entries(window.SPORT_DRILLS)) {
+          if (!sportObj || typeof sportObj !== 'object') continue;
+          for (const [catKey, catObj] of Object.entries(sportObj)) {
+            if (!catObj || !Array.isArray(catObj.drills)) continue;
+            for (const d of catObj.drills) {
+              if (!d || typeof d.name !== 'string') continue;
+              cache.push({
+                nameLower:       d.name.trim().toLowerCase(),
+                description:     d.description     || '',
+                execution:       d.execution       || '',
+                benefits:        Array.isArray(d.benefits)
+                                   ? d.benefits.join(' ') : (d.benefits || ''),
+                progression_tip: d.progression_tip || '',
+                category:        d.category        || catKey,
+                sport:           d.sport           || sportKey,
+              });
+            }
+          }
+        }
+        window._flatDrillsCache = cache;
+      }
+
+      const needle = String(name).trim().toLowerCase();
+      if (!needle) return null;
+
+      const cache = window._flatDrillsCache;
+
+      // 1. Exact match
+      for (const d of cache) {
+        if (d.nameLower === needle) return _drillResult(d);
+      }
+
+      // 2. Substring fallback (w obie strony)
+      for (const d of cache) {
+        if (d.nameLower.includes(needle) || needle.includes(d.nameLower)) {
+          return _drillResult(d);
+        }
+      }
+
+      return null;
+    };
+
+    /** @private – wyodrębnia pola wynikowe z rekordu cache */
+    function _drillResult(d) {
+      return {
+        description:     d.description,
+        execution:       d.execution,
+        benefits:        d.benefits,
+        progression_tip: d.progression_tip,
+        category:        d.category,
+        sport:           d.sport,
+      };
+    }
+
+    /** Unieważnia cache drilli (wywołaj po dynamicznym rozszerzeniu SPORT_DRILLS). */
+    window.invalidateDrillsCache = function invalidateDrillsCache() {
+      window._flatDrillsCache = null;
+    };
+    // ────────────────────────────────────────────────────────────────────────
 
     window.SPORT_DRILLS = window.SPORT_DRILLS || {};
     window.SPORT_DRILLS = {

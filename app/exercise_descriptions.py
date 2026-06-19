@@ -44,6 +44,42 @@ EXERCISE_HOW_TO: dict[str, str] = {
         "Utrzymuj napięty brzuch i pośladki – nie pozwól, by biodra opadały lub unosiły się. "
         "Wydech podczas wycisku, wdech przy opuszczaniu."
     ),
+    "wyciskanie sztangi leżąc": (
+        "Połóż się na ławce płaskiej, ściągnij łopatki i naciśnij stopy mocno do podłogi. "
+        "Opuszczaj sztangę kontrolowanie do dolnej części klatki, łokcie pod kątem ~45° od tułowia. "
+        "Wyciśnij dynamicznie z wydechu, utrzymując lekki łuk w plecach i pięty na podłodze. "
+        "Unikaj odbicia sztangi od klatki piersiowej i przeprostu łokci na szczycie ruchu."
+    ),
+    "wyciskanie hantli na skosie dodatnim": (
+        "Ustaw ławkę pod kątem 30-45°, połóż się i unieś hantle na wyprostowane ramiona nad górną klatkę. "
+        "Opuszczaj synchronicznie, prowadząc hantle po łuku ku górnej klatce – łokcie pod kątem ~75° od tułowia. "
+        "Wyciśnij z powrotem, zbliżając hantle ku sobie na szczycie bez uderzania ich o siebie. "
+        "Nie rozkładaj łokci zbyt szeroko – przeciąża stawy ramienne i zmniejsza zakres pracy klatki."
+    ),
+    "wyciskanie hantli na skosie ujemnym": (
+        "Ustaw ławkę pod kątem ujemnym (-15° do -30°) i zabezpiecz stopy pod wałkiem. "
+        "Unieś hantle na wyprostowane ramiona, następnie opuszczaj kontrolowanie nad dolną klatkę. "
+        "Wyciśnij z wydechu, koncentrując napięcie na dolnej części mięśnia piersiowego większego. "
+        "Zachowaj napięty brzuch przez cały ruch, by ustabilizować tułów na pochyłej ławce."
+    ),
+    "rozpiętki na maszynie (pec deck)": (
+        "Usiądź na maszynie, ustaw oparcie tak by ramiona były równoległe do podłogi, a łokcie na podpórkach. "
+        "Wykonuj ruch łączący ramiona przed sobą w szerokim łuku, skupiając się na ściskaniu klatki. "
+        "Na końcu ruchu zatrzymaj dłonie obok siebie przez 1 sekundę, maksymalnie napinając mięsień piersiowy. "
+        "Powoli wróć do pozycji wyjściowej – nie pozwól ciężarowi gwałtownie rozciągnąć stawu ramiennego."
+    ),
+    "rozpiętki na bramie (kabel dolny)": (
+        "Ustaw karabińczyki kabli w dolnym położeniu, chwyć uchwyty i stań w rozkroku pośrodku bramy. "
+        "Prowadź dłonie od bioder ku górze i przed siebie po szerokim łuku, jak gdybyś obejmował duże drzewo. "
+        "Napnij klatkę na szczycie, zatrzymując ruch gdy dłonie spotkają się na poziomie klatki lub wyżej. "
+        "Opuszczaj powoli z kontrolą, nie pozwalając ciężarom gwałtownie rozciągnąć ramion."
+    ),
+    "wyciskanie na maszynie hammera": (
+        "Usiądź na maszynie, dopasuj oparcie i uchwyty do swojej sylwetki tak, by dłonie były na poziomie klatki. "
+        "Wyciśnij uchwyty do przodu lub w górę pełnym zakresem ruchu, z wydechu napinając klatkę. "
+        "Wróć wolno przez 3-4 sekundy – maszyna pozwala w pełni kontrolować fazę ekscentryczną. "
+        "Idealne ćwiczenie finiszujące – bezpieczniejsze niż wolne ciężary, stosowane przy zmęczeniu mięśni."
+    ),
 
     # ── Plecy ───────────────────────────────────────────────────────────────
     "martwy ciąg konwencjonalny": (
@@ -87,6 +123,24 @@ EXERCISE_HOW_TO: dict[str, str] = {
         "Chwyć hantel, ugnij łokieć i przyciągnij do biodra. "
         "Łokieć blisko tułowia, pełny zakres ruchu z rozciągnięciem na dole. "
         "Nie rotuj tułowiem – ruch pochodzi wyłącznie z barku i łokcia."
+    ),
+    "wiosłowanie na maszynie siedząc (cable row)": (
+        "Usiądź na maszynie, stopy na podpórkach, kolana lekko ugięte, chwyć uchwyt neutralnym lub pronacyjnym chwytem. "
+        "Przyciągnij rączki do brzucha, ściskając łopatki razem na szczycie – tułów pozostaje pionowy bez bujania. "
+        "Zatrzymaj się przez 1 sekundę z ściągniętymi łopatkami, maksymalnie napinając mięśnie pleców. "
+        "Wróć kontrolowanie do wyprostu ramion, pozwalając łopatkom się rozchylić dla pełnego rozciągnięcia."
+    ),
+    "ściąganie drążka wyciągu do klatki (szeroki chwyt)": (
+        "Usiądź przy wyciągu, uda zaciśnięte pod wałkiem, chwyć drążek szeroko nachwytem powyżej barków. "
+        "Lekko odchyl tułów (ok. 15°) i ściągaj drążek łukiem do mostka, angażując mięśnie najszersze grzbietu. "
+        "Na szczycie zatrzymaj ruch na 1 sekundę, mocno ściskając łopatki i napinając latissimusy. "
+        "Wracaj powoli do wyprostu ramion, kontrolując rozciąganie – nie pozwól, by ciężar wyciągnął barki."
+    ),
+    "szrugsy ze sztangą (czworoboczny kapturowy)": (
+        "Stań ze sztangą w dłoniach (chwyt na szerokość barków lub nieco szerzej), ramiona wyprostowane wzdłuż ciała. "
+        "Unieś barki pionowo ku uszom możliwie wysoko, bez angażowania bicepsów ani rotacji barków. "
+        "Zatrzymaj w górnej pozycji na 1-2 sekundy, maksymalnie napinając górną część czworobocznego. "
+        "Opuszczaj powoli z kontrolą – unikaj okrężnych ruchów barkami, bo nie zwiększają efektywności, a przeciążają stawy."
     ),
 
     # ── Nogi ────────────────────────────────────────────────────────────────
@@ -170,6 +224,24 @@ EXERCISE_HOW_TO: dict[str, str] = {
         "Łokcie uniesione do poziomu barków, dłonie za głową na szczycie. "
         "Kluczowe ćwiczenie profilaktyczne – regeneruje równowagę mięśniową barku."
     ),
+    "wyciskanie hantli nad głowę siedząc": (
+        "Usiądź na ławce z oparciem ustawionym pionowo lub lekko odchylonym, hantle trzymaj na poziomie barków z dłońmi skierowanymi do przodu. "
+        "Wyciśnij hantle pionowo nad głowę, zbliżając je ku sobie na szczycie bez uderzania – łokcie lekko przed linią tułowia. "
+        "Zatrzymaj się w górnej pozycji bez blokowania łokci i wróć kontrolowanie do pozycji wyjściowej. "
+        "Aktywuj brzuch i dociskaj plecy do oparcia przez cały ruch – chroni to odcinek lędźwiowy."
+    ),
+    "unoszenie hantli przodem (front raise)": (
+        "Stój lub siedź, hantle w dłoniach przy udach z lekko ugiętymi łokciami. "
+        "Unoś ramiona naprzemiennie lub jednocześnie do przodu i ku górze, aż do poziomu oczu lub barków. "
+        "Prowadź hantle z lekkim ugięciem w łokciu – nie prostuj ramion całkowicie, by zmniejszyć obciążenie stawu. "
+        "Opuszczaj powoli i unikaj szarpania lub użycia pędu tułowia – izolujesz przedni akton barku."
+    ),
+    "odwrotne rozpiętki na maszynie (rear delt fly)": (
+        "Usiądź przodem do maszyny i uchwyć rączki skrzyżowane lub wyprostowane, klatka oparta o podpórkę lub ugięta. "
+        "Rozłóż ramiona poziomo w bok jak skrzydła, angażując tylny akton barku i tylne mięśnie naramienne. "
+        "Na szczycie ruchu zatrzymaj się przez 1 sekundę, mocno ściskając łopatki i mięśnie tylnej części barku. "
+        "Wróć powoli do pozycji wyjściowej – nie pozwól ciężarom opaść gwałtownie, bo tracisz napięcie mięśniowe."
+    ),
 
     # ── Biceps ──────────────────────────────────────────────────────────────
     "uginania ze sztangą stojąc": (
@@ -195,6 +267,24 @@ EXERCISE_HOW_TO: dict[str, str] = {
         "Ugnij łokieć pionowo bez rotacji nadgarstka. "
         "Angażuje brachialis i brachioradialis bardziej niż klasyczne uginanie. "
         "Ćwicz powoli, unikając bujania tułowiem."
+    ),
+    "uginania hantlem na modlitewniku (concentration curl)": (
+        "Usiądź na ławce, oprzyj łokieć pracującej ręki o wewnętrzną stronę uda, hantel swobodnie zwisa w dół. "
+        "Ugnij łokieć płynnym ruchem, prowadząc hantel ku ramionom – łokieć jest zablokowany przez udo, co eliminuje szarpanie. "
+        "Zatrzymaj na szczycie przez 1 sekundę, maksymalnie napinając biceps, potem opuść powoli przez 3-4 sekundy. "
+        "To ćwiczenie o największej izolacji bicepsa – stosuj niski ciężar i pełen zakres ruchu."
+    ),
+    "uginania na wyciągu (cable curl)": (
+        "Stań przed wyciągiem dolnym, chwyć drążek lub uchwyt podchwytem na szerokość barków. "
+        "Ugnij łokcie, prowadząc dłonie ku ramionom – łokcie nieruchome przy boku przez cały ruch. "
+        "Wyciąg zapewnia stałe napięcie mięśniowe przez całą amplitudę, w odróżnieniu od hantli i sztangi. "
+        "Wróć powoli do wyprostu, nie pozwalając ciężarowi wyciągnąć ramion – utrzymuj kontrolę przez pełny zakres."
+    ),
+    "spider curl na ławce skośnej": (
+        "Połóż się klatką na ławce ustawionej pod kątem ~45°, ramiona zwisają swobodnie prostopadle do podłogi. "
+        "Ugnij łokcie, prowadząc hantle lub sztangę ku twarzy – pozycja ciała uniemożliwia użycie rozmachu tułowia. "
+        "Zatrzymaj na szczycie przez 1 sekundę i opuść powoli, czując pełne rozciągnięcie bicepsa w dolnej pozycji. "
+        "Czysta izolacja bez możliwości bujania – stosuj mniejszy ciężar niż przy klasycznych ugięciach stojąc."
     ),
 
     # ── Triceps ─────────────────────────────────────────────────────────────
@@ -228,6 +318,18 @@ EXERCISE_HOW_TO: dict[str, str] = {
         "Zejdź do kąta 90° w łokciach, odepchnij się do góry. "
         "Nie rozchylaj łokci i unikaj wychylania barków przed nadgarstki."
     ),
+    "french press ze sztangą stojąc": (
+        "Stój ze sztangą trzymaną oburącz nad głową na wyprostowanych ramionach, chwyt wąski lub na szerokość barków. "
+        "Zegnij łokcie, opuszczając sztangę za głowę lub ku czołu, trzymając łokcie blisko siebie i bez rozchylania. "
+        "Wyciśnij z powrotem do wyprostu, angażując długą głowę tricepsa, która jest w pełnym rozciągnięciu w dolnej pozycji. "
+        "Aktywuj brzuch, by nie przeprostowywać lędźwi podczas ruchu – wariant stojący wymaga dobrej stabilizacji tułowia."
+    ),
+    "triceps kick-back hantlem": (
+        "Pochyl tułów do ~45° lub oprzyj rękę i kolano o ławkę, łokieć pracującej ręki przy boku na poziomie tułowia. "
+        "Wyprostuj ramię ku tyłowi do pełnego wyprostu łokcia, nie poruszając ramieniem ani tułowiem – izolujesz tricepsa. "
+        "Zatrzymaj się przez 1 sekundę w wyproście, maksymalnie napinając boczną i środkową głowę tricepsa. "
+        "Wróć powoli do kąta 90° w łokciu – nie pozwól, by hantel opadł swobodnie, bo tracisz bodźce ekscentryczne."
+    ),
 
     # ── Brzuch / Core ───────────────────────────────────────────────────────
     "plank": (
@@ -260,14 +362,26 @@ EXERCISE_HOW_TO: dict[str, str] = {
         "Dojedź tak daleko, jak możesz bez opadania bioder. "
         "Wróć kontrolując napięcie brzucha – nie używaj odskoku."
     ),
+    "crunch na maszynie z linką": (
+        "Klęknij lub stań przed wyciągiem górnym, chwyć linę lub drążek i trzymaj przy głowie lub ramionach. "
+        "Zegnij kręgosłup ku dołowi angażując mięśnie prostych brzucha – ruch pochodzi z kręgosłupa, nie z bioder. "
+        "Na szczycie zgięcia zatrzymaj się przez 1 sekundę, maksymalnie kurczą brzuch, potem wróć kontrolowanie. "
+        "Stałe napięcie dzięki wyciągowi eliminuje martwe punkty – utrzymuj wolne tempo i nie ciągnij szyją."
+    ),
+    "hollow body hold": (
+        "Leż na plecach, wyciągnij ręce za głowę i połącz nogi, a następnie unieś jednocześnie ramiona, łopatki i nogi nad podłogę. "
+        "Wciśnij dolną część pleców mocno w podłogę – żadna szczelina między lędźwiami a matą przez cały czas trwania. "
+        "Utrzymuj ciało w kształcie litery U odwróconej, napinając brzuch, pośladki i uda jednocześnie. "
+        "Progresja: zacznij z nogami wyżej i rękami przy biodrach, stopniowo obniżaj nogi i wydłużaj ramiona gdy rosną siły."
+    ),
+
+    # ── Full body / olimpijskie ──────────────────────────────────────────────
     "kettlebell swing": (
         "Stój z kettlebell między stopami, plecy proste. "
         "Zamachu dokonujesz biodrami (hip hinge) – nie przysiadasz. "
         "Kettlebell wychyla się do poziomu barków mocą wyprostu bioder. "
         "Na szczycie napnij pośladki i brzuch, opuść kontrolując łańcuch ciągnięcia."
     ),
-
-    # ── Full body / olimpijskie ──────────────────────────────────────────────
     "clean & press": (
         "Szybko podciągnij sztangę do poziomu ramion (clean). "
         "Bez zatrzymania wyciśnij nad głowę (press). "
@@ -291,6 +405,32 @@ EXERCISE_HOW_TO: dict[str, str] = {
         "Dołek z zamachu ramion, eksploduj do góry i ląduj miękko na całej stopie. "
         "Unikaj lądowania wyłącznie na palcach – zwiększa ryzyko kontuzji ścięgna Achillesa. "
         "Ześnij ze skrzyni krokiem, nie skokiem."
+    ),
+
+    # ── Cardio ──────────────────────────────────────────────────────────────
+    "interwały hiit na bieżni (30 s sprint / 90 s marsz)": (
+        "Rozgrzej się 5 minut spokojnym marszem, następnie wykonaj 8 rund naprzemiennych: 30 sekund sprintu i 90 sekund marszu. "
+        "W fazie sprintu utrzymuj tętno powyżej 85% HRmax – pełna moc, intensywne pompowanie ramionami. "
+        "W fazie marszu aktywnie odpoczywaj, tętno spada poniżej 65% HRmax – nie stój, marsz utrzymuje metabolizm. "
+        "Zakończ 5 minutami schładzającego marszu – gwałtowne zatrzymanie po HIIT zwiększa ryzyko zawrotów głowy."
+    ),
+    "ergometr wioślarski (steady state)": (
+        "Usiądź na ergometrze, stopy w pasach, chwyć rączkę nachwytem i przyjmij pozycję startową: kolana ugięte, tułów lekko do przodu. "
+        "Prowadź ruch sekwencyjnie: nogi → tułów → ręce w fazie pchania; ręce → tułów → nogi w fazie powrotu. "
+        "Utrzymuj stałe tempo 500m split ~2:20-2:40, oddychaj rytmicznie: wydech przy ciągnięciu, wdech przy powrocie. "
+        "Unikaj zaokrąglania pleców i nadmiernego odchylania tułowia – kręgosłup neutralny przez cały czas."
+    ),
+    "skakanka (double under lub single)": (
+        "Stój z lekkim ugięciem kolan, skakanka za plecami, chwyt uchwytów swobodnie przy biodrach. "
+        "Obroty wykonuj nadgarstkami (nie ramionami), skaczysz na palcach z minimalnym ugięciem kolan – odbij jak sprężyna. "
+        "Single under: jedna rotacja na jeden skok; double under: dwa obroty skakanki na jeden wyskok – wymaga wyższego skoku i szybszych nadgarstków. "
+        "Utrzymuj rytmiczny oddech i pionową postawę – garbienie się zaburza timing i prowadzi do potknięć."
+    ),
+    "atak rowerowy (assault bike) - tabata": (
+        "Usiądź na assault bike, dopasuj wysokość siodełka tak by kolana były lekko ugięte w dolnym położeniu pedału. "
+        "Wykonaj protokół Tabata: 8 rund po 20 sekund pełnej mocy (nogi i ręce jednocześnie) i 10 sekund odpoczynku. "
+        "W fazie sprintu pompuj uchwyty i pedałuj z maksymalną mocą – assault bike opiera się tym mocniej, im szybciej pracujesz. "
+        "W fazie odpoczynku trzymaj nogi i ręce nieruchomo lub pedałuj bardzo lekko – nie zsiadaj z roweru między rundami."
     ),
 }
 
