@@ -309,6 +309,10 @@ class PlanUpdateRequest(BaseModel):
     plan: str
 
 
+class WeeklyPlanSaveRequest(BaseModel):
+    plan: dict
+
+
 class PlanGenerateRequest(BaseModel):
     force: bool = False
 

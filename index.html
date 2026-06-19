@@ -7624,6 +7624,80 @@
       localStorage.setItem('fitai_user_data', JSON.stringify(state.profile));
       // Utrzymuj też stary klucz dla kompatybilności
       localStorage.setItem('fitai_profiles_v3', JSON.stringify(state.profile ? [state.profile] : []));
+      if (typeof persistCurrentPlan === 'function') persistCurrentPlan();
+    }
+
+    function buildWeeklyPlanFromProfile(profile) {
+      const p = profile || getCurrentProfile?.();
+      const dayKeys = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
+      const diet = {};
+      const training = {};
+      const days = dayKeys.map(day => {
+        const meals = Array.isArray(p?.dietPlan?.[day]) ? p.dietPlan[day].filter(item => item && !item.hidden) : [];
+        const exercises = Array.isArray(p?.trainingPlan?.[day]) ? p.trainingPlan[day].filter(item => item && !item.hidden) : [];
+        diet[day] = meals;
+        training[day] = exercises;
+        return {
+          day,
+          meals,
+          workout: {
+            title: exercises.length ? 'Trening' : 'Dzień regeneracji',
+            exercises,
+          },
+        };
+      });
+      return {
+        days,
+        diet,
+        training,
+        generated_at: new Date().toISOString(),
+        source: 'frontend_saved',
+      };
+    }
+
+    let _planPersistTimer = null;
+    function _sendWeeklyPlanToBackend(weeklyPlan, keepalive) {
+      const token = localStorage.getItem('fitai_token');
+      if (!token || !window.API_BASE || window._suppressPlanPersist) return Promise.resolve();
+      return fetch(window.API_BASE + '/app/plan/current', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ plan: weeklyPlan }),
+        keepalive: !!keepalive,
+      }).then(async function(response) {
+        if (!response.ok) {
+          const payload = await response.json().catch(function() { return {}; });
+          throw new Error(payload.detail || 'Nie udało się zapisać planu');
+        }
+      });
+    }
+
+    function persistCurrentPlan() {
+      const token = localStorage.getItem('fitai_token');
+      const p = typeof getCurrentProfile === 'function' ? getCurrentProfile() : state.profile;
+      if (!p || (!p.dietPlan && !p.trainingPlan)) return;
+      const weeklyPlan = buildWeeklyPlanFromProfile(p);
+      try { localStorage.setItem('fitai_weekly_plan', JSON.stringify(weeklyPlan)); } catch (e) {}
+      if (!token || !window.API_BASE || window._suppressPlanPersist) return;
+      clearTimeout(_planPersistTimer);
+      _planPersistTimer = setTimeout(async function() {
+        try {
+          await _sendWeeklyPlanToBackend(weeklyPlan, false);
+        } catch (error) {
+          console.warn('[FitAI] Plan sync failed:', error);
+        }
+      }, 250);
+    }
+
+    function flushCurrentPlanPersist() {
+      const p = typeof getCurrentProfile === 'function' ? getCurrentProfile() : state.profile;
+      if (!p || (!p.dietPlan && !p.trainingPlan)) return;
+      clearTimeout(_planPersistTimer);
+      const weeklyPlan = buildWeeklyPlanFromProfile(p);
+      try { localStorage.setItem('fitai_weekly_plan', JSON.stringify(weeklyPlan)); } catch (e) {}
+      _sendWeeklyPlanToBackend(weeklyPlan, true).catch(function(error) {
+        console.warn('[FitAI] Plan sync flush failed:', error);
+      });
     }
     function saveLogs() {
       localStorage.setItem('fitai_logs_v3', JSON.stringify(state.dayLogs));
@@ -20379,7 +20453,10 @@
     window.restoreHistoryPlan = restoreHistoryPlan;
     window.refreshWeeklyAnalysis = refreshWeeklyAnalysis;
 
-    window.addEventListener('beforeunload', saveState);
+    window.addEventListener('beforeunload', function() {
+      saveState();
+      if (typeof flushCurrentPlanPersist === 'function') flushCurrentPlanPersist();
+    });
   </script>
 
   <script>
@@ -26040,10 +26117,30 @@ async function syncProfileFromBackend() {
         ['Pon','Wt','Śr','Czw','Pt','Sob','Niedz'].forEach(function(day) {
           var d = wp[day] || {};
           dietPlan[day]     = Array.isArray(d.meals)     ? d.meals     : (Array.isArray(d) ? d : []);
-          trainingPlan[day] = Array.isArray(d.exercises) ? d.exercises : [];
+          trainingPlan[day] = Array.isArray(d.exercises) ? d.exercises
+                            : Array.isArray(d.workout && d.workout.exercises) ? d.workout.exercises : [];
         });
         p.dietPlan     = dietPlan;
         p.trainingPlan = trainingPlan;
+        planLoaded = true;
+      }
+      // Format kanoniczny backendu: {days:[{day, meals, workout:{exercises:[]}}]}
+      else if (Array.isArray(wp.days)) {
+        var dietFromDays = {}, trainingFromDays = {};
+        ['Pon','Wt','Śr','Czw','Pt','Sob','Niedz'].forEach(function(day) {
+          dietFromDays[day] = [];
+          trainingFromDays[day] = [];
+        });
+        wp.days.forEach(function(d) {
+          if (!d || !d.day) return;
+          var day = String(d.day).trim();
+          if (!dietFromDays.hasOwnProperty(day)) return;
+          dietFromDays[day] = Array.isArray(d.meals) ? d.meals : [];
+          trainingFromDays[day] = Array.isArray(d.exercises) ? d.exercises
+                                : Array.isArray(d.workout && d.workout.exercises) ? d.workout.exercises : [];
+        });
+        p.dietPlan = dietFromDays;
+        p.trainingPlan = trainingFromDays;
         planLoaded = true;
       }
     }
@@ -26059,7 +26156,10 @@ async function syncProfileFromBackend() {
     }
 
     // ── Zapisz zaktualizowany state ──────────────────────────────────────
-    if (typeof saveState === 'function') saveState();
+    if (typeof saveState === 'function') {
+      window._suppressPlanPersist = true;
+      try { saveState(); } finally { window._suppressPlanPersist = false; }
+    }
 
     // ── Przeładuj widok Mój Dzień jeśli jest aktywny ─────────────────────
     if (typeof initActiveDayFromPlan === 'function') initActiveDayFromPlan();

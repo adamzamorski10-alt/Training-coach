@@ -15,7 +15,7 @@ from app.legacy_routes import (
     _is_profile_ready_for_plan,
 )
 from app.models import UserDB
-from app.schemas import PlanGenerateRequest, PlanSwapRequest
+from app.schemas import PlanGenerateRequest, PlanSwapRequest, WeeklyPlanSaveRequest
 
 router = APIRouter(prefix="/app/plan", tags=["plan"])
 
@@ -130,6 +130,37 @@ def app_get_plan(
     except Exception as exc:
         print(f"[FitAI][app_get_plan] ERROR user_id={user.id} — {type(exc).__name__}: {exc}")
         return {**_EMPTY, "source": "error"}
+
+
+@router.put("/current", tags=["plan"])
+def app_save_plan(
+    payload: WeeklyPlanSaveRequest,
+    user: UserDB = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    if not isinstance(payload.plan, dict):
+        raise HTTPException(status_code=422, detail="plan musi być obiektem JSON")
+
+    plan = dict(payload.plan)
+    plan.setdefault("days", [])
+    plan.setdefault("diet", {})
+    plan.setdefault("training", {})
+    plan.setdefault("generated_at", datetime.now().isoformat())
+    plan["source"] = "user_saved"
+
+    try:
+        db_user = session.get(UserDB, user.id)
+        if not db_user:
+            raise HTTPException(status_code=404, detail="Użytkownik nie znaleziony")
+        db_user.set_dict("weekly_plan_json", plan)
+        db_user.updated_at = datetime.now().isoformat()
+        session.add(db_user)
+        session.commit()
+        session.refresh(db_user)
+        return {"status": "ok", "plan": db_user.get_dict("weekly_plan_json")}
+    except SQLAlchemyError as exc:
+        session.rollback()
+        raise HTTPException(status_code=500, detail="Database error — please try again later") from exc
 
 
 @router.post("/swap", tags=["plan"])
