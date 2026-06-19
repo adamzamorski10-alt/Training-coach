@@ -54,6 +54,8 @@ try:
 except ImportError:
     KITCHEN_PROMPT = PROGRESSION_PROMPT = WEEKLY_PLAN_PROMPT = RECOVERY_PROMPT = None
 
+from app.exercise_descriptions import get_how_to
+
 _KITCHEN_PROMPT_FB = (
     "Jestes Ekspertem Kulinarnym FitAI.\n"
     "Skladniki: {ingredients}\n"
@@ -1137,7 +1139,8 @@ def _build_weekly_plan(user: UserDB) -> dict:
                     "sets": "-",
                     "reps": f"{drill['total_attempts']} prób",
                     "notes": drill["description"],
-                    "how_to": drill["progression_tip"],
+                    # Szukaj opisu w DRILL_HOW_TO; jeśli brak – użyj progression_tip jako fallback
+                    "how_to": get_how_to(drill["name"], is_drill=True) or drill.get("progression_tip", ""),
                     "alternatives": [],
                 }
                 for drill in _sport_drills
@@ -1164,6 +1167,9 @@ def _build_weekly_plan(user: UserDB) -> dict:
                     same_group_alts.extend(shuffled_pool.get(comp_key, pool.get(comp_key, []))[:1])
                 workout_items.append({
                     **ex,
+                    # Wzbogać how_to z centralnego słownika; jeśli brak wpisu – zachowaj
+                    # wartość z puli (może być już wypełniona) lub ustaw pusty string.
+                    "how_to": get_how_to(ex["name"], is_drill=False) or ex.get("how_to", ""),
                     "alternatives": [
                         {"name": a["name"], "sets": a["sets"], "reps": a["reps"]}
                         for a in same_group_alts[:3]
@@ -2972,5 +2978,3 @@ def app_logout(user: UserDB = Depends(get_current_user)):
             "JWT wygasa po stronie serwera automatycznie po upływie ważności."
         ),
     }
-
-
