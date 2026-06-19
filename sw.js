@@ -26,7 +26,7 @@
  */
 
 // ── Wersja — zmień przy każdym deploymencie ───────────────────────────────────
-const CACHE_VERSION = 'fitai-v3.3.0';
+const CACHE_VERSION = 'fitai-v3.3.1';
 const API_BASE = 'https://fitai-backend-l918.onrender.com';
 
 // ── Nazwy bucketów cache ───────────────────────────────────────────────────────
@@ -187,7 +187,7 @@ self.addEventListener('fetch', event => {
   if (url.protocol === 'chrome-extension:') return;
 
   const isLocalApi = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
-  const isProductionApi = url.hostname === 'fitai-api-v83w.onrender.com';
+  const isProductionApi = url.hostname === 'fitai-backend-l918.onrender.com' || url.hostname === 'fitai-api-v83w.onrender.com';
   const isApi = isLocalApi || isProductionApi;
   const path = url.pathname;
 

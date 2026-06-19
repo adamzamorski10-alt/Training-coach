@@ -26350,9 +26350,9 @@ async function loadTodayData() {
     window._todayProteinTarget = parseInt(localStorage.getItem('fitai_protein_target') || '150');
 
     var log = data.log || {};
-    var meals = Array.isArray(log.meals) ? log.meals
+    var meals = Array.isArray(log.meals) && log.meals.length ? log.meals
               : Array.isArray(data.plan_meals) ? data.plan_meals : [];
-    var workouts = Array.isArray(log.workouts) ? log.workouts
+    var workouts = Array.isArray(log.workouts) && log.workouts.length ? log.workouts
                  : Array.isArray(data.plan_workouts) ? data.plan_workouts : [];
 
     // Dodatkowe próby wyciągnięcia z JSON-pól
@@ -26407,10 +26407,15 @@ function _loadTodayFromWeeklyPlan() {
 
     // Wyznacz dzień tygodnia PL
     var PL_DAYS = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
+    var PL_SHORT_DAYS = ['Niedz', 'Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob'];
     var todayPL = PL_DAYS[new Date().getDay()];
+    var todayShort = PL_SHORT_DAYS[new Date().getDay()];
 
     var todayPlan = days.find(function(d) {
-      return (d.day || '').trim().toLowerCase() === todayPL.toLowerCase();
+      var day = (d.day || '').trim().toLowerCase();
+      return day === todayPL.toLowerCase()
+          || day === todayShort.toLowerCase()
+          || day === new Date().toISOString().slice(0, 10);
     });
 
     if (!todayPlan) {
@@ -26513,9 +26518,7 @@ async function toggleItem(itemId, itemType, checked) {
     });
     if (!res.ok) { var e = await res.json().catch(function(){return{};}); if(typeof showToast==='function') showToast(e.detail||'Błąd','error'); return; }
     var data = await res.json();
-    var log = data.log || {};
-    renderMealsList(Array.isArray(log.meals) ? log.meals : []);
-    renderWorkoutsList(Array.isArray(log.workouts) ? log.workouts : []);
+    await loadTodayData();
     recalcBars(data.kcal_consumed || 0, data.protein_consumed || 0);
     if (data.xp_earned > 0 && typeof showToast === 'function') showToast('+' + data.xp_earned + ' XP 🔥', 'success');
   } catch (err) { console.error('[toggleItem]', err); }
