@@ -52,7 +52,14 @@ Zaproponuj główne założenie na ten tydzień (priorytet treningowy) oraz jedn
 Mów jak profesjonalny trener.
 """
 
-# 4. ANALIZA MOOD & RECOVERY (AUTOREGULACJA)
+# 4. OPIS NIEZNANEGO ĆWICZENIA / DRILLA (AI FALLBACK)
+HOW_TO_PROMPT = """
+Opisz ćwiczenie/drill '{exercise_name}' w kontekście sportu '{sport_context}'.
+Podaj: (1) na czym polega, (2) jak wykonać poprawnie krok po kroku, (3) najczęstszy błąd.
+Odpowiedź max 4 zdania, po polsku, bez markdown.
+"""
+
+# 5. ANALIZA MOOD & RECOVERY (AUTOREGULACJA)
 RECOVERY_PROMPT = """
 Jesteś Systemem Autoregulacji FitAI. Użytkownik zgłosił swój stan psychofizyczny.
 

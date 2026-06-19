@@ -50,9 +50,9 @@ from app.schemas import (
 )
 
 try:
-    from prompts import KITCHEN_PROMPT, PROGRESSION_PROMPT, WEEKLY_PLAN_PROMPT, RECOVERY_PROMPT
+    from prompts import KITCHEN_PROMPT, PROGRESSION_PROMPT, WEEKLY_PLAN_PROMPT, RECOVERY_PROMPT, HOW_TO_PROMPT
 except ImportError:
-    KITCHEN_PROMPT = PROGRESSION_PROMPT = WEEKLY_PLAN_PROMPT = RECOVERY_PROMPT = None
+    KITCHEN_PROMPT = PROGRESSION_PROMPT = WEEKLY_PLAN_PROMPT = RECOVERY_PROMPT = HOW_TO_PROMPT = None
 
 from app.exercise_descriptions import get_how_to
 
@@ -1015,6 +1015,93 @@ def _exercise_pool() -> dict:
     }
 
 
+# ─── AI how-to generator – fallback dla nieznanych ćwiczeń (plan PRO) ─────────
+
+# Prosty słownik in-memory: klucz = exercise_name.lower()
+# Żywotność: do restartu serwera (jedna sesja procesu). Nie wymaga Redis.
+_HOW_TO_CACHE: dict[str, str] = {}
+
+
+async def _generate_how_to_ai(exercise_name: str, sport_context: str = "") -> str:
+    """
+    Generuje opis ćwiczenia przez Groq (llama-3.1-8b-instant) gdy get_how_to() zwróciło "".
+
+    Zasady:
+    - Sprawdza cache (_HOW_TO_CACHE) przed wywołaniem API – brak duplikowanych zapytań.
+    - Timeout 5 s; przy ImportError (brak biblioteki groq) lub błędzie sieciowym zwraca "".
+    - Wynik (nawet "") jest wpisywany do cache, żeby nie ponawiać przy kolejnych planach.
+    - Model: llama-3.1-8b-instant (szybki, tani – odpowiedni do krótkich opisów).
+    """
+    cache_key = exercise_name.strip().lower()
+
+    # 1. Cache hit – nie pytamy AI dwa razy o to samo ćwiczenie
+    if cache_key in _HOW_TO_CACHE:
+        print(f"[FitAI] how_to cache HIT: '{exercise_name}'")
+        return _HOW_TO_CACHE[cache_key]
+
+    # 2. Biblioteka groq musi być dostępna
+    if _groq_module is None:
+        print("[FitAI] how_to AI: pominięto – biblioteka groq niedostępna (ImportError)")
+        _HOW_TO_CACHE[cache_key] = ""
+        return ""
+
+    # 3. Klucz API musi być skonfigurowany
+    groq_api_key = os.getenv("GROQ_API_KEY", "")
+    if not groq_api_key:
+        print("[FitAI] how_to AI: pominięto – brak GROQ_API_KEY")
+        _HOW_TO_CACHE[cache_key] = ""
+        return ""
+
+    # 4. Zbuduj prompt
+    _prompt_template = (
+        HOW_TO_PROMPT
+        if HOW_TO_PROMPT is not None
+        else (
+            "Opisz ćwiczenie/drill '{exercise_name}' w kontekście sportu '{sport_context}'. "
+            "Podaj: (1) na czym polega, (2) jak wykonać poprawnie krok po kroku, (3) najczęstszy błąd. "
+            "Odpowiedź max 4 zdania, po polsku, bez markdown."
+        )
+    )
+    prompt = _prompt_template.format(
+        exercise_name=exercise_name,
+        sport_context=sport_context or "ogólny",
+    ).strip()
+
+    # 5. Wywołanie Groq z timeoutem 5 s
+    try:
+        import asyncio
+
+        def _sync_call() -> str:
+            client = _groq_module.Groq(api_key=groq_api_key)
+            completion = client.chat.completions.create(
+                model="llama-3.1-8b-instant",
+                max_tokens=200,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            return completion.choices[0].message.content.strip()
+
+        loop = asyncio.get_event_loop()
+        result: str = await asyncio.wait_for(
+            loop.run_in_executor(None, _sync_call),
+            timeout=5.0,
+        )
+        print(f"[FitAI] how_to AI: wygenerowano opis dla '{exercise_name}'")
+        _HOW_TO_CACHE[cache_key] = result
+        return result
+
+    except TimeoutError:
+        print(f"[FitAI] how_to AI: timeout (>5 s) dla '{exercise_name}' – zwracam ''")
+    except asyncio.TimeoutError:
+        print(f"[FitAI] how_to AI: timeout (>5 s) dla '{exercise_name}' – zwracam ''")
+    except ImportError as e:
+        print(f"[FitAI] how_to AI: ImportError ({e}) – zwracam ''")
+    except Exception as e:
+        print(f"[FitAI] how_to AI: błąd sieciowy/API ({type(e).__name__}: {e}) – zwracam ''")
+
+    _HOW_TO_CACHE[cache_key] = ""
+    return ""
+
+
 def _build_weekly_plan(user: UserDB) -> dict:
     """
     Buduje tygodniowy plan z Carb Cycling + unikalnymi posiłkami i ćwiczeniami
@@ -1130,8 +1217,22 @@ def _build_weekly_plan(user: UserDB) -> dict:
             workout_title = "Odpoczynek / Aktywna regeneracja"
             is_sport_session = False
         elif is_sport_day:
-            workout_items = [
-                {
+            workout_items = []
+            for drill in _sport_drills:
+                how_to = get_how_to(drill["name"], is_drill=True) or drill.get("progression_tip", "")
+                # Jeśli how_to nadal puste i użytkownik ma plan PRO – zapytaj AI
+                if not how_to and _normalize_plan(user.plan or "") == "pro":
+                    import asyncio as _asyncio
+                    try:
+                        how_to = _asyncio.get_event_loop().run_until_complete(
+                            _generate_how_to_ai(drill["name"], sport_context=sport_focus)
+                        )
+                    except RuntimeError:
+                        # Nowa pętla gdy brak bieżącej (np. środowisko sync)
+                        how_to = _asyncio.run(
+                            _generate_how_to_ai(drill["name"], sport_context=sport_focus)
+                        )
+                workout_items.append({
                     "name": drill["name"],
                     "total_attempts": drill["total_attempts"],
                     "description": drill["description"],
@@ -1139,12 +1240,9 @@ def _build_weekly_plan(user: UserDB) -> dict:
                     "sets": "-",
                     "reps": f"{drill['total_attempts']} prób",
                     "notes": drill["description"],
-                    # Szukaj opisu w DRILL_HOW_TO; jeśli brak – użyj progression_tip jako fallback
-                    "how_to": get_how_to(drill["name"], is_drill=True) or drill.get("progression_tip", ""),
+                    "how_to": how_to,
                     "alternatives": [],
-                }
-                for drill in _sport_drills
-            ]
+                })
             spec_label = sport_spec.title() if sport_spec else "Specjalistyczna"
             workout_title = f"Sesja Sportowa – {sport_focus.title()} ({spec_label})"
             is_sport_session = True
@@ -1165,11 +1263,23 @@ def _build_weekly_plan(user: UserDB) -> dict:
                 if complement_keys:
                     comp_key = complement_keys[day_idx % len(complement_keys)]
                     same_group_alts.extend(shuffled_pool.get(comp_key, pool.get(comp_key, []))[:1])
+                how_to = get_how_to(ex["name"], is_drill=False) or ex.get("how_to", "")
+                # Jeśli how_to nadal puste i użytkownik ma plan PRO – zapytaj AI
+                if not how_to and _normalize_plan(user.plan or "") == "pro":
+                    import asyncio as _asyncio
+                    try:
+                        how_to = _asyncio.get_event_loop().run_until_complete(
+                            _generate_how_to_ai(ex["name"], sport_context=sport_focus)
+                        )
+                    except RuntimeError:
+                        how_to = _asyncio.run(
+                            _generate_how_to_ai(ex["name"], sport_context=sport_focus)
+                        )
                 workout_items.append({
                     **ex,
                     # Wzbogać how_to z centralnego słownika; jeśli brak wpisu – zachowaj
                     # wartość z puli (może być już wypełniona) lub ustaw pusty string.
-                    "how_to": get_how_to(ex["name"], is_drill=False) or ex.get("how_to", ""),
+                    "how_to": how_to,
                     "alternatives": [
                         {"name": a["name"], "sets": a["sets"], "reps": a["reps"]}
                         for a in same_group_alts[:3]

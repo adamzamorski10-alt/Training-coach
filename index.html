@@ -320,6 +320,47 @@
       transform: rotate(90deg);
     }
 
+    /* ── Exercise / Drill how-to accordion ───────────────────────────────── */
+    .ex-how-to-panel {
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+      opacity: 0;
+      pointer-events: none;
+      border-left: 2px solid var(--cyan);
+      background: rgba(0, 229, 255, 0.05);
+      border-radius: 0 0 10px 10px;
+      padding: 0 16px;
+      font-size: 0.85rem;
+      color: var(--muted, #64748b);
+      line-height: 1.6;
+    }
+    .ex-how-to-panel.open {
+      max-height: 300px;
+      opacity: 1;
+      pointer-events: auto;
+      padding: 12px 16px;
+    }
+    .ex-row-wrap {
+      cursor: pointer;
+      user-select: none;
+    }
+    .ex-row-wrap:hover .ex-chevron {
+      color: var(--cyan);
+    }
+    .ex-chevron {
+      display: inline-block;
+      font-size: 12px;
+      color: var(--muted, #64748b);
+      transition: transform 0.3s ease, color 0.2s ease;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .ex-chevron.open {
+      transform: rotate(180deg);
+      color: var(--cyan);
+    }
+
     .plan-subnav {
       overflow: hidden;
       max-height: 0;
@@ -8928,23 +8969,30 @@
         const icon = isDrill ? '🏀' : '💪';
 
         return `
-              <div class="flex items-center gap-3 p-3.5 rounded-xl transition-all"
-                style="background:rgba(255,255,255,0.03);border:1px solid ${isDone ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.07)'};opacity:${isDone ? '0.6' : '1'};">
-                <input type="checkbox"
-                  id="ex_check_${i}"
-                  ${isDone ? 'checked' : ''}
-                  onchange="toggleExerciseCheck(${i}, this.checked)"
-                  class="flex-shrink-0 w-4 h-4 accent-cyan-400 cursor-pointer">
-                <span class="text-xs font-bold text-gray-600 w-5 text-center flex-shrink-0">${i + 1}</span>
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-white ${isDone ? 'line-through' : ''} truncate">${icon} ${name}</p>
-                  <p class="text-xs text-gray-500 mt-0.5">${detailLine}</p>
-                  ${tags.length > 0 && !isDrill ? `
-                    <div class="flex gap-1 mt-1 flex-wrap">
-                      ${tags.slice(0, 3).map(t => `<span class="text-xs px-1.5 py-0.5 rounded" style="background:rgba(255,255,255,0.06);color:#9ca3af;">${t}</span>`).join('')}
-                    </div>` : ''}
+              <div class="ex-row-wrap" onclick="toggleExHowTo(this)" id="ex-wrap-${i}">
+                <div class="flex items-center gap-3 p-3.5 rounded-xl transition-all"
+                  style="background:rgba(255,255,255,0.03);border:1px solid ${isDone ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.07)'};opacity:${isDone ? '0.6' : '1'};">
+                  <input type="checkbox"
+                    id="ex_check_${i}"
+                    ${isDone ? 'checked' : ''}
+                    onchange="toggleExerciseCheck(${i}, this.checked)"
+                    onclick="event.stopPropagation()"
+                    class="flex-shrink-0 w-4 h-4 accent-cyan-400 cursor-pointer">
+                  <span class="text-xs font-bold text-gray-600 w-5 text-center flex-shrink-0">${i + 1}</span>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-white ${isDone ? 'line-through' : ''} truncate">${icon} ${name}</p>
+                    <p class="text-xs text-gray-500 mt-0.5">${detailLine}</p>
+                    ${tags.length > 0 && !isDrill ? `
+                      <div class="flex gap-1 mt-1 flex-wrap">
+                        ${tags.slice(0, 3).map(t => `<span class="text-xs px-1.5 py-0.5 rounded" style="background:rgba(255,255,255,0.06);color:#9ca3af;">${t}</span>`).join('')}
+                      </div>` : ''}
+                  </div>
+                  <span class="text-xs px-2 py-0.5 rounded-full flex-shrink-0" style="background:${badgeColor.bg};border:1px solid ${badgeColor.border};color:${badgeColor.color};">${badgeLabel}</span>
+                  <span class="ex-chevron">▾</span>
                 </div>
-                <span class="text-xs px-2 py-0.5 rounded-full flex-shrink-0" style="background:${badgeColor.bg};border:1px solid ${badgeColor.border};color:${badgeColor.color};">${badgeLabel}</span>
+                <div class="ex-how-to-panel exerciseHowToPanel" id="ex-howto-${i}">
+                  🎯 ${(ex.how_to && ex.how_to.trim()) ? ex.how_to.trim() : 'Brak opisu dla tego ćwiczenia.'}
+                </div>
               </div>`;
       }).join('')}
         </div>`;
@@ -9073,6 +9121,34 @@
       }
       if (value == null) return '';
       return String(value).split(',')[0].trim();
+    }
+
+    // ── Exercise / Drill how-to accordion ────────────────────────────────────
+    function toggleExHowTo(wrapEl) {
+      if (!wrapEl) return;
+      const panel = wrapEl.querySelector('.ex-how-to-panel');
+      const chevron = wrapEl.querySelector('.ex-chevron');
+      if (!panel) return;
+
+      const isOpen = panel.classList.contains('open');
+
+      // Zamknij wszystkie inne otwarte panele (tylko jeden otwarty naraz)
+      document.querySelectorAll('.ex-how-to-panel.open').forEach(function(p) {
+        if (p !== panel) {
+          p.classList.remove('open');
+          const ch = p.closest('.ex-row-wrap')?.querySelector('.ex-chevron');
+          if (ch) ch.classList.remove('open');
+        }
+      });
+
+      // Toggle bieżącego
+      if (isOpen) {
+        panel.classList.remove('open');
+        if (chevron) chevron.classList.remove('open');
+      } else {
+        panel.classList.add('open');
+        if (chevron) chevron.classList.add('open');
+      }
     }
 
     function toggleExerciseCheck(index, isChecked) {
@@ -20421,6 +20497,7 @@
     window.updateDashboard = updateDashboard;
     window.renderPlanTraining = renderPlanTraining;
     window.toggleExerciseCheck = toggleExerciseCheck;
+    window.toggleExHowTo = toggleExHowTo;
     window.openPlanBuilderModal = openPlanBuilderModal;
     window.closePlanBuilderModal = closePlanBuilderModal;
     window.applyBuiltPlan = applyBuiltPlan;

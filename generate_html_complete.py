@@ -47,6 +47,7 @@ def main() -> int:
         "toggleDayTimeline",
         "openDrillLogWizard",
         "drillWizardModal",
+        "exerciseHowToPanel",
     ]
     missing = [marker for marker in required_markers if marker not in html]
     if missing:
