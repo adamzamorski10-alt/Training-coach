@@ -132,6 +132,56 @@ def test_day_today_seeds_plan_items(day_tracker_context):
         assert log.get_workouts()
 
 
+def test_day_today_merges_plan_items_into_existing_log(day_tracker_context):
+    with Session(engine) as session:
+        user = session.exec(select(UserDB).where(UserDB.email == day_tracker_context["email"])).first()
+        assert user is not None
+        log = DailyLogDB(
+            user_id=user.id,
+            log_date=date.today(),
+            notes="Existing day note",
+            meals_json="[]",
+            workouts_json="[]",
+        )
+        session.add(log)
+        session.commit()
+
+    response = client.get("/app/day/today", headers=_auth_headers(day_tracker_context["token"]))
+    assert response.status_code == 200
+    payload = response.json()
+
+    assert len(payload["log"]["meals"]) == 2
+    assert len(payload["log"]["workouts"]) == 1
+    assert payload["log"]["notes"] == "Existing day note"
+
+
+def test_day_today_accepts_full_lowercase_day_names(day_tracker_context):
+    full_days = {
+        "Pon": "poniedziałek",
+        "Wt": "wtorek",
+        "Śr": "środa",
+        "Czw": "czwartek",
+        "Pt": "piątek",
+        "Sob": "sobota",
+        "Niedz": "niedziela",
+    }
+    with Session(engine) as session:
+        user = session.exec(select(UserDB).where(UserDB.email == day_tracker_context["email"])).first()
+        assert user is not None
+        plan = user.get_dict("weekly_plan_json")
+        plan["days"][0]["day"] = full_days[day_tracker_context["today_label"]]
+        user.set_dict("weekly_plan_json", plan)
+        session.add(user)
+        session.commit()
+
+    response = client.get("/app/day/today", headers=_auth_headers(day_tracker_context["token"]))
+    assert response.status_code == 200
+    payload = response.json()
+
+    assert len(payload["plan_meals"]) == 2
+    assert len(payload["plan_workouts"]) == 1
+
+
 def test_toggle_meal_increases_macros_and_xp(day_tracker_context):
     today = client.get("/app/day/today", headers=_auth_headers(day_tracker_context["token"])).json()
     meal_id = today["plan_meals"][0]["item_id"]

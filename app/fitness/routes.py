@@ -67,6 +67,28 @@ _DAY_FULL_NAMES_PL = {
     5: "Sobota",
     6: "Niedziela",
 }
+_DAY_ALIASES_PL = {
+    "pon": 0,
+    "poniedzialek": 0,
+    "poniedziałek": 0,
+    "wt": 1,
+    "wto": 1,
+    "wtorek": 1,
+    "sr": 2,
+    "śr": 2,
+    "sroda": 2,
+    "środa": 2,
+    "czw": 3,
+    "czwartek": 3,
+    "pt": 4,
+    "piatek": 4,
+    "piątek": 4,
+    "sob": 5,
+    "sobota": 5,
+    "niedz": 6,
+    "nd": 6,
+    "niedziela": 6,
+}
 
 _SPORT_DRILL_CATALOG: list[dict[str, Any]] = [
     {"name": "Rzuty za linią 3 pkt — runda 5 pozycji", "sport": "koszykówka", "category": "rzuty", "target_pct": 60, "total_attempts": 50},
@@ -178,6 +200,39 @@ def _today_day_labels(target_date: date) -> tuple[str, str]:
     return _DAY_LABELS_PL[target_date.weekday()], _DAY_FULL_NAMES_PL[target_date.weekday()]
 
 
+def _normalize_day_key(value: Any) -> str:
+    return str(value or "").strip().lower().rstrip(".")
+
+
+def _plan_day_matches(value: Any, target_date: date) -> bool:
+    normalized = _normalize_day_key(value)
+    if not normalized:
+        return False
+    if normalized == target_date.isoformat():
+        return True
+    alias_weekday = _DAY_ALIASES_PL.get(normalized)
+    return alias_weekday == target_date.weekday()
+
+
+def _append_missing_plan_items(existing: list[dict[str, Any]], planned: list[dict[str, Any]], normalizer) -> list[dict[str, Any]]:
+    merged = list(existing or [])
+    existing_ids = {str(item.get("item_id") or item.get("id") or "") for item in merged}
+    existing_names = {str(item.get("name") or item.get("exercise_name") or "").strip().lower() for item in merged}
+
+    for item in planned or []:
+        normalized = normalizer(item, source="plan")
+        item_id = str(normalized.get("item_id") or "")
+        name = str(normalized.get("name") or "").strip().lower()
+        if (item_id and item_id in existing_ids) or (name and name in existing_names):
+            continue
+        merged.append(normalized)
+        if item_id:
+            existing_ids.add(item_id)
+        if name:
+            existing_names.add(name)
+    return merged
+
+
 def _ensure_day_log(session: Session, user_id: str, target_date: date) -> DailyLogDB:
     log = session.exec(
         select(DailyLogDB)
@@ -242,7 +297,7 @@ def _extract_plan_items_for_day(weekly_plan: dict, target_date: date) -> tuple[l
         for day_entry in days:
             if not isinstance(day_entry, dict):
                 continue
-            if day_entry.get("day") not in {day_label, day_full, target_date.isoformat()}:
+            if not _plan_day_matches(day_entry.get("day"), target_date):
                 continue
             plan_meals = list(day_entry.get("meals", []) or [])
             workout = day_entry.get("workout", {}) or {}
@@ -255,12 +310,22 @@ def _extract_plan_items_for_day(weekly_plan: dict, target_date: date) -> tuple[l
     if not plan_meals:
         diet = weekly_plan.get("diet", {})
         if isinstance(diet, dict):
-            plan_meals = list(diet.get(day_label) or diet.get(day_full) or [])
+            plan_meals = list(
+                diet.get(day_label)
+                or diet.get(day_full)
+                or next((items for key, items in diet.items() if _plan_day_matches(key, target_date)), [])
+                or []
+            )
 
     if not plan_workouts:
         training = weekly_plan.get("training", {})
         if isinstance(training, dict):
-            day_training = training.get(day_label) or training.get(day_full) or []
+            day_training = (
+                training.get(day_label)
+                or training.get(day_full)
+                or next((items for key, items in training.items() if _plan_day_matches(key, target_date)), [])
+                or []
+            )
             if isinstance(day_training, dict):
                 plan_workouts = list(day_training.get("exercises", []) or [])
             elif isinstance(day_training, list):
@@ -337,10 +402,10 @@ def get_today_day_tracker(
     weekly_plan = _safe_weekly_plan(user.weekly_plan_json)
     plan_meals_raw, plan_workouts_raw = _extract_plan_items_for_day(weekly_plan, target_date)
 
-    if not log.get_meals() and plan_meals_raw:
-        log.set_meals([_normalize_day_meal(item, source="plan") for item in plan_meals_raw])
-    if not log.get_workouts() and plan_workouts_raw:
-        log.set_workouts([_normalize_day_workout(item, source="plan") for item in plan_workouts_raw])
+    if plan_meals_raw:
+        log.set_meals(_append_missing_plan_items(log.get_meals(), plan_meals_raw, _normalize_day_meal))
+    if plan_workouts_raw:
+        log.set_workouts(_append_missing_plan_items(log.get_workouts(), plan_workouts_raw, _normalize_day_workout))
 
     kcal_consumed, protein_consumed = _sync_day_log_fields(log)
     session.add(log)

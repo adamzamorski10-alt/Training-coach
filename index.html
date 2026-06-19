@@ -24897,16 +24897,20 @@
       }
 
       function _dayTrackerSyncFromLog(log, planMeals, planWorkouts) {
-        const meals = [
+        const loggedMeals = [
           ...(Array.isArray(log?.meals) ? log.meals : []),
           ...(Array.isArray(log?.custom_meals) ? log.custom_meals : []),
-        ].map(_dayTrackerNormalizeMeal);
-        const workouts = (Array.isArray(log?.workouts) ? log.workouts : []).map(_dayTrackerNormalizeWorkout);
+        ];
+        const loggedWorkouts = Array.isArray(log?.workouts) ? log.workouts : [];
+        const normalizedPlanMeals = Array.isArray(planMeals) ? planMeals.map(_dayTrackerNormalizeMeal) : [];
+        const normalizedPlanWorkouts = Array.isArray(planWorkouts) ? planWorkouts.map(_dayTrackerNormalizeWorkout) : [];
+        const meals = (loggedMeals.length ? loggedMeals.map(_dayTrackerNormalizeMeal) : normalizedPlanMeals);
+        const workouts = (loggedWorkouts.length ? loggedWorkouts.map(_dayTrackerNormalizeWorkout) : normalizedPlanWorkouts);
 
         _dayTrackerState.currentDate = log?.date || new Date().toISOString().slice(0, 10);
         _dayTrackerState.log = log || null;
-        _dayTrackerState.planMeals = Array.isArray(planMeals) ? planMeals.map(_dayTrackerNormalizeMeal) : [];
-        _dayTrackerState.planWorkouts = Array.isArray(planWorkouts) ? planWorkouts.map(_dayTrackerNormalizeWorkout) : [];
+        _dayTrackerState.planMeals = normalizedPlanMeals;
+        _dayTrackerState.planWorkouts = normalizedPlanWorkouts;
         _dayTrackerState.kcalConsumed = Number(log?.kcal_consumed ?? 0) || 0;
         _dayTrackerState.proteinConsumed = Number(log?.protein_consumed ?? 0) || 0;
 
