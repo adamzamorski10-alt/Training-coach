@@ -50,12 +50,21 @@ def main() -> int:
         "exerciseHowToPanel",
         "exerciseDetailModal",
         "openExerciseDetailModal",
+        "discordConnectSection",
+        "reminderTimeInput",
     ]
     missing = [marker for marker in required_markers if marker not in html]
     if missing:
         print(f"⚠️ Brak sekcji UI: {', '.join(missing)}")
     else:
         print("✅ Sekcje Mój Dzień i Sport: PR + oś czasu + drill modal obecne")
+
+    discord_markers = ["discordConnectSection", "reminderTimeInput", "ptab-discord", "discordConnectCode"]
+    missing_discord = [m for m in discord_markers if m not in html]
+    if missing_discord:
+        print(f"⚠️ Brak sekcji Discord: {', '.join(missing_discord)}")
+    else:
+        print("✅ Sekcja Discord Przypomnienia: wszystkie markery obecne")
 
     if size_kb < 200:
         print("⚠️ OSTRZEŻENIE: plik jest bardzo mały - sprawdź czy bazy danych są dołączone")
