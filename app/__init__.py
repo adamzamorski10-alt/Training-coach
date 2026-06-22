@@ -27,10 +27,12 @@ from slowapi.errors import RateLimitExceeded
 from app.auth import _rate_limit_key
 from app.auth.routes import router as auth_router
 from app.health.routes import router as health_router
-from app.config import CORS_ORIGINS, APP_NAME, APP_VERSION, DEBUG
+from app.config import CORS_ORIGINS, APP_NAME, APP_VERSION, DEBUG, DISCORD_TOKEN
 from app.database import create_db_and_tables
 from app.legacy_routes import router as legacy_router
 from app.meta.routes import router as meta_router
+from app.notifications.discord_bot import bot as discord_bot
+from app.notifications.routes import router as notifications_router
 from app.plan.routes import router as plan_router
 
 # Eager bootstrap so older SQLite workspaces get missing columns before the first request.
@@ -70,6 +72,7 @@ from app.ai.routes import router as ai_router
 app.include_router(fitness_router)
 app.include_router(ai_router)
 app.include_router(meta_router)
+app.include_router(notifications_router)
 app.include_router(plan_router)
 app.include_router(legacy_router)
 
@@ -150,9 +153,32 @@ async def serve_spa(path: str):
     return JSONResponse({"error": "Frontend not found"}, status_code=404)
 
 
-# Startup events
+# ─── Startup / Shutdown ───────────────────────────────────────────────────────
+
+import asyncio
+
 @app.on_event("startup")
 async def on_startup():
-    """Initialize database and migrations."""
+    """Initialize database and start Discord bot (if token is configured)."""
     create_db_and_tables()
     print(f"[{APP_NAME}] Database initialized at startup")
+
+    if DISCORD_TOKEN:
+        async def _run_bot() -> None:
+            try:
+                await discord_bot.start(DISCORD_TOKEN)
+            except Exception as exc:
+                print(f"[{APP_NAME}] OSTRZEŻENIE: Bot Discord zakończył się błędem: {exc}")
+
+        asyncio.create_task(_run_bot())
+        print(f"[{APP_NAME}] Discord bot uruchomiony w tle.")
+    else:
+        print(f"[{APP_NAME}] OSTRZEŻENIE: DISCORD_TOKEN nie ustawiony — bot Discord nie startuje.")
+
+
+@app.on_event("shutdown")
+async def on_shutdown():
+    """Graceful shutdown — zamknij połączenie bota Discord."""
+    if DISCORD_TOKEN and not discord_bot.is_closed():
+        await discord_bot.close()
+        print(f"[{APP_NAME}] Discord bot zatrzymany.")

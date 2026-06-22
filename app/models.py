@@ -45,7 +45,37 @@ class UserDB(SQLModel, table=True):
     protein_target: int = 0
     streak_days: int = 0
     linked_discord_id: Optional[str] = None
-    # JSON-encoded lists/dicts – SQLite nie ma ARRAY
+
+    # ─── Discord Integration & Reminders ──────────────────────────────────────
+    # Pola obsługują parowanie konta Discord (przez tymczasowy kod) oraz
+    # harmonogram codziennych przypomnień o treningu wysyłanych przez DM.
+
+    discord_user_id: Optional[str] = None
+    # ID użytkownika Discord (snowflake jako string) po pomyślnym połączeniu kont.
+    # None = konto nie połączone.
+
+    discord_connect_code: Optional[str] = None
+    # Tymczasowy kod parujący generowany przy żądaniu połączenia, np. "FIT-7K2M".
+    # Użytkownik wpisuje go w kanale Discord; po weryfikacji pole jest zerowane.
+
+    discord_connect_code_expires_at: Optional[datetime] = None
+    # Czas wygaśnięcia kodu parującego (UTC). Typowo: now() + 10 minut.
+    # Po wygaśnięciu kod jest traktowany jak nieistniejący.
+
+    reminder_time: Optional[str] = None
+    # Godzina wysyłania codziennego przypomnienia o treningu w formacie "HH:MM",
+    # np. "18:00". Wartość None oznacza brak ustawionej godziny.
+
+    reminder_enabled: bool = False
+    # Czy przypomnienia Discord DM są aktywne dla tego konta.
+    # Wymaga ustawionego discord_user_id oraz reminder_time.
+
+    last_reminder_sent_date: Optional[date] = None
+    # Data (bez czasu) ostatnio wysłanego przypomnienia.
+    # Używana przez scheduler do deduplicacji — nie wysyłamy dwa razy tego samego dnia.
+
+    # ─── JSON-encoded lists/dicts ─────────────────────────────────────────────
+    # SQLite nie ma ARRAY
     sports_json: str = "[]"
     training_focus_json: str = "[]"
     improvement_areas_json: str = "[]"

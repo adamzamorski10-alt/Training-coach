@@ -114,6 +114,12 @@ def _ensure_legacy_sqlite_columns():
         "users": {
             "nickname": "TEXT",
             "user_number": "INTEGER",       # ← DODAJ
+            "discord_user_id": "TEXT",
+            "discord_connect_code": "TEXT",
+            "discord_connect_code_expires_at": "TEXT",
+            "reminder_time": "TEXT",
+            "reminder_enabled": "INTEGER DEFAULT 0",
+            "last_reminder_sent_date": "TEXT",
         },
         "daily_logs": {
             "meals_json": "TEXT DEFAULT '[]'",

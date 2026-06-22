@@ -37,6 +37,21 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 AI_PROVIDER = os.getenv("AI_PROVIDER", "groq")  # "groq" lub "gemini"
 
+# ─── Discord ───────────────────────────────────────────────────────────────────
+DISCORD_TOKEN: str = os.getenv("DISCORD_TOKEN", "")  # pusty = bot nie startuje (dev bez tokena)
+
+# ─── Cron / Scheduler ─────────────────────────────────────────────────────────
+_cron_secret = os.getenv("CRON_SECRET", "")
+if not _cron_secret:
+    import sys as _sys
+    if os.getenv("ENV", "development") == "production":
+        print("KRYTYCZNY BŁĄD: CRON_SECRET nie jest ustawiony w produkcji!", file=_sys.stderr)
+        _sys.exit(1)
+    else:
+        _cron_secret = secrets.token_hex(16)
+        print(f"OSTRZEŻENIE: CRON_SECRET nie ustawiony — używam losowego klucza (tylko dev!): {_cron_secret}")
+CRON_SECRET: str = _cron_secret
+
 # ─── Nutrition Constants ──────────────────────────────────────────────────────
 # XP system
 _XP_CHECKIN = 10
