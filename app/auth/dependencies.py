@@ -56,6 +56,17 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     payload = decode_token(credentials.credentials)
+
+    # Odrzuć refresh tokeny użyte jako access token.
+    # type == None = stare tokeny bez pola (kompatybilność wsteczna) — OK.
+    token_type = payload.get("type")
+    if token_type is not None and token_type != "access":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Nieprawidłowy typ tokenu — użyj access token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     user_id = payload["sub"]   # UUID string
     with Session(engine) as session:
         user = session.get(UserDB, user_id)
